@@ -20,11 +20,23 @@
 
 #pragma once
 
-#define DEBUG16_VALUE_COUNT 4
-extern int16_t debug[DEBUG16_VALUE_COUNT];
-extern uint8_t debugMode;
+#include "platform.h"
 
-#define DEBUG_SET(mode, index, value) do { if (debugMode == (mode)) { debug[(index)] = (value); } } while (0)
+#define DEBUG_VALUE_COUNT 8
+
+extern FAST_DATA_ZERO_INIT uint8_t debugAxis;
+extern FAST_DATA_ZERO_INIT uint8_t debugMode;
+
+extern FAST_DATA_ZERO_INIT int32_t debug[DEBUG_VALUE_COUNT];
+
+#define DEBUG_SET(mode, index, value)             do { if (debugMode == (mode)) { debug[(index)] = (value); } } while (0)
+#define DEBUG_AXIS_SET(mode, axis, index, value)  do { if (debugAxis == (axis) && debugMode == (mode)) { debug[(index)] = (value); } } while (0)
+#define DEBUG_COND_SET(mode, cond, index, value)  do { if ((cond) && debugMode == (mode)) { debug[(index)] = (value); } } while (0)
+
+#define DEBUG(mode, index, value)                 DEBUG_SET(DEBUG_ ## mode, index, value)
+#define DEBUG_AXIS(mode, axis, index, value)      DEBUG_AXIS_SET(DEBUG_ ## mode, axis, index, value)
+#define DEBUG_COND(mode, cond, index, value)      DEBUG_COND_SET(DEBUG_ ## mode, cond, index, value)
+
 
 typedef enum {
     DEBUG_NONE,
