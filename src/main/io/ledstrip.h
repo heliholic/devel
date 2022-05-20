@@ -99,8 +99,6 @@ typedef enum {
     LED_MODE_ORIENTATION = 0,
     LED_MODE_HORIZON,
     LED_MODE_ANGLE,
-    LED_MODE_MAG,
-    LED_MODE_BARO,
     LED_SPECIAL,
     LED_AUX_CHANNEL
 } ledModeIndex_e;
