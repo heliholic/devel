@@ -695,7 +695,6 @@ void init(void)
 
 #ifdef USE_SERVOS
     servosInit();
-    servoDevInit(&servoConfig()->dev);
 #endif
 
 #ifdef USE_PINIO
