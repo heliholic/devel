@@ -696,9 +696,7 @@ void init(void)
 
 #ifdef USE_SERVOS
     servosInit();
-    if (isMixerUsingServos()) {
-        servoDevInit(&servoConfig()->dev);
-    }
+    servoDevInit(&servoConfig()->dev, 0); // RTFL getServoCount());
     servosFilterInit();
 #endif
 
