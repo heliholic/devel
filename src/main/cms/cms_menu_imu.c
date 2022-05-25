@@ -338,7 +338,6 @@ static const void *cmsx_profileOtherOnExit(displayPort_t *pDisp, const OSD_Entry
     pidProfile->iterm_relax_cutoff = cmsx_iterm_relax_cutoff;
 #endif
 
-    initEscEndpoints();
     return NULL;
 }
 
