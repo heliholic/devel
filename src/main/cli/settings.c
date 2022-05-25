@@ -486,6 +486,10 @@ static const char* const lookupTableSwitchMode[] = {
 };
 #endif
 
+static const char * const lookupTableRotationDir[] = {
+    "CW", "CCW",
+};
+
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
 const lookupTableEntry_t lookupTables[] = {
@@ -597,6 +601,8 @@ const lookupTableEntry_t lookupTables[] = {
     LOOKUP_TABLE_ENTRY(lookupTableFreqDomain),
     LOOKUP_TABLE_ENTRY(lookupTableSwitchMode),
 #endif
+
+    LOOKUP_TABLE_ENTRY(lookupTableRotationDir),
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -862,6 +868,8 @@ const clivalue_t valueTable[] = {
 #endif // USE_BEEPER
 
 // PG_MIXER_CONFIG
+    { "main_rotor_dir",             VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ROTATION_DIR }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, main_rotor_dir) },
+    { "swash_ring",                 VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_ring) },
 
 // PG_SERVO_CONFIG
 #ifdef USE_SERVOS
