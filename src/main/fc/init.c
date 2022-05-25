@@ -695,9 +695,7 @@ void init(void)
     mixerInitProfile();
 
 #ifdef USE_SERVOS
-    servosInit();
-    servoDevInit(&servoConfig()->dev, 0); // RTFL getServoCount());
-    servosFilterInit();
+    servoInit();
 #endif
 
 #ifdef USE_PINIO
