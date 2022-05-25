@@ -23,28 +23,3 @@
 #include "platform.h"
 
 #include "flight/mixer.h"
-
-
-typedef struct mixerRuntime_s {
-    uint8_t motorCount;
-    motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
-    bool feature3dEnabled;
-    float motorOutputLow;
-    float motorOutputHigh;
-    float disarmMotorOutput;
-    float deadbandMotor3dHigh;
-    float deadbandMotor3dLow;
-#ifdef USE_DYN_IDLE
-    float dynIdleMaxIncrease;
-    float idleThrottleOffset;
-    float dynIdleMinRps;
-    float dynIdlePGain;
-    float prevMinRps;
-    float dynIdleIGain;
-    float dynIdleDGain;
-    float dynIdleI;
-    float minRpsDelayK;
-#endif
-} mixerRuntime_t;
-
-extern mixerRuntime_t mixerRuntime;
