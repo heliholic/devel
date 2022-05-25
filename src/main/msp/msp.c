@@ -2663,7 +2663,6 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             sbufReadU8(src);
         }
         pidInitConfig(currentPidProfile);
-        mixerInitProfile();
 
         break;
     case MSP_SET_SENSOR_CONFIG:
