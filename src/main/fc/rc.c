@@ -62,8 +62,10 @@ static float oldRcCommand[XYZ_AXIS_COUNT];
 static bool isDuplicate[XYZ_AXIS_COUNT];
 float rcCommandDelta[XYZ_AXIS_COUNT];
 #endif
-static float rawSetpoint[XYZ_AXIS_COUNT];
-static float setpointRate[3], rcDeflection[3], rcDeflectionAbs[3];
+
+static float rawSetpoint[4];
+static float setpointRate[4];
+static float rcDeflection[4], rcDeflectionAbs[4];
 static applyRatesFn *applyRates;
 static uint16_t currentRxRefreshRate;
 static bool isRxDataNew = false;
@@ -72,13 +74,6 @@ static float rcCommandDivider = 500.0f;
 static float rcCommandYawDivider = 500.0f;
 
 static FAST_DATA_ZERO_INIT bool newRxDataForFF;
-
-enum {
-    ROLL_FLAG = 1 << ROLL,
-    PITCH_FLAG = 1 << PITCH,
-    YAW_FLAG = 1 << YAW,
-    THROTTLE_FLAG = 1 << THROTTLE,
-};
 
 #ifdef USE_RC_SMOOTHING_FILTER
 #define RC_SMOOTHING_CUTOFF_MIN_HZ              15    // Minimum rc smoothing cutoff frequency
@@ -368,7 +363,7 @@ FAST_CODE_NOINLINE bool rcSmoothingAutoCalculate(void)
 
 static FAST_CODE void processRcSmoothingFilter(void)
 {
-    static FAST_DATA_ZERO_INIT float rxDataToSmooth[4];
+    static FAST_DATA_ZERO_INIT float rxDataToSmooth[5];
     static FAST_DATA_ZERO_INIT bool initialized;
     static FAST_DATA_ZERO_INIT timeMs_t validRxFrameTimeMs;
     static FAST_DATA_ZERO_INIT bool calculateCutoffs;
@@ -468,14 +463,11 @@ static FAST_CODE void processRcSmoothingFilter(void)
             DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 3, sampleState);                       // indicates whether guard time is active
         }
         // Get new values to be smoothed
-        for (int i = 0; i < PRIMARY_CHANNEL_COUNT; i++) {
-            rxDataToSmooth[i] = i == THROTTLE ? rcCommand[i] : rawSetpoint[i];
-            if (i < THROTTLE) {
-                DEBUG_SET(DEBUG_RC_INTERPOLATION, i, lrintf(rxDataToSmooth[i]));
-            } else {
-                DEBUG_SET(DEBUG_RC_INTERPOLATION, i, ((lrintf(rxDataToSmooth[i])) - 1000));
-            }
+        for (int i = 0; i < 4; i++) {
+            rxDataToSmooth[i] = rawSetpoint[i];
+            DEBUG_SET(DEBUG_RC_INTERPOLATION, i, lrintf(rxDataToSmooth[i]));
         }
+        rxDataToSmooth[THROTTLE] = rcCommand[THROTTLE];
     }
 
     if (rcSmoothingData.filterInitialized && (debugMode == DEBUG_RC_SMOOTHING)) {
@@ -485,14 +477,17 @@ static FAST_CODE void processRcSmoothingFilter(void)
     }
 
     // each pid loop, apply the last received channel value to the filter, if initialised - thanks @klutvott
-    for (int i = 0; i < PRIMARY_CHANNEL_COUNT; i++) {
-        float *dst = i == THROTTLE ? &rcCommand[i] : &setpointRate[i];
-        if (rcSmoothingData.filterInitialized) {
-            *dst = pt3FilterApply(&rcSmoothingData.filter[i], rxDataToSmooth[i]);
-        } else {
-            // If filter isn't initialized yet, as in smoothing off, use the actual unsmoothed rx channel data
-            *dst = rxDataToSmooth[i];
+    if (rcSmoothingData.filterInitialized) {
+        for (int i = 0; i < 4; i++) {
+            setpointRate[i] = pt3FilterApply(&rcSmoothingData.filter[i], rxDataToSmooth[i]);
         }
+        rcCommand[THROTTLE] = pt3FilterApply(&rcSmoothingData.filter[THROTTLE], rxDataToSmooth[THROTTLE]);
+    } else {
+        // If filter isn't initialized yet, as in smoothing off, use the actual unsmoothed rx channel data
+        for (int i = 0; i < 4; i++) {
+            setpointRate[i] = rxDataToSmooth[i];
+        }
+        rcCommand[THROTTLE] = rxDataToSmooth[THROTTLE];
     }
 
     // for ANGLE and HORIZON, smooth rcDeflection on pitch and roll to avoid setpoint steps
@@ -567,9 +562,7 @@ FAST_CODE_NOINLINE void updateRcCommands(void)
 {
     isRxDataNew = true;
 
-    for (int axis = 0; axis < 3; axis++) {
-        // non coupled PID reduction scaler used in PID controller 1 and PID controller 2.
-
+    for (int axis = 0; axis < 4; axis++) {
         float tmp = MIN(ABS(rcData[axis] - rxConfig()->midrc), 500);
         if (axis == ROLL || axis == PITCH) {
             if (tmp > rcControlsConfig()->deadband) {
@@ -578,28 +571,22 @@ FAST_CODE_NOINLINE void updateRcCommands(void)
                 tmp = 0;
             }
             rcCommand[axis] = tmp;
-        } else {
+        } else if (axis == YAW) {
             if (tmp > rcControlsConfig()->yaw_deadband) {
                 tmp -= rcControlsConfig()->yaw_deadband;
             } else {
                 tmp = 0;
             }
             rcCommand[axis] = tmp * -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
+        } else {
+            rcCommand[axis] = tmp;
         }
         if (rcData[axis] < rxConfig()->midrc) {
             rcCommand[axis] = -rcCommand[axis];
         }
     }
 
-    int32_t tmp;
-    tmp = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
-    tmp = (uint32_t)(tmp - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);
-
-    if (getLowVoltageCutoff()->enabled) {
-        tmp = tmp * getLowVoltageCutoff()->percentage / 100;
-    }
-
-    rcCommand[THROTTLE] = tmp;
+    rcCommand[THROTTLE] = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
 }
 
 void resetYawAxis(void)
