@@ -136,8 +136,6 @@ extern volatile bool coreProReady;
 static uint8_t activeBoxIds[CHECKBOX_ITEM_COUNT];
 // this is the number of filled indexes in above array
 static uint8_t activeBoxIdCount = 0;
-// from mixer.c
-extern float motor_disarmed[MAX_SUPPORTED_MOTORS];
 
 // cause reboot after BST processing complete
 static bool isRebootScheduled = false;
