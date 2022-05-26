@@ -29,6 +29,7 @@
 
 #include "flight/servos.h"
 #include "flight/motors.h"
+#include "flight/governor.h"
 
 
 typedef enum {
@@ -173,4 +174,3 @@ static inline int mixerRotationSign() { return (mixerConfig()->main_rotor_dir ==
 
 // Compat:
 static inline float getPidSum(int axis) { UNUSED(axis); return 0; }
-static inline float getHeadSpeed(void) { return 0; }
