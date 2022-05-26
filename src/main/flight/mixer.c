@@ -39,6 +39,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/governor.h"
 
 #include "rx/rx.h"
 
@@ -158,10 +159,10 @@ static void mixerUpdateInputs(void)
     mixerCyclicLimit();
 
     // Update governor sub-mixer
-    //governorUpdate();
+    governorUpdate();
 
     // Update throttle from governor
-    mixerSetInput(MIXER_IN_STABILIZED_THROTTLE, 0); // getGovernorOutput());
+    mixerSetInput(MIXER_IN_STABILIZED_THROTTLE, getGovernorOutput());
 }
 
 void mixerUpdate(void)
