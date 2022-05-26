@@ -29,6 +29,7 @@
 
 #include "flight/servos.h"
 #include "flight/motors.h"
+#include "flight/governor.h"
 
 
 typedef enum {
