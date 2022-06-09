@@ -176,15 +176,6 @@ typedef struct pidRuntime_s {
     uint8_t rcSmoothingFilterType;
 #endif // USE_RC_SMOOTHING_FILTER
 
-#ifdef USE_ACRO_TRAINER
-    float acroTrainerAngleLimit;
-    float acroTrainerLookaheadTime;
-    uint8_t acroTrainerDebugAxis;
-    float acroTrainerGain;
-    bool acroTrainerActive;
-    int acroTrainerAxisState[2];  // only need roll and pitch
-#endif
-
 #ifdef USE_DYN_LPF
     uint8_t dynLpfFilter;
     uint16_t dynLpfMin;
@@ -207,8 +198,6 @@ extern pt1Filter_t throttleLpf;
 void resetPidProfile(pidProfile_t *profile);
 
 void pidResetIterm(void);
-void pidAcroTrainerInit(void);
-void pidSetAcroTrainerState(bool newState);
 
 #ifdef UNIT_TEST
 #include "sensors/acceleration.h"
