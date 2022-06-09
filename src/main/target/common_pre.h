@@ -164,6 +164,7 @@
 #define FAST_IRQ_HANDLER
 #endif
 
+#define INIT_CODE                   __attribute__((optimize("-Os")))
 
 #ifdef USE_ITCM_RAM
 #if defined(ITCM_RAM_OPTIMISATION) && !defined(DEBUG)
