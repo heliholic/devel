@@ -38,6 +38,7 @@
 
 #include "flight/feedforward.h"
 #include "flight/pid.h"
+#include "flight/trainer.h"
 #include "flight/rpm_filter.h"
 
 #include "sensors/gyro.h"
@@ -234,11 +235,8 @@ void pidInitConfig(const pidProfile_t *pidProfile)
     pidRuntime.itermRotation = pidProfile->iterm_rotation;
 
 #ifdef USE_ACRO_TRAINER
-    pidRuntime.acroTrainerAngleLimit = pidProfile->acro_trainer_angle_limit;
-    pidRuntime.acroTrainerLookaheadTime = (float)pidProfile->acro_trainer_lookahead_ms / 1000.0f;
-    pidRuntime.acroTrainerDebugAxis = pidProfile->acro_trainer_debug_axis;
-    pidRuntime.acroTrainerGain = (float)pidProfile->acro_trainer_gain / 10.0f;
-#endif // USE_ACRO_TRAINER
+    acroTrainerInit(pidProfile);
+#endif
 
 #ifdef USE_DYN_LPF
     if (pidProfile->dterm_lpf1_dyn_min_hz > 0) {
