@@ -240,8 +240,6 @@ extern pt1Filter_t throttleLpf;
 void resetPidProfile(pidProfile_t *profile);
 
 void pidResetIterm(void);
-void pidAcroTrainerInit(void);
-void pidSetAcroTrainerState(bool newState);
 
 #ifdef UNIT_TEST
 #include "sensors/acceleration.h"
