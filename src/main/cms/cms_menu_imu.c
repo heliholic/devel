@@ -443,13 +443,12 @@ static const void *cmsx_menuDynFilt_onEnter(displayPort_t *pDisp)
     dynFiltNotchMinHz   = dynNotchConfig()->dyn_notch_min_hz;
 #endif
 #ifdef USE_DYN_LPF
-    const pidProfile_t *pidProfile = pidProfiles(pidProfileIndex);
-    gyroLpfDynMin   = gyroConfig()->gyro_lpf1_dyn_min_hz;
-    gyroLpfDynMax   = gyroConfig()->gyro_lpf1_dyn_max_hz;
-    gyroLpfDynExpo  = gyroConfig()->gyro_lpf1_dyn_expo;
-    dtermLpfDynMin  = pidProfile->dterm_lpf1_dyn_min_hz;
-    dtermLpfDynMax  = pidProfile->dterm_lpf1_dyn_max_hz;
-    dtermLpfDynExpo = pidProfile->dterm_lpf1_dyn_expo;
+    gyroLpfDynMin       = gyroConfig()->gyro_lpf1_dyn_min_hz;
+    gyroLpfDynMax       = gyroConfig()->gyro_lpf1_dyn_max_hz;
+    gyroLpfDynExpo      = gyroConfig()->gyro_lpf1_dyn_expo;
+    dtermLpfDynMin      = gyroConfig()->dterm_lpf1_dyn_min_hz;
+    dtermLpfDynMax      = gyroConfig()->dterm_lpf1_dyn_max_hz;
+    dtermLpfDynExpo     = gyroConfig()->dterm_lpf1_dyn_expo;
 #endif
 
     return NULL;
@@ -467,13 +466,12 @@ static const void *cmsx_menuDynFilt_onExit(displayPort_t *pDisp, const OSD_Entry
     dynNotchConfigMutable()->dyn_notch_min_hz        = dynFiltNotchMinHz;
 #endif
 #ifdef USE_DYN_LPF
-    pidProfile_t *pidProfile = currentPidProfile;
-    gyroConfigMutable()->gyro_lpf1_dyn_min_hz = gyroLpfDynMin;
-    gyroConfigMutable()->gyro_lpf1_dyn_max_hz = gyroLpfDynMax;
-    gyroConfigMutable()->gyro_lpf1_dyn_expo   = gyroLpfDynExpo;
-    pidProfile->dterm_lpf1_dyn_min_hz         = dtermLpfDynMin;
-    pidProfile->dterm_lpf1_dyn_max_hz         = dtermLpfDynMax;
-    pidProfile->dterm_lpf1_dyn_expo           = dtermLpfDynExpo;
+    gyroConfigMutable()->gyro_lpf1_dyn_min_hz        = gyroLpfDynMin;
+    gyroConfigMutable()->gyro_lpf1_dyn_max_hz        = gyroLpfDynMax;
+    gyroConfigMutable()->gyro_lpf1_dyn_expo          = gyroLpfDynExpo;
+    gyroConfigMutable()->dterm_lpf1_dyn_min_hz       = dtermLpfDynMin;
+    gyroConfigMutable()->dterm_lpf1_dyn_max_hz       = dtermLpfDynMax;
+    gyroConfigMutable()->dterm_lpf1_dyn_expo         = dtermLpfDynExpo;
 #endif
 
     return NULL;
@@ -525,12 +523,10 @@ static const void *cmsx_FilterPerProfileRead(displayPort_t *pDisp)
 {
     UNUSED(pDisp);
 
-    const pidProfile_t *pidProfile = pidProfiles(pidProfileIndex);
-
-    cmsx_dterm_lpf1_static_hz   = pidProfile->dterm_lpf1_static_hz;
-    cmsx_dterm_lpf2_static_hz   = pidProfile->dterm_lpf2_static_hz;
-    cmsx_dterm_notch_hz         = pidProfile->dterm_notch_hz;
-    cmsx_dterm_notch_cutoff     = pidProfile->dterm_notch_cutoff;
+    cmsx_dterm_lpf1_static_hz   = gyroConfig()->dterm_lpf1_static_hz;
+    cmsx_dterm_lpf2_static_hz   = gyroConfig()->dterm_lpf2_static_hz;
+    cmsx_dterm_notch_hz         = gyroConfig()->dterm_notch_hz;
+    cmsx_dterm_notch_cutoff     = gyroConfig()->dterm_notch_cutoff;
 
     return NULL;
 }
@@ -540,12 +536,10 @@ static const void *cmsx_FilterPerProfileWriteback(displayPort_t *pDisp, const OS
     UNUSED(pDisp);
     UNUSED(self);
 
-    pidProfile_t *pidProfile = currentPidProfile;
-
-    pidProfile->dterm_lpf1_static_hz  = cmsx_dterm_lpf1_static_hz;
-    pidProfile->dterm_lpf2_static_hz  = cmsx_dterm_lpf2_static_hz;
-    pidProfile->dterm_notch_hz        = cmsx_dterm_notch_hz;
-    pidProfile->dterm_notch_cutoff    = cmsx_dterm_notch_cutoff;
+    gyroConfigMutable()->dterm_lpf1_static_hz  = cmsx_dterm_lpf1_static_hz;
+    gyroConfigMutable()->dterm_lpf2_static_hz  = cmsx_dterm_lpf2_static_hz;
+    gyroConfigMutable()->dterm_notch_hz        = cmsx_dterm_notch_hz;
+    gyroConfigMutable()->dterm_notch_cutoff    = cmsx_dterm_notch_cutoff;
 
     return NULL;
 }
