@@ -5304,8 +5304,8 @@ static void cliRcSmoothing(const char *cmdName, char *cmdline)
         } else {
             cliPrintLine("(auto)");
         }
-        cliPrintf("# Active FF cutoff: %dhz ", rcSmoothingData->feedforwardCutoffFrequency);
-        if (rcSmoothingData->ffCutoffSetting) {
+        cliPrintf("# Active setpoint delta cutoff: %dhz ", rcSmoothingData->setpointDeltaCutoffFrequency);
+        if (rcSmoothingData->setpointDeltaCutoffSetting) {
             cliPrintLine("(manual)");
         } else {
             cliPrintLine("(auto)");
