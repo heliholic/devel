@@ -159,12 +159,6 @@ typedef struct pidRuntime_s {
     filterApplyFnPtr dtermLowpass2ApplyFn;
     dtermLowpass_t dtermLowpass2[XYZ_AXIS_COUNT];
     pidCoefficient_t pidCoefficient[XYZ_AXIS_COUNT];
-    float levelGain;
-    float horizonGain;
-    float horizonTransition;
-    float horizonCutoffDegrees;
-    float horizonFactorRatio;
-    uint8_t horizonTiltExpertMode;
     float maxVelocity[XYZ_AXIS_COUNT];
     float itermLimit;
     bool itermRotation;
@@ -203,8 +197,6 @@ void pidResetIterm(void);
 #include "sensors/acceleration.h"
 extern float axisError[XYZ_AXIS_COUNT];
 void rotateItermAndAxisError();
-float pidLevel(int axis, const pidProfile_t *pidProfile,
-    const rollAndPitchTrims_t *angleTrim, float currentPidSetpoint);
 float calcHorizonLevelStrength(void);
 #endif
 void dynLpfDTermUpdate(float throttle);
