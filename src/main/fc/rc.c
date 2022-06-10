@@ -77,10 +77,11 @@ static FAST_DATA_ZERO_INIT bool newRxDataForFF;
 #define RC_SMOOTHING_FILTER_TRAINING_DELAY_MS   1000  // Additional time to wait after receiving first valid rx frame before initial training starts
 #define RC_SMOOTHING_FILTER_RETRAINING_DELAY_MS 2000  // Guard time to wait after retraining to prevent retraining again too quickly
 #define RC_SMOOTHING_RX_RATE_CHANGE_PERCENT     20    // Look for samples varying this much from the current detected frame rate to initiate retraining
-#define RC_SMOOTHING_FEEDFORWARD_INITIAL_HZ     100 // The value to use for "auto" when interpolated feedforward is enabled
+#define RC_SMOOTHING_SP_DELTA_INITIAL_HZ        100   // The value to use for "auto"
 
 static FAST_DATA_ZERO_INIT rcSmoothingFilter_t rcSmoothingData;
 static float rcDeflectionSmoothed[3];
+
 #endif // USE_RC_SMOOTHING_FILTER
 
 #define RC_RX_RATE_MIN_US                       950   // 0.950ms to fit 1kHz without an issue
@@ -287,21 +288,21 @@ FAST_CODE_NOINLINE void rcSmoothingSetFilterCutoffs(rcSmoothingFilter_t *smoothi
         }
     }
 
-    // update or initialize the FF filter
-    oldCutoff = smoothingData->feedforwardCutoffFrequency;
-    if (rcSmoothingData.ffCutoffSetting == 0) {
-        smoothingData->feedforwardCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorSetpoint));
+    // update or initialize the Setpoint delta filter
+    oldCutoff = smoothingData->setpointDeltaCutoffFrequency;
+    if (smoothingData->setpointDeltaCutoffSetting == 0) {
+        smoothingData->setpointDeltaCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorSetpoint));
     }
     if (!smoothingData->filterInitialized) {
-        if (smoothingData->feedforwardCutoffFrequency > 0) {
+        if (smoothingData->setpointDeltaCutoffFrequency > 0) {
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                pt3FilterInit(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->feedforwardCutoffFrequency, dT));
+                pt3FilterInit(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->setpointDeltaCutoffFrequency, dT));
             }
         }
-    } else if (smoothingData->feedforwardCutoffFrequency != oldCutoff) {
-        if (smoothingData->feedforwardCutoffFrequency > 0) {
+    } else if (smoothingData->setpointDeltaCutoffFrequency != oldCutoff) {
+        if (smoothingData->setpointDeltaCutoffFrequency > 0) {
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                pt3FilterUpdateCutoff(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->feedforwardCutoffFrequency, dT));
+                pt3FilterUpdateCutoff(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->setpointDeltaCutoffFrequency, dT));
             }
         }
     }
@@ -340,7 +341,7 @@ static FAST_CODE bool rcSmoothingAccumulateSample(rcSmoothingFilter_t *smoothing
 FAST_CODE_NOINLINE bool rcSmoothingAutoCalculate(void)
 {
     // if any rc smoothing cutoff is 0 (auto) then we need to calculate cutoffs
-    if ((rcSmoothingData.setpointCutoffSetting == 0) || (rcSmoothingData.ffCutoffSetting == 0) || (rcSmoothingData.throttleCutoffSetting == 0)) {
+    if ((rcSmoothingData.setpointCutoffSetting == 0) || (rcSmoothingData.setpointDeltaCutoffSetting == 0) || (rcSmoothingData.throttleCutoffSetting == 0)) {
         return true;
     }
     return false;
@@ -363,17 +364,17 @@ static FAST_CODE void processRcSmoothingFilter(void)
         rcSmoothingData.debugAxis = rxConfig()->rc_smoothing_debug_axis;
         rcSmoothingData.setpointCutoffSetting = rxConfig()->rc_smoothing_setpoint_cutoff;
         rcSmoothingData.throttleCutoffSetting = rxConfig()->rc_smoothing_throttle_cutoff;
-        rcSmoothingData.ffCutoffSetting = rxConfig()->rc_smoothing_feedforward_cutoff;
+        rcSmoothingData.setpointDeltaCutoffSetting = rxConfig()->rc_smoothing_setpoint_delta_cutoff;
         rcSmoothingResetAccumulation(&rcSmoothingData);
         rcSmoothingData.setpointCutoffFrequency = rcSmoothingData.setpointCutoffSetting;
         rcSmoothingData.throttleCutoffFrequency = rcSmoothingData.throttleCutoffSetting;
-        if (rcSmoothingData.ffCutoffSetting == 0) {
+        if (rcSmoothingData.setpointDeltaCutoffSetting == 0) {
             // calculate and use an initial derivative cutoff until the RC interval is known
             const float cutoffFactor = 1.5f / (1.0f + (rcSmoothingData.autoSmoothnessFactorSetpoint / 10.0f));
-            float ffCutoff = RC_SMOOTHING_FEEDFORWARD_INITIAL_HZ * cutoffFactor;
-            rcSmoothingData.feedforwardCutoffFrequency = lrintf(ffCutoff);
+            float ffCutoff = RC_SMOOTHING_SP_DELTA_INITIAL_HZ * cutoffFactor;
+            rcSmoothingData.setpointDeltaCutoffFrequency = lrintf(ffCutoff);
         } else {
-            rcSmoothingData.feedforwardCutoffFrequency = rcSmoothingData.ffCutoffSetting;
+            rcSmoothingData.setpointDeltaCutoffFrequency = rcSmoothingData.setpointDeltaCutoffSetting;
         }
 
         if (rxConfig()->rc_smoothing_mode) {
@@ -489,16 +490,17 @@ static FAST_CODE void processRcSmoothingFilter(void)
 
 FAST_CODE float rcSmoothingApplySetpointDeltaFilter(int axis, float pidSetpointDelta)
 {
+    float ret = pidSetpointDelta;
     if (axis == rcSmoothingData.debugAxis) {
         DEBUG_SET(DEBUG_RC_SMOOTHING, 1, lrintf(pidSetpointDelta * 100.0f));
     }
     if (rcSmoothingData.filterInitialized) {
-        pidSetpointDelta = pt3FilterApply(&rcSmoothingData.setpointDeltaFilter[axis], pidSetpointDelta);
+        ret = pt3FilterApply(&rcSmoothingData.setpointDeltaFilter[axis], pidSetpointDelta);
         if (axis == rcSmoothingData.debugAxis) {
-            DEBUG_SET(DEBUG_RC_SMOOTHING, 2, lrintf(pidSetpointDelta * 100.0f));
+            DEBUG_SET(DEBUG_RC_SMOOTHING, 2, lrintf(ret * 100.0f));
         }
     }
-    return pidSetpointDelta;
+    return ret;
 }
 
 #endif // USE_RC_SMOOTHING_FILTER
