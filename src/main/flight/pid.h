@@ -52,10 +52,6 @@
 #define PID_PITCH_DEFAULT { 47, 84, 46, 125 }
 #define PID_YAW_DEFAULT   { 45, 80,  0, 120 }
 
-#define DTERM_LPF1_DYN_MIN_HZ_DEFAULT 75
-#define DTERM_LPF1_DYN_MAX_HZ_DEFAULT 150
-#define DTERM_LPF2_HZ_DEFAULT 150
-
 typedef enum {
     PID_ROLL,
     PID_PITCH,
@@ -88,17 +84,12 @@ typedef enum feedforwardAveraging_e {
 #define MAX_PROFILE_NAME_LENGTH 8u
 
 typedef struct pidProfile_s {
-    uint16_t dterm_lpf1_static_hz;          // Static Dterm lowpass 1 filter cutoff value in hz
-    uint16_t dterm_notch_hz;                // Biquad dterm notch hz
-    uint16_t dterm_notch_cutoff;            // Biquad dterm notch low cutoff
 
     pidf_t  pid[PID_ITEM_COUNT];
 
-    uint8_t dterm_lpf1_type;                // Filter type for dterm lowpass 1
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
     uint8_t levelAngleLimit;                // Max angle in degrees in level mode
-
     uint8_t horizon_tilt_effect;            // inclination factor for Horizon mode
     uint8_t horizon_tilt_expert_mode;       // OFF or ON
 
@@ -106,15 +97,11 @@ typedef struct pidProfile_s {
     uint16_t yawRateAccelLimit;             // yaw accel limiter for deg/sec/ms
     uint16_t rateAccelLimit;                // accel limiter roll/pitch deg/sec/ms
     uint16_t itermLimit;
-    uint16_t dterm_lpf2_static_hz;          // Static Dterm lowpass 2 filter cutoff value in hz
     uint8_t iterm_rotation;                 // rotates iterm to translate world errors to local coordinate system
     uint8_t acro_trainer_angle_limit;       // Acro trainer roll/pitch angle limit in degrees
     uint8_t acro_trainer_debug_axis;        // The axis for which record debugging values are captured 0=roll, 1=pitch
     uint8_t acro_trainer_gain;              // The strength of the limiting. Raising may reduce overshoot but also lead to oscillation around the angle limit
     uint16_t acro_trainer_lookahead_ms;     // The lookahead window in milliseconds used to reduce overshoot
-    uint8_t dterm_lpf2_type;                // Filter type for 2nd dterm lowpass
-    uint16_t dterm_lpf1_dyn_min_hz;         // Dterm lowpass filter 1 min hz when in dynamic mode
-    uint16_t dterm_lpf1_dyn_max_hz;         // Dterm lowpass filter 1 max hz when in dynamic mode
     char profileName[MAX_PROFILE_NAME_LENGTH + 1]; // Descriptive name for profile
 
     uint8_t feedforward_transition;         // Feedforward attenuation around centre sticks
@@ -123,8 +110,6 @@ typedef struct pidProfile_s {
     uint8_t feedforward_jitter_factor;      // Number of RC steps below which to attenuate feedforward
     uint8_t feedforward_boost;              // amount of setpoint acceleration to add to feedforward, 10 means 100% added
     uint8_t feedforward_max_rate_limit;     // Maximum setpoint rate percentage for feedforward
-
-    uint8_t dterm_lpf1_dyn_expo;            // set the curve for dynamic dterm lowpass filter
 
 } pidProfile_t;
 
@@ -148,13 +133,6 @@ typedef struct pidAxisData_s {
     float Sum;
 } pidAxisData_t;
 
-typedef union dtermLowpass_u {
-    pt1Filter_t pt1Filter;
-    biquadFilter_t biquadFilter;
-    pt2Filter_t pt2Filter;
-    pt3Filter_t pt3Filter;
-} dtermLowpass_t;
-
 typedef struct pidCoefficient_s {
     float Kp;
     float Ki;
@@ -166,31 +144,11 @@ typedef struct pidRuntime_s {
     float dT;
     float pidFrequency;
     float previousPidSetpoint[XYZ_AXIS_COUNT];
-    filterApplyFnPtr dtermNotchApplyFn;
-    biquadFilter_t dtermNotch[XYZ_AXIS_COUNT];
-    filterApplyFnPtr dtermLowpassApplyFn;
-    dtermLowpass_t dtermLowpass[XYZ_AXIS_COUNT];
-    filterApplyFnPtr dtermLowpass2ApplyFn;
-    dtermLowpass_t dtermLowpass2[XYZ_AXIS_COUNT];
+    float previousGyroRateDterm[XYZ_AXIS_COUNT];
     pidCoefficient_t pidCoefficient[XYZ_AXIS_COUNT];
     float maxVelocity[XYZ_AXIS_COUNT];
     float itermLimit;
     bool itermRotation;
-
-#ifdef USE_RC_SMOOTHING_FILTER
-    pt3Filter_t feedforwardPt3[XYZ_AXIS_COUNT];
-    bool feedforwardLpfInitialized;
-    uint8_t rcSmoothingDebugAxis;
-    uint8_t rcSmoothingFilterType;
-#endif // USE_RC_SMOOTHING_FILTER
-
-#ifdef USE_DYN_LPF
-    uint8_t dynLpfFilter;
-    uint16_t dynLpfMin;
-    uint16_t dynLpfMax;
-    uint8_t dynLpfCurveExpo;
-#endif
-
 #ifdef USE_FEEDFORWARD
     float feedforwardTransitionFactor;
     feedforwardAveraging_t feedforwardAveraging;
@@ -220,7 +178,6 @@ extern float axisError[XYZ_AXIS_COUNT];
 void rotateItermAndAxisError();
 float calcHorizonLevelStrength(void);
 #endif
-void dynLpfDTermUpdate(float throttle);
 float pidGetPreviousSetpoint(int axis);
 float pidGetDT();
 float pidGetPidFrequency();
@@ -228,4 +185,3 @@ float pidGetFeedforwardBoostFactor();
 float pidGetFeedforwardSmoothFactor();
 float pidGetFeedforwardJitterFactor();
 float pidGetFeedforwardTransitionFactor();
-float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo);
