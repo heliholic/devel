@@ -159,12 +159,6 @@ typedef struct pidRuntime_s {
     filterApplyFnPtr dtermLowpass2ApplyFn;
     dtermLowpass_t dtermLowpass2[XYZ_AXIS_COUNT];
     pidCoefficient_t pidCoefficient[XYZ_AXIS_COUNT];
-    float levelGain;
-    float horizonGain;
-    float horizonTransition;
-    float horizonCutoffDegrees;
-    float horizonFactorRatio;
-    uint8_t horizonTiltExpertMode;
     float maxVelocity[XYZ_AXIS_COUNT];
     float itermLimit;
     bool itermRotation;
