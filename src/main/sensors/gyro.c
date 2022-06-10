@@ -121,6 +121,15 @@ void pgResetFn_gyroConfig(gyroConfig_t *gyroConfig)
     gyroConfig->gyro_lpf1_dyn_max_hz = GYRO_LPF1_DYN_MAX_HZ_DEFAULT;
     gyroConfig->gyro_filter_debug_axis = FD_ROLL;
     gyroConfig->gyro_lpf1_dyn_expo = 5;
+    gyroConfig->dterm_lpf1_type = FILTER_PT1;
+    gyroConfig->dterm_lpf1_static_hz = DTERM_LPF1_DYN_MIN_HZ_DEFAULT;
+    gyroConfig->dterm_lpf2_type = FILTER_PT1;
+    gyroConfig->dterm_lpf2_static_hz = DTERM_LPF2_HZ_DEFAULT;
+    gyroConfig->dterm_lpf1_dyn_min_hz = DTERM_LPF1_DYN_MIN_HZ_DEFAULT;
+    gyroConfig->dterm_lpf1_dyn_max_hz = DTERM_LPF1_DYN_MAX_HZ_DEFAULT;
+    gyroConfig->dterm_lpf1_dyn_expo = 5;
+    gyroConfig->dterm_notch_hz = 0;
+    gyroConfig->dterm_notch_cutoff = 0;
 }
 
 FAST_CODE bool isGyroSensorCalibrationComplete(const gyroSensor_t *gyroSensor)
