@@ -23,6 +23,8 @@
 #include <stdbool.h>
 
 #include "common/filter.h"
+#include "common/axis.h"
+
 #include "pg/pg.h"
 
 typedef enum rc_alias {
