@@ -23,6 +23,12 @@
 #include <stdbool.h>
 
 #include "common/filter.h"
+#include "common/axis.h"
+
+#include "fc/rc.h"
+#include "fc/rc_rates.h"
+#include "fc/rc_modes.h"
+
 #include "pg/pg.h"
 
 typedef enum rc_alias {
@@ -71,8 +77,6 @@ typedef enum {
 #define THR_CE    (3 << 6)
 #define THR_MASK  (3 << 6)
 
-
-extern float rcCommand[5];
 
 typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
