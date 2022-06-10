@@ -23,6 +23,8 @@
 #include <stdbool.h>
 
 #include "common/filter.h"
+#include "common/axis.h"
+
 #include "pg/pg.h"
 
 typedef enum rc_alias {
@@ -94,6 +96,7 @@ typedef struct rcSmoothingFilter_s {
     bool filterInitialized;
     pt3Filter_t filter[4];
     pt3Filter_t filterDeflection[2];
+    pt3Filter_t setpointDeltaFilter[3];
     uint8_t setpointCutoffSetting;
     uint8_t throttleCutoffSetting;
     uint16_t setpointCutoffFrequency;
