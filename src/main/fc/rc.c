@@ -281,9 +281,17 @@ FAST_CODE_NOINLINE void rcSmoothingSetFilterCutoffs(rcSmoothingFilter_t *smoothi
         smoothingData->feedforwardCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorSetpoint));
     }
     if (!smoothingData->filterInitialized) {
-        pidInitFeedforwardLpf(smoothingData->feedforwardCutoffFrequency, smoothingData->debugAxis);
+        if (smoothingData->feedforwardCutoffFrequency > 0) {
+            for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                pt3FilterInit(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->feedforwardCutoffFrequency, dT));
+            }
+        }
     } else if (smoothingData->feedforwardCutoffFrequency != oldCutoff) {
-        pidUpdateFeedforwardLpf(smoothingData->feedforwardCutoffFrequency);
+        if (smoothingData->feedforwardCutoffFrequency > 0) {
+            for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                pt3FilterUpdateCutoff(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->feedforwardCutoffFrequency, dT));
+            }
+        }
     }
 }
 
@@ -466,6 +474,21 @@ static FAST_CODE void processRcSmoothingFilter(void)
     }
 
 }
+
+FAST_CODE float rcSmoothingApplySetpointDeltaFilter(int axis, float pidSetpointDelta)
+{
+    if (axis == rcSmoothingData.debugAxis) {
+        DEBUG_SET(DEBUG_RC_SMOOTHING, 1, lrintf(pidSetpointDelta * 100.0f));
+    }
+    if (rcSmoothingData.filterInitialized) {
+        pidSetpointDelta = pt3FilterApply(&rcSmoothingData.setpointDeltaFilter[axis], pidSetpointDelta);
+        if (axis == rcSmoothingData.debugAxis) {
+            DEBUG_SET(DEBUG_RC_SMOOTHING, 2, lrintf(pidSetpointDelta * 100.0f));
+        }
+    }
+    return pidSetpointDelta;
+}
+
 #endif // USE_RC_SMOOTHING_FILTER
 
 FAST_CODE void processRcCommand(void)
