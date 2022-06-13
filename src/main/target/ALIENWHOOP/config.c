@@ -102,8 +102,8 @@ void targetConfiguration(void)
     for (uint8_t pidProfileIndex = 0; pidProfileIndex < PID_PROFILE_COUNT; pidProfileIndex++) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
 
-    pidProfile->pidSumLimit = 1000;
-    pidProfile->pidSumLimitYaw = 1000;
+    pidProfile->pidsum_limit = 1000;
+    pidProfile->pidsum_limit_yaw = 1000;
 
         /* AlienWhoop PIDs tested with 6mm and 7mm motors on most frames */
         pidProfile->pid[PID_PITCH].P = 115;
