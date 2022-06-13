@@ -125,8 +125,8 @@ void setDefaultTestSettings(void) {
     pidProfile->pid[PID_PITCH] =  { 58, 50, 35, 60 };
     pidProfile->pid[PID_YAW]   =  { 70, 45, 20, 60 };
 
-    pidProfile->pidSumLimit = PIDSUM_LIMIT;
-    pidProfile->pidSumLimitYaw = PIDSUM_LIMIT_YAW;
+    pidProfile->pidsum_limit = PIDSUM_LIMIT;
+    pidProfile->pidsum_limit_yaw = PIDSUM_LIMIT_YAW;
     pidProfile->yaw_lowpass_hz = 0;
     pidProfile->dterm_lpf1_static_hz = 100;
     pidProfile->dterm_lpf2_static_hz = 0;
@@ -136,8 +136,8 @@ void setDefaultTestSettings(void) {
     pidProfile->itermWindupPointPercent = 50;
     pidProfile->pidAtMinThrottle = PID_STABILISATION_ON;
     pidProfile->angle_level_limit = 55;
-    pidProfile->yawRateAccelLimit = 100;
-    pidProfile->rateAccelLimit = 0;
+    pidProfile->yaw_rate_accel_limit = 100;
+    pidProfile->rate_accel_limit = 0;
     pidProfile->antiGravityMode = ANTI_GRAVITY_SMOOTH;
     pidProfile->itermThrottleThreshold = 250;
     pidProfile->itermAcceleratorGain = 1000;
@@ -152,7 +152,7 @@ void setDefaultTestSettings(void) {
     pidProfile->horizon_tilt_effect = 75;
     pidProfile->horizon_tilt_expert_mode = false;
     pidProfile->crash_limit_yaw = 200;
-    pidProfile->itermLimit = 150;
+    pidProfile->iterm_limit = 150;
     pidProfile->throttle_boost = 0;
     pidProfile->throttle_boost_cutoff = 15;
     pidProfile->iterm_rotation = false;
