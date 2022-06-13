@@ -238,7 +238,7 @@ FAST_CODE_NOINLINE int calcAutoSmoothingCutoff(int avgRxFrameTimeUs, uint8_t aut
 // the auto-calculated cutoff frequency based on detected rx frame rate.
 FAST_CODE_NOINLINE void rcSmoothingSetFilterCutoffs(rcSmoothingFilter_t *smoothingData)
 {
-    const float dT = targetPidLooptime * 1e-6f;
+    const float dT = pidGetDT();
     uint16_t oldCutoff = smoothingData->setpointCutoffFrequency;
 
     if (smoothingData->setpointCutoffSetting == 0) {
@@ -384,7 +384,7 @@ static FAST_CODE void processRcSmoothingFilter(void)
 
             // If the filter cutoffs in auto mode, and we have good rx data, then determine the average rx frame rate
             // and use that to calculate the filter cutoff frequencies
-            if ((currentTimeMs > RC_SMOOTHING_FILTER_STARTUP_DELAY_MS) && (targetPidLooptime > 0)) { // skip during FC initialization
+            if ((currentTimeMs > RC_SMOOTHING_FILTER_STARTUP_DELAY_MS) && (gyro.targetLooptime > 0)) { // skip during FC initialization
                 if (rxIsReceivingSignal() && isRxRateValid) {
 
                     // set the guard time expiration if it's not set
