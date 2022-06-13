@@ -74,9 +74,9 @@ void pidInitConfig(const pidProfile_t *pidProfile)
         pidRuntime.pidCoefficient[axis].Kf = FEEDFORWARD_SCALE * (pidProfile->pid[axis].F / 100.0f);
     }
 
-    pidRuntime.maxVelocity[FD_ROLL] = pidRuntime.maxVelocity[FD_PITCH] = pidProfile->rateAccelLimit * 100 * pidRuntime.dT;
-    pidRuntime.maxVelocity[FD_YAW] = pidProfile->yawRateAccelLimit * 100 * pidRuntime.dT;
-    pidRuntime.itermLimit = pidProfile->itermLimit;
+    pidRuntime.maxVelocity[FD_ROLL] = pidRuntime.maxVelocity[FD_PITCH] = pidProfile->rate_accel_limit * 100 * pidRuntime.dT;
+    pidRuntime.maxVelocity[FD_YAW] = pidProfile->yaw_rate_accel_limit * 100 * pidRuntime.dT;
+    pidRuntime.itermLimit = pidProfile->iterm_limit;
     pidRuntime.itermRotation = pidProfile->iterm_rotation;
 
 #ifdef USE_ACC
