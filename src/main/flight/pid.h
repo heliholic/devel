@@ -76,10 +76,18 @@ typedef struct pidf_s {
 
 typedef struct pidProfile_s {
 
+    char profileName[MAX_PROFILE_NAME_LENGTH + 1]; // Descriptive name for profile
+
     pidf_t  pid[PID_ITEM_COUNT];
 
-    uint16_t pidSumLimit;
-    uint16_t pidSumLimitYaw;
+    uint16_t pidsum_limit;
+    uint16_t pidsum_limit_yaw;
+
+    uint16_t rate_accel_limit;              // accel limiter roll/pitch deg/sec/ms
+    uint16_t yaw_rate_accel_limit;          // yaw accel limiter for deg/sec/ms
+
+    uint16_t iterm_limit;
+    uint8_t iterm_rotation;                 // rotates iterm to translate world errors to local coordinate system
 
     uint8_t angle_level_strength;
     uint8_t angle_level_limit;              // Max angle in degrees in level mode
@@ -89,16 +97,10 @@ typedef struct pidProfile_s {
     uint8_t horizon_tilt_effect;            // inclination factor for Horizon mode
     uint8_t horizon_tilt_expert_mode;       // OFF or ON
 
-    // Betaflight PID controller parameters
-    uint16_t yawRateAccelLimit;             // yaw accel limiter for deg/sec/ms
-    uint16_t rateAccelLimit;                // accel limiter roll/pitch deg/sec/ms
-    uint16_t itermLimit;
-    uint8_t iterm_rotation;                 // rotates iterm to translate world errors to local coordinate system
     uint8_t acro_trainer_angle_limit;       // Acro trainer roll/pitch angle limit in degrees
     uint8_t acro_trainer_debug_axis;        // The axis for which record debugging values are captured 0=roll, 1=pitch
     uint8_t acro_trainer_gain;              // The strength of the limiting. Raising may reduce overshoot but also lead to oscillation around the angle limit
     uint16_t acro_trainer_lookahead_ms;     // The lookahead window in milliseconds used to reduce overshoot
-    char profileName[MAX_PROFILE_NAME_LENGTH + 1]; // Descriptive name for profile
 
 } pidProfile_t;
 
