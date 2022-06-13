@@ -124,7 +124,6 @@ void setDefaultTestSettings(void) {
     pidProfile->pid[PID_ROLL]  =  { 40, 40, 30, 65 };
     pidProfile->pid[PID_PITCH] =  { 58, 50, 35, 60 };
     pidProfile->pid[PID_YAW]   =  { 70, 45, 20, 60 };
-    pidProfile->pid[PID_LEVEL] =  { 50, 50, 75, 0 };
 
     pidProfile->pidSumLimit = PIDSUM_LIMIT;
     pidProfile->pidSumLimitYaw = PIDSUM_LIMIT_YAW;
@@ -136,7 +135,7 @@ void setDefaultTestSettings(void) {
     pidProfile->dterm_lpf1_type = FILTER_BIQUAD;
     pidProfile->itermWindupPointPercent = 50;
     pidProfile->pidAtMinThrottle = PID_STABILISATION_ON;
-    pidProfile->levelAngleLimit = 55;
+    pidProfile->angle_level_limit = 55;
     pidProfile->yawRateAccelLimit = 100;
     pidProfile->rateAccelLimit = 0;
     pidProfile->antiGravityMode = ANTI_GRAVITY_SMOOTH;
