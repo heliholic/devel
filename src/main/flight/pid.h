@@ -56,8 +56,6 @@ typedef enum {
     PID_ROLL,
     PID_PITCH,
     PID_YAW,
-    PID_LEVEL,
-    PID_MAG,
     PID_ITEM_COUNT
 } pidIndex_e;
 
@@ -82,7 +80,12 @@ typedef struct pidProfile_s {
 
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
-    uint8_t levelAngleLimit;                // Max angle in degrees in level mode
+
+    uint8_t angle_level_strength;
+    uint8_t angle_level_limit;              // Max angle in degrees in level mode
+
+    uint8_t horizon_level_strength;
+    uint8_t horizon_transition;
     uint8_t horizon_tilt_effect;            // inclination factor for Horizon mode
     uint8_t horizon_tilt_expert_mode;       // OFF or ON
 
