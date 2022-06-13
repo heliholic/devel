@@ -33,55 +33,37 @@
 
 #include "config/config_reset.h"
 
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
+
 #include "drivers/pwm_output.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/time.h"
-
-#include "fc/controlrate_profile.h"
-#include "fc/core.h"
-#include "fc/rc.h"
-#include "fc/rc_controls.h"
-#include "fc/runtime_config.h"
-
-#include "flight/gps_rescue.h"
-#include "flight/imu.h"
-#include "flight/mixer.h"
-#include "flight/rpm_filter.h"
-#include "flight/trainer.h"
-#include "flight/leveling.h"
-
-#include "io/gps.h"
-
-#include "pg/pg.h"
-#include "pg/pg_ids.h"
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/gyro.h"
 
+#include "fc/core.h"
+#include "fc/rc.h"
+#include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
+#include "fc/controlrate_profile.h"
+
+#include "flight/imu.h"
+#include "flight/mixer.h"
+#include "flight/trainer.h"
+#include "flight/leveling.h"
+#include "flight/rpm_filter.h"
+
 #include "pid.h"
 
-const char pidNames[] =
-    "ROLL;"
-    "PITCH;"
-    "YAW;"
-    "LEVEL;"
-    "MAG;";
 
 FAST_DATA_ZERO_INIT pidAxisData_t pidData[XYZ_AXIS_COUNT];
 FAST_DATA_ZERO_INIT pidRuntime_t pidRuntime;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pidConfig_t, pidConfig, PG_PID_CONFIG, 3);
 
-#if defined(STM32F1)
-#define PID_PROCESS_DENOM_DEFAULT       8
-#elif defined(STM32F3)
-#define PID_PROCESS_DENOM_DEFAULT       4
-#elif defined(STM32F411xE) || defined(STM32G4) //G4 sometimes cpu overflow when PID rate set to higher than 4k
-#define PID_PROCESS_DENOM_DEFAULT       2
-#else
-#define PID_PROCESS_DENOM_DEFAULT       1
-#endif
+PG_REGISTER_WITH_RESET_TEMPLATE(pidConfig_t, pidConfig, PG_PID_CONFIG, 3);
 
 PG_RESET_TEMPLATE(pidConfig_t, pidConfig,
     .pid_process_denom = PID_PROCESS_DENOM_DEFAULT
@@ -92,28 +74,28 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(pidProfile_t, PID_PROFILE_COUNT, pidProfiles, PG
 void resetPidProfile(pidProfile_t *pidProfile)
 {
     RESET_CONFIG(pidProfile_t, pidProfile,
+        .profileName = "",
         .pid = {
             [PID_ROLL] =  PID_ROLL_DEFAULT,
             [PID_PITCH] = PID_PITCH_DEFAULT,
             [PID_YAW] =   PID_YAW_DEFAULT,
         },
-        .pidsum_limit = PIDSUM_LIMIT,
-        .pidsum_limit_yaw = PIDSUM_LIMIT_YAW,
         .yaw_rate_accel_limit = 0,
         .rate_accel_limit = 0,
+        .pidsum_limit = PIDSUM_LIMIT,
+        .pidsum_limit_yaw = PIDSUM_LIMIT_YAW,
+        .iterm_limit = 400,
+        .iterm_rotation = false,
         .angle_level_strength = 50,
         .angle_level_limit = 55,
         .horizon_level_strength = 50,
         .horizon_transition = 75,
         .horizon_tilt_effect = 75,
         .horizon_tilt_expert_mode = false,
-        .iterm_limit = 400,
-        .iterm_rotation = false,
+        .acro_trainer_gain = 75,
         .acro_trainer_angle_limit = 20,
         .acro_trainer_lookahead_ms = 50,
         .acro_trainer_debug_axis = FD_ROLL,
-        .acro_trainer_gain = 75,
-        .profileName = { 0 },
     );
 }
 
@@ -123,9 +105,6 @@ void pgResetFn_pidProfiles(pidProfile_t *pidProfiles)
         resetPidProfile(&pidProfiles[i]);
     }
 }
-
-
-const angle_index_t rcAliasToAngleIndexMap[] = { AI_ROLL, AI_PITCH };
 
 void pidResetIterm(void)
 {
@@ -182,8 +161,6 @@ STATIC_UNIT_TESTED void rotateItermAndAxisError()
 }
 
 
-// Betaflight pid controller, which will be maintained in the future with additional features specialised for current (mini) multirotor usage.
-// Based on 2DOF reference design (matlab)
 void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
 {
     UNUSED(pidProfile);
@@ -235,7 +212,10 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 
         // -----calculate pidSetpointDelta
         float pidSetpointDelta = 0; // FIXME: Calculate setpoint delta here
-        pidRuntime.previousPidSetpoint[axis] = currentPidSetpoint;
+
+        // -----save previous values
+        pidData[axis].Setpoint = currentPidSetpoint;
+        pidData[axis].GyroRate = gyroRate;
 
         // -----calculate D component
         if (pidRuntime.pidCoefficient[axis].Kd > 0) {
@@ -245,8 +225,8 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             // calculated deltaT whenever another task causes the PID
             // loop execution to be delayed.
             const float gyroRateDterm = gyro.gyroDtermADCf[axis];
-            const float delta = (pidRuntime.previousGyroRateDterm[axis] - gyroRateDterm) * pidRuntime.pidFrequency;
-            pidRuntime.previousGyroRateDterm[axis] = gyroRateDterm;
+            const float delta = (pidData[axis].GyroDterm - gyroRateDterm) * pidRuntime.pidFrequency;
+            pidData[axis].GyroDterm = gyroRateDterm;
             pidData[axis].D = pidRuntime.pidCoefficient[axis].Kd * delta;
 
         } else {
@@ -286,9 +266,9 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     }
 }
 
-float pidGetPreviousSetpoint(int axis)
+float pidGetSetpoint(int axis)
 {
-    return pidRuntime.previousPidSetpoint[axis];
+    return pidData[axis].Setpoint;
 }
 
 float pidGetDT()
