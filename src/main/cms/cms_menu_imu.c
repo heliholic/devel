@@ -301,9 +301,9 @@ static const void *cmsx_profileOtherOnEnter(displayPort_t *pDisp)
 
     const pidProfile_t *pidProfile = pidProfiles(pidProfileIndex);
 
-    cmsx_angleStrength =     pidProfile->pid[PID_LEVEL].P;
-    cmsx_horizonStrength =   pidProfile->pid[PID_LEVEL].I;
-    cmsx_horizonTransition = pidProfile->pid[PID_LEVEL].D;
+    cmsx_angleStrength =     pidProfile->angle_level_strength;
+    cmsx_horizonStrength =   pidProfile->horizon_level_strength;
+    cmsx_horizonTransition = pidProfile->horizon_transition;
 
     return NULL;
 }
@@ -316,9 +316,9 @@ static const void *cmsx_profileOtherOnExit(displayPort_t *pDisp, const OSD_Entry
     pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
     pidInitConfig(currentPidProfile);
 
-    pidProfile->pid[PID_LEVEL].P = cmsx_angleStrength;
-    pidProfile->pid[PID_LEVEL].I = cmsx_horizonStrength;
-    pidProfile->pid[PID_LEVEL].D = cmsx_horizonTransition;
+    pidProfile->angle_level_strength = cmsx_angleStrength;
+    pidProfile->horizon_level_strength = cmsx_horizonStrength;
+    pidProfile->horizon_transition = cmsx_horizonTransition;
 
     return NULL;
 }
