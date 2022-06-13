@@ -66,11 +66,11 @@ static FAST_DATA_ZERO_INIT horizon_t horizon;
 
 INIT_CODE void pidLevelInit(const pidProfile_t *pidProfile)
 {
-    level.Gain = pidProfile->pid[PID_LEVEL].P / 10.0f; // FIXME
-    level.AngleLimit = pidProfile->levelAngleLimit;
+    level.Gain = pidProfile->angle_level_strength / 10.0f;
+    level.AngleLimit = pidProfile->angle_level_limit;
 
-    horizon.Gain = pidProfile->pid[PID_LEVEL].I / 10.0f; // FIXME
-    horizon.Transition = pidProfile->pid[PID_LEVEL].D; // FIXME
+    horizon.Gain = pidProfile->horizon_level_strength;
+    horizon.Transition = pidProfile->horizon_transition;
     horizon.TiltExpertMode = pidProfile->horizon_tilt_expert_mode;
     horizon.CutoffDegrees = (175 - pidProfile->horizon_tilt_effect) * 1.8f;
     horizon.FactorRatio = (100 - pidProfile->horizon_tilt_effect) * 0.01f;
