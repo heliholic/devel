@@ -1294,7 +1294,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         break;
 
     case MSP_PIDNAMES:
-        for (const char *c = pidNames; *c; c++) {
+        for (const char *c = PID_NAMES; *c; c++) {
             sbufWriteU8(dst, *c);
         }
         break;

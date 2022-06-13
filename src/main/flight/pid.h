@@ -27,30 +27,39 @@
 
 #include "pg/pg.h"
 
-#define MAX_PID_PROCESS_DENOM       16
 #define PID_CONTROLLER_BETAFLIGHT   1
+
+#define MAX_PID_PROCESS_DENOM       16
+
+#if defined(STM32F3)
+#define PID_PROCESS_DENOM_DEFAULT   8
+#elif defined(STM32F411xE) || defined(STM32G4)
+#define PID_PROCESS_DENOM_DEFAULT   4
+#else
+#define PID_PROCESS_DENOM_DEFAULT   2
+#endif
+
 #define PID_MIXER_SCALING           1000.0f
 #define PID_SERVO_MIXER_SCALING     0.7f
+
 #define PIDSUM_LIMIT                500
 #define PIDSUM_LIMIT_YAW            400
 #define PIDSUM_LIMIT_MIN            100
 #define PIDSUM_LIMIT_MAX            1000
 
-#define PID_GAIN_MAX 250
-#define F_GAIN_MAX 1000
+#define PID_GAIN_MAX                250
+#define F_GAIN_MAX                  1000
 
-// Scaling factors for Pids for better tunable range in configurator for betaflight pid controller. The scaling is based on legacy pid controller or previous float
-#define PTERM_SCALE 0.032029f
-#define ITERM_SCALE 0.244381f
-#define DTERM_SCALE 0.000529f
+#define PTERM_SCALE                 0.032029f
+#define ITERM_SCALE                 0.244381f
+#define DTERM_SCALE                 0.000529f
+#define FEEDFORWARD_SCALE           0.013754f
 
-// The constant scale factor to replace the Kd component of the feedforward calculation.
-// This value gives the same "feel" as the previous Kd default of 26 (26 * DTERM_SCALE)
-#define FEEDFORWARD_SCALE 0.013754f
+#define PID_ROLL_DEFAULT            { 45, 80, 40, 120 }
+#define PID_PITCH_DEFAULT           { 47, 84, 46, 125 }
+#define PID_YAW_DEFAULT             { 45, 80,  0, 120 }
 
-#define PID_ROLL_DEFAULT  { 45, 80, 40, 120 }
-#define PID_PITCH_DEFAULT { 47, 84, 46, 125 }
-#define PID_YAW_DEFAULT   { 45, 80,  0, 120 }
+#define PID_NAMES                   "ROLL;PITCH;YAW;"
 
 typedef enum {
     PID_ROLL,
@@ -58,12 +67,6 @@ typedef enum {
     PID_YAW,
     PID_ITEM_COUNT
 } pidIndex_e;
-
-typedef enum {
-    SUPEREXPO_YAW_OFF = 0,
-    SUPEREXPO_YAW_ON,
-    SUPEREXPO_YAW_ALWAYS
-} pidSuperExpoYaw_e;
 
 typedef struct pidf_s {
     uint8_t P;
@@ -80,11 +83,11 @@ typedef struct pidProfile_s {
 
     pidf_t  pid[PID_ITEM_COUNT];
 
-    uint16_t pidsum_limit;
-    uint16_t pidsum_limit_yaw;
-
     uint16_t rate_accel_limit;              // accel limiter roll/pitch deg/sec/ms
     uint16_t yaw_rate_accel_limit;          // yaw accel limiter for deg/sec/ms
+
+    uint16_t pidsum_limit;
+    uint16_t pidsum_limit_yaw;
 
     uint16_t iterm_limit;
     uint8_t iterm_rotation;                 // rotates iterm to translate world errors to local coordinate system
@@ -97,10 +100,10 @@ typedef struct pidProfile_s {
     uint8_t horizon_tilt_effect;            // inclination factor for Horizon mode
     uint8_t horizon_tilt_expert_mode;       // OFF or ON
 
-    uint8_t acro_trainer_angle_limit;       // Acro trainer roll/pitch angle limit in degrees
-    uint8_t acro_trainer_debug_axis;        // The axis for which record debugging values are captured 0=roll, 1=pitch
     uint8_t acro_trainer_gain;              // The strength of the limiting. Raising may reduce overshoot but also lead to oscillation around the angle limit
+    uint8_t acro_trainer_angle_limit;       // Acro trainer roll/pitch angle limit in degrees
     uint16_t acro_trainer_lookahead_ms;     // The lookahead window in milliseconds used to reduce overshoot
+    uint8_t acro_trainer_debug_axis;        // The axis for which record debugging values are captured 0=roll, 1=pitch
 
 } pidProfile_t;
 
@@ -112,7 +115,6 @@ typedef struct pidConfig_s {
 
 PG_DECLARE(pidConfig_t, pidConfig);
 
-union rollAndPitchTrims_u;
 void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs);
 
 typedef struct pidAxisData_s {
@@ -120,8 +122,10 @@ typedef struct pidAxisData_s {
     float I;
     float D;
     float F;
-
     float Sum;
+    float Setpoint;
+    float GyroRate;
+    float GyroDterm;
 } pidAxisData_t;
 
 typedef struct pidCoefficient_s {
@@ -134,32 +138,20 @@ typedef struct pidCoefficient_s {
 typedef struct pidRuntime_s {
     float dT;
     float pidFrequency;
-    float previousPidSetpoint[XYZ_AXIS_COUNT];
-    float previousGyroRateDterm[XYZ_AXIS_COUNT];
-    pidCoefficient_t pidCoefficient[XYZ_AXIS_COUNT];
     float maxVelocity[XYZ_AXIS_COUNT];
     float itermLimit;
     bool itermRotation;
+    pidCoefficient_t pidCoefficient[XYZ_AXIS_COUNT];
 } pidRuntime_t;
 
 extern pidRuntime_t pidRuntime;
 
-extern const char pidNames[];
-
 extern pidAxisData_t pidData[3];
-
-extern pt1Filter_t throttleLpf;
 
 void resetPidProfile(pidProfile_t *profile);
 
 void pidResetIterm(void);
 
-#ifdef UNIT_TEST
-#include "sensors/acceleration.h"
-extern float axisError[XYZ_AXIS_COUNT];
-void rotateItermAndAxisError();
-float calcHorizonLevelStrength(void);
-#endif
-float pidGetPreviousSetpoint(int axis);
 float pidGetDT();
 float pidGetPidFrequency();
+float pidGetSetpoint(int axis);
