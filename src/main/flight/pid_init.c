@@ -58,13 +58,13 @@ static void pidSetTargetLooptime(uint32_t pidLooptime)
 void pidInit(const pidProfile_t *pidProfile)
 {
     pidSetTargetLooptime(gyro.targetLooptime);
-    pidInitConfig(pidProfile);
+    pidInitProfile(pidProfile);
 #ifdef USE_RPM_FILTER
     rpmFilterInit(rpmFilterConfig());
 #endif
 }
 
-void pidInitConfig(const pidProfile_t *pidProfile)
+void pidInitProfile(const pidProfile_t *pidProfile)
 {
     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
         pidRuntime.pidCoefficient[axis].Kp = PTERM_SCALE * pidProfile->pid[axis].P;
