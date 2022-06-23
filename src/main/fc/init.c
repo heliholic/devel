@@ -693,6 +693,7 @@ void init(void)
     // Finally initialize the gyro filtering
     gyroInitFilters();
 
+    // Initialize PID control
     pidInit(currentPidProfile);
 
 #ifdef USE_SERVOS
