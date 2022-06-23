@@ -565,10 +565,10 @@ static inline float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_
     return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
 }
 
-void dynLpfGyroUpdate(float throttle)
+void dynLpfGyroUpdate(float ratio)
 {
     if (gyro.dynLpfFilter != DYN_LPF_NONE) {
-        float cutoffFreq = fmaxf(dynThrottle(throttle) * gyro.dynLpfMax, gyro.dynLpfMin);
+        const float cutoffFreq = constrainf(ratio * gyro.dynLpfHz, gyro.dynLpfMin, gyro.dynLpfMax);
         DEBUG_SET(DEBUG_DYN_LPF, 2, lrintf(cutoffFreq));
         const float gyroDt = gyro.targetLooptime * 1e-6f;
         switch (gyro.dynLpfFilter) {
@@ -596,15 +596,10 @@ void dynLpfGyroUpdate(float throttle)
     }
 }
 
-void dynLpfDTermUpdate(float throttle)
+void dynLpfDTermUpdate(float ratio)
 {
     if (gyro.dynLpfDtermFilter != DYN_LPF_NONE) {
-        float cutoffFreq;
-        if (gyro.dynLpfDtermCurveExpo > 0) {
-            cutoffFreq = dynLpfCutoffFreq(throttle, gyro.dynLpfDtermMin, gyro.dynLpfDtermMax, gyro.dynLpfDtermCurveExpo);
-        } else {
-            cutoffFreq = fmaxf(dynThrottle(throttle) * gyro.dynLpfDtermMax, gyro.dynLpfDtermMin);
-        }
+        const float cutoffFreq = constrainf(ratio * gyro.dynLpfDtermHz, gyro.dynLpfDtermMin, gyro.dynLpfDtermMax);
         const float gyroDt = gyro.targetLooptime * 1e-6f;
         switch (gyro.dynLpfDtermFilter) {
         case DYN_LPF_PT1:
