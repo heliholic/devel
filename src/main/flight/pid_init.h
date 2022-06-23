@@ -21,7 +21,5 @@
 #pragma once
 
 void pidInit(const pidProfile_t *pidProfile);
-void pidInitConfig(const pidProfile_t *pidProfile);
-void pidInitFeedforwardLpf(uint16_t filterCutoff, uint8_t debugAxis);
-void pidUpdateFeedforwardLpf(uint16_t filterCutoff);
+void pidInitProfile(const pidProfile_t *pidProfile);
 void pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileIndex);
