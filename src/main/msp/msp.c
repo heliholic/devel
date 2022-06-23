@@ -2215,7 +2215,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             currentPidProfile->pid[i].I = sbufReadU8(src);
             currentPidProfile->pid[i].D = sbufReadU8(src);
         }
-        pidInitConfig(currentPidProfile);
+        pidInitProfile(currentPidProfile);
         break;
 
     case MSP_SET_MODE_RANGE:
@@ -2657,7 +2657,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             sbufReadU8(src);
             sbufReadU8(src);
         }
-        pidInitConfig(currentPidProfile);
+        pidInitProfile(currentPidProfile);
 
         break;
     case MSP_SET_SENSOR_CONFIG:
