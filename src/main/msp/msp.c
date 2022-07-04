@@ -1821,7 +1821,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 #endif
 #if defined(USE_DYN_LPF)
         // Added in MSP API 1.44
-        sbufWriteU8(dst, currentPidProfile->dterm_lpf1_dyn_expo);
+        sbufWriteU8(dst, 0); // was currentPidProfile->dterm_lpf1_dyn_expo
 #else
         sbufWriteU8(dst, 0);
 #endif
@@ -2669,7 +2669,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         if (sbufBytesRemaining(src) >= 2) {
             // Added in MSP API 1.44
 #if defined(USE_DYN_LPF)
-            currentPidProfile->dterm_lpf1_dyn_expo = sbufReadU8(src);
+            sbufReadU8(src); // was currentPidProfile->dterm_lpf1_dyn_expo
 #else
             sbufReadU8(src);
 #endif
