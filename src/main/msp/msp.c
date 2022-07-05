@@ -2318,7 +2318,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
                 currentControlRateProfile->rates_type = sbufReadU8(src);
             }
 
-            initRcProcessing();
+            loadControlRateProfile();
         } else {
             return MSP_RESULT_ERROR;
         }
