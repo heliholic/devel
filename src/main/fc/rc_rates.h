@@ -59,9 +59,9 @@ typedef struct controlRateConfig_s {
     uint8_t rcRates[3];
     uint8_t rcExpo[3];
     uint8_t rates[3];
-    
+
     uint16_t rate_limit[3];                 // Sets the maximum rate for the axes
-    
+
     uint8_t levelExpo[2];                   // roll/pitch level mode expo
     uint8_t quickRatesRcExpo;               // Sets expo on rc command for quick rates
 
@@ -70,14 +70,12 @@ typedef struct controlRateConfig_s {
 PG_DECLARE_ARRAY(controlRateConfig_t, CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);
 
 
-typedef float (*applyRatesCurveFn)(const int axis, float rcCommandf);
-
-extern applyRatesCurveFn applyRatesCurve;
 extern controlRateConfig_t * currentControlRateProfile;
 extern const ratesSettingsLimits_t ratesSettingLimits[RATES_TYPE_COUNT];
 
-void initControlRates(void);
+float applyRatesCurve(const int axis, float rcCommandf);
 
+void initControlRates(void);
 void loadControlRateProfile(void);
 void changeControlRateProfile(uint8_t controlRateProfileIndex);
 void copyControlRateProfile(uint8_t dstControlRateProfileIndex, uint8_t srcControlRateProfileIndex);
