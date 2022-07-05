@@ -23,25 +23,24 @@
 #include "drivers/time.h"
 
 #include "fc/rc_controls.h"
+#include "fc/rc_rates.h"
+#include "fc/rc_modes.h"
+#include "fc/rc_smoothing.h"
 
-#define RC_SMOOTHING_AUTO_FACTOR_MIN 0
-#define RC_SMOOTHING_AUTO_FACTOR_MAX 250
 
+extern float rcCommand[5];
 
-void processRcCommand(void);
-float getSetpointRate(int axis);
-float getRcDeflection(int axis);
-float getRcDeflectionAbs(int axis);
-void updateRcCommands(void);
-void resetYawAxis(void);
 void initRcProcessing(void);
-rcSmoothingFilter_t *getRcSmoothingData(void);
-bool rcSmoothingAutoCalculate(void);
-bool rcSmoothingInitializationComplete(void);
-float rcSmoothingApplySetpointDeltaFilter(int axis, float pidSetpointDelta);
+void processRcCommand(void);
+void updateRcCommands(void);
+
+float getRcDeflection(int axis);
 float getRawSetpoint(int axis);
 float getRcCommandDelta(int axis);
-float applyCurve(int axis, float deflection);
+
+void resetYawAxis(void);
+
 void updateRcRefreshRate(timeUs_t currentTimeUs);
 uint16_t getCurrentRxRefreshRate(void);
+
 bool getRxRateValid(void);
