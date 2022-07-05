@@ -46,9 +46,9 @@ typedef struct rcSmoothingFilter_s {
     uint16_t setpointDeltaCutoffFrequency;
     int averageFrameTimeUs;
     rcSmoothingFilterTraining_t training;
-    uint8_t debugAxis;
     uint8_t autoSmoothnessFactorSetpoint;
     uint8_t autoSmoothnessFactorThrottle;
+    uint8_t debugAxis;
 } rcSmoothingFilter_t;
 
 

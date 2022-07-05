@@ -78,7 +78,7 @@ float getSetpointRate(int axis)
 
 
 // Determine a cutoff frequency based on smoothness factor and calculated average rx frame time
-FAST_CODE_NOINLINE int calcAutoSmoothingCutoff(int avgRxFrameTimeUs, uint8_t autoSmoothnessFactor)
+static FAST_CODE int calcAutoSmoothingCutoff(int avgRxFrameTimeUs, uint8_t autoSmoothnessFactor)
 {
     if (avgRxFrameTimeUs > 0) {
         const float cutoffFactor = 1.5f / (1.0f + (autoSmoothnessFactor / 10.0f));
@@ -91,91 +91,93 @@ FAST_CODE_NOINLINE int calcAutoSmoothingCutoff(int avgRxFrameTimeUs, uint8_t aut
 
 // Initialize or update the filters base on either the manually selected cutoff, or
 // the auto-calculated cutoff frequency based on detected rx frame rate.
-FAST_CODE_NOINLINE void rcSmoothingSetFilterCutoffs(rcSmoothingFilter_t *smoothingData)
+FAST_CODE void rcSmoothingSetFilterCutoffs(void)
 {
     const float dT = pidGetDT();
-    uint16_t oldCutoff = smoothingData->setpointCutoffFrequency;
+    uint16_t oldCutoff = rcSmoothingData.setpointCutoffFrequency;
 
-    if (smoothingData->setpointCutoffSetting == 0) {
-        smoothingData->setpointCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorSetpoint));
+    if (rcSmoothingData.setpointCutoffSetting == 0) {
+        rcSmoothingData.setpointCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(rcSmoothingData.averageFrameTimeUs, rcSmoothingData.autoSmoothnessFactorSetpoint));
     }
-    if (smoothingData->throttleCutoffSetting == 0) {
-        smoothingData->throttleCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorThrottle));
+    if (rcSmoothingData.throttleCutoffSetting == 0) {
+        rcSmoothingData.throttleCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(rcSmoothingData.averageFrameTimeUs, rcSmoothingData.autoSmoothnessFactorThrottle));
     }
 
     // initialize or update the Setpoint filter
-    if ((smoothingData->setpointCutoffFrequency != oldCutoff) || !smoothingData->filterInitialized) {
+    if ((rcSmoothingData.setpointCutoffFrequency != oldCutoff) || !rcSmoothingData.filterInitialized) {
         for (int i = 0; i < PRIMARY_CHANNEL_COUNT; i++) {
             if (i < THROTTLE) { // Throttle handled by smoothing rcCommand
-                if (!smoothingData->filterInitialized) {
-                    pt3FilterInit(&smoothingData->filter[i], pt3FilterGain(smoothingData->setpointCutoffFrequency, dT));
+                if (!rcSmoothingData.filterInitialized) {
+                    pt3FilterInit(&rcSmoothingData.filter[i], pt3FilterGain(rcSmoothingData.setpointCutoffFrequency, dT));
                 } else {
-                    pt3FilterUpdateCutoff(&smoothingData->filter[i], pt3FilterGain(smoothingData->setpointCutoffFrequency, dT));
+                    pt3FilterUpdateCutoff(&rcSmoothingData.filter[i], pt3FilterGain(rcSmoothingData.setpointCutoffFrequency, dT));
                 }
             } else {
-                if (!smoothingData->filterInitialized) {
-                    pt3FilterInit(&smoothingData->filter[i], pt3FilterGain(smoothingData->throttleCutoffFrequency, dT));
+                if (!rcSmoothingData.filterInitialized) {
+                    pt3FilterInit(&rcSmoothingData.filter[i], pt3FilterGain(rcSmoothingData.throttleCutoffFrequency, dT));
                 } else {
-                    pt3FilterUpdateCutoff(&smoothingData->filter[i], pt3FilterGain(smoothingData->throttleCutoffFrequency, dT));
+                    pt3FilterUpdateCutoff(&rcSmoothingData.filter[i], pt3FilterGain(rcSmoothingData.throttleCutoffFrequency, dT));
                 }
             }
         }
 
         // initialize or update the Level filter
         for (int i = FD_ROLL; i < FD_YAW; i++) {
-            if (!smoothingData->filterInitialized) {
-                pt3FilterInit(&smoothingData->filterDeflection[i], pt3FilterGain(smoothingData->setpointCutoffFrequency, dT));
+            if (!rcSmoothingData.filterInitialized) {
+                pt3FilterInit(&rcSmoothingData.filterDeflection[i], pt3FilterGain(rcSmoothingData.setpointCutoffFrequency, dT));
             } else {
-                pt3FilterUpdateCutoff(&smoothingData->filterDeflection[i], pt3FilterGain(smoothingData->setpointCutoffFrequency, dT));
+                pt3FilterUpdateCutoff(&rcSmoothingData.filterDeflection[i], pt3FilterGain(rcSmoothingData.setpointCutoffFrequency, dT));
             }
         }
     }
 
     // update or initialize the Setpoint delta filter
-    oldCutoff = smoothingData->setpointDeltaCutoffFrequency;
-    if (smoothingData->setpointDeltaCutoffSetting == 0) {
-        smoothingData->setpointDeltaCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(smoothingData->averageFrameTimeUs, smoothingData->autoSmoothnessFactorSetpoint));
+    oldCutoff = rcSmoothingData.setpointDeltaCutoffFrequency;
+    if (rcSmoothingData.setpointDeltaCutoffSetting == 0) {
+        rcSmoothingData.setpointDeltaCutoffFrequency = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, calcAutoSmoothingCutoff(rcSmoothingData.averageFrameTimeUs, rcSmoothingData.autoSmoothnessFactorSetpoint));
     }
-    if (!smoothingData->filterInitialized) {
-        if (smoothingData->setpointDeltaCutoffFrequency > 0) {
+    if (!rcSmoothingData.filterInitialized) {
+        if (rcSmoothingData.setpointDeltaCutoffFrequency > 0) {
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                pt3FilterInit(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->setpointDeltaCutoffFrequency, dT));
+                pt3FilterInit(&rcSmoothingData.setpointDeltaFilter[axis], pt3FilterGain(rcSmoothingData.setpointDeltaCutoffFrequency, dT));
             }
         }
-    } else if (smoothingData->setpointDeltaCutoffFrequency != oldCutoff) {
-        if (smoothingData->setpointDeltaCutoffFrequency > 0) {
+    } else if (rcSmoothingData.setpointDeltaCutoffFrequency != oldCutoff) {
+        if (rcSmoothingData.setpointDeltaCutoffFrequency > 0) {
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-                pt3FilterUpdateCutoff(&smoothingData->setpointDeltaFilter[axis], pt3FilterGain(smoothingData->setpointDeltaCutoffFrequency, dT));
+                pt3FilterUpdateCutoff(&rcSmoothingData.setpointDeltaFilter[axis], pt3FilterGain(rcSmoothingData.setpointDeltaCutoffFrequency, dT));
             }
         }
     }
 }
 
-FAST_CODE_NOINLINE void rcSmoothingResetAccumulation(rcSmoothingFilter_t *smoothingData)
+static void rcSmoothingResetAccumulation(void)
 {
-    smoothingData->training.sum = 0;
-    smoothingData->training.count = 0;
-    smoothingData->training.min = UINT16_MAX;
-    smoothingData->training.max = 0;
+    rcSmoothingData.training.sum = 0;
+    rcSmoothingData.training.count = 0;
+    rcSmoothingData.training.min = UINT16_MAX;
+    rcSmoothingData.training.max = 0;
 }
 
 // Accumulate the rx frame time samples. Once we've collected enough samples calculate the
 // average and return true.
-static FAST_CODE bool rcSmoothingAccumulateSample(rcSmoothingFilter_t *smoothingData, int rxFrameTimeUs)
+static FAST_CODE bool rcSmoothingAccumulateSample(int rxFrameTimeUs)
 {
-    smoothingData->training.sum += rxFrameTimeUs;
-    smoothingData->training.count++;
-    smoothingData->training.max = MAX(smoothingData->training.max, rxFrameTimeUs);
-    smoothingData->training.min = MIN(smoothingData->training.min, rxFrameTimeUs);
+    rcSmoothingData.training.sum += rxFrameTimeUs;
+    rcSmoothingData.training.count++;
+    rcSmoothingData.training.max = MAX(rcSmoothingData.training.max, rxFrameTimeUs);
+    rcSmoothingData.training.min = MIN(rcSmoothingData.training.min, rxFrameTimeUs);
 
     // if we've collected enough samples then calculate the average and reset the accumulation
     const int sampleLimit = (rcSmoothingData.filterInitialized) ? RC_SMOOTHING_FILTER_RETRAINING_SAMPLES : RC_SMOOTHING_FILTER_TRAINING_SAMPLES;
-    if (smoothingData->training.count >= sampleLimit) {
-        smoothingData->training.sum = smoothingData->training.sum - smoothingData->training.min - smoothingData->training.max; // Throw out high and low samples
-        smoothingData->averageFrameTimeUs = lrintf(smoothingData->training.sum / (smoothingData->training.count - 2));
-        rcSmoothingResetAccumulation(smoothingData);
+
+    if (rcSmoothingData.training.count >= sampleLimit) {
+        rcSmoothingData.training.sum = rcSmoothingData.training.sum - rcSmoothingData.training.min - rcSmoothingData.training.max; // Throw out high and low samples
+        rcSmoothingData.averageFrameTimeUs = lrintf(rcSmoothingData.training.sum / (rcSmoothingData.training.count - 2));
+        rcSmoothingResetAccumulation();
         return true;
     }
+
     return false;
 }
 
@@ -207,7 +209,7 @@ FAST_CODE void processRcSmoothingFilter(bool isRxDataNew, bool isRxRateValid, ui
         rcSmoothingData.setpointCutoffSetting = rxConfig()->rc_smoothing_setpoint_cutoff;
         rcSmoothingData.throttleCutoffSetting = rxConfig()->rc_smoothing_throttle_cutoff;
         rcSmoothingData.setpointDeltaCutoffSetting = rxConfig()->rc_smoothing_setpoint_delta_cutoff;
-        rcSmoothingResetAccumulation(&rcSmoothingData);
+        rcSmoothingResetAccumulation();
         rcSmoothingData.setpointCutoffFrequency = rcSmoothingData.setpointCutoffSetting;
         rcSmoothingData.throttleCutoffFrequency = rcSmoothingData.throttleCutoffSetting;
         if (rcSmoothingData.setpointDeltaCutoffSetting == 0) {
@@ -224,7 +226,7 @@ FAST_CODE void processRcSmoothingFilter(bool isRxDataNew, bool isRxRateValid, ui
 
             // if we don't need to calculate cutoffs dynamically then the filters can be initialized now
             if (!calculateCutoffs) {
-                rcSmoothingSetFilterCutoffs(&rcSmoothingData);
+                rcSmoothingSetFilterCutoffs();
                 rcSmoothingData.filterInitialized = true;
             }
         }
@@ -260,17 +262,17 @@ FAST_CODE void processRcSmoothingFilter(bool isRxDataNew, bool isRxRateValid, ui
                             if (percentChange < RC_SMOOTHING_RX_RATE_CHANGE_PERCENT) {
                                 // We received a sample that wasn't more than the limit percent so reset the accumulation
                                 // During retraining we need a contiguous block of samples that are all significantly different than the current average
-                                rcSmoothingResetAccumulation(&rcSmoothingData);
+                                rcSmoothingResetAccumulation();
                                 accumulateSample = false;
                             }
                         }
 
                         // accumlate the sample into the average
                         if (accumulateSample) {
-                            if (rcSmoothingAccumulateSample(&rcSmoothingData, currentRxRefreshRate)) {
+                            if (rcSmoothingAccumulateSample(currentRxRefreshRate)) {
                                 // the required number of samples were collected so set the filter cutoffs, but only if smoothing is active
                                 if (rxConfig()->rc_smoothing_mode) {
-                                    rcSmoothingSetFilterCutoffs(&rcSmoothingData);
+                                    rcSmoothingSetFilterCutoffs();
                                     rcSmoothingData.filterInitialized = true;
                                 }
                                 validRxFrameTimeMs = 0;
@@ -280,7 +282,7 @@ FAST_CODE void processRcSmoothingFilter(bool isRxDataNew, bool isRxRateValid, ui
                     }
                 } else {
                     // we have either stopped receiving rx samples (failsafe?) or the sample time is unreasonable so reset the accumulation
-                    rcSmoothingResetAccumulation(&rcSmoothingData);
+                    rcSmoothingResetAccumulation();
                 }
             }
 
