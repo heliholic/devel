@@ -25,6 +25,11 @@
 #include "common/filter.h"
 #include "common/axis.h"
 
+#include "fc/rc.h"
+#include "fc/rc_rates.h"
+#include "fc/rc_modes.h"
+#include "fc/rc_smoothing.h"
+
 #include "pg/pg.h"
 
 typedef enum rc_alias {
@@ -74,33 +79,6 @@ typedef enum {
 #define THR_MASK (3 << 6)
 
 
-extern float rcCommand[5];
-
-typedef struct rcSmoothingFilterTraining_s {
-    float sum;
-    int count;
-    uint16_t min;
-    uint16_t max;
-} rcSmoothingFilterTraining_t;
-
-typedef struct rcSmoothingFilter_s {
-    bool filterInitialized;
-    pt3Filter_t filter[4];
-    pt3Filter_t filterDeflection[2];
-    pt3Filter_t setpointDeltaFilter[3];
-    uint8_t setpointCutoffSetting;
-    uint8_t throttleCutoffSetting;
-    uint16_t setpointCutoffFrequency;
-    uint16_t throttleCutoffFrequency;
-    uint8_t setpointDeltaCutoffSetting;
-    uint16_t setpointDeltaCutoffFrequency;
-    int averageFrameTimeUs;
-    rcSmoothingFilterTraining_t training;
-    uint8_t debugAxis;
-    uint8_t autoSmoothnessFactorSetpoint;
-    uint8_t autoSmoothnessFactorThrottle;
-} rcSmoothingFilter_t;
-
 typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
@@ -117,6 +95,7 @@ typedef struct armingConfig_s {
 } armingConfig_t;
 
 PG_DECLARE(armingConfig_t, armingConfig);
+
 
 bool areUsingSticksToArm(void);
 
