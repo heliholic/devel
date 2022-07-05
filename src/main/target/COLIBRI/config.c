@@ -29,7 +29,7 @@
 
 #include "drivers/serial.h"
 
-#include "fc/controlrate_profile.h"
+#include "fc/rc_rates.h"
 #include "fc/rc_controls.h"
 
 #include "flight/mixer.h"
