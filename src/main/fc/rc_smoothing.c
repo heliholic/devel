@@ -68,7 +68,13 @@
 
 static FAST_DATA_ZERO_INIT rcSmoothingFilter_t rcSmoothingData;
 
-static float setpointRate[4];
+static FAST_DATA_ZERO_INIT bool initialized;
+static FAST_DATA_ZERO_INIT bool calculateCutoffs;
+static FAST_DATA_ZERO_INIT timeMs_t validRxFrameTimeMs;
+
+static FAST_DATA_ZERO_INIT float rxDataToSmooth[5];
+
+static FAST_DATA_ZERO_INIT float setpointRate[4];
 
 
 float getSetpointRate(int axis)
@@ -193,11 +199,6 @@ FAST_CODE bool rcSmoothingAutoCalculate(void)
 
 FAST_CODE void processRcSmoothingFilter(bool isRxDataNew, bool isRxRateValid, uint16_t currentRxRefreshRate)
 {
-    static FAST_DATA_ZERO_INIT float rxDataToSmooth[5];
-    static FAST_DATA_ZERO_INIT bool initialized;
-    static FAST_DATA_ZERO_INIT timeMs_t validRxFrameTimeMs;
-    static FAST_DATA_ZERO_INIT bool calculateCutoffs;
-
     // first call initialization
     if (!initialized) {
         initialized = true;
