@@ -79,8 +79,6 @@ typedef enum {
 #define THR_MASK (3 << 6)
 
 
-extern float rcCommand[5];
-
 typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
