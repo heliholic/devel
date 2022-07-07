@@ -61,12 +61,14 @@
 #define RC_RX_RATE_MAX_US       65500  // 65.5ms or 15.26hz
 
 
-FAST_DATA_ZERO_INIT float rcCommand[5];                  // [-500;+500] for RPYC and [0;1000] for THROTTLE
+FAST_DATA_ZERO_INIT float rcCommand[5];                  // -500..+500 for RPYC and 0..1000 for THROTTLE
+FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1 for THROTTLE
+
+static FAST_DATA_ZERO_INIT float rcDivider[4];
+static FAST_DATA_ZERO_INIT float rcDeadband[4];
 
 static FAST_DATA_ZERO_INIT float rawSetpoint[4];
 static FAST_DATA_ZERO_INIT float smoothSetpoint[4];
-static FAST_DATA_ZERO_INIT float rcDeflection[5];
-static FAST_DATA_ZERO_INIT float rcDivider[5];
 
 static FAST_DATA_ZERO_INIT bool isRxDataNew = false;
 static FAST_DATA_ZERO_INIT bool isRxRateValid = false;
@@ -137,52 +139,35 @@ FAST_CODE void processRcCommand(void)
     isRxDataNew = false;
 }
 
+static inline float deadband(float x, float deadband)
+{
+    if (x > deadband)
+        return x - deadband;
+    else if (x < -deadband)
+        return x + deadband;
+    else
+        return 0;
+}
+
 FAST_CODE void updateRcCommands(void)
 {
     isRxDataNew = true;
 
     for (int axis = 0; axis < 4; axis++) {
-        float tmp = MIN(ABS(rcData[axis] - rxConfig()->midrc), 500);
-        if (axis == ROLL || axis == PITCH) {
-            if (tmp > rcControlsConfig()->deadband) {
-                tmp -= rcControlsConfig()->deadband;
-            } else {
-                tmp = 0;
-            }
-            rcCommand[axis] = tmp;
-        } else if (axis == YAW) {
-            if (tmp > rcControlsConfig()->yaw_deadband) {
-                tmp -= rcControlsConfig()->yaw_deadband;
-            } else {
-                tmp = 0;
-            }
-            rcCommand[axis] = tmp * -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
-        } else {
-            rcCommand[axis] = tmp;
-        }
-        if (rcData[axis] < rxConfig()->midrc) {
-            rcCommand[axis] = -rcCommand[axis];
-        }
+        float data = rcData[axis] - rxConfig()->midrc;
+        rcCommand[axis] = constrainf(deadband(data, rcDeadband[axis]), -500, 500);
+        rcDeflection[axis] = rcCommand[axis] / rcDivider[axis];
     }
 
+    rcCommand[YAW] *= -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
+
+    // FIXME
     rcCommand[THROTTLE] = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
 
     for (int axis = 0; axis < 4; axis++) {
-        float deflection, angleRate;
-
-        deflection = rcCommand[axis] / rcDivider[axis];
-        angleRate = applyRatesCurve(axis, deflection);
-
-        if (axis < 3)
-            angleRate = constrainf(angleRate, -currentControlRateProfile->rate_limit[axis], currentControlRateProfile->rate_limit[axis]);
-
-        rcDeflection[axis] = deflection;
-        rawSetpoint[axis] = angleRate;
-
-        DEBUG_SET(DEBUG_ANGLERATE, axis, angleRate);
+        rawSetpoint[axis] = applyRatesCurve(axis, rcDeflection[axis]);
+        DEBUG_SET(DEBUG_ANGLERATE, axis, rawSetpoint[axis]);
     }
-
-
 }
 
 INIT_CODE void initRcProcessing(void)
@@ -191,6 +176,10 @@ INIT_CODE void initRcProcessing(void)
     rcDivider[1] = 500.0f - rcControlsConfig()->deadband;
     rcDivider[2] = 500.0f - rcControlsConfig()->yaw_deadband;
     rcDivider[3] = 500.0f;
-    rcDivider[4] = 500.0f;
+
+    rcDeadband[0] = rcControlsConfig()->deadband;
+    rcDeadband[1] = rcControlsConfig()->deadband;
+    rcDeadband[2] = rcControlsConfig()->yaw_deadband;
+    rcDeadband[3] = 0;
 }
 

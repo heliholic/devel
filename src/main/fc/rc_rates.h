@@ -70,14 +70,12 @@ typedef struct controlRateConfig_s {
 PG_DECLARE_ARRAY(controlRateConfig_t, CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);
 
 
-typedef float (*applyRatesCurveFn)(const int axis, float rcCommandf);
-
-extern applyRatesCurveFn applyRatesCurve;
 extern controlRateConfig_t * currentControlRateProfile;
 extern const ratesSettingsLimits_t ratesSettingLimits[RATES_TYPE_COUNT];
 
-void initControlRates(void);
+float applyRatesCurve(const int axis, float rcCommandf);
 
+void initControlRates(void);
 void loadControlRateProfile(void);
 void changeControlRateProfile(uint8_t controlRateProfileIndex);
 void copyControlRateProfile(uint8_t dstControlRateProfileIndex, uint8_t srcControlRateProfileIndex);

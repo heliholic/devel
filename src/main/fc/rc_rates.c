@@ -75,22 +75,23 @@ const ratesSettingsLimits_t ratesSettingLimits[RATES_TYPE_COUNT] = {
     [RATES_TYPE_QUICK]      = { 255, 200, 100 },
 };
 
+typedef float (*applyRatesCurveFn)(const int axis, float rcCommandf);
 
-FAST_DATA_ZERO_INIT applyRatesCurveFn applyRatesCurve;
+FAST_DATA_ZERO_INIT applyRatesCurveFn applyRatesFn;
 
 FAST_DATA_ZERO_INIT controlRateConfig_t * currentControlRateProfile;
 
 
 /*** Rates Curve Functions ***/
 
-static float applyNullRates(const int axis, float rcCommandf)
+static FAST_CODE float applyNullRates(const int axis, float rcCommandf)
 {
     UNUSED(axis);
 
     return 500.0f * rcCommandf;
 }
 
-static float applyBetaflightRates(const int axis, float rcCommandf)
+static FAST_CODE float applyBetaflightRates(const int axis, float rcCommandf)
 {
     const float rcCommandfAbs = fabsf(rcCommandf);
 
@@ -113,7 +114,7 @@ static float applyBetaflightRates(const int axis, float rcCommandf)
     return angleRate;
 }
 
-static float applyRaceFlightRates(const int axis, float rcCommandf)
+static FAST_CODE float applyRaceFlightRates(const int axis, float rcCommandf)
 {
     const float rcCommandfAbs = fabsf(rcCommandf);
 
@@ -127,7 +128,7 @@ static float applyRaceFlightRates(const int axis, float rcCommandf)
     return angleRate;
 }
 
-static float applyKissRates(const int axis, float rcCommandf)
+static FAST_CODE float applyKissRates(const int axis, float rcCommandf)
 {
     const float rcCommandfAbs = fabsf(rcCommandf);
     const float rcCurvef = currentControlRateProfile->rcExpo[axis] / 100.0f;
@@ -139,7 +140,7 @@ static float applyKissRates(const int axis, float rcCommandf)
     return kissAngle;
 }
 
-static float applyActualRates(const int axis, float rcCommandf)
+static FAST_CODE float applyActualRates(const int axis, float rcCommandf)
 {
     const float rcCommandfAbs = fabsf(rcCommandf);
     const float rcExpo = currentControlRateProfile->rcExpo[axis] / 100.0f;
@@ -152,7 +153,7 @@ static float applyActualRates(const int axis, float rcCommandf)
     return angleRate;
 }
 
-static float applyQuickRates(const int axis, float rcCommandf)
+static FAST_CODE float applyQuickRates(const int axis, float rcCommandf)
 {
     const float rcCommandfAbs = fabsf(rcCommandf);
 
@@ -178,35 +179,44 @@ static float applyQuickRates(const int axis, float rcCommandf)
     return angleRate;
 }
 
+FAST_CODE float applyRatesCurve(const int axis, float rcCommandf)
+{
+    float rate = applyRatesFn(axis, rcCommandf);
 
-void loadControlRateProfile(void)
+    if (axis < 3)
+        rate = constrainf(rate, -currentControlRateProfile->rate_limit[axis], currentControlRateProfile->rate_limit[axis]);
+
+    return rate;
+}
+
+INIT_CODE void loadControlRateProfile(void)
 {
     currentControlRateProfile = controlRateProfilesMutable(systemConfig()->activeRateProfile);
 
     switch (currentControlRateProfile->rates_type)
     {
         case RATES_TYPE_BETAFLIGHT:
-            applyRatesCurve = applyBetaflightRates;
+            applyRatesFn = applyBetaflightRates;
             break;
         case RATES_TYPE_RACEFLIGHT:
-            applyRatesCurve = applyRaceFlightRates;
+            applyRatesFn = applyRaceFlightRates;
             break;
         case RATES_TYPE_KISS:
-            applyRatesCurve = applyKissRates;
+            applyRatesFn = applyKissRates;
             break;
         case RATES_TYPE_ACTUAL:
-            applyRatesCurve = applyActualRates;
+            applyRatesFn = applyActualRates;
             break;
         case RATES_TYPE_QUICK:
-            applyRatesCurve = applyQuickRates;
+            applyRatesFn = applyQuickRates;
             break;
         default:
-            applyRatesCurve = applyNullRates;
+            applyRatesFn = applyNullRates;
             break;
     }
 }
 
-void changeControlRateProfile(uint8_t controlRateProfileIndex)
+INIT_CODE void changeControlRateProfile(uint8_t controlRateProfileIndex)
 {
     if (controlRateProfileIndex < CONTROL_RATE_PROFILE_COUNT) {
         systemConfigMutable()->activeRateProfile = controlRateProfileIndex;
@@ -216,7 +226,7 @@ void changeControlRateProfile(uint8_t controlRateProfileIndex)
     initRcProcessing();
 }
 
-void copyControlRateProfile(uint8_t dstControlRateProfileIndex, uint8_t srcControlRateProfileIndex) {
+INIT_CODE void copyControlRateProfile(uint8_t dstControlRateProfileIndex, uint8_t srcControlRateProfileIndex) {
     if (dstControlRateProfileIndex < CONTROL_RATE_PROFILE_COUNT &&
         srcControlRateProfileIndex < CONTROL_RATE_PROFILE_COUNT &&
         dstControlRateProfileIndex != srcControlRateProfileIndex) {
