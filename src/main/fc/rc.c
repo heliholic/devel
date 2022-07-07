@@ -177,5 +177,9 @@ INIT_CODE void initRcProcessing(void)
     rcDeadband[1] = rcControlsConfig()->deadband;
     rcDeadband[2] = rcControlsConfig()->yaw_deadband;
     rcDeadband[3] = 0;
+
+#ifdef USE_RC_SMOOTHING_FILTER
+    rcSmoothingFilterInit();
+#endif
 }
 

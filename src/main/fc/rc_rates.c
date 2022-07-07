@@ -223,7 +223,6 @@ INIT_CODE void changeControlRateProfile(uint8_t controlRateProfileIndex)
     }
 
     loadControlRateProfile();
-    initRcProcessing();
 }
 
 INIT_CODE void copyControlRateProfile(uint8_t dstControlRateProfileIndex, uint8_t srcControlRateProfileIndex) {
