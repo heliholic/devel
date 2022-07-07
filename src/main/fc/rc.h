@@ -36,12 +36,11 @@ void updateRcCommands(void);
 
 void resetYawAxis(void);
 
-bool getRxRateValid(void);
-void updateRcRefreshRate(timeUs_t currentTimeUs);
-uint16_t getCurrentRxRefreshRate(void);
-
 float getRcDeflection(int axis);
 float getRawSetpoint(int axis);
 float getSetpointRate(int axis);
-float getRcCommandDelta(int axis);
+
+bool getRxRateValid(void);
+void updateRcRefreshRate(timeUs_t currentTimeUs);
+uint16_t getCurrentRxRefreshRate(void);
 
