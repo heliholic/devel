@@ -197,68 +197,66 @@ INIT_CODE void rcSmoothingFilterInit(void)
 }
 
 
-FAST_CODE void rcSmoothingFilterUpdate(bool isRxDataNew, bool isRxRateValid, uint16_t currentRxRefreshRate)
+FAST_CODE void rcSmoothingFilterUpdate(bool isRxRateValid, uint16_t currentRxRefreshRate)
 {
-    if (isRxDataNew) {
-        // for auto calculated filters we need to examine each rx frame interval
-        if (rcSmoothing.calculateCutoffs) {
-            const timeMs_t currentTimeMs = millis();
-            int sampleState = 0;
+    // for auto calculated filters we need to examine each rx frame interval
+    if (rcSmoothing.calculateCutoffs) {
+        const timeMs_t currentTimeMs = millis();
+        int sampleState = 0;
 
-            // If the filter cutoffs in auto mode, and we have good rx data, then determine the average rx frame rate
-            // and use that to calculate the filter cutoff frequencies
-            if ((currentTimeMs > RC_SMOOTHING_FILTER_STARTUP_DELAY_MS) && (gyro.targetLooptime > 0)) {
-                if (rxIsReceivingSignal() && isRxRateValid) {
+        // If the filter cutoffs in auto mode, and we have good rx data, then determine the average rx frame rate
+        // and use that to calculate the filter cutoff frequencies
+        if ((currentTimeMs > RC_SMOOTHING_FILTER_STARTUP_DELAY_MS) && (gyro.targetLooptime > 0)) {
+            if (rxIsReceivingSignal() && isRxRateValid) {
 
-                    // set the guard time expiration if it's not set
-                    if (rcSmoothing.validRxFrameTimeMs == 0) {
-                        rcSmoothing.validRxFrameTimeMs = currentTimeMs + (rcSmoothing.filterInitialized ? RC_SMOOTHING_FILTER_RETRAINING_DELAY_MS : RC_SMOOTHING_FILTER_TRAINING_DELAY_MS);
-                    } else {
-                        sampleState = 1;
-                    }
-
-                    // if the guard time has expired then process the rx frame time
-                    if (currentTimeMs > rcSmoothing.validRxFrameTimeMs) {
-                        sampleState = 2;
-                        bool accumulateSample = true;
-
-                        // During initial training process all samples.
-                        // During retraining check samples to determine if they vary by more than the limit percentage.
-                        if (rcSmoothing.filterInitialized) {
-                            const float percentChange = (ABS(currentRxRefreshRate - rcSmoothing.averageFrameTimeUs) / (float)rcSmoothing.averageFrameTimeUs) * 100;
-                            if (percentChange < RC_SMOOTHING_RX_RATE_CHANGE_PERCENT) {
-                                // We received a sample that wasn't more than the limit percent so reset the accumulation
-                                // During retraining we need a contiguous block of samples that are all significantly different than the current average
-                                rcSmoothingResetAccumulation();
-                                accumulateSample = false;
-                            }
-                        }
-
-                        // accumlate the sample into the average
-                        if (accumulateSample) {
-                            if (rcSmoothingAccumulateSample(currentRxRefreshRate)) {
-                                // the required number of samples were collected so set the filter cutoffs, but only if smoothing is active
-                                if (rxConfig()->rc_smoothing_mode) {
-                                    rcSmoothingSetFilterCutoffs();
-                                    rcSmoothing.filterInitialized = true;
-                                }
-                                rcSmoothing.validRxFrameTimeMs = 0;
-                            }
-                        }
-
-                    }
+                // set the guard time expiration if it's not set
+                if (rcSmoothing.validRxFrameTimeMs == 0) {
+                    rcSmoothing.validRxFrameTimeMs = currentTimeMs + (rcSmoothing.filterInitialized ? RC_SMOOTHING_FILTER_RETRAINING_DELAY_MS : RC_SMOOTHING_FILTER_TRAINING_DELAY_MS);
                 } else {
-                    // we have either stopped receiving rx samples (failsafe?) or the sample time is unreasonable so reset the accumulation
-                    rcSmoothingResetAccumulation();
+                    sampleState = 1;
                 }
-            }
 
-            // rx frame rate training blackbox debugging
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 0, currentRxRefreshRate);              // log each rx frame interval
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 1, rcSmoothing.training.count);    // log the training step count
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 2, rcSmoothing.averageFrameTimeUs);// the current calculated average
-            DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 3, sampleState);                       // indicates whether guard time is active
+                // if the guard time has expired then process the rx frame time
+                if (currentTimeMs > rcSmoothing.validRxFrameTimeMs) {
+                    sampleState = 2;
+                    bool accumulateSample = true;
+
+                    // During initial training process all samples.
+                    // During retraining check samples to determine if they vary by more than the limit percentage.
+                    if (rcSmoothing.filterInitialized) {
+                        const float percentChange = (ABS(currentRxRefreshRate - rcSmoothing.averageFrameTimeUs) / (float)rcSmoothing.averageFrameTimeUs) * 100;
+                        if (percentChange < RC_SMOOTHING_RX_RATE_CHANGE_PERCENT) {
+                            // We received a sample that wasn't more than the limit percent so reset the accumulation
+                            // During retraining we need a contiguous block of samples that are all significantly different than the current average
+                            rcSmoothingResetAccumulation();
+                            accumulateSample = false;
+                        }
+                    }
+
+                    // accumlate the sample into the average
+                    if (accumulateSample) {
+                        if (rcSmoothingAccumulateSample(currentRxRefreshRate)) {
+                            // the required number of samples were collected so set the filter cutoffs, but only if smoothing is active
+                            if (rxConfig()->rc_smoothing_mode) {
+                                rcSmoothingSetFilterCutoffs();
+                                rcSmoothing.filterInitialized = true;
+                            }
+                            rcSmoothing.validRxFrameTimeMs = 0;
+                        }
+                    }
+
+                }
+            } else {
+                // we have either stopped receiving rx samples (failsafe?) or the sample time is unreasonable so reset the accumulation
+                rcSmoothingResetAccumulation();
+            }
         }
+
+        // rx frame rate training blackbox debugging
+        DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 0, currentRxRefreshRate);              // log each rx frame interval
+        DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 1, rcSmoothing.training.count);    // log the training step count
+        DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 2, rcSmoothing.averageFrameTimeUs);// the current calculated average
+        DEBUG_SET(DEBUG_RC_SMOOTHING_RATE, 3, sampleState);                       // indicates whether guard time is active
     }
 }
 

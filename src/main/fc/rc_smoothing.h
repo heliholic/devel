@@ -67,7 +67,7 @@ bool rcSmoothingAutoCalculate(void);
 bool rcSmoothingInitializationComplete(void);
 
 void rcSmoothingFilterInit(void);
-void rcSmoothingFilterUpdate(bool isRxDataNew, bool isRxRateValid, uint16_t currentRxRefreshRate);
+void rcSmoothingFilterUpdate(bool isRxRateValid, uint16_t currentRxRefreshRate);
 
 float rcSmoothingFilterApply(int axis, float setpoint);
 float rcSmoothingDeltaFilterApply(int axis, float delta);

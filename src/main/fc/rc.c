@@ -57,15 +57,15 @@
 FAST_DATA_ZERO_INIT float rcCommand[5];                  // -500..+500 for RPYC and 0..1000 for THROTTLE
 FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1 for THROTTLE
 
-static FAST_DATA_ZERO_INIT float rcDivider[4];
-static FAST_DATA_ZERO_INIT float rcDeadband[4];
-
 static FAST_DATA_ZERO_INIT float rawSetpoint[4];
 static FAST_DATA_ZERO_INIT float smoothSetpoint[4];
 
-static FAST_DATA_ZERO_INIT bool isRxDataNew = false;
-static FAST_DATA_ZERO_INIT bool isRxRateValid = false;
+static FAST_DATA_ZERO_INIT float rcDivider[4]   = { 500, 500, 500, 500 };
+static FAST_DATA_ZERO_INIT float rcDeadband[4]  = {   0,   0,   0,   0 };
 
+static FAST_DATA_ZERO_INIT bool isRxRateValid;
+
+static FAST_DATA_ZERO_INIT timeUs_t lastRxTimeUs;
 static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
 
 
@@ -92,6 +92,7 @@ float getRcDeflection(int axis)
     return rcDeflection[axis];
 }
 
+
 uint16_t getCurrentRxRefreshRate(void)
 {
     return currentRxRefreshRate;
@@ -99,40 +100,22 @@ uint16_t getCurrentRxRefreshRate(void)
 
 void updateRcRefreshRate(timeUs_t currentTimeUs)
 {
-    static timeUs_t lastRxTimeUs;
-
     timeDelta_t frameAgeUs;
     timeDelta_t frameDeltaUs = rxGetFrameDelta(&frameAgeUs);
 
+    // calculate a delta here if not supplied
     if (!frameDeltaUs || cmpTimeUs(currentTimeUs, lastRxTimeUs) <= frameAgeUs) {
-        frameDeltaUs = cmpTimeUs(currentTimeUs, lastRxTimeUs); // calculate a delta here if not supplied by the protocol
+        frameDeltaUs = cmpTimeUs(currentTimeUs, lastRxTimeUs);
     }
 
     DEBUG_SET(DEBUG_RX_TIMING, 0, MIN(frameDeltaUs / 10, INT16_MAX));
     DEBUG_SET(DEBUG_RX_TIMING, 1, MIN(frameAgeUs / 10, INT16_MAX));
 
-    lastRxTimeUs = currentTimeUs;
     isRxRateValid = (frameDeltaUs >= RC_RX_RATE_MIN_US && frameDeltaUs <= RC_RX_RATE_MAX_US);
     currentRxRefreshRate = constrain(frameDeltaUs, RC_RX_RATE_MIN_US, RC_RX_RATE_MAX_US);
+    lastRxTimeUs = currentTimeUs;    
 }
 
-
-FAST_CODE void processRcCommand(void)
-{
-#ifdef USE_RC_SMOOTHING_FILTER
-    rcSmoothingFilterUpdate(isRxDataNew, isRxRateValid, currentRxRefreshRate);
-
-    for (int axis = 0; axis < 4; axis++) {
-        smoothSetpoint[axis] = rcSmoothingFilterApply(axis, rawSetpoint[axis]);
-    }
-#else
-    for (int axis = 0; axis < 4; axis++) {
-        smoothSetpoint[axis] = rawSetpoint[axis];
-    }
-#endif
-
-    isRxDataNew = false;
-}
 
 static inline float deadband(float x, float deadband)
 {
@@ -146,37 +129,53 @@ static inline float deadband(float x, float deadband)
 
 FAST_CODE void updateRcCommands(void)
 {
-    isRxDataNew = true;
+#ifdef USE_RC_SMOOTHING_FILTER
+    rcSmoothingFilterUpdate(isRxRateValid, currentRxRefreshRate);
+#endif
 
+    // rcData => rcCommand => rcDeflection
     for (int axis = 0; axis < 4; axis++) {
         float data = rcData[axis] - rxConfig()->midrc;
-        rcCommand[axis] = constrainf(deadband(data, rcDeadband[axis]), -500, 500);
-        rcDeflection[axis] = rcCommand[axis] / rcDivider[axis];
+        data = deadband(data, rcDeadband[axis]);
+        data = constrainf(data, -500, 500);
+        rcCommand[axis] = data;
+        rcDeflection[axis] = data / rcDivider[axis];
     }
 
     rcCommand[YAW] *= -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
 
-    // FIXME
-    rcCommand[THROTTLE] = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
-    rcDeflection[THROTTLE] = rcCommand[THROTTLE] / PWM_RANGE;
-
+    // rcDeflection => rawSetpoint
     for (int axis = 0; axis < 4; axis++) {
         rawSetpoint[axis] = applyRatesCurve(axis, rcDeflection[axis]);
         DEBUG_SET(DEBUG_ANGLERATE, axis, rawSetpoint[axis]);
+    }
+
+    // FIXME
+    rcCommand[THROTTLE] = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
+    rcDeflection[THROTTLE] = rcCommand[THROTTLE] / PWM_RANGE;
+}
+
+FAST_CODE void processRcCommand(void)
+{
+    // rawSetpoint => smoothSetpoint
+    for (int axis = 0; axis < 4; axis++) {
+#ifdef USE_RC_SMOOTHING_FILTER
+        smoothSetpoint[axis] = rcSmoothingFilterApply(axis, rawSetpoint[axis]);
+#else
+        smoothSetpoint[axis] = rawSetpoint[axis];
+#endif
     }
 }
 
 INIT_CODE void initRcProcessing(void)
 {
-    rcDivider[0] = 500.0f - rcControlsConfig()->deadband;
-    rcDivider[1] = 500.0f - rcControlsConfig()->deadband;
-    rcDivider[2] = 500.0f - rcControlsConfig()->yaw_deadband;
-    rcDivider[3] = 500.0f;
+    rcDivider[0] = 500 - rcControlsConfig()->deadband;
+    rcDivider[1] = 500 - rcControlsConfig()->deadband;
+    rcDivider[2] = 500 - rcControlsConfig()->yaw_deadband;
 
     rcDeadband[0] = rcControlsConfig()->deadband;
     rcDeadband[1] = rcControlsConfig()->deadband;
     rcDeadband[2] = rcControlsConfig()->yaw_deadband;
-    rcDeadband[3] = 0;
 
 #ifdef USE_RC_SMOOTHING_FILTER
     rcSmoothingFilterInit();
