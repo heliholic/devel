@@ -225,16 +225,20 @@ FAST_CODE void rcSmoothingFilterUpdate(bool isRxRateValid, uint16_t currentRxRef
     }
 }
 
-FAST_CODE float rcSmoothingFilterApply(int axis, float stick)
+FAST_CODE float rcSmoothingFilterApply(int axis, float input)
 {
-    float value = pt3FilterApply(&rcSmoothing.filter[axis], stick);
+    float output = output;
 
-    if (axis == rcSmoothing.debugAxis) {
-        DEBUG_SET(DEBUG_RC_SMOOTHING, 1, lrintf(stick * 100.0f));
-        DEBUG_SET(DEBUG_RC_SMOOTHING, 2, lrintf(value * 100.0f));
+    // RPYC primary controls only
+    if (axis < 4) {
+        output = pt3FilterApply(&rcSmoothing.filter[axis], input);
+        if (axis == rcSmoothing.debugAxis) {
+            DEBUG_SET(DEBUG_RC_SMOOTHING, 1, lrintf(input * 1000));
+            DEBUG_SET(DEBUG_RC_SMOOTHING, 2, lrintf(output * 1000));
+        }
     }
 
-    return value;
+    return output;
 }
 
 

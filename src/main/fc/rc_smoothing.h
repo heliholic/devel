@@ -34,21 +34,14 @@ typedef struct rcSmoothingFilterTraining_s {
 } rcSmoothingFilterTraining_t;
 
 typedef struct rcSmoothingFilter_s {
-
     bool filterInitialized;
     bool calculateCutoffs;
-
-    pt3Filter_t filter[5];
-
+    pt3Filter_t filter[4];
     uint16_t cutoffFreq;
-
     int averageFrameTimeUs;
     timeMs_t validRxFrameTimeMs;
-
     rcSmoothingFilterTraining_t training;
-
     uint8_t debugAxis;
-
 } rcSmoothingFilter_t;
 
 
@@ -60,6 +53,6 @@ bool rcSmoothingInitializationComplete(void);
 void rcSmoothingFilterInit(void);
 void rcSmoothingFilterUpdate(bool isRxRateValid, uint16_t currentRxRefreshRate);
 
-float rcSmoothingFilterApply(int axis, float control);
+float rcSmoothingFilterApply(int axis, float input);
 float rcSmoothingDeltaFilterApply(int axis, float delta);
 
