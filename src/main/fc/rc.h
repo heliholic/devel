@@ -36,9 +36,9 @@ void updateRcCommands(void);
 
 void resetYawAxis(void);
 
-float getRcDeflection(int axis);
 float getRawSetpoint(int axis);
-float getSetpointRate(int axis);
+float getRcSetpoint(int axis);
+float getRcDeflection(int axis);
 
 bool getRxRateValid(void);
 void updateRcRefreshRate(timeUs_t currentTimeUs);

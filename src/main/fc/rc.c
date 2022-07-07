@@ -82,7 +82,7 @@ float getRawSetpoint(int axis)
     return rawSetpoint[axis];
 }
 
-float getSetpointRate(int axis)
+float getRcSetpoint(int axis)
 {
     return smoothSetpoint[axis];
 }
@@ -102,17 +102,19 @@ void updateRcRefreshRate(timeUs_t currentTimeUs)
 {
     timeDelta_t frameAgeUs;
     timeDelta_t frameDeltaUs = rxGetFrameDelta(&frameAgeUs);
+    timeDelta_t localDeltaUs = cmpTimeUs(currentTimeUs, lastRxTimeUs);
 
-    // calculate a delta here if not supplied
-    if (!frameDeltaUs || cmpTimeUs(currentTimeUs, lastRxTimeUs) <= frameAgeUs) {
-        frameDeltaUs = cmpTimeUs(currentTimeUs, lastRxTimeUs);
+    if (frameDeltaUs == 0 || localDeltaUs <= frameAgeUs) {
+        frameDeltaUs = localDeltaUs;
     }
 
     DEBUG_SET(DEBUG_RX_TIMING, 0, MIN(frameDeltaUs / 10, INT16_MAX));
-    DEBUG_SET(DEBUG_RX_TIMING, 1, MIN(frameAgeUs / 10, INT16_MAX));
+    DEBUG_SET(DEBUG_RX_TIMING, 1, MIN(localDeltaUs / 10, INT16_MAX));
+    DEBUG_SET(DEBUG_RX_TIMING, 2, MIN(frameAgeUs / 10, INT16_MAX));
 
     isRxRateValid = (frameDeltaUs >= RC_RX_RATE_MIN_US && frameDeltaUs <= RC_RX_RATE_MAX_US);
     currentRxRefreshRate = constrain(frameDeltaUs, RC_RX_RATE_MIN_US, RC_RX_RATE_MAX_US);
+
     lastRxTimeUs = currentTimeUs;    
 }
 
