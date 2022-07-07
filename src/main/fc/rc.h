@@ -34,13 +34,14 @@ void initRcProcessing(void);
 void processRcCommand(void);
 void updateRcCommands(void);
 
-float getRcDeflection(int axis);
-float getRawSetpoint(int axis);
-float getRcCommandDelta(int axis);
-
 void resetYawAxis(void);
 
+bool getRxRateValid(void);
 void updateRcRefreshRate(timeUs_t currentTimeUs);
 uint16_t getCurrentRxRefreshRate(void);
 
-bool getRxRateValid(void);
+float getRcDeflection(int axis);
+float getRawSetpoint(int axis);
+float getSetpointRate(int axis);
+float getRcCommandDelta(int axis);
+

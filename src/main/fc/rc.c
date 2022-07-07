@@ -57,31 +57,37 @@
 #include "rc.h"
 
 
-float rcCommand[5];                  // [-500;+500] for RPYC and [0;1000] for THROTTLE
+#define RC_RX_RATE_MIN_US       950    // 0.950ms to fit 1kHz without an issue
+#define RC_RX_RATE_MAX_US       65500  // 65.5ms or 15.26hz
 
-static float rawSetpoint[4];
-static float rcDeflection[4];
 
-static bool isRxDataNew = false;
-static bool isRxRateValid = false;
-static uint16_t currentRxRefreshRate;
+FAST_DATA_ZERO_INIT float rcCommand[5];                  // [-500;+500] for RPYC and [0;1000] for THROTTLE
 
-static float rcCommandDivider = 500.0f;
-static float rcCommandYawDivider = 500.0f;
+static FAST_DATA_ZERO_INIT float rawSetpoint[4];
+static FAST_DATA_ZERO_INIT float smoothSetpoint[4];
+static FAST_DATA_ZERO_INIT float rcDeflection[5];
+static FAST_DATA_ZERO_INIT float rcDivider[5];
 
-#define RC_RX_RATE_MIN_US                       950   // 0.950ms to fit 1kHz without an issue
-#define RC_RX_RATE_MAX_US                       65500 // 65.5ms or 15.26hz
+static FAST_DATA_ZERO_INIT bool isRxDataNew = false;
+static FAST_DATA_ZERO_INIT bool isRxRateValid = false;
+
+static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
 
 
 void resetYawAxis(void)
 {
     rcCommand[YAW] = 0;
-    //setpointRate[YAW] = 0; FIXME
+    smoothSetpoint[YAW] = 0;
 }
 
 float getRawSetpoint(int axis)
 {
     return rawSetpoint[axis];
+}
+
+float getSetpointRate(int axis)
+{
+    return smoothSetpoint[axis];
 }
 
 float getRcDeflection(int axis)
@@ -93,7 +99,6 @@ uint16_t getCurrentRxRefreshRate(void)
 {
     return currentRxRefreshRate;
 }
-
 
 void updateRcRefreshRate(timeUs_t currentTimeUs)
 {
@@ -117,42 +122,16 @@ void updateRcRefreshRate(timeUs_t currentTimeUs)
 
 FAST_CODE void processRcCommand(void)
 {
-    if (isRxDataNew) {
-        for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-            float angleRate;
-            
-#ifdef USE_GPS_RESCUE
-            if ((axis == FD_YAW) && FLIGHT_MODE(GPS_RESCUE_MODE)) {
-                // If GPS Rescue is active then override the setpointRate used in the
-                // pid controller with the value calculated from the desired heading logic.
-                angleRate = gpsRescueGetYawRate();
-
-                // Treat the stick input as centered to avoid any stick deflection base modifications (like acceleration limit)
-                rcDeflection[axis] = 0;
-            } 
-            else
-#endif
-            {
-                // scale rcCommandf to range [-1.0, 1.0]
-                float rcCommandf;
-                if (axis == FD_YAW) {
-                    rcCommandf = rcCommand[axis] / rcCommandYawDivider;
-                } else {
-                    rcCommandf = rcCommand[axis] / rcCommandDivider;
-                }
-
-                rcDeflection[axis] = rcCommandf;
-
-                angleRate = applyRatesCurve(axis, rcCommandf);
-
-            }
-            rawSetpoint[axis] = constrainf(angleRate, -currentControlRateProfile->rate_limit[axis], currentControlRateProfile->rate_limit[axis]);
-            DEBUG_SET(DEBUG_ANGLERATE, axis, angleRate);
-        }
-    }
-
 #ifdef USE_RC_SMOOTHING_FILTER
-    processRcSmoothingFilter(isRxDataNew, isRxRateValid, currentRxRefreshRate);
+    rcSmoothingFilterUpdate(isRxDataNew, isRxRateValid, currentRxRefreshRate);
+
+    for (int axis = 0; axis < 4; axis++) {
+        smoothSetpoint[axis] = rcSmoothingFilterApply(axis, rawSetpoint[axis]);
+    }
+#else
+    for (int axis = 0; axis < 4; axis++) {
+        smoothSetpoint[axis] = rawSetpoint[axis];
+    }
 #endif
 
     isRxDataNew = false;
@@ -187,11 +166,31 @@ FAST_CODE void updateRcCommands(void)
     }
 
     rcCommand[THROTTLE] = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
+
+    for (int axis = 0; axis < 4; axis++) {
+        float deflection, angleRate;
+
+        deflection = rcCommand[axis] / rcDivider[axis];
+        angleRate = applyRatesCurve(axis, deflection);
+
+        if (axis < 3)
+            angleRate = constrainf(angleRate, -currentControlRateProfile->rate_limit[axis], currentControlRateProfile->rate_limit[axis]);
+
+        rcDeflection[axis] = deflection;
+        rawSetpoint[axis] = angleRate;
+
+        DEBUG_SET(DEBUG_ANGLERATE, axis, angleRate);
+    }
+
+
 }
 
-void initRcProcessing(void)
+INIT_CODE void initRcProcessing(void)
 {
-    rcCommandDivider = 500.0f - rcControlsConfig()->deadband;
-    rcCommandYawDivider = 500.0f - rcControlsConfig()->yaw_deadband;
+    rcDivider[0] = 500.0f - rcControlsConfig()->deadband;
+    rcDivider[1] = 500.0f - rcControlsConfig()->deadband;
+    rcDivider[2] = 500.0f - rcControlsConfig()->yaw_deadband;
+    rcDivider[3] = 500.0f;
+    rcDivider[4] = 500.0f;
 }
 

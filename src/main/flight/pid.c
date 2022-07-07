@@ -242,7 +242,7 @@ void FAST_CODE pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
             float feedForward = feedforwardGain * pidSetpointDelta * pidRuntime.pidFrequency;
             pidData[axis].F = feedForward;
 #ifdef USE_RC_SMOOTHING_FILTER
-            pidData[axis].F = rcSmoothingApplySetpointDeltaFilter(axis, pidData[axis].F);
+            pidData[axis].F = rcSmoothingDeltaFilterApply(axis, pidData[axis].F);
 #endif // USE_RC_SMOOTHING_FILTER
         } else {
             pidData[axis].F = 0;

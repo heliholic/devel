@@ -35,30 +35,40 @@ typedef struct rcSmoothingFilterTraining_s {
 
 typedef struct rcSmoothingFilter_s {
     bool filterInitialized;
-    pt3Filter_t filter[4];
-    pt3Filter_t filterDeflection[2];
+    bool calculateCutoffs;
+
+    pt3Filter_t setpointFilter[4];
     pt3Filter_t setpointDeltaFilter[3];
+
     uint8_t setpointCutoffSetting;
     uint8_t throttleCutoffSetting;
+    uint8_t setpointDeltaCutoffSetting;
+
     uint16_t setpointCutoffFrequency;
     uint16_t throttleCutoffFrequency;
-    uint8_t setpointDeltaCutoffSetting;
     uint16_t setpointDeltaCutoffFrequency;
-    int averageFrameTimeUs;
-    rcSmoothingFilterTraining_t training;
+
     uint8_t autoSmoothnessFactorSetpoint;
     uint8_t autoSmoothnessFactorThrottle;
+
+    int averageFrameTimeUs;
+    timeMs_t validRxFrameTimeMs;
+
+    rcSmoothingFilterTraining_t training;
+
     uint8_t debugAxis;
+
 } rcSmoothingFilter_t;
 
 
 rcSmoothingFilter_t *getRcSmoothingData(void);
 
-float getSetpointRate(int axis);
-
 bool rcSmoothingAutoCalculate(void);
 bool rcSmoothingInitializationComplete(void);
 
-void processRcSmoothingFilter(bool isRxDataNew, bool isRxRateValid, uint16_t currentRxRefreshRate);
+void rcSmoothingFilterInit(void);
+void rcSmoothingFilterUpdate(bool isRxDataNew, bool isRxRateValid, uint16_t currentRxRefreshRate);
 
-float rcSmoothingApplySetpointDeltaFilter(int axis, float pidSetpointDelta);
+float rcSmoothingFilterApply(int axis, float setpoint);
+float rcSmoothingDeltaFilterApply(int axis, float delta);
+
