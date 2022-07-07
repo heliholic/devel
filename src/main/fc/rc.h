@@ -28,15 +28,18 @@
 #include "fc/rc_smoothing.h"
 
 
-void processRcCommand(void);
-float getSetpointRate(int axis);
-float getRcDeflection(int axis);
-float getRcDeflectionAbs(int axis);
-void updateRcCommands(void);
-void resetYawAxis(void);
+extern float rcCommand[5];
+
 void initRcProcessing(void);
+void processRcCommand(void);
+void updateRcCommands(void);
+
+void resetYawAxis(void);
+
 float getRawSetpoint(int axis);
-float getRcCommandDelta(int axis);
-float applyCurve(int axis, float deflection);
-void updateRcRefreshRate(timeUs_t currentTimeUs);
+float getRcSetpoint(int axis);
+float getRcDeflection(int axis);
+
 uint16_t getCurrentRxRefreshRate(void);
+
+void updateRcRefreshRate(timeUs_t currentTimeUs);
