@@ -28,6 +28,7 @@
 
 #include "common/axis.h"
 #include "common/utils.h"
+#include "common/maths.h"
 
 #include "config/config.h"
 #include "config/feature.h"
@@ -35,24 +36,16 @@
 #include "fc/controlrate_profile.h"
 #include "fc/runtime_config.h"
 #include "fc/core.h"
+
 #include "fc/rc.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/rc_rates.h"
 #include "fc/rc_smoothing.h"
 
-#include "flight/failsafe.h"
-#include "flight/imu.h"
-#include "flight/pid.h"
-#include "flight/gps_rescue.h"
-#include "flight/pid_init.h"
-
 #include "pg/rx.h"
 
 #include "rx/rx.h"
-
-#include "sensors/battery.h"
-#include "sensors/gyro.h"
 
 #include "rc.h"
 
@@ -79,6 +72,8 @@ static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
 void resetYawAxis(void)
 {
     rcCommand[YAW] = 0;
+    rcDeflection[YAW] = 0;
+    rawSetpoint[YAW] =  0;
     smoothSetpoint[YAW] = 0;
 }
 
@@ -163,6 +158,7 @@ FAST_CODE void updateRcCommands(void)
 
     // FIXME
     rcCommand[THROTTLE] = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
+    rcDeflection[THROTTLE] = rcCommand[THROTTLE] / PWM_RANGE;
 
     for (int axis = 0; axis < 4; axis++) {
         rawSetpoint[axis] = applyRatesCurve(axis, rcDeflection[axis]);
