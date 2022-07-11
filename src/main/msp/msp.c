@@ -1483,8 +1483,8 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rcSmoothingChannels
 #if defined(USE_RC_SMOOTHING_FILTER)
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rc_smoothing_type
-        sbufWriteU8(dst, rxConfig()->rc_smoothing_setpoint_cutoff);
-        sbufWriteU8(dst, rxConfig()->rc_smoothing_setpoint_delta_cutoff);
+        sbufWriteU8(dst, rxConfig()->rc_smoothing_cutoff);
+        sbufWriteU8(dst, 0); // was rxConfig()->rc_smoothing_setpoint_delta_cutoff
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rc_smoothing_input_type
         sbufWriteU8(dst, 0); // not required in API 1.44, was rxConfig()->rc_smoothing_derivative_type
 #else
@@ -1501,7 +1501,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 #endif
         // Added in MSP API 1.42
 #if defined(USE_RC_SMOOTHING_FILTER)
-        sbufWriteU8(dst, rxConfig()->rc_smoothing_auto_factor_rpy);
+        sbufWriteU8(dst, rxConfig()->rc_smoothing_factor);
 #else
         sbufWriteU8(dst, 0);
 #endif
@@ -3033,8 +3033,8 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             sbufReadU8(src); // not required in API 1.44, was rxConfigMutable()->rcSmoothingChannels
 #if defined(USE_RC_SMOOTHING_FILTER)
             sbufReadU8(src); // not required in API 1.44, was rc_smoothing_type
-            configRebootUpdateCheckU8(&rxConfigMutable()->rc_smoothing_setpoint_cutoff, sbufReadU8(src));
-            configRebootUpdateCheckU8(&rxConfigMutable()->rc_smoothing_setpoint_delta_cutoff, sbufReadU8(src));
+            rxConfigMutable()->rc_smoothing_cutoff = sbufReadU8(src);
+            sbufReadU8(src); // was rxConfigMutable()->rc_smoothing_setpoint_delta_cutoff
             sbufReadU8(src); // not required in API 1.44, was rc_smoothing_input_type
             sbufReadU8(src); // not required in API 1.44, was rc_smoothing_derivative_type
 #else
@@ -3057,11 +3057,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         if (sbufBytesRemaining(src) >= 1) {
             // Added in MSP API 1.42
 #if defined(USE_RC_SMOOTHING_FILTER)
-            // Added extra validation/range constraint for rc_smoothing_auto_factor as a workaround for a bug in
-            // the 10.6 configurator where it was possible to submit an invalid out-of-range value. We might be
-            // able to remove the constraint at some point in the future once the affected versions are deprecated
-            // enough that the risk is low.
-            configRebootUpdateCheckU8(&rxConfigMutable()->rc_smoothing_auto_factor_rpy, constrain(sbufReadU8(src), RC_SMOOTHING_AUTO_FACTOR_MIN, RC_SMOOTHING_AUTO_FACTOR_MAX));
+            rxConfigMutable()->rc_smoothing_factor = sbufReadU8(src);
 #else
             sbufReadU8(src);
 #endif
