@@ -23,35 +23,26 @@
 #include "drivers/time.h"
 
 
-#define RC_SMOOTHING_AUTO_FACTOR_MIN 0
-#define RC_SMOOTHING_AUTO_FACTOR_MAX 250
+#define RC_SMOOTHING_FACTOR_MIN 0
+#define RC_SMOOTHING_FACTOR_MAX 250
 
 typedef struct rcSmoothingFilterTraining_s {
-    float sum;
-    int count;
+    uint32_t sum;
+    uint16_t cnt;
     uint16_t min;
     uint16_t max;
 } rcSmoothingFilterTraining_t;
 
 typedef struct rcSmoothingFilter_s {
+
     bool filterInitialized;
     bool calculateCutoffs;
 
-    pt3Filter_t setpointFilter[4];
-    pt3Filter_t setpointDeltaFilter[3];
+    pt3Filter_t filter[5];
 
-    uint8_t setpointCutoffSetting;
-    uint8_t throttleCutoffSetting;
-    uint8_t setpointDeltaCutoffSetting;
+    uint16_t cutoffFreq;
 
-    uint16_t setpointCutoffFrequency;
-    uint16_t throttleCutoffFrequency;
-    uint16_t setpointDeltaCutoffFrequency;
-
-    uint8_t autoSmoothnessFactorSetpoint;
-    uint8_t autoSmoothnessFactorThrottle;
-
-    timeMs_t averageFrameTimeUs;
+    int averageFrameTimeUs;
     timeMs_t validRxFrameTimeMs;
 
     rcSmoothingFilterTraining_t training;
@@ -69,6 +60,6 @@ bool rcSmoothingInitializationComplete(void);
 void rcSmoothingFilterInit(void);
 void rcSmoothingFilterUpdate(bool isRxRateValid, uint16_t currentRxRefreshRate);
 
-float rcSmoothingFilterApply(int axis, float setpoint);
+float rcSmoothingFilterApply(int axis, float control);
 float rcSmoothingDeltaFilterApply(int axis, float delta);
 
