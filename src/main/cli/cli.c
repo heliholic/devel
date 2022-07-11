@@ -5298,20 +5298,8 @@ static void cliRcSmoothing(const char *cmdName, char *cmdline)
                 cliPrintLinef("%d.%03dms", avgRxFrameUs / 1000, avgRxFrameUs % 1000);
             }
         }
-        cliPrintf("# Active setpoint cutoff: %dhz ", rcSmoothingData->setpointCutoffFrequency);
-        if (rcSmoothingData->setpointCutoffSetting) {
-            cliPrintLine("(manual)");
-        } else {
-            cliPrintLine("(auto)");
-        }
-        cliPrintf("# Active setpoint delta cutoff: %dhz ", rcSmoothingData->setpointDeltaCutoffFrequency);
-        if (rcSmoothingData->setpointDeltaCutoffSetting) {
-            cliPrintLine("(manual)");
-        } else {
-            cliPrintLine("(auto)");
-        }
-        cliPrintf("# Active throttle cutoff: %dhz ", rcSmoothingData->throttleCutoffFrequency);
-        if (rcSmoothingData->throttleCutoffSetting) {
+        cliPrintf("# Active filter cutoff: %dHz ", rcSmoothingData->cutoffFreq);
+        if (rxConfig()->rc_smoothing_cutoff) {
             cliPrintLine("(manual)");
         } else {
             cliPrintLine("(auto)");
