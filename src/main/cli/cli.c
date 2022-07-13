@@ -5285,12 +5285,12 @@ static void cliRcSmoothing(const char *cmdName, char *cmdline)
 {
     UNUSED(cmdName);
     UNUSED(cmdline);
-    rcSmoothingFilter_t *rcSmoothingData = getRcSmoothingData();
+
     cliPrint("# RC Smoothing Type: ");
     if (rxConfig()->rc_smoothing_mode) {
         cliPrintLine("FILTER");
         if (rcSmoothingAutoCalculate()) {
-            const uint16_t avgRxFrameUs = rcSmoothingData->averageFrameTimeUs;
+            const uint16_t avgRxFrameUs = rcSmoothingGetRxFrameTime();
             cliPrint("# Detected RX frame rate: ");
             if (avgRxFrameUs == 0) {
                 cliPrintLine("NO SIGNAL");
@@ -5298,7 +5298,7 @@ static void cliRcSmoothing(const char *cmdName, char *cmdline)
                 cliPrintLinef("%d.%03dms", avgRxFrameUs / 1000, avgRxFrameUs % 1000);
             }
         }
-        cliPrintf("# Active filter cutoff: %dHz ", rcSmoothingData->cutoffFreq);
+        cliPrintf("# Active filter cutoff: %dHz ", rcSmoothingGetCutoffFreq());
         if (rxConfig()->rc_smoothing_cutoff) {
             cliPrintLine("(manual)");
         } else {
