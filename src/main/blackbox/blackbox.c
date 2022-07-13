@@ -1249,10 +1249,6 @@ static bool blackboxWriteSysinfo(void)
 
     char buf[128];  // datetime and rpm filter
 
-#ifdef USE_RC_SMOOTHING_FILTER
-    rcSmoothingFilter_t *rcSmoothingData = getRcSmoothingData();
-#endif
-
     const controlRateConfig_t *currentControlRateProfile = controlRateProfiles(systemConfig()->activeRateProfile);
     switch (xmitState.headerIndex) {
         BLACKBOX_PRINT_HEADER_LINE("Firmware type", "%s",                   "Cleanflight");
@@ -1435,8 +1431,8 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING, "%d",           rxConfig()->rc_smoothing_mode);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_FACTOR, "%d",    rxConfig()->rc_smoothing_factor);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_CUTOFF, "%d",    rxConfig()->rc_smoothing_cutoff);
-        BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_filter_hz", "%d",          rcSmoothingData->cutoffFreq);
-        BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_rx_average", "%d",         rcSmoothingData->averageFrameTimeUs);
+        BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_filter_hz", "%d",          rcSmoothingGetCutoffFreq());
+        BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_rx_average", "%d",         rcSmoothingGetRxFrameTime());
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_DEBUG_AXIS, "%d", rxConfig()->rc_smoothing_debug_axis);
 #endif // USE_RC_SMOOTHING_FILTER
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RATES_TYPE, "%d",             currentControlRateProfile->rates_type);
