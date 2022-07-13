@@ -62,12 +62,8 @@ static float setpointRate[4];
 static float rcDeflection[4], rcDeflectionAbs[4];
 static uint16_t currentRxRefreshRate;
 static bool isRxDataNew = false;
-static bool isRxRateValid = false;
 static float rcCommandDivider = 500.0f;
 static float rcCommandYawDivider = 500.0f;
-
-#define RC_RX_RATE_MIN_US                       950   // 0.950ms to fit 1kHz without an issue
-#define RC_RX_RATE_MAX_US                       65500 // 65.5ms or 15.26hz
 
 float getSetpointRate(int axis)
 {
@@ -99,8 +95,7 @@ void updateRcRefreshRate(timeUs_t currentTimeUs)
     DEBUG_SET(DEBUG_RX_TIMING, 1, MIN(frameAgeUs / 10, INT16_MAX));
 
     lastRxTimeUs = currentTimeUs;
-    isRxRateValid = (frameDeltaUs >= RC_RX_RATE_MIN_US && frameDeltaUs <= RC_RX_RATE_MAX_US);
-    currentRxRefreshRate = constrain(frameDeltaUs, RC_RX_RATE_MIN_US, RC_RX_RATE_MAX_US);
+    currentRxRefreshRate = frameDeltaUs;
 }
 
 uint16_t getCurrentRxRefreshRate(void)
