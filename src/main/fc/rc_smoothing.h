@@ -1,58 +1,50 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma once
 
-#include "drivers/time.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <math.h>
+
+#include "pg/rx.h"
 
 
 #define RC_SMOOTHING_FACTOR_MIN 0
 #define RC_SMOOTHING_FACTOR_MAX 250
 
-typedef struct rcSmoothingFilterTraining_s {
-    uint32_t sum;
-    uint16_t cnt;
-    uint16_t min;
-    uint16_t max;
-} rcSmoothingFilterTraining_t;
 
-typedef struct rcSmoothingFilter_s {
-    bool filterInitialized;
-    bool calculateCutoffs;
-    pt3Filter_t filter[4];
-    uint16_t cutoffFreq;
-    timeUs_t averageFrameTimeUs;
-    timeMs_t validRxFrameTimeMs;
-    rcSmoothingFilterTraining_t training;
-    uint8_t debugAxis;
-} rcSmoothingFilter_t;
-
-
-rcSmoothingFilter_t *getRcSmoothingData(void);
-
-bool rcSmoothingAutoCalculate(void);
-bool rcSmoothingInitializationComplete(void);
+uint16_t rcSmoothingGetCutoffFreq(void);
+uint16_t rcSmoothingGetRxFrameTime(void);
 
 void rcSmoothingFilterInit(void);
-void rcSmoothingFilterUpdate(bool isRxRateValid, uint16_t currentRxRefreshRate);
+void rcSmoothingFilterUpdate(int currentRxRefreshRate);
 
 float rcSmoothingFilterApply(int axis, float input);
 float rcSmoothingDeltaFilterApply(int axis, float delta);
+
+
+static inline bool rcSmoothingAutoCalculate(void)
+{
+    return (rxConfig()->rc_smoothing_cutoff == 0);
+}
+
+static inline bool rcSmoothingInitializationComplete(void)
+{
+    return true;
+}
 
