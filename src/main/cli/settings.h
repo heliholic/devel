@@ -95,9 +95,6 @@ typedef enum {
 #if defined(USE_MAX7456) || defined(USE_FRSKYOSD)
     TABLE_VIDEO_SYSTEM,
 #endif
-#ifdef USE_RC_SMOOTHING_FILTER
-    TABLE_RC_SMOOTHING_DEBUG,
-#endif // USE_RC_SMOOTHING_FILTER
 #ifdef USE_VTX_COMMON
     TABLE_VTX_LOW_POWER_DISARM,
 #endif
