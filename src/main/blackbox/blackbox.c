@@ -1396,7 +1396,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_CUTOFF, "%d",    rxConfig()->rc_smoothing_cutoff);
         BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_filter_hz", "%d",          rcSmoothingGetCutoffFreq());
         BLACKBOX_PRINT_HEADER_LINE("rc_smoothing_rx_average", "%d",         rcSmoothingGetRxFrameTime());
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RC_SMOOTHING_DEBUG_AXIS, "%d", rxConfig()->rc_smoothing_debug_axis);
 #endif // USE_RC_SMOOTHING_FILTER
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RATES_TYPE, "%d",             currentControlRateProfile->rates_type);
 
