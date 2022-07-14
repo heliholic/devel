@@ -37,7 +37,6 @@
 #define PARAM_NAME_RC_SMOOTHING "rc_smoothing"
 #define PARAM_NAME_RC_SMOOTHING_CUTOFF "rc_smoothing_cutoff"
 #define PARAM_NAME_RC_SMOOTHING_FACTOR "rc_smoothing_factor"
-#define PARAM_NAME_RC_SMOOTHING_DEBUG_AXIS "rc_smoothing_debug_axis"
 #define PARAM_NAME_SERIAL_RX_PROVIDER "serialrx_provider"
 #define PARAM_NAME_DSHOT_BIDIR "dshot_bidir"
 #define PARAM_NAME_USE_UNSYNCED_PWM "use_unsynced_pwm"
