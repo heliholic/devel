@@ -977,48 +977,47 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->time = currentTimeUs;
 
+    for (int i = 0; i < 4; i++) {
+        blackboxCurrent->command[i] = lrintf(rcCommand[i]);
+    }
+
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+        blackboxCurrent->setpoint[i] = lrintf(pidGetSetpoint(i));
+    }
+    blackboxCurrent->setpoint[3] = lrintf(0); // FIXME
+
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         blackboxCurrent->axisPID_P[i] = pidData[i].P;
         blackboxCurrent->axisPID_I[i] = pidData[i].I;
         blackboxCurrent->axisPID_D[i] = pidData[i].D;
         blackboxCurrent->axisPID_F[i] = pidData[i].F;
+
         blackboxCurrent->gyro[i] = lrintf(gyro.gyroADC[i]);
 #ifdef USE_ACC
         blackboxCurrent->acc[i] = lrintf(acc.accADC[i]);
 #endif
 #ifdef USE_MAG
-        blackboxCurrent->mag[i] = mag.magADC[i];
+        blackboxCurrent->mag[i] = lrintf(mag.magADC[i]);
 #endif
     }
-
-    for (int i = 0; i < 4; i++) {
-        blackboxCurrent->command[i] = lrintf(rcCommand[i]);
-    }
-
-    // log the currentPidSetpoint values applied to the PID controller
-    for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        blackboxCurrent->setpoint[i] = lrintf(pidGetSetpoint(i));
-    }
-    // log the final throttle value used in the mixer
-    blackboxCurrent->setpoint[3] = lrintf(mixerGetThrottle() * 1000);
-
-    for (int i = 0; i < getMotorCount(); i++) {
-        blackboxCurrent->motor[i] = getMotorOutput(i);
-    }
-
-    blackboxCurrent->voltage = getBatteryVoltageLatest();
-    blackboxCurrent->current = getAmperageLatest();
 
 #ifdef USE_BARO
     blackboxCurrent->baro = baro.BaroAlt;
 #endif
 
-#ifdef USE_RANGEFINDER
-    // Store the raw sonar value without applying tilt correction
-    blackboxCurrent->surfaceRaw = rangefinderGetLatestAltitude();
-#endif
+    blackboxCurrent->voltage = getBatteryVoltageLatest();
+    blackboxCurrent->current = getAmperageLatest();
 
     blackboxCurrent->rssi = getRssi();
+
+    for (int i = 0; i < getMotorCount(); i++) {
+        blackboxCurrent->rpm[i] = getMotorRPM(i);
+        blackboxCurrent->motor[i] = getMotorOutput(i);
+    }
+
+    for (int i = 0; i < getServoCount(); i++) {
+        blackboxCurrent->servo[i] = getServoOutput(i);
+    }
 
     for (int i = 0; i < DEBUG_VALUE_COUNT; i++) {
         blackboxCurrent->debug[i] = debug[i];
