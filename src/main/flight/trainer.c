@@ -67,7 +67,6 @@ INIT_CODE void acroTrainerInit(const pidProfile_t *pidProfile)
     acroTrainer.Gain = pidProfile->acro_trainer_gain / 10.0f;
     acroTrainer.AngleLimit = pidProfile->acro_trainer_angle_limit;
     acroTrainer.LookaheadTime = pidProfile->acro_trainer_lookahead_ms / 1000.0f;
-    acroTrainer.DebugAxis = pidProfile->acro_trainer_debug_axis;
 }
 
 void acroTrainerReset(void)
@@ -147,12 +146,10 @@ FAST_CODE float acroTrainerApply(int axis, float setPoint)
             pidData[axis].I = 0;
         }
 
-        if (axis == acroTrainer.DebugAxis) {
-            DEBUG_SET(DEBUG_ACRO_TRAINER, 0, lrintf(currentAngle * 10.0f));
-            DEBUG_SET(DEBUG_ACRO_TRAINER, 1, acroTrainer.AxisState[axis]);
-            DEBUG_SET(DEBUG_ACRO_TRAINER, 2, lrintf(setPoint));
-            DEBUG_SET(DEBUG_ACRO_TRAINER, 3, lrintf(projectedAngle * 10.0f));
-        }
+        DEBUG_AXIS_SET(DEBUG_ACRO_TRAINER, axis, 0, lrintf(currentAngle * 10.0f));
+        DEBUG_AXIS_SET(DEBUG_ACRO_TRAINER, axis, 1, acroTrainer.AxisState[axis]);
+        DEBUG_AXIS_SET(DEBUG_ACRO_TRAINER, axis, 2, lrintf(setPoint));
+        DEBUG_AXIS_SET(DEBUG_ACRO_TRAINER, axis, 3, lrintf(projectedAngle * 10.0f));
     }
 
     return setPoint;
