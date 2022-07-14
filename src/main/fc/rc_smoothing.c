@@ -66,8 +66,6 @@
 
 typedef struct
 {
-    uint8_t debugAxis;
-
     pt3Filter_t filter[4];
 
     bool dynamicCutoffs;
@@ -124,8 +122,6 @@ INIT_CODE void rcSmoothingFilterInit(void)
 {
     if (rxConfig()->rc_smoothing_mode) {
 
-        rcSmoothing.debugAxis = rxConfig()->rc_smoothing_debug_axis;
-
         rcSmoothing.dynamicCutoffs = rcSmoothingAutoCalculate();
         rcSmoothing.cutoffFreq = MAX(RC_SMOOTHING_CUTOFF_MIN_HZ, rxConfig()->rc_smoothing_cutoff);
 
@@ -176,10 +172,8 @@ FAST_CODE float rcSmoothingFilterApply(int axis, float input)
     if (axis < 4) {
         output = pt3FilterApply(&rcSmoothing.filter[axis], input);
 
-        if (axis == rcSmoothing.debugAxis) {
-            DEBUG(RC_SMOOTHING, 1, input * 1000);
-            DEBUG(RC_SMOOTHING, 2, output * 1000);
-        }
+        DEBUG_AXIS(RC_SMOOTHING, axis, 1, input * 1000);
+        DEBUG_AXIS(RC_SMOOTHING, axis, 2, output * 1000);
     }
 
     return output;
