@@ -60,7 +60,6 @@ void pgResetFn_rxConfig(rxConfig_t *rxConfig)
         .rc_smoothing_mode = 1,
         .rc_smoothing_cutoff = 0,
         .rc_smoothing_factor = 30,
-        .rc_smoothing_debug_axis = ROLL,
         .srxl2_unit_id = 1,
         .srxl2_baud_fast = true,
         .sbus_baud_fast = false,
