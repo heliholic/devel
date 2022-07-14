@@ -700,7 +700,6 @@ const clivalue_t valueTable[] = {
     { PARAM_NAME_RC_SMOOTHING,            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_RX_CONFIG, offsetof(rxConfig_t, rc_smoothing_mode) },
     { PARAM_NAME_RC_SMOOTHING_CUTOFF,     VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, UINT8_MAX }, PG_RX_CONFIG, offsetof(rxConfig_t, rc_smoothing_cutoff) },
     { PARAM_NAME_RC_SMOOTHING_FACTOR,     VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { RC_SMOOTHING_FACTOR_MIN, RC_SMOOTHING_FACTOR_MAX }, PG_RX_CONFIG, offsetof(rxConfig_t, rc_smoothing_factor) },
-    { PARAM_NAME_RC_SMOOTHING_DEBUG_AXIS, VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_RC_SMOOTHING_DEBUG }, PG_RX_CONFIG, offsetof(rxConfig_t, rc_smoothing_debug_axis) },
 #endif // USE_RC_SMOOTHING_FILTER
 
     { "max_aux_channels",            VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, MAX_AUX_CHANNEL_COUNT }, PG_RX_CONFIG, offsetof(rxConfig_t, max_aux_channel) },
