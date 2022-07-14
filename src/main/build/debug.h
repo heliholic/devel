@@ -25,12 +25,15 @@
 #define DEBUG16_VALUE_COUNT 4
 #define DEBUG32_VALUE_COUNT 8
 
+extern FAST_DATA_ZERO_INIT uint8_t debugAxis;
 extern FAST_DATA_ZERO_INIT uint8_t debugMode;
 extern FAST_DATA_ZERO_INIT int16_t debug[DEBUG16_VALUE_COUNT];
 
 #ifdef USE_DEBUG32
 extern FAST_DATA_ZERO_INIT int32_t debug32[DEBUG32_VALUE_COUNT];
 #endif
+
+#define DEBUG_AXIS_SET(mode, axis, index, value) do { if (debugMode == (mode) && (debugAxis == (axis))) { debug[(index)] = (value); } } while (0)
 
 #define DEBUG_SET(mode, index, value) do { if (debugMode == (mode)) { debug[(index)] = (value); } } while (0)
 

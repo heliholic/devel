@@ -22,6 +22,7 @@
 
 #include "debug.h"
 
+FAST_DATA_ZERO_INIT uint8_t debugAxis;
 FAST_DATA_ZERO_INIT uint8_t debugMode;
 FAST_DATA_ZERO_INIT int16_t debug[DEBUG16_VALUE_COUNT];
 
