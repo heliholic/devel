@@ -62,19 +62,19 @@ typedef enum FlightLogFieldCondition {
 } FlightLogFieldCondition;
 
 typedef enum FlightLogFieldSelect_e {
+    FLIGHT_LOG_FIELD_SELECT_COMMAND,
+    FLIGHT_LOG_FIELD_SELECT_SETPOINT,
+    FLIGHT_LOG_FIELD_SELECT_PID,
     FLIGHT_LOG_FIELD_SELECT_GYRO,
     FLIGHT_LOG_FIELD_SELECT_ACC,
     FLIGHT_LOG_FIELD_SELECT_MAG,
     FLIGHT_LOG_FIELD_SELECT_BARO,
-    FLIGHT_LOG_FIELD_SELECT_RPM,
-    FLIGHT_LOG_FIELD_SELECT_MOTOR,
-    FLIGHT_LOG_FIELD_SELECT_SERVO,
-    FLIGHT_LOG_FIELD_SELECT_PID,
-    FLIGHT_LOG_FIELD_SELECT_COMMAND,
-    FLIGHT_LOG_FIELD_SELECT_SETPOINT,
     FLIGHT_LOG_FIELD_SELECT_BATTERY,
     FLIGHT_LOG_FIELD_SELECT_RSSI,
     FLIGHT_LOG_FIELD_SELECT_GPS,
+    FLIGHT_LOG_FIELD_SELECT_RPM,
+    FLIGHT_LOG_FIELD_SELECT_MOTOR,
+    FLIGHT_LOG_FIELD_SELECT_SERVO,
     FLIGHT_LOG_FIELD_SELECT_DEBUG,
     FLIGHT_LOG_FIELD_SELECT_COUNT
 } FlightLogFieldSelect_e;
@@ -142,7 +142,7 @@ typedef struct flightLogEvent_disarm_s {
     uint32_t reason;
 } flightLogEvent_disarm_t;
 
-typedef struct flightLogEvent_flightMode_s { // New Event Data type
+typedef struct flightLogEvent_flightMode_s {
     uint32_t flags;
     uint32_t lastFlags;
 } flightLogEvent_flightMode_t;
@@ -163,7 +163,7 @@ typedef struct flightLogEvent_loggingResume_s {
 
 typedef union flightLogEventData_u {
     flightLogEvent_syncBeep_t syncBeep;
-    flightLogEvent_flightMode_t flightMode; // New event data
+    flightLogEvent_flightMode_t flightMode;
     flightLogEvent_disarm_t disarm;
     flightLogEvent_inflightAdjustment_t inflightAdjustment;
     flightLogEvent_loggingResume_t loggingResume;

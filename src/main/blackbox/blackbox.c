@@ -95,11 +95,11 @@ PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CO
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .sample_rate = BLACKBOX_RATE_QUARTER,
     .device = DEFAULT_BLACKBOX_DEVICE,
-    .fields_disabled_mask = 0, // default log all fields
+    .fields = BIT(FLIGHT_LOG_FIELD_SELECT_COUNT) - 1, // Log all fields by default
     .mode = BLACKBOX_MODE_NORMAL
 );
 
-STATIC_ASSERT((sizeof(blackboxConfig()->fields_disabled_mask) * 8) >= FLIGHT_LOG_FIELD_SELECT_COUNT, too_many_flight_log_fields_selections);
+STATIC_ASSERT((sizeof(blackboxConfig()->fields) * 8) >= FLIGHT_LOG_FIELD_SELECT_COUNT, too_many_flight_log_fields_selections);
 
 #define BLACKBOX_SHUTDOWN_TIMEOUT_MILLIS 200
 
@@ -227,8 +227,8 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
 #ifdef USE_BARO
     {"baro",       -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(BARO)},
 #endif
-    {"voltage",    -1, UNSIGNED, .Ipredict = PREDICT(VBATREF), .Iencode = ENCODING(NEG_14BIT),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(VOLTAGE)},
-    {"current",    -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(CURRENT)},
+    {"voltage",    -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(VOLTAGE)},
+    {"current",    -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(CURRENT)},
     {"rssi",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(RSSI)},
 
     {"rpm",         0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(MOTOR_1)},
@@ -425,7 +425,7 @@ static bool blackboxIsOnlyLoggingIntraframes(void)
 
 static bool isFieldEnabled(FlightLogFieldSelect_e field)
 {
-    return (blackboxConfig()->fields_disabled_mask & (1 << field)) == 0;
+    return (blackboxConfig()->fields & BIT(field));
 }
 
 static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
@@ -613,7 +613,7 @@ static void writeIntraframe(void)
         blackboxWriteUnsignedVB(blackboxCurrent->voltage);
     }
     if (testBlackboxCondition(CONDITION(CURRENT))) {
-        blackboxWriteSignedVB(blackboxCurrent->current);
+        blackboxWriteUnsignedVB(blackboxCurrent->current);
     }
     if (testBlackboxCondition(CONDITION(RSSI))) {
         blackboxWriteUnsignedVB(blackboxCurrent->rssi);
@@ -1381,7 +1381,7 @@ static bool blackboxWriteSysinfo(void)
 #endif // USE_RC_SMOOTHING_FILTER
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_RATES_TYPE, "%d",             currentControlRateProfile->rates_type);
 
-        BLACKBOX_PRINT_HEADER_LINE("fields_disabled_mask", "%d",            blackboxConfig()->fields_disabled_mask);
+        BLACKBOX_PRINT_HEADER_LINE("fields_mask", "%d",                     blackboxConfig()->fields);
 
         default:
             return true;
