@@ -284,6 +284,7 @@ static bool bstSlaveProcessFeedbackCommand(uint8_t bstRequest)
             junk = 0;
             tmp = IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)) << BOXANGLE |
                     IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)) << BOXHORIZON |
+                    IS_ENABLED(FLIGHT_MODE(RESCUE_MODE)) << BOXRESCUE |
                     IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)) << BOXCAMSTAB |
                     IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)) << BOXBEEPERON |
                     IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)) << BOXLEDLOW |
