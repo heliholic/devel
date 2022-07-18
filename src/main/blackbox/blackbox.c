@@ -196,6 +196,12 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"setpoint",    2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
     {"setpoint",    3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
 
+    /* Flight controls */
+    {"control",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
+    {"control",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
+    {"control",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
+    {"control",     3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
+
     /* PID control terms */
     {"axisP",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(PID)},
     {"axisP",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(PID)},
@@ -311,6 +317,7 @@ typedef struct blackboxMainState_s {
 
     int16_t command[4];
     int16_t setpoint[4];
+    int16_t control[4];
 
     int32_t axisPID_P[XYZ_AXIS_COUNT];
     int32_t axisPID_I[XYZ_AXIS_COUNT];
@@ -441,6 +448,9 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case CONDITION(SETPOINT):
         return isFieldEnabled(FIELD_SELECT(SETPOINT));
+
+    case CONDITION(CONTROL):
+        return isFieldEnabled(FIELD_SELECT(CONTROL));
 
     case CONDITION(PID):
         return isFieldEnabled(FIELD_SELECT(PID));
@@ -580,6 +590,10 @@ static void writeIntraframe(void)
         blackboxWriteSigned16VBArray(blackboxCurrent->setpoint, 4);
     }
 
+    if (testBlackboxCondition(CONDITION(CONTROL))) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->control, 4);
+    }
+
     if (testBlackboxCondition(CONDITION(PID))) {
         blackboxWriteSignedVBArray(blackboxCurrent->axisPID_P, XYZ_AXIS_COUNT);
         blackboxWriteSignedVBArray(blackboxCurrent->axisPID_I, XYZ_AXIS_COUNT);
@@ -699,6 +713,11 @@ static void writeInterframe(void)
 
     if (testBlackboxCondition(CONDITION(SETPOINT))) {
         CALC_DELTAS(deltas, blackboxCurrent->setpoint, blackboxPrev->setpoint, 4);
+        blackboxWriteTag8_4S16(deltas);
+    }
+
+    if (testBlackboxCondition(CONDITION(CONTROL))) {
+        CALC_DELTAS(deltas, blackboxCurrent->control, blackboxPrev->control, 4);
         blackboxWriteTag8_4S16(deltas);
     }
 
@@ -996,6 +1015,11 @@ static void loadMainState(timeUs_t currentTimeUs)
     for (int i = 0; i < 4; i++) {
         blackboxCurrent->setpoint[i] = lrintf(getRcSetpoint(i));
     }
+
+    blackboxCurrent->control[0] = mixerGetInput(MIXER_IN_STABILIZED_ROLL);
+    blackboxCurrent->control[1] = mixerGetInput(MIXER_IN_STABILIZED_PITCH);
+    blackboxCurrent->control[2] = mixerGetInput(MIXER_IN_STABILIZED_YAW);
+    blackboxCurrent->control[3] = mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE);
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         blackboxCurrent->axisPID_P[i] = pidData[i].P;
