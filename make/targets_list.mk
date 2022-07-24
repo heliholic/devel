@@ -17,13 +17,6 @@ get_base_target   = $(if $(call find_target_pair,$(1)),$(patsubst %/,%,$(dir $(c
 
 UNSUPPORTED_TARGETS := \
     AFROMINI \
-    ALIENFLIGHTF1 \
-    BEEBRAIN \
-    CC3D \
-    CC3D_OPBL \
-    CJMCU \
-    MICROSCISKY \
-    NAZE \
     AIORACERF3 \
     AIR32 \
     AIRHEROF3 \
@@ -58,7 +51,6 @@ UNSUPPORTED_TARGETS := \
     MIDELICF3 \
     MOTOLAB \
     MULTIFLITEPICO \
-    NUCLEOF103RG \
     NUCLEOF303RE \
     OMNIBUS \
     RACEBASE \
