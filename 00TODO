@@ -1,0 +1,94 @@
+
+Fixes
+~~~~~
+
+- Mixer output map
+
+
+
+Development
+~~~~~~~~~~~
+
+- New PID controller
+	o Tail PID
+
+- Setpoint accel limit
+
+- PID AGC
+
+- Tail FF AGC
+
+- Bounce filtering
+
+- Rescue mode
+
+- GPS rescue
+
+
+
+
+4.3 Port
+~~~~~~~~
+
+
+=== REQUIRED ===
+
+- PID controller
+
+- MSP messaging
+
+- Adjustments
+
+- Motor Tail / TTA
+
+
+
+=== NEW ===
+
+- PID refactoring
+
+- Filter stack refactoring
+
+- Separate protocols for each motor
+	? output groups
+
+- Geometry correction
+
+- Blackbox
+	o More fields
+
+- Vibe estimator
+	o Levels
+
+- Governor
+	o Overspeed detection
+	o KV estimation
+
+- RC Adjustments
+	o All channels
+	o 'Always active'
+
+- Frequency sensor
+	o 32bit mode
+
+- Sick Commands
+	o Refactoring
+
+- CLI
+	o backup command
+
+- Debug
+	o Use extended debug more
+
+- Custom defaults / Board selection
+
+- SITL
+
+
+
+=== RANDOM FEATURES ===
+
+- Accel limits
+
+- Trailing edge control
+
