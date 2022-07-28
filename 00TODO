@@ -1,0 +1,74 @@
+
+Development
+~~~~~~~~~~~
+
+- Tail tuning
+
+- Tail FF AGC
+
+- Bounce filtering
+
+- New PID controller
+
+- PID AGC
+
+- Rescue mode
+
+- GPS rescue
+
+- Servo/head geometry correction
+
+- Frequency sensor
+	o 32bit mode
+
+
+
+
+4.3 Port
+~~~~~~~~
+
+
+=== REQUIRED ===
+
+- PID controller
+
+- MSP messaging
+
+- Adjustments
+
+- Motor Tail / TTA
+
+
+
+=== NEW ===
+
+- PID refactoring
+
+- Filter stack refactoring
+
+- Blackbox
+	o More fields
+
+- Vibe estimator
+	o Levels
+
+- Governor
+	o Overspeed detection
+
+- RC Adjustments
+	o All channels
+	o 'Always active'
+
+- Sick Commands
+	o Refactoring
+
+- CLI
+	o backup command
+
+- Debug
+	o Use extended debug more
+
+- Custom defaults / Board selection
+
+- SITL
+
