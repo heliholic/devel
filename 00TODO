@@ -1,0 +1,85 @@
+
+Development
+~~~~~~~~~~~
+
+- New PID controller
+	o Tail PID
+
+- Setpoint accel limit
+	o Before smoothing
+
+- PID AGC
+
+- Tail FF AGC
+
+- Bounce filtering
+
+- Rescue mode
+
+- GPS rescue
+
+
+
+
+4.3 Port
+~~~~~~~~
+
+
+=== REQUIRED ===
+
+- MSP messaging
+
+
+
+=== NEW ===
+
+- PID refactoring
+
+- Filter stack refactoring
+
+- Separate protocols for each motor
+	? output groups
+
+- Servo config
+	o Geometry correction
+	o 5 point correction
+
+- Blackbox
+	o More fields
+
+- Vibe estimator
+	o Levels
+
+- Governor
+	o Overspeed detection
+	o Low stop detection
+	o KV estimation
+
+- RC Adjustments
+	o All channels
+	o 'Always active'
+
+- Frequency sensor
+	o 32bit mode
+
+- Sick Commands
+	o Refactoring
+
+- CLI
+	o backup command
+
+- Debug
+	o Use extended debug more
+
+- Custom defaults / Board selection
+
+- SITL
+
+
+
+=== RANDOM FEATURES ===
+
+- Accel limits
+
+- Trailing edge control
+
