@@ -1038,11 +1038,12 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->control[2] = mixerGetInput(MIXER_IN_STABILIZED_YAW);
     blackboxCurrent->control[3] = mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE);
 
+    const pidAxisData_t *data = pidGetAxisData();
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        blackboxCurrent->axisPID_P[i] = pidData[i].P;
-        blackboxCurrent->axisPID_I[i] = pidData[i].I;
-        blackboxCurrent->axisPID_D[i] = pidData[i].D;
-        blackboxCurrent->axisPID_F[i] = pidData[i].F;
+        blackboxCurrent->axisPID_P[i] = data[i].P;
+        blackboxCurrent->axisPID_I[i] = data[i].I;
+        blackboxCurrent->axisPID_D[i] = data[i].D;
+        blackboxCurrent->axisPID_F[i] = data[i].F;
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
@@ -1301,16 +1302,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("yawPID", "%d,%d,%d",                    currentPidProfile->pid[PID_YAW].P,
                                                                             currentPidProfile->pid[PID_YAW].I,
                                                                             currentPidProfile->pid[PID_YAW].D);
-
-        // Betaflight PID controller parameters
-        BLACKBOX_PRINT_HEADER_LINE("ff_weight", "%d,%d,%d",                 currentPidProfile->pid[PID_ROLL].F,
-                                                                            currentPidProfile->pid[PID_PITCH].F,
-                                                                            currentPidProfile->pid[PID_YAW].F);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_ACC_LIMIT_YAW, "%d",          currentPidProfile->yaw_rate_accel_limit);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_ACC_LIMIT, "%d",              currentPidProfile->rate_accel_limit);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_PIDSUM_LIMIT, "%d",           currentPidProfile->pidsum_limit);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_PIDSUM_LIMIT_YAW, "%d",       currentPidProfile->pidsum_limit_yaw);
-        // End of Betaflight controller parameters
 
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_DEADBAND, "%d",               rcControlsConfig()->deadband);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_YAW_DEADBAND, "%d",           rcControlsConfig()->yaw_deadband);

@@ -45,7 +45,6 @@
 #include "fc/rc.h"
 
 #include "flight/pid.h"
-#include "flight/pid_init.h"
 
 #include "io/beeper.h"
 #include "io/ledstrip.h"
@@ -558,9 +557,9 @@ static uint8_t applySelectAdjustment(adjustmentFunction_e adjustmentFunction, ui
     case ADJUSTMENT_HORIZON_STRENGTH:
         {
             uint8_t newValue = constrain(position, 0, 200); // FIXME magic numbers repeated in serial_cli.c
-            if (currentPidProfile->horizon_level_strength != newValue) {
-                beeps = ((newValue - currentPidProfile->horizon_level_strength) / 8) + 1;
-                currentPidProfile->horizon_level_strength = newValue;
+            if (currentPidProfile->horizon.level_strength != newValue) {
+                beeps = ((newValue - currentPidProfile->horizon.level_strength) / 8) + 1;
+                currentPidProfile->horizon.level_strength = newValue;
                 blackboxLogInflightAdjustmentEvent(ADJUSTMENT_HORIZON_STRENGTH, position);
             }
         }

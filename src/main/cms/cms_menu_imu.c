@@ -51,7 +51,6 @@
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/pid_init.h"
 
 #include "pg/pg.h"
 

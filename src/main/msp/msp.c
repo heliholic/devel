@@ -86,7 +86,6 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
-#include "flight/pid_init.h"
 #include "flight/position.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
@@ -1306,7 +1305,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         break;
 
     case MSP_PID_CONTROLLER:
-        sbufWriteU8(dst, PID_CONTROLLER_BETAFLIGHT);
+        sbufWriteU8(dst, PID_CONTROLLER_ROTORFLIGHT);
         break;
 
     case MSP_MODE_RANGES:
@@ -1802,9 +1801,9 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, 0); // reserved
         sbufWriteU8(dst, 0); // reserved
         sbufWriteU8(dst, 0); // reserved
-        sbufWriteU16(dst, currentPidProfile->rate_accel_limit);
-        sbufWriteU16(dst, currentPidProfile->yaw_rate_accel_limit);
-        sbufWriteU8(dst, currentPidProfile->angle_level_limit);
+        sbufWriteU16(dst, 0); // was currentPidProfile->rate_accel_limit
+        sbufWriteU16(dst, 0); // currentPidProfile->yaw_rate_accel_limit
+        sbufWriteU8(dst, currentPidProfile->angle.level_limit);
         sbufWriteU8(dst, 0); // was pidProfile.levelSensitivity
         sbufWriteU16(dst, 0); // was currentPidProfile->itermThrottleThreshold
         sbufWriteU16(dst, 0); // was currentPidProfile->itermAcceleratorGain
@@ -1816,7 +1815,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, 0); // was currentPidProfile->abs_control_gain
         sbufWriteU8(dst, 0);
 #if defined(USE_ACRO_TRAINER)
-        sbufWriteU8(dst, currentPidProfile->acro_trainer_angle_limit);
+        sbufWriteU8(dst, currentPidProfile->trainer.angle_limit);
 #else
         sbufWriteU8(dst, 0);
 #endif
@@ -2594,10 +2593,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         sbufReadU8(src); // reserved
         sbufReadU8(src); // reserved
         sbufReadU8(src); // reserved
-        currentPidProfile->rate_accel_limit = sbufReadU16(src);
-        currentPidProfile->yaw_rate_accel_limit = sbufReadU16(src);
+        sbufReadU16(src); // was currentPidProfile->rate_accel_limit
+        sbufReadU16(src); // was currentPidProfile->yaw_rate_accel_limit
         if (sbufBytesRemaining(src) >= 2) {
-            currentPidProfile->angle_level_limit = sbufReadU8(src);
+            currentPidProfile->angle.level_limit = sbufReadU8(src);
             sbufReadU8(src); // was pidProfile.levelSensitivity
         }
         if (sbufBytesRemaining(src) >= 4) {
@@ -2616,7 +2615,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             sbufReadU8(src); // was currentPidProfile->abs_control_gain
             sbufReadU8(src);
 #if defined(USE_ACRO_TRAINER)
-            currentPidProfile->acro_trainer_angle_limit = sbufReadU8(src);
+            currentPidProfile->trainer.angle_limit = sbufReadU8(src);
 #else
             sbufReadU8(src);
 #endif
