@@ -27,6 +27,8 @@ FAST_DATA_ZERO_INIT uint8_t debugAxis;
 
 FAST_DATA_ZERO_INIT int32_t debug[DEBUG_VALUE_COUNT];
 
+FAST_DATA_ZERO_INIT uint32_t __timing[DEBUG_VALUE_COUNT];
+
 #define DEBUG_NAME(x)  [DEBUG_ ## x] = #x
 
 // Please ensure that names listed here match the enum values defined in 'debug.h'
