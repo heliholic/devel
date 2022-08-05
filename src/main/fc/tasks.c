@@ -539,6 +539,7 @@ void tasksInit(void)
 #endif
 
 #ifdef USE_ESC_SENSOR
+    rescheduleTask(TASK_ESC_SENSOR, TASK_PERIOD_HZ(escSensorConfig()->update_hz));
     setTaskEnabled(TASK_ESC_SENSOR, featureIsEnabled(FEATURE_ESC_SENSOR));
 #endif
 
