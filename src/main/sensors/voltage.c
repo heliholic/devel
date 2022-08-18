@@ -195,7 +195,8 @@ void voltageMeterADCInit(void)
         voltageMeterADCState_t *state = &voltageMeterADCStates[i];
         memset(state, 0, sizeof(voltageMeterADCState_t));
 
-        pt1FilterInit(&state->displayFilter, pt1FilterGain(GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatDisplayLpfPeriod), HZ_TO_INTERVAL(VOLTAGE_TASK_FREQ_HZ)));
+        pt1FilterInit(&state->displayFilter, pt1FilterGain(GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatDisplayLpfPeriod),
+                                                           HZ_TO_INTERVAL(batteryConfig()->vbatUpdateHz)));
     }
 }
 
