@@ -41,6 +41,10 @@ typedef enum {
     PID_ITEM_COUNT
 } pidIndex_e;
 
+enum {
+    PID_WAY = 3     // TODO remove after testing
+};
+
 typedef struct {
     uint16_t P;
     uint16_t I;
@@ -73,9 +77,28 @@ typedef struct pidProfile_s {
 
     char                profileName[MAX_PROFILE_NAME_LENGTH + 1];
 
-    pidf_t              pid[PID_ITEM_COUNT];
+    pidf_t              pid[4]; // [PID_ITEM_COUNT]
 
-    uint8_t             iterm_rotation;
+    uint8_t             mode;
+
+    uint8_t             error_decay;
+    uint8_t             error_rotation;
+    uint16_t            error_limit[PID_ITEM_COUNT];
+
+    uint8_t             error_cutoff[PID_ITEM_COUNT];
+    uint8_t             dterm_cutoff[PID_ITEM_COUNT];
+    uint8_t             fterm_cutoff[PID_ITEM_COUNT];
+
+    uint16_t            yaw_cw_stop_gain;
+    uint16_t            yaw_ccw_stop_gain;
+
+    uint16_t            yaw_cyclic_ff_gain;
+    uint16_t            yaw_collective_ff_gain;
+    uint16_t            yaw_collective_ff_impulse_gain;
+    uint8_t             yaw_collective_ff_impulse_freq;
+
+    uint16_t            pitch_collective_ff_gain;
+    uint16_t            pitch_collective_ff_impulse_gain;
 
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
