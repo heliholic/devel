@@ -99,6 +99,47 @@ void pidResetIterms(void)
     pid.data[PID_YAW].I   = 0;
 }
 
+
+
+/*
+ * 2D Rotation matrix
+ *
+ *        | cos(r)   -sin r |
+ *    R = |                 |
+ *        | sin(r)    cos r |
+ *
+ *
+ *                3     5     7     9
+ *               x     x     x     x
+ * sin(x) = x - --- + --- - --- + --- - ...
+ *               3!    5!    7!    9!
+ *
+ *                2     4     6     8
+ *               x     x     x     x
+ * cos(x) = 1 - --- + --- - --- + --- - ...
+ *               2!    4!    6!    8!
+ *
+ *
+ * For very small values of x, sin(x) ~= x and cos(x) ~= 1.
+ *
+ * In the use case below, using two first terms gives nearly 24bits of
+ * resolution, which is close to what can be stored in a float.
+ */
+
+static inline void rotateVector(float *x, float *y, float r)
+{
+    float t = r * r / 2;
+    float s = r * (1 - t / 3);
+    float c = 1 - t;
+
+    float a = *x*c + *y*s;
+    float b = *y*c - *x*s;
+
+    *x = a;
+    *y = b;
+}
+
+
 void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
 {
     UNUSED(pidProfile);
