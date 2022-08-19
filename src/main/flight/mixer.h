@@ -171,6 +171,3 @@ static inline void mixerSaturateServoOutput(uint8_t index) { mixerSaturateOutput
 static inline void mixerSaturateMotorOutput(uint8_t index) { mixerSaturateOutput(index + MIXER_MOTOR_OFFSET); }
 
 static inline int mixerRotationSign() { return (mixerConfig()->main_rotor_dir == DIR_CW) ? -1 : 1; }
-
-// Compat:
-static inline float getPidSum(int axis) { UNUSED(axis); return 0; }
