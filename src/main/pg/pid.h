@@ -75,7 +75,15 @@ typedef struct pidProfile_s {
 
     pidf_t              pid[PID_ITEM_COUNT];
 
-    uint8_t             iterm_rotation;
+    uint8_t             mode;
+
+    uint8_t             error_decay;
+    uint8_t             error_rotation;
+    uint16_t            error_limit[PID_ITEM_COUNT];
+
+    uint8_t             error_cutoff[PID_ITEM_COUNT];
+    uint8_t             dterm_cutoff[PID_ITEM_COUNT];
+    uint8_t             fterm_cutoff[PID_ITEM_COUNT];
 
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
