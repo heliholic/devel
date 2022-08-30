@@ -57,6 +57,7 @@ typedef struct {
     float setPoint;
     float gyroRate;
     float gyroDterm;
+    float axisError;
 } pidAxisData_t;
 
 typedef struct {
@@ -69,6 +70,8 @@ typedef struct {
 typedef struct pid_s {
     float dT;
     float freq;
+
+    bool errorRotation;
 
     pidAxisData_t data[XYZ_AXIS_COUNT];
     pidAxisConfig_t conf[XYZ_AXIS_COUNT];
