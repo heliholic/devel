@@ -48,7 +48,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
             [PID_PITCH] = PID_PITCH_DEFAULT,
             [PID_YAW]   = PID_YAW_DEFAULT,
         },
-        .iterm_rotation = false,
         .angle.level_strength = 50,
         .angle.level_limit = 55,
         .horizon.level_strength = 50,

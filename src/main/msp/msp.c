@@ -1401,7 +1401,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, (uint16_t)constrain(gpsSol.llh.altCm / 100, 0, UINT16_MAX)); // alt changed from 1m to 0.01m per lsb since MSP API 1.39 by RTH. To maintain backwards compatibility compensate to 1m per lsb in MSP again.
         sbufWriteU16(dst, gpsSol.groundSpeed);
         sbufWriteU16(dst, gpsSol.groundCourse);
-        // Added in API version 1.44    
+        // Added in API version 1.44
         sbufWriteU16(dst, gpsSol.hdop);
         break;
 
@@ -1808,7 +1808,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, 0); // was currentPidProfile->itermThrottleThreshold
         sbufWriteU16(dst, 0); // was currentPidProfile->itermAcceleratorGain
         sbufWriteU16(dst, 0); // was currentPidProfile->dtermSetpointWeight
-        sbufWriteU8(dst, currentPidProfile->iterm_rotation);
+        sbufWriteU8(dst, 0); // was currentPidProfile->iterm_rotation
         sbufWriteU8(dst, 0); // was currentPidProfile->smart_feedforward
         sbufWriteU8(dst, 0); // was currentPidProfile->iterm_relax
         sbufWriteU8(dst, 0); // was urrentPidProfile->iterm_relax_type
@@ -2604,7 +2604,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         }
         if (sbufBytesRemaining(src) >= 14) {
             // Added in MSP API 1.40
-            currentPidProfile->iterm_rotation = sbufReadU8(src);
+            sbufReadU8(src); // was currentPidProfile->error_rotation
             sbufReadU8(src); // was currentPidProfile->smart_feedforward
             sbufReadU8(src); // was currentPidProfile->iterm_relax
             sbufReadU8(src); // was currentPidProfile->iterm_relax_type

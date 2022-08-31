@@ -122,6 +122,13 @@ void INIT_CODE pidInit(const pidProfile_t *pidProfile)
 
 void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 {
+    pid.mode = constrain(pidProfile->mode, 1, 6);
+
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++)
+        pid.errorLimit[i] = constrain(pidProfile->error_limit[i], 0, 360);
+
+    pid.errorDecay = 1.0f - (pidProfile->error_decay) ? pid.dT * 10 / pidProfile->error_decay : 0;
+
 #ifdef USE_ACC
     pidLevelInit(pidProfile);
 #endif
