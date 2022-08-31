@@ -171,23 +171,19 @@ void INIT_CODE pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileI
  * resolution, which is close to what can be stored in a float.
  */
 
-static inline void rotateVector(float *x, float *y, float r)
-{
-    float t = r * r / 2;
-    float s = r * (1 - t / 3);
-    float c = 1 - t;
-
-    float a = *x*c + *y*s;
-    float b = *y*c - *x*s;
-
-    *x = a;
-    *y = b;
-}
-
 static inline void rotateAxisError(void)
 {
     if (pid.errorRotation) {
-        rotateVector(&pid.data[PID_ROLL].axisError, &pid.data[PID_PITCH].axisError, gyro.gyroADCf[Z]*pid.dT*RAD);
+        const float x = pid.data[PID_ROLL].axisError;
+        const float y = pid.data[PID_PITCH].axisError;
+        const float r = gyro.gyroADCf[Z] * RAD * pid.dT;
+
+        const float t = r * r / 2;
+        const float s = r * (1 - t / 3);
+        const float c = 1 - t;
+
+        pid.data[PID_ROLL].axisError  = x * c + y * s;
+        pid.data[PID_PITCH].axisError = y * c - x * s;
     }
 }
 
