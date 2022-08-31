@@ -102,6 +102,7 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
               BIT(FLIGHT_LOG_FIELD_SELECT_BATTERY) |
               BIT(FLIGHT_LOG_FIELD_SELECT_RSSI) |
               BIT(FLIGHT_LOG_FIELD_SELECT_MOTOR) |
+              BIT(FLIGHT_LOG_FIELD_SELECT_SERVO) |
               BIT(FLIGHT_LOG_FIELD_SELECT_DEBUG),
     .mode = BLACKBOX_MODE_NORMAL
 );
@@ -199,7 +200,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"rcCommand",   2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(COMMAND)},
     {"rcCommand",   3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(COMMAND)},
 
-    // setpoint - define 4 fields like RC command
+    /* setpoint - define 4 fields like RC command */
     {"setpoint",    0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
     {"setpoint",    1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
     {"setpoint",    2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
@@ -226,19 +227,24 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"axisF",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(PID)},
 
     /* Gyros and accelerometers base their P-predictions on the average of the previous 2 frames to reduce noise impact */
+    {"gyroRAW",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(GYRAW)},
+    {"gyroRAW",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(GYRAW)},
+    {"gyroRAW",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(GYRAW)},
+
     {"gyroADC",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(GYRO)},
     {"gyroADC",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(GYRO)},
     {"gyroADC",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(GYRO)},
 
-    {"accSmooth",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(ACC)},
-    {"accSmooth",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(ACC)},
-    {"accSmooth",   2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(ACC)},
+    {"accADC",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(ACC)},
+    {"accADC",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(ACC)},
+    {"accADC",      2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(ACC)},
 #
 #ifdef USE_MAG
     {"magADC",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(MAG)},
     {"magADC",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(MAG)},
     {"magADC",      2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(MAG)},
 #endif
+
 #ifdef USE_BARO
     {"BaroAlt",    -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(BARO)},
 #endif
@@ -333,10 +339,11 @@ typedef struct blackboxMainState_s {
     int32_t axisPID_D[XYZ_AXIS_COUNT];
     int32_t axisPID_F[XYZ_AXIS_COUNT];
 
-    int16_t gyro[XYZ_AXIS_COUNT];
-    int16_t acc[XYZ_AXIS_COUNT];
+    int16_t gyroRAW[XYZ_AXIS_COUNT];
+    int16_t gyroADC[XYZ_AXIS_COUNT];
+    int16_t accADC[XYZ_AXIS_COUNT];
 #ifdef USE_MAG
-    int16_t mag[XYZ_AXIS_COUNT];
+    int16_t magADC[XYZ_AXIS_COUNT];
 #endif
 #ifdef USE_BARO
     int32_t baro;
@@ -472,6 +479,9 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case CONDITION(PID):
         return isFieldEnabled(FIELD_SELECT(PID));
+
+    case CONDITION(GYRAW):
+        return isFieldEnabled(FIELD_SELECT(GYRAW));
 
     case CONDITION(GYRO):
         return isFieldEnabled(FIELD_SELECT(GYRO));
@@ -619,19 +629,20 @@ static void writeIntraframe(void)
         blackboxWriteSignedVBArray(blackboxCurrent->axisPID_F, XYZ_AXIS_COUNT);
     }
 
+    if (testBlackboxCondition(CONDITION(GYRAW))) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->gyroRAW, XYZ_AXIS_COUNT);
+    }
     if (testBlackboxCondition(CONDITION(GYRO))) {
-        blackboxWriteSigned16VBArray(blackboxCurrent->gyro, XYZ_AXIS_COUNT);
+        blackboxWriteSigned16VBArray(blackboxCurrent->gyroADC, XYZ_AXIS_COUNT);
     }
     if (testBlackboxCondition(CONDITION(ACC))) {
-        blackboxWriteSigned16VBArray(blackboxCurrent->acc, XYZ_AXIS_COUNT);
+        blackboxWriteSigned16VBArray(blackboxCurrent->accADC, XYZ_AXIS_COUNT);
     }
-
 #ifdef USE_MAG
     if (testBlackboxCondition(CONDITION(MAG))) {
-        blackboxWriteSigned16VBArray(blackboxCurrent->mag, XYZ_AXIS_COUNT);
+        blackboxWriteSigned16VBArray(blackboxCurrent->magADC, XYZ_AXIS_COUNT);
     }
 #endif
-
 #ifdef USE_BARO
     if (testBlackboxCondition(CONDITION(BARO))) {
         blackboxWriteSignedVB(blackboxCurrent->baro);
@@ -754,11 +765,14 @@ static void writeInterframe(void)
     }
 
     // Since gyro and acc are noisy, base their predictions on the average of the history
+    if (testBlackboxCondition(CONDITION(GYRAW))) {
+        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, gyroRAW), XYZ_AXIS_COUNT);
+    }
     if (testBlackboxCondition(CONDITION(GYRO))) {
-        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, gyro), XYZ_AXIS_COUNT);
+        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, gyroADC), XYZ_AXIS_COUNT);
     }
     if (testBlackboxCondition(CONDITION(ACC))) {
-        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, acc), XYZ_AXIS_COUNT);
+        blackboxWriteMainStateArrayUsingAveragePredictor(offsetof(blackboxMainState_t, accADC), XYZ_AXIS_COUNT);
     }
 
     // Check for sensors that are updated periodically (so deltas are normally zero)
@@ -767,7 +781,7 @@ static void writeInterframe(void)
 #ifdef USE_MAG
     if (testBlackboxCondition(CONDITION(MAG))) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-            deltas[packedFieldCount++] = blackboxCurrent->mag[i] - blackboxPrev->mag[i];
+            deltas[packedFieldCount++] = blackboxCurrent->magADC[i] - blackboxPrev->magADC[i];
         }
     }
 #endif
@@ -1048,12 +1062,13 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        blackboxCurrent->gyro[i] = lrintf(gyro.gyroADC[i]);
+        blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
+        blackboxCurrent->gyroRAW[i] = lrintf(gyro.gyroADCd[i]);
 #ifdef USE_ACC
-        blackboxCurrent->acc[i] = lrintf(acc.accADC[i]);
+        blackboxCurrent->accADC[i] = lrintf(acc.accADC[i]);
 #endif
 #ifdef USE_MAG
-        blackboxCurrent->mag[i] = lrintf(mag.magADC[i]);
+        blackboxCurrent->magADC[i] = lrintf(mag.magADC[i]);
 #endif
     }
 
