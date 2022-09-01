@@ -67,6 +67,20 @@ typedef struct {
     float Kf;
 } pidAxisCoef_t;
 
+typedef struct {
+
+    float collectiveDeflectionLPF;
+
+    float collectiveImpulseFilterGain;
+    float pitchCollectiveFFGain;
+    float pitchCollectiveImpulseFFGain;
+
+    float yawCyclicFFGain;
+    float yawCollectiveFFGain;
+    float yawCollectiveImpulseFFGain;
+
+} pidPrecomp_t;
+
 typedef struct pid_s {
     float dT;
     float freq;
@@ -81,8 +95,12 @@ typedef struct pid_s {
     float yawCWStopGain;
     float yawCCWStopGain;
 
+    float collective;
+
+    pidPrecomp_t precomp;
+
     pidAxisCoef_t coef[XYZ_AXIS_COUNT];
-    pidAxisData_t data[XYZ_AXIS_COUNT];
+    pidAxisData_t axis[XYZ_AXIS_COUNT];
 
     pt1Filter_t errorFilter[XYZ_AXIS_COUNT];
     pt1Filter_t dtermFilter[XYZ_AXIS_COUNT];
@@ -106,7 +124,9 @@ float pidGetDT();
 float pidGetPidFrequency();
 
 float pidGetSetpoint(int axis);
-float pidGetPidSum(int axis);
+float pidGetOutput(int axis);
+
+float pidGetCollective();
 
 const pidAxisData_t * pidGetAxisData(void);
 
