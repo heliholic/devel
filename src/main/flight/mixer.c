@@ -194,15 +194,12 @@ void mixerUpdate(void)
             {
                 case MIXER_OP_SET:
                     mixOutput[dst] = out;
-                    mixOutputMap[dst] = BIT(src);
                     break;
                 case MIXER_OP_ADD:
                     mixOutput[dst] += out;
-                    mixOutputMap[dst] |= BIT(src);
                     break;
                 case MIXER_OP_MUL:
                     mixOutput[dst] *= out;
-                    mixOutputMap[dst] |= BIT(src);
                     break;
             }
         }
@@ -211,6 +208,15 @@ void mixerUpdate(void)
 
 void mixerInit(void)
 {
+    for (int i = 0; i < MIXER_OUTPUT_COUNT; i++) {
+        mixOutput[i] = 0;
+        mixOutputMap[i] = 0;
+    }
+
+    for (int i = 1; i < MIXER_INPUT_COUNT; i++) {
+        mixOverride[i] = MIXER_OVERRIDE_OFF;
+    }
+
     for (int i = 0; i < MIXER_RULE_COUNT; i++)
     {
         const mixerRule_t *rule = mixerRules(i);
@@ -221,11 +227,18 @@ void mixerInit(void)
             rules[i].output  = constrain(rule->output, 0, MIXER_OUTPUT_COUNT - 1);
             rules[i].offset  = constrain(rule->offset, MIXER_INPUT_MIN, MIXER_INPUT_MAX);
             rules[i].weight  = constrain(rule->weight, MIXER_WEIGHT_MIN, MIXER_WEIGHT_MAX);
-        }
-    }
 
-    for (int i = 1; i < MIXER_INPUT_COUNT; i++) {
-        mixOverride[i] = MIXER_OVERRIDE_OFF;
+            switch (rules[i].oper)
+            {
+                case MIXER_OP_SET:
+                    mixOutputMap[rules[i].output] = BIT(rules[i].input);
+                    break;
+                case MIXER_OP_ADD:
+                case MIXER_OP_MUL:
+                    mixOutputMap[rules[i].output] |= BIT(rules[i].input);
+                    break;
+            }
+        }
     }
 
     if (mixerConfig()->swash_ring)
