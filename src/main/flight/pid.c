@@ -322,13 +322,13 @@ static FAST_CODE void pidApplyPrecomp(const pidProfile_t *pidProfile)
 
 /** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
  **
- ** MODE 1
+ ** MODE 1 - SAME AS RF-1.0
  **
  **   gyro ADC => errorFilter => Kp => P-term
- **   gyro ADC => errorFilter => dtermFilter => Kd => D-term
- **   gyro ADC => errorFilter => Ki => I-term
+ **   gyro dterm ADC => Kd => D-term
+ **   gyro ADC => Relax => Ki => I-term
  **
- **   Yaw Stop gain on D only
+ **   Using gyro-only D-term
  **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
@@ -343,24 +343,40 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
     // Calculate error rate
     float errorRate = setpoint - gyroRate;
 
-    // Limit error bandwidth
-    if (pidProfile->error_cutoff[axis]) {
-        errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
-    }
-
 
   //// P-term
 
+    // P-term
+    float pTerm = errorRate;
+
+    // Limit P bandwidth
+    if (pidProfile->error_cutoff[axis]) {
+        pTerm = pt1FilterApply(&pid.errorFilter[axis], pTerm);
+    }
+
     // Calculate P-component
-    pid.data[axis].P = pid.coef[axis].Kp * errorRate;
+    pid.data[axis].P = pid.coef[axis].Kp * pTerm;
 
 
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pt1FilterApply(&pid.dtermFilter[axis], errorRate);
+    float dError = -gyro.gyroDtermADCf[axis];
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
+
+    // No D if axis saturated
+    if (pidAxisSaturated(axis)) {
+        dTerm = 0;
+    }
+
+    // D-term filter
+    //dTerm = pt1FilterApply(&pid.dtermFilter[axis], dTerm);
+
+    // No accumulation if axis saturated
+    if (pidAxisSaturated(axis)) {
+        dTerm = 0;
+    }
 
     // Calculate D-component
     pid.data[axis].D = pid.coef[axis].Kd * dTerm;
@@ -373,8 +389,7 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
 
     // No accumulation if axis saturated
     if (pidAxisSaturated(axis)) {
-        if (pid.data[axis].axisError * itermDelta > 0) // Same sign and not zero
-            itermDelta = 0;
+        itermDelta = 0;
     }
 
     // Calculate I-component
@@ -390,11 +405,7 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
   //// F-term
 
     // Calculate feedforward component
-    float fTerm = setpoint;
-    if (pidProfile->fterm_cutoff[axis]) {
-        fTerm -= pt1FilterApply(&pid.ftermFilter[axis], setpoint);
-    }
-    pid.data[axis].F = pid.coef[axis].Kf * fTerm;
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
 
 
   //// PID Sum
@@ -417,43 +428,55 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
     // Calculate error rate
     float errorRate = setpoint - gyroRate;
 
-    // Limit error bandwidth
-    if (pidProfile->error_cutoff[axis]) {
-        errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
-    }
-
-    // Select stop gain
-    float stopGain = (errorRate > 0) ? pid.yawCWStopGain : pid.yawCCWStopGain;
-
 
   //// P-term
 
+    // P-term
+    float pTerm = errorRate;
+
+    // Limit error bandwidth
+    if (pidProfile->error_cutoff[axis]) {
+        pTerm = pt1FilterApply(&pid.errorFilter[axis], pTerm);
+    }
+
+    // Select stop gain
+    float stopGain = (pTerm > 0) ? pid.yawCWStopGain : pid.yawCCWStopGain;
+
     // Calculate P-component
-    pid.data[axis].P = pid.coef[axis].Kp * errorRate;
+    pid.data[axis].P = pid.coef[axis].Kp * pTerm * stopGain;
 
 
   //// D-term
 
-    // Calculate D-term with bandwidth limit
-    float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
-    pid.data[axis].prevError = errorRate;
+    // Calculate D-term from filtered gyro signal
+    float dError = -gyro.gyroDtermADCf[axis];
+    float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
+    pid.data[axis].prevError = dError;
 
-    // Filter D-term * stopGain
-    dTerm = pt1FilterApply(&pid.dtermFilter[axis], dTerm * stopGain);
+    // No D if axis saturated
+    if (pidAxisSaturated(axis)) {
+        dTerm = 0;
+    }
 
     // Calculate D-component
-    pid.data[axis].D = pid.coef[axis].Kd * dTerm;
+    pid.data[axis].D = pid.coef[axis].Kd * dTerm * stopGain;
 
 
   //// I-term
+
+    // Apply I-term relax
+#ifdef USE_ITERM_RELAX_XXX
+    if (pid.itermRelax) {
+        errorRate = applyItermRelax(axis, pid.coef[axis].Ki * pid.data[axis].axisError, errorRate, gyroRate, setpoint);
+    }
+#endif
 
     // I-term change
     float itermDelta = errorRate * pid.dT;
 
     // No accumulation if axis saturated
     if (pidAxisSaturated(axis)) {
-        if (pid.data[axis].axisError * itermDelta > 0) // Same sign and not zero
-            itermDelta = 0;
+        itermDelta = 0;
     }
 
     // Calculate I-component
@@ -469,11 +492,7 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
   //// F-term
 
     // Calculate feedforward component
-    float fTerm = setpoint;
-    if (pidProfile->fterm_cutoff[axis]) {
-        fTerm -= pt1FilterApply(&pid.ftermFilter[axis], setpoint);
-    }
-    pid.data[axis].F = pid.coef[axis].Kf * fTerm;
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
 
 
   //// PID Sum
@@ -486,6 +505,12 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
 /** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
  **
  ** MODE 2
+ **
+ **   gyro ADC => errorFilter => Kp => P-term
+ **   gyro ADC => errorFilter => dtermFilter => Kd => D-term
+ **   gyro ADC => errorFilter => Ki => I-term
+ **
+ **   Yaw Stop gain on D only
  **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
@@ -579,6 +604,163 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
         errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
     }
 
+    // Select stop gain
+    float stopGain = (errorRate > 0) ? pid.yawCWStopGain : pid.yawCCWStopGain;
+
+
+  //// P-term
+
+    // Calculate P-component
+    pid.data[axis].P = pid.coef[axis].Kp * errorRate;
+
+
+  //// D-term
+
+    // Calculate D-term with bandwidth limit
+    float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
+    pid.data[axis].prevError = errorRate;
+
+    // Filter D-term * stopGain
+    dTerm = pt1FilterApply(&pid.dtermFilter[axis], dTerm * stopGain);
+
+    // Calculate D-component
+    pid.data[axis].D = pid.coef[axis].Kd * dTerm;
+
+
+  //// I-term
+
+    // I-term change
+    float itermDelta = errorRate * pid.dT;
+
+    // No accumulation if axis saturated
+    if (pidAxisSaturated(axis)) {
+        if (pid.data[axis].axisError * itermDelta > 0) // Same sign and not zero
+            itermDelta = 0;
+    }
+
+    // Calculate I-component
+    pid.data[axis].axisError = constrainf(pid.data[axis].axisError + itermDelta, -pid.errorLimit[axis], pid.errorLimit[axis]);
+    pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
+
+    // Apply I-term error decay
+    if (!isSpooledUp()) {
+        pid.data[axis].axisError *= pid.errorDecay;
+    }
+
+
+  //// F-term
+
+    // Calculate feedforward component
+    float fTerm = setpoint;
+    if (pidProfile->fterm_cutoff[axis]) {
+        fTerm -= pt1FilterApply(&pid.ftermFilter[axis], setpoint);
+    }
+    pid.data[axis].F = pid.coef[axis].Kf * fTerm;
+
+
+  //// PID Sum
+
+    // Calculate PID sum
+    pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D + pid.data[axis].F;
+}
+
+
+/** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
+ **
+ ** MODE 6
+ **
+ ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
+
+static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_t axis)
+{
+    // Rate setpoint
+    float setpoint = pidApplySetpoint(pidProfile, axis);
+
+    // Get filtered gyro rate
+    float gyroRate = gyro.gyroADCf[axis];
+
+    // Calculate error rate
+    float errorRate = setpoint - gyroRate;
+
+    // Limit error bandwidth
+    if (pidProfile->error_cutoff[axis]) {
+        errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
+    }
+
+
+  //// P-term
+
+    // Calculate P-component
+    pid.data[axis].P = pid.coef[axis].Kp * errorRate;
+
+
+  //// D-term
+
+    // Calculate D-term with bandwidth limit
+    float dError = pt1FilterApply(&pid.dtermFilter[axis], errorRate);
+    float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
+    pid.data[axis].prevError = dError;
+
+    // Calculate D-component
+    pid.data[axis].D = pid.coef[axis].Kd * dTerm;
+
+
+  //// I-term
+
+    // I-term change
+    float itermDelta = errorRate * pid.dT;
+
+    // No accumulation if axis saturated
+    if (pidAxisSaturated(axis)) {
+        if (pid.data[axis].axisError * itermDelta > 0) // Same sign and not zero
+            itermDelta = 0;
+    }
+
+    // Calculate I-component
+    pid.data[axis].axisError = constrainf(pid.data[axis].axisError + itermDelta, -pid.errorLimit[axis], pid.errorLimit[axis]);
+    pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
+
+    // Apply I-term error decay
+    if (!isSpooledUp()) {
+        pid.data[axis].axisError *= pid.errorDecay;
+    }
+
+
+  //// F-term
+
+    // Calculate feedforward component
+    float fTerm = setpoint;
+    if (pidProfile->fterm_cutoff[axis]) {
+        fTerm -= pt1FilterApply(&pid.ftermFilter[axis], setpoint);
+    }
+    pid.data[axis].F = pid.coef[axis].Kf * fTerm;
+
+
+  //// PID Sum
+
+    // Calculate PID sum
+    pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D + pid.data[axis].F;
+}
+
+
+static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
+{
+    const uint8_t axis = FD_YAW;
+
+    // Rate setpoint
+    float setpoint = pidApplySetpoint(pidProfile, axis);
+
+    // Get filtered gyro rate
+    float gyroRate = gyro.gyroADCf[axis];
+
+    // Calculate error rate
+    float errorRate = setpoint - gyroRate;
+
+    // Limit error bandwidth
+    if (pidProfile->error_cutoff[axis]) {
+        errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
+    }
+
     // Select direction
     const uint8_t index = (errorRate > 0) ? PID_YAW : PID_WAY;
 
@@ -655,6 +837,11 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 
     // Apply PID for each axis
     switch (pid.mode) {
+        case 6:
+            pidApplyCyclicMode6(pidProfile, PID_ROLL);
+            pidApplyCyclicMode6(pidProfile, PID_PITCH);
+            pidApplyYawMode6(pidProfile);
+            break;
         case 2:
             pidApplyCyclicMode2(pidProfile, PID_ROLL);
             pidApplyCyclicMode2(pidProfile, PID_PITCH);
