@@ -540,9 +540,11 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pt1FilterApply(&pid.dtermFilter[axis], errorRate);
-    float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
-    pid.data[axis].prevError = dError;
+    float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
+    pid.data[axis].prevError = errorRate;
+
+    // Filter D-term
+    dTerm = pt1FilterApply(&pid.dtermFilter[axis],  dTerm);
 
     // Calculate D-component
     pid.data[axis].D = pid.coef[axis].Kd * dTerm;
@@ -669,6 +671,12 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
  **
  ** MODE 6
  **
+ **   gyro ADC => errorFilter => Kp => P-term
+ **   gyro ADC => errorFilter => dtermFilter => Kd => D-term
+ **   gyro ADC => errorFilter => Ki => I-term
+ **
+ **   Separate gains for yaw CW & CCW
+ **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
 static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_t axis)
@@ -687,6 +695,9 @@ static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_
         errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
     }
 
+    // Saturation
+    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * errorRate > 0);
+
 
   //// P-term
 
@@ -697,9 +708,16 @@ static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pt1FilterApply(&pid.dtermFilter[axis], errorRate);
-    float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
-    pid.data[axis].prevError = dError;
+    float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
+    pid.data[axis].prevError = errorRate;
+
+    // No D-term if axis saturated -- CHECK
+    if (saturation) {
+        dTerm = 0;
+    }
+
+    // Filter D-term
+    dTerm = pt1FilterApply(&pid.dtermFilter[axis],  dTerm);
 
     // Calculate D-component
     pid.data[axis].D = pid.coef[axis].Kd * dTerm;
@@ -711,9 +729,8 @@ static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_
     float itermDelta = errorRate * pid.dT;
 
     // No accumulation if axis saturated
-    if (pidAxisSaturated(axis)) {
-        if (pid.data[axis].axisError * itermDelta > 0) // Same sign and not zero
-            itermDelta = 0;
+    if (saturation) {
+        itermDelta = 0;
     }
 
     // Calculate I-component
@@ -764,6 +781,9 @@ static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
     // Select direction
     const uint8_t index = (errorRate > 0) ? PID_YAW : PID_WAY;
 
+    // Saturation
+    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * errorRate > 0);
+
 
   //// P-term
 
@@ -777,7 +797,12 @@ static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
     float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = errorRate;
 
-    // Filter D-term
+    // No D-term if axis saturated
+    if (saturation) {
+        dTerm = 0;
+    }
+
+    // Filter D-term * Kd
     dTerm = pt1FilterApply(&pid.dtermFilter[axis], pid.coef[index].Kd * dTerm);
 
     // Calculate D-component
@@ -790,9 +815,8 @@ static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
     float itermDelta = errorRate * pid.dT;
 
     // No accumulation if axis saturated
-    if (pidAxisSaturated(axis)) {
-        if (pid.data[axis].I * itermDelta > 0) // Same sign and not zero
-            itermDelta = 0;
+    if (saturation) {
+        itermDelta = 0;
     }
 
     // Calculate I-component
