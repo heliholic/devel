@@ -713,11 +713,6 @@ static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_
     float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = errorRate;
 
-    // No D-term if axis saturated -- CHECK
-    if (saturation) {
-        dTerm = 0;
-    }
-
     // Filter D-term
     dTerm = pt1FilterApply(&pid.dtermFilter[axis],  dTerm);
 
@@ -798,11 +793,6 @@ static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
     // Calculate D-term with bandwidth limit
     float dTerm = (errorRate - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = errorRate;
-
-    // No D-term if axis saturated
-    if (saturation) {
-        dTerm = 0;
-    }
 
     // Filter D-term * Kd
     dTerm = pt1FilterApply(&pid.dtermFilter[axis], pid.coef[index].Kd * dTerm);
