@@ -127,8 +127,8 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs);
 
 void resetPidProfile(pidProfile_t *profile);
 
-void pidResetIterms(void);
-void pidResetIterm(int axis);
+void pidResetAxisErrors(void);
+void pidResetAxisError(int axis);
 
 void pidInit(const pidProfile_t *pidProfile);
 void pidInitProfile(const pidProfile_t *pidProfile);

@@ -96,16 +96,18 @@ void INIT_CODE pidReset(void)
     memset(pid.data, 0, sizeof(pid.data));
 }
 
-void INIT_CODE pidResetIterm(int axis)
+void INIT_CODE pidResetAxisError(int axis)
 {
     pid.data[axis].I = 0;
+    pid.data[axis].axisError = 0;
 }
 
-void INIT_CODE pidResetIterms(void)
+void INIT_CODE pidResetAxisErrors(void)
 {
-    pid.data[PID_ROLL].I  = 0;
-    pid.data[PID_PITCH].I = 0;
-    pid.data[PID_YAW].I   = 0;
+    for (int axis = 0; axis < 3; axis++) {
+        pid.data[axis].I = 0;
+        pid.data[axis].axisError = 0;
+    }
 }
 
 
