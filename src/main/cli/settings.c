@@ -476,6 +476,10 @@ static const char * const lookupTableGovernorMode[] = {
     "OFF", "PASSTHROUGH", "STANDARD", "MODE1", "MODE2",
 };
 
+const char * const lookupTableErrorRelaxType[] = {
+    "OFF", "RP", "RPY",
+};
+
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
 const lookupTableEntry_t lookupTables[] = {
@@ -579,6 +583,7 @@ const lookupTableEntry_t lookupTables[] = {
 
     LOOKUP_TABLE_ENTRY(lookupTableRotationDir),
     LOOKUP_TABLE_ENTRY(lookupTableGovernorMode),
+    LOOKUP_TABLE_ENTRY(lookupTableErrorRelaxType),
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -1006,6 +1011,9 @@ const clivalue_t valueTable[] = {
 
     { "error_rotation",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, error_rotation) },
     { "error_decay",                VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, error_decay) },
+
+    { "error_relax_type",           VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ERROR_RELAX_TYPE }, PG_PID_PROFILE, offsetof(pidProfile_t, error_relax_type) },
+    { "error_relax_cutoff",         VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 3, PG_PID_PROFILE, offsetof(pidProfile_t, error_relax_cutoff) },
 
     { "yaw_cw_stop_gain",                 VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cw_stop_gain) },
     { "yaw_ccw_stop_gain",                VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_ccw_stop_gain) },
