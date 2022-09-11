@@ -89,6 +89,17 @@ typedef struct pidProfile_s {
     uint8_t             dterm_cutoff[PID_ITEM_COUNT];
     uint8_t             fterm_cutoff[PID_ITEM_COUNT];
 
+    uint16_t            yaw_cw_stop_gain;
+    uint16_t            yaw_ccw_stop_gain;
+
+    uint16_t            yaw_cyclic_ff_gain;
+    uint16_t            yaw_collective_ff_gain;
+    uint16_t            yaw_collective_ff_impulse_gain;
+    uint8_t             yaw_collective_ff_impulse_freq;
+
+    uint16_t            pitch_collective_ff_gain;
+    uint16_t            pitch_collective_ff_impulse_gain;
+
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
     pidTrainerMode_t    trainer;

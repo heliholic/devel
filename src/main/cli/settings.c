@@ -1007,6 +1007,16 @@ const clivalue_t valueTable[] = {
     { "error_rotation",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, error_rotation) },
     { "error_decay",                VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, error_decay) },
 
+    { "yaw_cw_stop_gain",                 VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cw_stop_gain) },
+    { "yaw_ccw_stop_gain",                VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_ccw_stop_gain) },
+    { "yaw_cyclic_ff_gain",               VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_cyclic_ff_gain) },
+    { "yaw_collective_ff_gain",           VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_collective_ff_gain) },
+    { "yaw_collective_ff_impulse_gain",   VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_collective_ff_impulse_gain) },
+    { "yaw_collective_ff_impulse_freq",   VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_collective_ff_impulse_freq) },
+
+    { "pitch_collective_ff_gain",         VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_collective_ff_gain) },
+    { "pitch_collective_ff_impulse_gain", VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 2500 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_collective_ff_impulse_gain) },
+
     { "angle_level_strength",       VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, angle.level_strength) },
     { "angle_level_limit",          VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 10, 90 }, PG_PID_PROFILE, offsetof(pidProfile_t, angle.level_limit) },
 
