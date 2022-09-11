@@ -62,6 +62,7 @@
 
 #define PID_NAMES                   "ROLL;PITCH;YAW;"
 
+#define ERROR_RELAX_SETPOINT_THRESHOLD 40
 
 typedef struct {
     float P;
@@ -101,8 +102,8 @@ typedef struct pid_s {
 
     uint8_t mode;
 
-    bool errorRotation;
-
+    uint8_t errorRelax;
+    uint8_t errorRotation;
     float errorDecay;
     float errorLimit[XYZ_AXIS_COUNT];
 
@@ -119,6 +120,7 @@ typedef struct pid_s {
     pt1Filter_t errorFilter[XYZ_AXIS_COUNT];
     pt1Filter_t dtermFilter[XYZ_AXIS_COUNT];
     pt1Filter_t ftermFilter[XYZ_AXIS_COUNT];
+    pt1Filter_t relaxFilter[XYZ_AXIS_COUNT];
 
 } pid_t;
 

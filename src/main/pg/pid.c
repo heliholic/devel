@@ -51,6 +51,8 @@ void resetPidProfile(pidProfile_t *pidProfile)
         },
         .error_decay = 25,
         .error_rotation = true,
+        .error_relax_type = ERROR_RELAX_OFF,
+        .error_limit = { 90, 90, 90 },
         .angle.level_strength = 50,
         .angle.level_limit = 55,
         .horizon.level_strength = 50,

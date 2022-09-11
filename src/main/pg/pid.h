@@ -45,6 +45,12 @@ enum {
     PID_WAY = 3     // TODO remove after testing
 };
 
+enum {
+    ERROR_RELAX_OFF,
+    ERROR_RELAX_RP,
+    ERROR_RELAX_RPY,
+};
+
 typedef struct {
     uint16_t P;
     uint16_t I;
@@ -83,6 +89,10 @@ typedef struct pidProfile_s {
 
     uint8_t             error_decay;
     uint8_t             error_rotation;
+
+    uint8_t             error_relax_type;
+    uint8_t             error_relax_cutoff[PID_ITEM_COUNT];
+
     uint16_t            error_limit[PID_ITEM_COUNT];
 
     uint8_t             error_cutoff[PID_ITEM_COUNT];

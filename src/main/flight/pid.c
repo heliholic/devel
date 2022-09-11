@@ -57,7 +57,6 @@
 
 #include "pid.h"
 
-
 static FAST_DATA_ZERO_INIT pid_t pid;
 
 
@@ -162,6 +161,22 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Error decay speed when not flying
     pid.errorDecay = 1.0f - (pidProfile->error_decay) ? pid.dT * 10 / pidProfile->error_decay : 0;
 
+    // Filters
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+        pt1FilterInit(&pid.errorFilter[i], pt1FilterGain(constrain(pidProfile->error_cutoff[i], 1, 250), pid.dT));
+        pt1FilterInit(&pid.dtermFilter[i], pt1FilterGain(constrain(pidProfile->dterm_cutoff[i], 1, 250), pid.dT));
+        pt1FilterInit(&pid.ftermFilter[i], pt1FilterGain(constrain(pidProfile->fterm_cutoff[i], 1, 250), pid.dT));
+    }
+
+    // Error relax
+    pid.errorRelax = pidProfile->error_relax_type;
+    if (pid.errorRelax) {
+        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+            uint8_t freq = constrain(pidProfile->error_relax_cutoff[i], 1, 100);
+            pt1FilterInit(&pid.relaxFilter[i], pt1FilterGain(freq, pid.dT));
+        }
+    }
+
     // Collective impulse high-pass filter
     pid.precomp.collectiveImpulseFilterGain = pt1FilterGain(pidProfile->yaw_collective_ff_impulse_freq / 100.0f, pid.dT);
 
@@ -234,6 +249,32 @@ static inline void rotateAxisError(void)
         pid.data[PID_PITCH].axisError = y * c - x * s;
     }
 }
+
+
+static FAST_CODE float applyErrorRelax(int axis, float itermError, float gyroRate, float setpoint)
+{
+    const float setpointLpf = pt1FilterApply(&pid.relaxFilter[axis], setpoint);
+    const float setpointHpf = setpoint - setpointLpf;
+
+    if ((pid.errorRelax == ERROR_RELAX_RPY) ||
+        (pid.errorRelax == ERROR_RELAX_RP && axis == PID_ROLL) ||
+        (pid.errorRelax == ERROR_RELAX_RP && axis == PID_PITCH))
+    {
+        const float errorRelaxFactor = MAX(0, 1.0f - fabsf(setpointHpf) / ERROR_RELAX_SETPOINT_THRESHOLD);
+
+        itermError *= errorRelaxFactor;
+
+        DEBUG_AXIS(ERROR_RELAX, axis, 0, setpoint * 1000);
+        DEBUG_AXIS(ERROR_RELAX, axis, 1, gyroRate * 1000);
+        DEBUG_AXIS(ERROR_RELAX, axis, 2, setpointLpf * 1000);
+        DEBUG_AXIS(ERROR_RELAX, axis, 3, setpointHpf * 1000);
+        DEBUG_AXIS(ERROR_RELAX, axis, 4, errorRelaxFactor * 1000);
+        DEBUG_AXIS(ERROR_RELAX, axis, 5, itermError * 1000);
+    }
+
+    return itermError;
+}
+
 
 static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axis)
 {
@@ -388,6 +429,9 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
 
   //// I-term
 
+    // Apply error relax
+    errorRate = applyErrorRelax(axis, errorRate, gyroRate, setpoint);
+
     // I-term change
     float itermDelta = errorRate * pid.dT;
 
@@ -468,12 +512,8 @@ static FAST_CODE void pidApplyYawMode1(const pidProfile_t *pidProfile)
 
   //// I-term
 
-    // Apply I-term relax
-#ifdef USE_ITERM_RELAX_XXX
-    if (pid.itermRelax) {
-        errorRate = applyItermRelax(axis, pid.coef[axis].Ki * pid.data[axis].axisError, errorRate, gyroRate, setpoint);
-    }
-#endif
+    // Apply error relax
+    errorRate = applyErrorRelax(axis, errorRate, gyroRate, setpoint);
 
     // I-term change
     float itermDelta = errorRate * pid.dT;
