@@ -100,12 +100,13 @@ typedef struct pid_s {
     float dT;
     float freq;
 
-    uint8_t mode;
+    uint8_t pidMode;
 
     uint8_t errorRelax;
     uint8_t errorRotation;
+
     float errorDecay;
-    float errorLimit[XYZ_AXIS_COUNT];
+    float errorLimit[PID_AXIS_COUNT];
 
     float yawCWStopGain;
     float yawCCWStopGain;
@@ -114,13 +115,14 @@ typedef struct pid_s {
 
     pidPrecomp_t precomp;
 
-    pidAxisCoef_t coef[4];
-    pidAxisData_t data[XYZ_AXIS_COUNT];
+    pidAxisCoef_t coef[PID_ITEM_COUNT];
+    pidAxisData_t data[PID_AXIS_COUNT];
 
-    pt1Filter_t errorFilter[XYZ_AXIS_COUNT];
-    pt1Filter_t dtermFilter[XYZ_AXIS_COUNT];
-    pt1Filter_t ftermFilter[XYZ_AXIS_COUNT];
-    pt1Filter_t relaxFilter[XYZ_AXIS_COUNT];
+    pt1Filter_t gyrorFilter[PID_AXIS_COUNT];
+    pt1Filter_t errorFilter[PID_AXIS_COUNT];
+    pt1Filter_t dtermFilter[PID_AXIS_COUNT];
+    pt1Filter_t ftermFilter[PID_AXIS_COUNT];
+    pt1Filter_t relaxFilter[PID_AXIS_COUNT];
 
 } pid_t;
 

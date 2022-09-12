@@ -38,12 +38,11 @@ typedef enum {
     PID_ROLL,
     PID_PITCH,
     PID_YAW,
+    PID_WAY,
     PID_ITEM_COUNT
 } pidIndex_e;
 
-enum {
-    PID_WAY = 3     // TODO remove after testing
-};
+#define PID_AXIS_COUNT 3
 
 enum {
     ERROR_RELAX_OFF,
@@ -83,21 +82,24 @@ typedef struct pidProfile_s {
 
     char                profileName[MAX_PROFILE_NAME_LENGTH + 1];
 
-    pidf_t              pid[4]; // [PID_ITEM_COUNT]
+    pidf_t              pid[PID_ITEM_COUNT];
 
-    uint8_t             mode;
+    uint8_t             pid_mode;
+
+    uint8_t             dterm_mode;
 
     uint8_t             error_decay;
     uint8_t             error_rotation;
 
     uint8_t             error_relax_type;
-    uint8_t             error_relax_cutoff[PID_ITEM_COUNT];
+    uint8_t             error_relax_cutoff[PID_AXIS_COUNT];
 
-    uint16_t            error_limit[PID_ITEM_COUNT];
+    uint16_t            error_limit[PID_AXIS_COUNT];
 
-    uint8_t             error_cutoff[PID_ITEM_COUNT];
-    uint8_t             dterm_cutoff[PID_ITEM_COUNT];
-    uint8_t             fterm_cutoff[PID_ITEM_COUNT];
+    uint8_t             error_cutoff[PID_AXIS_COUNT];
+    uint8_t             gyror_cutoff[PID_AXIS_COUNT];
+    uint8_t             dterm_cutoff[PID_AXIS_COUNT];
+    uint8_t             fterm_cutoff[PID_AXIS_COUNT];
 
     uint16_t            yaw_cw_stop_gain;
     uint16_t            yaw_ccw_stop_gain;
