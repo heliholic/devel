@@ -76,14 +76,14 @@ typedef struct {
 } pidTrainerMode_t;
 
 typedef struct {
-    uint16_t headspeed;
-    uint16_t gain;
-    uint16_t p_gain;
-    uint16_t i_gain;
-    uint16_t d_gain;
-    uint16_t ff_gain;
-    uint16_t cyclic_ff_weight;
-    uint16_t collective_ff_weight;
+    uint16_t    headspeed;
+    uint8_t     gain;
+    uint8_t     p_gain;
+    uint8_t     i_gain;
+    uint8_t     d_gain;
+    uint8_t     ff_gain;
+    uint8_t     cyclic_ff_weight;
+    uint8_t     collective_ff_weight;
 } governorProfile_t;
 
 
