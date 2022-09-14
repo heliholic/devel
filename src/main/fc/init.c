@@ -774,7 +774,7 @@ void init(void)
 #endif
 
     if (featureIsEnabled(FEATURE_GOVERNOR)) {
-        governorInit();
+        governorInit(currentPidProfile);
     }
 
 #ifdef USE_USB_DETECT

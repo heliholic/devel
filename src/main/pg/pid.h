@@ -75,6 +75,17 @@ typedef struct {
     uint16_t lookahead_ms;         // The lookahead window in milliseconds used to reduce overshoot
 } pidTrainerMode_t;
 
+typedef struct {
+    uint16_t headspeed;
+    uint16_t gain;
+    uint16_t p_gain;
+    uint16_t i_gain;
+    uint16_t d_gain;
+    uint16_t ff_gain;
+    uint16_t cyclic_ff_weight;
+    uint16_t collective_ff_weight;
+} governorProfile_t;
+
 
 #define MAX_PROFILE_NAME_LENGTH 8u
 
@@ -115,6 +126,7 @@ typedef struct pidProfile_s {
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
     pidTrainerMode_t    trainer;
+    governorProfile_t   governor;
 
 } pidProfile_t;
 

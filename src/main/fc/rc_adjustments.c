@@ -121,7 +121,7 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(GOV_P_GAIN,         GOV,   0, 200),
     ADJ_CONFIG(GOV_I_GAIN,         GOV,   0, 200),
     ADJ_CONFIG(GOV_D_GAIN,         GOV,   0, 200),
-    ADJ_CONFIG(GOV_F_GAIN,         GOV,   0, 200),
+    ADJ_CONFIG(GOV_FF_GAIN,        GOV,   0, 200),
     ADJ_CONFIG(GOV_TTA_GAIN,       GOV,   0, 200),
     ADJ_CONFIG(GOV_CYCLIC_FF,      GOV,   0, 200),
     ADJ_CONFIG(GOV_COLLECTIVE_FF,  GOV,   0, 200),
@@ -241,31 +241,33 @@ static int getAdjustmentValue(uint8_t adjFunc)
         case ADJUSTMENT_ACRO_TRAINER_GAIN:
             value = currentPidProfile->trainer.gain;
             break;
-#if 0
         case ADJUSTMENT_GOV_GAIN:
-            value = currentPidProfile->gov_gain;
+            value = currentPidProfile->governor.gain;
             break;
         case ADJUSTMENT_GOV_P_GAIN:
-            value = currentPidProfile->gov_p_gain;
+            value = currentPidProfile->governor.p_gain;
             break;
         case ADJUSTMENT_GOV_I_GAIN:
-            value = currentPidProfile->gov_i_gain;
+            value = currentPidProfile->governor.i_gain;
             break;
         case ADJUSTMENT_GOV_D_GAIN:
-            value = currentPidProfile->gov_d_gain;
+            value = currentPidProfile->governor.d_gain;
             break;
-        case ADJUSTMENT_GOV_F_GAIN:
-            value = currentPidProfile->gov_f_gain;
+        case ADJUSTMENT_GOV_FF_GAIN:
+            value = currentPidProfile->governor.ff_gain;
             break;
+#if 0
         case ADJUSTMENT_GOV_TTA_GAIN:
-            value = currentPidProfile->gov_tta_gain;
+            value = currentPidProfile->governor.tta_gain;
             break;
+#endif
         case ADJUSTMENT_GOV_CYCLIC_FF:
-            value = currentPidProfile->gov_cyclic_ff_weight;
+            value = currentPidProfile->governor.cyclic_ff_weight;
             break;
         case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            value = currentPidProfile->gov_collective_ff_weight;
+            value = currentPidProfile->governor.collective_ff_weight;
             break;
+#if 0
         case ADJUSTMENT_SWASH_PHASE:
             value = mixerConfig()->swash_phase;
             break;
@@ -395,31 +397,33 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
         case ADJUSTMENT_ACRO_TRAINER_GAIN:
             currentPidProfile->trainer.gain = value;
             break;
-#if 0
         case ADJUSTMENT_GOV_GAIN:
-            currentPidProfile->gov_gain = value;
+            currentPidProfile->governor.gain = value;
             break;
         case ADJUSTMENT_GOV_P_GAIN:
-            currentPidProfile->gov_p_gain = value;
+            currentPidProfile->governor.p_gain = value;
             break;
         case ADJUSTMENT_GOV_I_GAIN:
-            currentPidProfile->gov_i_gain = value;
+            currentPidProfile->governor.i_gain = value;
             break;
         case ADJUSTMENT_GOV_D_GAIN:
-            currentPidProfile->gov_d_gain = value;
+            currentPidProfile->governor.d_gain = value;
             break;
-        case ADJUSTMENT_GOV_F_GAIN:
-            currentPidProfile->gov_f_gain = value;
+        case ADJUSTMENT_GOV_FF_GAIN:
+            currentPidProfile->governor.ff_gain = value;
             break;
+#if 0
         case ADJUSTMENT_GOV_TTA_GAIN:
-            currentPidProfile->gov_tta_gain = value;
+            currentPidProfile->governor.tta_gain = value;
             break;
+#endif
         case ADJUSTMENT_GOV_CYCLIC_FF:
-            currentPidProfile->gov_cyclic_ff_weight = value;
+            currentPidProfile->governor.cyclic_ff_weight = value;
             break;
         case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            currentPidProfile->gov_collective_ff_weight = value;
+            currentPidProfile->governor.collective_ff_weight = value;
             break;
+#if 0
         case ADJUSTMENT_SWASH_PHASE:
             mixerConfigMutable()->swash_phase = value;
             break;
@@ -562,7 +566,7 @@ void processRcAdjustments(void)
             pidInitProfile(currentPidProfile);
         }
         if (changed & ADJUSTMENT_TYPE_GOV) {
-            //governorInitProfile(currentPidProfile);
+            governorInitProfile(currentPidProfile);
         }
         if (changed & ADJUSTMENT_TYPE_MIX) {
             //mixerInitSwash();
