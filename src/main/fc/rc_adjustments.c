@@ -256,11 +256,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
         case ADJUSTMENT_GOV_FF_GAIN:
             value = currentPidProfile->governor.ff_gain;
             break;
-#if 0
         case ADJUSTMENT_GOV_TTA_GAIN:
             value = currentPidProfile->governor.tta_gain;
             break;
-#endif
         case ADJUSTMENT_GOV_CYCLIC_FF:
             value = currentPidProfile->governor.cyclic_ff_weight;
             break;
@@ -412,11 +410,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
         case ADJUSTMENT_GOV_FF_GAIN:
             currentPidProfile->governor.ff_gain = value;
             break;
-#if 0
         case ADJUSTMENT_GOV_TTA_GAIN:
             currentPidProfile->governor.tta_gain = value;
             break;
-#endif
         case ADJUSTMENT_GOV_CYCLIC_FF:
             currentPidProfile->governor.cyclic_ff_weight = value;
             break;

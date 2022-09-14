@@ -53,6 +53,8 @@ PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_GENERIC_MIXER_CON
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .main_rotor_dir = DIR_CW,
+    .tail_rotor_mode = TAIL_MODE_VARIABLE,
+    .tail_motor_idle = 0,
     .swash_ring = 0,
 );
 
@@ -77,6 +79,9 @@ static FAST_DATA_ZERO_INIT float     mixOutput[MIXER_OUTPUT_COUNT];
 static FAST_DATA_ZERO_INIT int16_t   mixOverride[MIXER_INPUT_COUNT];
 static FAST_DATA_ZERO_INIT uint32_t  mixOutputMap[MIXER_OUTPUT_COUNT];
 static FAST_DATA_ZERO_INIT uint16_t  mixSaturated[MIXER_INPUT_COUNT];
+
+static FAST_DATA_ZERO_INIT float     tailMotorIdle;
+static FAST_DATA_ZERO_INIT int8_t    tailMotorDirection;
 
 static FAST_DATA_ZERO_INIT float     cyclicTotal;
 static FAST_DATA_ZERO_INIT float     cyclicLimit;
@@ -134,6 +139,57 @@ static void mixerCyclicLimit(void)
                         sq(mixInput[MIXER_IN_STABILIZED_PITCH]));
 }
 
+static void mixerUpdateMotorizedTail(void)
+{
+    // Motorized tail control
+    if (mixerIsTailMode(TAIL_MODE_MOTORIZED)) {
+        // Yaw input value
+        const float yaw = mixInput[MIXER_IN_STABILIZED_YAW];
+
+        // Thrust linearization
+        float throttle = sqrtf(fmaxf(yaw,0));
+
+        // Apply minimum throttle
+        throttle = fmaxf(throttle, tailMotorIdle);
+
+        // Slow spoolup
+        if (!isSpooledUp()) {
+            if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.01f)
+                throttle = 0;
+            else if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.20f)
+                throttle *= mixInput[MIXER_IN_STABILIZED_THROTTLE] / 0.20f;
+        }
+
+        // Yaw is now tail motor throttle
+        mixInput[MIXER_IN_STABILIZED_YAW] = throttle;
+    }
+    else if (mixerIsTailMode(TAIL_MODE_BIDIRECTIONAL)) {
+        // Yaw input value
+        const float yaw = mixInput[MIXER_IN_STABILIZED_YAW];
+
+        // Thrust linearization
+        float throttle = copysignf(sqrtf(fabsf(yaw)),yaw);
+
+        // Apply minimum throttle
+        if (throttle > -tailMotorIdle && throttle < tailMotorIdle)
+            throttle = tailMotorDirection * tailMotorIdle;
+
+        // Slow spoolup
+        if (!isSpooledUp()) {
+            if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.01f)
+                throttle = 0;
+            else if (mixInput[MIXER_IN_STABILIZED_THROTTLE] < 0.20f)
+                throttle *= mixInput[MIXER_IN_STABILIZED_THROTTLE] / 0.20f;
+        }
+
+        // Direction sign
+        tailMotorDirection = (throttle < 0) ? -1 : 1;
+
+        // Yaw is now tail motor throttle
+        mixInput[MIXER_IN_STABILIZED_YAW] = throttle;
+    }
+}
+
 static void mixerUpdateInputs(void)
 {
     // Flight Dynamics
@@ -163,6 +219,10 @@ static void mixerUpdateInputs(void)
 
     // Update throttle from governor
     mixerSetInput(MIXER_IN_STABILIZED_THROTTLE, getGovernorOutput());
+
+    // Update motorized tail
+    if (mixerMotorizedTail())
+        mixerUpdateMotorizedTail();
 }
 
 void mixerUpdate(void)
@@ -240,6 +300,8 @@ void mixerInit(void)
             }
         }
     }
+
+    tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
 
     if (mixerConfig()->swash_ring)
         cyclicLimit = 1.41f - mixerConfig()->swash_ring * 0.0041f;

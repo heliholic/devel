@@ -115,6 +115,10 @@ enum {
 typedef struct
 {
     uint8_t   main_rotor_dir;   // Main rotor direction: CW/CCW
+
+    uint8_t   tail_rotor_mode;  // Tail motor vs. variable pitch tail
+    int16_t   tail_motor_idle;  // Idle throttle for tail motor
+
     uint8_t   swash_ring;       // Swash ring size
 
 } mixerConfig_t;
@@ -171,3 +175,7 @@ static inline void mixerSaturateServoOutput(uint8_t index) { mixerSaturateOutput
 static inline void mixerSaturateMotorOutput(uint8_t index) { mixerSaturateOutput(index + MIXER_MOTOR_OFFSET); }
 
 static inline int mixerRotationSign() { return (mixerConfig()->main_rotor_dir == DIR_CW) ? -1 : 1; }
+
+static inline bool mixerMotorizedTail() { return (mixerConfig()->tail_rotor_mode != TAIL_MODE_VARIABLE); }
+
+static inline bool mixerIsTailMode(int mode) { return (mixerConfig()->tail_rotor_mode == mode); }

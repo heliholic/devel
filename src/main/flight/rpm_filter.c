@@ -76,7 +76,7 @@ void pgResetFn_rpmFilterConfig(rpmFilterConfig_t *config)
 void rpmFilterInit(const rpmFilterConfig_t *config)
 {
     const int mainMotorIndex = 1;
-    const int tailMotorIndex = 1; // mixerMotorizedTail() ? 2 : 1; FIXME
+    const int tailMotorIndex = mixerMotorizedTail() ? 2 : 1;
 
     float mainGearRatio = getMainGearRatio();
     float tailGearRatio = getTailGearRatio();
