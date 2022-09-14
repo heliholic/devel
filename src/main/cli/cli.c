@@ -1235,8 +1235,8 @@ static void printAux(dumpFlags_t dumpMask, const modeActivationCondition_t *mode
                     i,
                     box->permanentId,
                     macDefault->auxChannelIndex,
-                    MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.startStep),
-                    MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.endStep),
+                    STEP_TO_CHANNEL_VALUE(macDefault->range.startStep),
+                    STEP_TO_CHANNEL_VALUE(macDefault->range.endStep),
                     macDefault->modeLogic,
                     linkedTo ? linkedTo->permanentId : 0
                 );
@@ -1249,8 +1249,8 @@ static void printAux(dumpFlags_t dumpMask, const modeActivationCondition_t *mode
                 i,
                 box->permanentId,
                 mac->auxChannelIndex,
-                MODE_STEP_TO_CHANNEL_VALUE(mac->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(mac->range.endStep),
+                STEP_TO_CHANNEL_VALUE(mac->range.startStep),
+                STEP_TO_CHANNEL_VALUE(mac->range.endStep),
                 mac->modeLogic,
                 linkedTo ? linkedTo->permanentId : 0
             );
@@ -1319,8 +1319,8 @@ static void cliAux(const char *cmdName, char *cmdline)
                 i,
                 findBoxByBoxId(mac->modeId)->permanentId,
                 mac->auxChannelIndex,
-                MODE_STEP_TO_CHANNEL_VALUE(mac->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(mac->range.endStep),
+                STEP_TO_CHANNEL_VALUE(mac->range.startStep),
+                STEP_TO_CHANNEL_VALUE(mac->range.endStep),
                 mac->modeLogic,
                 findBoxByBoxId(mac->linkedTo)->permanentId
             );
@@ -1692,8 +1692,8 @@ static void printAdjustmentRange(dumpFlags_t dumpMask, const adjustmentRange_t *
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 arDefault->auxChannelIndex,
-                MODE_STEP_TO_CHANNEL_VALUE(arDefault->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(arDefault->range.endStep),
+                STEP_TO_CHANNEL_VALUE(arDefault->range.startStep),
+                STEP_TO_CHANNEL_VALUE(arDefault->range.endStep),
                 arDefault->adjustmentConfig,
                 arDefault->auxSwitchChannelIndex,
                 arDefault->adjustmentCenter,
@@ -1703,8 +1703,8 @@ static void printAdjustmentRange(dumpFlags_t dumpMask, const adjustmentRange_t *
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
             i,
             ar->auxChannelIndex,
-            MODE_STEP_TO_CHANNEL_VALUE(ar->range.startStep),
-            MODE_STEP_TO_CHANNEL_VALUE(ar->range.endStep),
+            STEP_TO_CHANNEL_VALUE(ar->range.startStep),
+            STEP_TO_CHANNEL_VALUE(ar->range.endStep),
             ar->adjustmentConfig,
             ar->auxSwitchChannelIndex,
             ar->adjustmentCenter,
@@ -1791,8 +1791,8 @@ static void cliAdjustmentRange(const char *cmdName, char *cmdline)
             cliDumpPrintLinef(0, false, format,
                 i,
                 ar->auxChannelIndex,
-                MODE_STEP_TO_CHANNEL_VALUE(ar->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(ar->range.endStep),
+                STEP_TO_CHANNEL_VALUE(ar->range.startStep),
+                STEP_TO_CHANNEL_VALUE(ar->range.endStep),
                 ar->adjustmentConfig,
                 ar->auxSwitchChannelIndex,
                 ar->adjustmentCenter,
@@ -2897,8 +2897,8 @@ static void printVtx(dumpFlags_t dumpMask, const vtxConfig_t *vtxConfig, const v
                 cacDefault->band,
                 cacDefault->channel,
                 cacDefault->power,
-                MODE_STEP_TO_CHANNEL_VALUE(cacDefault->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(cacDefault->range.endStep)
+                STEP_TO_CHANNEL_VALUE(cacDefault->range.startStep),
+                STEP_TO_CHANNEL_VALUE(cacDefault->range.endStep)
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -2907,8 +2907,8 @@ static void printVtx(dumpFlags_t dumpMask, const vtxConfig_t *vtxConfig, const v
             cac->band,
             cac->channel,
             cac->power,
-            MODE_STEP_TO_CHANNEL_VALUE(cac->range.startStep),
-            MODE_STEP_TO_CHANNEL_VALUE(cac->range.endStep)
+            STEP_TO_CHANNEL_VALUE(cac->range.startStep),
+            STEP_TO_CHANNEL_VALUE(cac->range.endStep)
         );
     }
 }
@@ -2980,8 +2980,8 @@ static void cliVtx(const char *cmdName, char *cmdline)
                     cac->band,
                     cac->channel,
                     cac->power,
-                    MODE_STEP_TO_CHANNEL_VALUE(cac->range.startStep),
-                    MODE_STEP_TO_CHANNEL_VALUE(cac->range.endStep)
+                    STEP_TO_CHANNEL_VALUE(cac->range.startStep),
+                    STEP_TO_CHANNEL_VALUE(cac->range.endStep)
                 );
             }
         } else {
@@ -4625,7 +4625,7 @@ static void cliDefaults(const char *cmdName, char *cmdline)
 
             if (!parameterGroupId) {
                 cliShowParseError(cmdName);
-                
+
                 return;
             }
         } else if (strcasestr(tok, "group_id")) {
