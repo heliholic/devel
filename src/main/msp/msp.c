@@ -1298,10 +1298,6 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         }
         break;
 
-    case MSP_PID_CONTROLLER:
-        sbufWriteU8(dst, PID_CONTROLLER_ROTORFLIGHT);
-        break;
-
     case MSP_MODE_RANGES:
         for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
             const modeActivationCondition_t *mac = modeActivationConditions(i);
@@ -2195,9 +2191,6 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         if (sbufBytesRemaining(src)) {
             sbufReadU8(src); // was imuConfigMutable()->small_angle
         }
-        break;
-
-    case MSP_SET_PID_CONTROLLER:
         break;
 
     case MSP_SET_PID:
