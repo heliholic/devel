@@ -766,15 +766,9 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
         break;
 
     case MSP_DEBUG:
-#ifdef USE_OLD_DEBUG16
-        for (int i = 0; i < 4; i++) {
-            sbufWriteU16(dst, constrain(debug[i], INT16_MIN, INT16_MAX));
-        }
-#else
         for (int i = 0; i < DEBUG_VALUE_COUNT; i++) {
             sbufWriteU32(dst, debug[i]);
         }
-#endif
         break;
 
     case MSP_UID:
