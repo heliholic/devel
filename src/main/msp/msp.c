@@ -2995,76 +2995,42 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 
     case MSP_SET_RX_CONFIG:
         rxConfigMutable()->serialrx_provider = sbufReadU8(src);
+        rxConfigMutable()->serialrx_inverted = sbufReadU8(src);
+        rxConfigMutable()->halfDuplex = sbufReadU8(src);
         rxConfigMutable()->maxcheck = sbufReadU16(src);
         rxConfigMutable()->midrc = sbufReadU16(src);
         rxConfigMutable()->mincheck = sbufReadU16(src);
-        rxConfigMutable()->spektrum_sat_bind = sbufReadU8(src);
-        if (sbufBytesRemaining(src) >= 4) {
-            rxConfigMutable()->rx_min_usec = sbufReadU16(src);
-            rxConfigMutable()->rx_max_usec = sbufReadU16(src);
-        }
-        if (sbufBytesRemaining(src) >= 4) {
-            sbufReadU8(src); // not required in API 1.44, was rxConfigMutable()->rcInterpolation
-            sbufReadU8(src); // not required in API 1.44, was rxConfigMutable()->rcInterpolationInterval
-            sbufReadU16(src); // was rxConfigMutable()->airModeActivateThreshold
-        }
-        if (sbufBytesRemaining(src) >= 6) {
+        rxConfigMutable()->rx_min_usec = sbufReadU16(src);
+        rxConfigMutable()->rx_max_usec = sbufReadU16(src);
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+#if defined(USE_RC_SMOOTHING_FILTER)
+        rxConfigMutable()->rc_smoothing_mode = sbufReadU8(src);
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        rxConfigMutable()->rc_smoothing_factor = sbufReadU8(src);
+#else
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+        sbufReadU8(src); // RF TODO remove
+#endif
 #ifdef USE_RX_SPI
-            rxSpiConfigMutable()->rx_spi_protocol = sbufReadU8(src);
-            rxSpiConfigMutable()->rx_spi_id = sbufReadU32(src);
-            rxSpiConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
+        rxSpiConfigMutable()->rx_spi_protocol = sbufReadU8(src);
+        rxSpiConfigMutable()->rx_spi_id = sbufReadU32(src);
+        rxSpiConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
 #else
-            sbufReadU8(src);
-            sbufReadU32(src);
-            sbufReadU8(src);
+        sbufReadU8(src);
+        sbufReadU32(src);
+        sbufReadU8(src);
 #endif
-        }
-        if (sbufBytesRemaining(src) >= 1) {
-            sbufReadU8(src); // was rxConfigMutable()->fpvCamAngleDegrees
-        }
-        if (sbufBytesRemaining(src) >= 6) {
-            // Added in MSP API 1.40
-            sbufReadU8(src); // not required in API 1.44, was rxConfigMutable()->rcSmoothingChannels
-#if defined(USE_RC_SMOOTHING_FILTER)
-            sbufReadU8(src); // not required in API 1.44, was rc_smoothing_type
-            rxConfigMutable()->rc_smoothing_cutoff = sbufReadU8(src);
-            sbufReadU8(src); // was rxConfigMutable()->rc_smoothing_setpoint_delta_cutoff
-            sbufReadU8(src); // not required in API 1.44, was rc_smoothing_input_type
-            sbufReadU8(src); // not required in API 1.44, was rc_smoothing_derivative_type
-#else
-            sbufReadU8(src);
-            sbufReadU8(src);
-            sbufReadU8(src);
-            sbufReadU8(src);
-            sbufReadU8(src);
-#endif
-        }
-        if (sbufBytesRemaining(src) >= 1) {
-            // Added in MSP API 1.40
-            // Kept separate from the section above to work around missing Configurator support in version < 10.4.2
-#if defined(USE_USB_CDC_HID)
-            usbDevConfigMutable()->type = sbufReadU8(src);
-#else
-            sbufReadU8(src);
-#endif
-        }
-        if (sbufBytesRemaining(src) >= 1) {
-            // Added in MSP API 1.42
-#if defined(USE_RC_SMOOTHING_FILTER)
-            rxConfigMutable()->rc_smoothing_factor = sbufReadU8(src);
-#else
-            sbufReadU8(src);
-#endif
-        }
-        if (sbufBytesRemaining(src) >= 1) {
-            // Added in MSP API 1.44
-#if defined(USE_RC_SMOOTHING_FILTER)
-            configRebootUpdateCheckU8(&rxConfigMutable()->rc_smoothing_mode, sbufReadU8(src));
-#else
-            sbufReadU8(src);
-#endif
-        }
         break;
+
     case MSP_SET_FAILSAFE_CONFIG:
         failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
         failsafeConfigMutable()->failsafe_off_delay = sbufReadU8(src);
