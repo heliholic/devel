@@ -2966,10 +2966,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         break;
 
     case MSP_SET_MIXER_CONFIG:
-        sbufReadU8(src); // was mixerConfigMutable()->mixerMode
-        if (sbufBytesRemaining(src) >= 1) {
-            sbufReadU8(src); // was mixerConfigMutable()->yaw_motors_reversed
-        }
+        mixerConfigMutable()->main_rotor_dir = sbufReadU8(src);
+        mixerConfigMutable()->tail_rotor_mode = sbufReadU8(src);
+        mixerConfigMutable()->tail_motor_idle = sbufReadU8(src);
+        mixerConfigMutable()->swash_ring = sbufReadU8(src);
         break;
 
     case MSP_SET_MIXER_RULE:
