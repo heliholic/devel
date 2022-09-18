@@ -1466,6 +1466,14 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, mixerConfig()->swash_ring);
         break;
 
+    case MSP_MIXER_INPUTS:
+        for (int i = 0; i < MIXER_INPUT_COUNT; i++) {
+          sbufWriteU16(dst, mixerInputs(i)->rate);
+          sbufWriteU16(dst, mixerInputs(i)->min);
+          sbufWriteU16(dst, mixerInputs(i)->max);
+        }
+        break;
+
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
         sbufWriteU16(dst, rxConfig()->maxcheck);
