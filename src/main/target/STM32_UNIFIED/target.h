@@ -333,7 +333,10 @@
 
 #define USE_FREQ_SENSOR
 
+#define USE_RX_SPI
+
 // Features not needed in Rotorflight
+#if 0
 #undef  USE_OSD
 #undef  USE_CMS
 #undef  USE_MAX7456
@@ -342,6 +345,7 @@
 #undef  USE_VTX_CONTROL
 #undef  USE_CAMERA_CONTROL
 #undef  USE_RX_SPI
+#endif
 
 #ifdef USE_RX_SPI
 #define USE_RX_FRSKY_SPI_D
