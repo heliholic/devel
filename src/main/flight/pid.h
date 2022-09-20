@@ -41,20 +41,20 @@
 
 #define PID_GAIN_MAX                2500
 
-#define ROLL_P_TERM_SCALE           0.0033333333f
-#define ROLL_I_TERM_SCALE           0.0500000000f
-#define ROLL_D_TERM_SCALE           0.0000500000f
-#define ROLL_F_TERM_SCALE           0.0125000000f
+#define ROLL_P_TERM_SCALE           (1.0f / (  300 * 500))      /* 0.0033333333f */
+#define ROLL_I_TERM_SCALE           (1.0f / (   20 * 500))      /* 0.0500000000f */
+#define ROLL_D_TERM_SCALE           (1.0f / (20000 * 500))      /* 0.0000500000f */
+#define ROLL_F_TERM_SCALE           (1.0f / (   80 * 500))      /* 0.0125000000f */
 
-#define PITCH_P_TERM_SCALE          0.0033333333f
-#define PITCH_I_TERM_SCALE          0.0500000000f
-#define PITCH_D_TERM_SCALE          0.0000500000f
-#define PITCH_F_TERM_SCALE          0.0125000000f
+#define PITCH_P_TERM_SCALE          (1.0f / (  300 * 500))      /* 0.0033333333f */
+#define PITCH_I_TERM_SCALE          (1.0f / (   20 * 500))      /* 0.0500000000f */
+#define PITCH_D_TERM_SCALE          (1.0f / (20000 * 500))      /* 0.0000500000f */
+#define PITCH_F_TERM_SCALE          (1.0f / (   80 * 500))      /* 0.0125000000f */
 
-#define YAW_P_TERM_SCALE            0.0333333333f
-#define YAW_I_TERM_SCALE            0.2500000000f
-#define YAW_D_TERM_SCALE            0.0005000000f
-#define YAW_F_TERM_SCALE            0.0125000000f
+#define YAW_P_TERM_SCALE            (1.0f / (   30 * 500))      /* 0.0333333333f */
+#define YAW_I_TERM_SCALE            (1.0f / (    4 * 500))      /* 0.2500000000f */
+#define YAW_D_TERM_SCALE            (1.0f / ( 2000 * 500))      /* 0.0005000000f */
+#define YAW_F_TERM_SCALE            (1.0f / (   80 * 500))      /* 0.0125000000f */
 
 #define PID_ROLL_DEFAULT            { .P = 50, .I = 100, .D = 0, .F = 100, }
 #define PID_PITCH_DEFAULT           { .P = 50, .I = 100, .D = 0, .F = 100, }
