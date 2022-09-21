@@ -498,7 +498,7 @@ void processRcAdjustments(void)
             const adjustmentRange_t * adjRange = adjustmentRanges(index);
             const adjustmentConfig_t * adjConfig = &adjustmentConfigs[adjRange->function];
 
-            if (isRangeActive(adjRange->enaChannel, &adjRange->enaRange))
+            if (isExtRangeActive(adjRange->enaChannel, &adjRange->enaRange))
             {
                 adjustmentState_t * adjState = &adjustmentState[index];
                 const timeMs_t now = millis();
@@ -511,11 +511,11 @@ void processRcAdjustments(void)
 
                 // Stepped adjustment
                 if (adjRange->adjStep) {
-                    if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
+                    if (isExtRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
                         adjval = getAdjustmentValue(adjRange->function);
                         newval = adjval - adjRange->adjStep;
                     }
-                    else if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange2)) {
+                    else if (isExtRangeActive(adjRange->adjChannel, &adjRange->adjRange2)) {
                         adjval = getAdjustmentValue(adjRange->function);
                         newval = adjval + adjRange->adjStep;
                     }
@@ -525,7 +525,7 @@ void processRcAdjustments(void)
                 }
                 // Continuous adjustment
                 else {
-                    if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
+                    if (isExtRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
                         adjval = getAdjustmentValue(adjRange->function);
                         newval = scaleRange(rcData[adjRange->adjChannel],
                             STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.startStep),

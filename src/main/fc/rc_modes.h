@@ -98,6 +98,8 @@ typedef struct boxBitmask_s { uint32_t bits[(CHECKBOX_ITEM_COUNT + 31) / 32]; } 
 #define STEP_TO_CHANNEL_VALUE(step)   (1500 + 5 * (step))
 #define CHANNEL_VALUE_TO_STEP(value)  (((value) - 1500) / 5)
 
+#define RANGE_ALWAYS_ACTIVE_CH 0xff
+
 typedef struct channelRange_s {
     int8_t startStep;
     int8_t endStep;
@@ -154,6 +156,19 @@ static inline bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *
 {
     if (isRangeUsable(range)) {
         const uint16_t channelValue = rcData[auxChannelIndex + NON_AUX_CHANNEL_COUNT];
+        return (channelValue >= STEP_TO_CHANNEL_VALUE(range->startStep) && channelValue < STEP_TO_CHANNEL_VALUE(range->endStep));
+    }
+
+    return false;
+}
+
+static inline bool isExtRangeActive(uint8_t channelIndex, const channelRange_t *range)
+{
+    if (channelIndex == RANGE_ALWAYS_ACTIVE_CH) {
+        return true;
+    }
+    if (isRangeUsable(range)) {
+        const uint16_t channelValue = rcData[channelIndex];
         return (channelValue >= STEP_TO_CHANNEL_VALUE(range->startStep) && channelValue < STEP_TO_CHANNEL_VALUE(range->endStep));
     }
 
