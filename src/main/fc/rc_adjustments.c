@@ -498,7 +498,7 @@ void processRcAdjustments(void)
             const adjustmentRange_t * adjRange = adjustmentRanges(index);
             const adjustmentConfig_t * adjConfig = &adjustmentConfigs[adjRange->function];
 
-            if (isRangeActive(adjRange->enaChannel, &adjRange->enaRange))
+            if (adjRange->enaChannel == 0xff || isRangeActive(adjRange->enaChannel, &adjRange->enaRange))
             {
                 adjustmentState_t * adjState = &adjustmentState[index];
                 const timeMs_t now = millis();
