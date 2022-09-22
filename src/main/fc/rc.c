@@ -135,6 +135,7 @@ FAST_CODE void updateRcCommands(void)
         data = constrainf(data, -500, 500);
         rcCommand[axis] = data;
         rcDeflection[axis] = data / rcDivider[axis];
+        DEBUG(RC_COMMAND, axis, data);
     }
 
     if (rcControlsConfig()->yaw_control_reversed)
@@ -144,7 +145,7 @@ FAST_CODE void updateRcCommands(void)
     for (int axis = 0; axis < 4; axis++) {
         data = applyRatesCurve(axis, rcDeflection[axis]);
         rawSetpoint[axis] = data;
-        DEBUG_SET(DEBUG_ANGLERATE, axis, data);
+        DEBUG(RC_SETPOINT, axis, data);
     }
 
     // RF FIXME
@@ -162,6 +163,7 @@ FAST_CODE void processRcCommand(void)
 #else
         smoothSetpoint[axis] = rawSetpoint[axis];
 #endif
+        DEBUG(RC_SMOOTH_SETPOINT, axis, smoothSetpoint[axis]);
     }
 }
 
