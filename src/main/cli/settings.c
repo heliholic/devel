@@ -980,6 +980,7 @@ const clivalue_t valueTable[] = {
 
     { PARAM_NAME_DEADBAND,          VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, 32 }, PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, deadband) },
     { PARAM_NAME_YAW_DEADBAND,      VAR_UINT8  | MASTER_VALUE, .config.minmaxUnsigned = { 0, 100 }, PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, yaw_deadband) },
+    { "rc_accel_limit",             VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = 4, PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, accel_limit) },
     { "yaw_control_reversed",       VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, yaw_control_reversed) },
 
 // PG_PID_CONFIG
