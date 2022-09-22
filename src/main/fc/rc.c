@@ -42,6 +42,8 @@
 #include "fc/rc_rates.h"
 #include "fc/rc_smoothing.h"
 
+#include "flight/pid.h"
+
 #include "pg/rx.h"
 
 #include "rx/rx.h"
@@ -53,10 +55,12 @@ FAST_DATA_ZERO_INIT float rcCommand[5];                  // -500..+500 for RPYC 
 FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1 for THROTTLE
 
 static FAST_DATA_ZERO_INIT float rawSetpoint[4];
+static FAST_DATA_ZERO_INIT float accelSetpoint[4];
 static FAST_DATA_ZERO_INIT float smoothSetpoint[4];
 
 static FAST_DATA_ZERO_INIT float rcDivider[4];
 static FAST_DATA_ZERO_INIT float rcDeadband[4];
+static FAST_DATA_ZERO_INIT float rcAccelLimit[4];
 
 static FAST_DATA_ZERO_INIT timeUs_t lastRxTimeUs;
 static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
@@ -158,10 +162,13 @@ FAST_CODE void processRcCommand(void)
 {
     // rawSetpoint => smoothSetpoint
     for (int axis = 0; axis < 4; axis++) {
+
+        accelSetpoint[axis] = slew_limit(accelSetpoint[axis], rawSetpoint[axis], rcAccelLimit[axis]);
+
 #ifdef USE_RC_SMOOTHING_FILTER
-        smoothSetpoint[axis] = rcSmoothingFilterApply(axis, rawSetpoint[axis]);
+        smoothSetpoint[axis] = rcSmoothingFilterApply(axis, accelSetpoint[axis]);
 #else
-        smoothSetpoint[axis] = rawSetpoint[axis];
+        smoothSetpoint[axis] = accelSetpoint[axis];
 #endif
         DEBUG(RC_SMOOTH_SETPOINT, axis, smoothSetpoint[axis]);
     }
@@ -178,6 +185,10 @@ INIT_CODE void initRcProcessing(void)
     rcDeadband[1] = rcControlsConfig()->deadband;
     rcDeadband[2] = rcControlsConfig()->yaw_deadband;
     rcDeadband[3] = 0;
+
+    for (int i = 0; i < 4; i++) {
+        rcAccelLimit[i] = 10.0f * rcControlsConfig()->accel_limit[i] * pidGetDT();
+    }
 
 #ifdef USE_RC_SMOOTHING_FILTER
     rcSmoothingFilterInit();
