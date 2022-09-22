@@ -129,7 +129,7 @@ void INIT_CODE pidInit(const pidProfile_t *pidProfile)
 
 void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 {
-    pid.pidMode = constrain(pidProfile->pid_mode, 1, 6);
+    pid.pidMode = pidProfile->pid_mode;
 
     // Roll axis
     pid.coef[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P;
@@ -366,6 +366,33 @@ static FAST_CODE void pidApplyPrecomp(const pidProfile_t *pidProfile)
     DEBUG(YAW_PRECOMP, 4, cyclicDeflection * 1000);
     DEBUG(YAW_PRECOMP, 5, yawCyclicFF * 10);
     DEBUG(YAW_PRECOMP, 6, yawPrecomp * 10);
+}
+
+/** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
+ **
+ ** MODE 0 - PASSTHROUGH
+ **
+ ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
+
+static FAST_CODE void pidApplyMode0(const pidProfile_t *pidProfile, uint8_t axis)
+{
+    // Rate setpoint
+    float setpoint = pidApplySetpoint(pidProfile, axis);
+
+  //// Unused term
+    pid.data[axis].P = 0;
+    pid.data[axis].I = 0;
+    pid.data[axis].D = 0;
+
+  //// F-term
+
+    // Calculate feedforward component
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
+
+  //// PID Sum
+
+    // Calculate PID sum
+    pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D + pid.data[axis].F;
 }
 
 
@@ -717,7 +744,7 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
 
 /** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
  **
- ** MODE 6 - PID TEST MODE
+ ** MODE 9 - PID TEST MODE
  **
  **   gyro filter => errorFilter => Kp => P-term
  **   gyro filter => errorFilter => dtermFilter => Kd => D-term
@@ -729,7 +756,7 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
  **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
-static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_t axis)
+static FAST_CODE void pidApplyCyclicMode9(const pidProfile_t *pidProfile, uint8_t axis)
 {
     // Rate setpoint
     float setpoint = pidApplySetpoint(pidProfile, axis);
@@ -804,7 +831,7 @@ static FAST_CODE void pidApplyCyclicMode6(const pidProfile_t *pidProfile, uint8_
 }
 
 
-static FAST_CODE void pidApplyYawMode6(const pidProfile_t *pidProfile)
+static FAST_CODE void pidApplyYawMode9(const pidProfile_t *pidProfile)
 {
     const uint8_t axis = FD_YAW;
 
@@ -899,20 +926,25 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
 
     // Apply PID for each axis
     switch (pid.pidMode) {
-        case 6:
-            pidApplyCyclicMode6(pidProfile, PID_ROLL);
-            pidApplyCyclicMode6(pidProfile, PID_PITCH);
-            pidApplyYawMode6(pidProfile);
+        case 9:
+            pidApplyCyclicMode9(pidProfile, PID_ROLL);
+            pidApplyCyclicMode9(pidProfile, PID_PITCH);
+            pidApplyYawMode9(pidProfile);
             break;
         case 2:
             pidApplyCyclicMode2(pidProfile, PID_ROLL);
             pidApplyCyclicMode2(pidProfile, PID_PITCH);
             pidApplyYawMode2(pidProfile);
             break;
-        default:
+        case 1:
             pidApplyCyclicMode1(pidProfile, PID_ROLL);
             pidApplyCyclicMode1(pidProfile, PID_PITCH);
             pidApplyYawMode1(pidProfile);
+            break;
+        default:
+            pidApplyMode0(pidProfile, PID_ROLL);
+            pidApplyMode0(pidProfile, PID_PITCH);
+            pidApplyMode0(pidProfile, PID_YAW);
             break;
     }
 
