@@ -310,7 +310,7 @@ static inline void pidApplyCollective(const pidProfile_t *pidProfile)
 {
     UNUSED(pidProfile);
 
-    pid.collective = getRcSetpoint(FD_COLL);
+    pid.collective = getRcSetpoint(FD_COLL) / 1000.0f;
 }
 
 static FAST_CODE void pidApplyPrecomp(const pidProfile_t *pidProfile)

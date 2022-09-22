@@ -55,8 +55,8 @@ FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1
 static FAST_DATA_ZERO_INIT float rawSetpoint[4];
 static FAST_DATA_ZERO_INIT float smoothSetpoint[4];
 
-static FAST_DATA_ZERO_INIT float rcDivider[4]   = { 500, 500, 500, 500 };
-static FAST_DATA_ZERO_INIT float rcDeadband[4]  = {   0,   0,   0,   0 };
+static FAST_DATA_ZERO_INIT float rcDivider[4];
+static FAST_DATA_ZERO_INIT float rcDeadband[4];
 
 static FAST_DATA_ZERO_INIT timeUs_t lastRxTimeUs;
 static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
@@ -137,7 +137,8 @@ FAST_CODE void updateRcCommands(void)
         rcDeflection[axis] = data / rcDivider[axis];
     }
 
-    rcCommand[YAW] *= -GET_DIRECTION(rcControlsConfig()->yaw_control_reversed);
+    if (rcControlsConfig()->yaw_control_reversed)
+        rcCommand[YAW] = -rcCommand[YAW];
 
     // rcDeflection => rawSetpoint
     for (int axis = 0; axis < 4; axis++) {
@@ -146,7 +147,7 @@ FAST_CODE void updateRcCommands(void)
         DEBUG_SET(DEBUG_ANGLERATE, axis, data);
     }
 
-    // FIXME
+    // RF FIXME
     data = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
     rcCommand[THROTTLE] = data;
     rcDeflection[THROTTLE] = data / PWM_RANGE;
@@ -169,10 +170,12 @@ INIT_CODE void initRcProcessing(void)
     rcDivider[0] = 500 - rcControlsConfig()->deadband;
     rcDivider[1] = 500 - rcControlsConfig()->deadband;
     rcDivider[2] = 500 - rcControlsConfig()->yaw_deadband;
+    rcDivider[3] = 500;
 
     rcDeadband[0] = rcControlsConfig()->deadband;
     rcDeadband[1] = rcControlsConfig()->deadband;
     rcDeadband[2] = rcControlsConfig()->yaw_deadband;
+    rcDeadband[3] = 0;
 
 #ifdef USE_RC_SMOOTHING_FILTER
     rcSmoothingFilterInit();
