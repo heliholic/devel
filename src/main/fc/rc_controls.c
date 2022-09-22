@@ -77,6 +77,7 @@ PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .yaw_deadband = 0,
     .alt_hold_deadband = 40,
     .alt_hold_fast_change = 1,
+    .accel_limit = { 0, 0, 0, 0 },
     .yaw_control_reversed = false,
 );
 
