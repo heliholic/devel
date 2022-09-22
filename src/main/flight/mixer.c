@@ -233,9 +233,9 @@ static FAST_CODE void mixerUpdateInputs(void)
         mixerSetInput(MIXER_IN_RC_CHANNEL_ROLL + i, (rcData[i] - rxConfig()->midrc) * MIXER_RPY_SCALING);
 
     // Stabilised inputs
-    mixerSetInput(MIXER_IN_STABILIZED_ROLL, pidGetOutput(FD_ROLL));
-    mixerSetInput(MIXER_IN_STABILIZED_PITCH, pidGetOutput(FD_PITCH));
-    mixerSetInput(MIXER_IN_STABILIZED_YAW, pidGetOutput(FD_YAW));
+    mixerSetInput(MIXER_IN_STABILIZED_ROLL, pidGetOutput(PID_ROLL));
+    mixerSetInput(MIXER_IN_STABILIZED_PITCH, pidGetOutput(PID_PITCH));
+    mixerSetInput(MIXER_IN_STABILIZED_YAW, pidGetOutput(PID_YAW));
     mixerSetInput(MIXER_IN_STABILIZED_COLLECTIVE, pidGetCollective());
 
     // Calculate cyclic
@@ -263,7 +263,6 @@ void FAST_CODE mixerUpdate(void)
     // Reset mixer outputs
     for (int i = 0; i < MIXER_OUTPUT_COUNT; i++) {
         mixOutput[i] = 0;
-        mixOutputMap[i] = 0;
     }
 
     // Fetch input values
