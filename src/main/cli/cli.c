@@ -1788,7 +1788,7 @@ static void cliAdjustmentRange(const char *cmdName, char *cmdline)
                 validArgumentCount++;
             }
 
-            if (validArgumentCount != 8) {
+            if (validArgumentCount != 12) {
                 memset(ar, 0, sizeof(adjustmentRange_t));
                 cliShowInvalidArgumentCountError(cmdName);
                 return;
