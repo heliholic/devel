@@ -38,11 +38,6 @@
 #define SP_SMOOTHING_FILTER_MIN_HZ             5
 #define SP_SMOOTHING_FILTER_MAX_HZ           250
 
-#define SP_SMOOTHING_RX_RATE_MIN_US          950
-#define SP_SMOOTHING_RX_RATE_MAX_US        65000
-
-#define SP_SMOOTHING_RX_RATE_AVERAGING       100
-
 
 typedef struct
 {
@@ -89,7 +84,7 @@ FAST_CODE void setpointFilterUpdate(float frameTimeUs)
 
     DEBUG(SETPOINT, 4, cutoff);
 
-    cutoff = MIN(spFilter.styleCutoff, cutoff);
+    cutoff = MIN(spFilter.limitCutoff, cutoff);
     cutoff = constrain(cutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
 
     DEBUG(SETPOINT, 5, cutoff);
