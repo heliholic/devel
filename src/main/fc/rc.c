@@ -151,7 +151,7 @@ FAST_CODE void updateRcCommands(void)
 {
     float data;
 
-    setpointFilterUpdate(currentRxRefreshRate);
+    setpointFilterUpdate(averageRxRefreshRate);
 
     // rcData => rcCommand => rcDeflection
     for (int axis = 0; axis < 4; axis++) {

@@ -33,7 +33,7 @@ uint16_t setpointFilterGetRxFrameTime(void);
 void setpointFilterInit(void);
 void setpointFilterInitProfile(void);
 
-void setpointFilterUpdate(int currentRxRefreshRate);
+void setpointFilterUpdate(float frameTimeUs);
 
 void processSetpoint(void);
 

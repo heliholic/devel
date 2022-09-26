@@ -54,10 +54,6 @@ typedef struct
 
     uint16_t styleCutoff;
     uint16_t activeCutoff;
-    uint16_t averageFrameCount;
-
-    float currentFrameTimeUs;
-    float averageFrameTimeUs;
 
 } setpointFilter_t;
 
@@ -76,7 +72,7 @@ uint16_t setpointFilterGetCutoffFreq(void)
 
 uint16_t setpointFilterGetRxFrameTime(void)
 {
-    return rxIsReceivingSignal() ? lrintf(spFilter.averageFrameTimeUs) : 0;
+    return rxIsReceivingSignal() ? lrintf(getAverageRxRefreshRate()) : 0;
 }
 
 
@@ -92,12 +88,16 @@ static inline float setpointAutoSmoothingCutoff(float frameTimeUs, uint8_t autoS
     return cutoff;
 }
 
-static inline void setpointFilterSetCutoffs(float frameTimeUs)
+FAST_CODE void setpointFilterUpdate(float frameTimeUs)
 {
     float cutoff = setpointAutoSmoothingCutoff(frameTimeUs, currentControlRateProfile->rates_smoothness);
 
+    DEBUG(SETPOINT, 4, cutoff);
+
     cutoff = MIN(spFilter.styleCutoff, cutoff);
     cutoff = constrain(cutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
+
+    DEBUG(SETPOINT, 5, cutoff);
 
     if (spFilter.activeCutoff != cutoff) {
         const float gain = pt3FilterGain(cutoff, pidGetDT());
@@ -107,31 +107,6 @@ static inline void setpointFilterSetCutoffs(float frameTimeUs)
         spFilter.activeCutoff = cutoff;
     }
 }
-
-FAST_CODE void setpointFilterUpdate(int currentRxRateUs)
-{
-    if (spFilter.averageFrameCount >= SP_SMOOTHING_RX_RATE_AVERAGING) {
-        if (rxIsReceivingSignal() && currentRxRateUs > SP_SMOOTHING_RX_RATE_MIN_US && currentRxRateUs < SP_SMOOTHING_RX_RATE_MAX_US) {
-            spFilter.currentFrameTimeUs = constrainf(currentRxRateUs, 0.75f * spFilter.averageFrameTimeUs, 1.25f * spFilter.averageFrameTimeUs);
-        } else {
-            spFilter.currentFrameTimeUs = spFilter.averageFrameTimeUs;
-        }
-    }
-    else {
-        spFilter.currentFrameTimeUs = currentRxRateUs;
-        spFilter.averageFrameCount++;
-    }
-
-    spFilter.averageFrameTimeUs += (spFilter.currentFrameTimeUs - spFilter.averageFrameTimeUs) / spFilter.averageFrameCount;
-
-    setpointFilterSetCutoffs(spFilter.averageFrameTimeUs);
-
-    DEBUG(SETPOINT, 4, currentRxRateUs);
-    DEBUG(SETPOINT, 5, spFilter.currentFrameTimeUs);
-    DEBUG(SETPOINT, 6, spFilter.averageFrameTimeUs);
-    DEBUG(SETPOINT, 7, spFilter.activeCutoff);
-}
-
 
 INIT_CODE void setpointFilterInitProfile(void)
 {
@@ -145,11 +120,6 @@ INIT_CODE void setpointFilterInitProfile(void)
 
 INIT_CODE void setpointFilterInit(void)
 {
-    spFilter.currentFrameTimeUs = 10;
-    spFilter.averageFrameTimeUs = 10;
-
-    spFilter.averageFrameCount = 0;
-
     setpointFilterInitProfile();
 
     const float gain = pt3FilterGain(spFilter.activeCutoff, pidGetDT());
