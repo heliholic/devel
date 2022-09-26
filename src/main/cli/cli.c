@@ -5293,12 +5293,12 @@ static void cliSetpointInfo(const char *cmdName, char *cmdline)
     UNUSED(cmdline);
 
     cliPrint("# Setpoint Smoothing: ");
-    const uint16_t avgRxFrameUs = setpointFilterGetRxFrameTime();
+    const uint16_t avgRxFrameUs = lrintf(getAverageRxRefreshRate());
     cliPrint("# Detected RX frame rate: ");
-    if (avgRxFrameUs == 0) {
-        cliPrintLine("NO SIGNAL");
-    } else {
+    if (rxIsReceivingSignal()) {
         cliPrintLinef("%d.%03dms", avgRxFrameUs / 1000, avgRxFrameUs % 1000);
+    } else {
+        cliPrintLine("NO SIGNAL");
     }
     cliPrintf("# Active filter cutoff: %dHz ", setpointFilterGetCutoffFreq());
 }

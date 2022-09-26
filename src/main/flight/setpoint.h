@@ -28,7 +28,6 @@
 float getSetpoint(int axis);
 
 uint16_t setpointFilterGetCutoffFreq(void);
-uint16_t setpointFilterGetRxFrameTime(void);
 
 void setpointFilterInit(void);
 void setpointFilterInitProfile(void);

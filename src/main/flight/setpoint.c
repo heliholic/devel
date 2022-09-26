@@ -70,11 +70,6 @@ uint16_t setpointFilterGetCutoffFreq(void)
     return spFilter.activeCutoff;
 }
 
-uint16_t setpointFilterGetRxFrameTime(void)
-{
-    return rxIsReceivingSignal() ? lrintf(getAverageRxRefreshRate()) : 0;
-}
-
 
 static inline float setpointAutoSmoothingCutoff(float frameTimeUs, uint8_t autoSmoothnessFactor)
 {
