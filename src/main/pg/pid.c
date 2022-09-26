@@ -87,9 +87,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .governor.tta_limit = 0,
         .governor.cyclic_ff_weight = 40,
         .governor.collective_ff_weight = 100,
-        .setpoint.style = 25,
-        .setpoint.smoothness = 40,
-        .setpoint.accel_limit = { 0, 0, 0, 0 },
     );
 }
 

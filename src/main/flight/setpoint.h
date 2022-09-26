@@ -30,8 +30,8 @@ float getSetpoint(int axis);
 uint16_t setpointFilterGetCutoffFreq(void);
 uint16_t setpointFilterGetRxFrameTime(void);
 
-void setpointFilterInit(const pidProfile_t * pidProfile);
-void setpointFilterInitProfile(const pidProfile_t * pidProfile);
+void setpointFilterInit(void);
+void setpointFilterInitProfile(void);
 
 void setpointFilterUpdate(int currentRxRefreshRate);
 

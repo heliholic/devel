@@ -124,7 +124,6 @@ static void INIT_CODE pidSetLooptime(uint32_t pidLooptime)
 void INIT_CODE pidInit(const pidProfile_t *pidProfile)
 {
     pidSetLooptime(gyro.targetLooptime);
-    setpointFilterInit(pidProfile);
     pidInitProfile(pidProfile);
 }
 
@@ -201,8 +200,6 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 #ifdef USE_ACRO_TRAINER
     acroTrainerInit(pidProfile);
 #endif
-
-    setpointFilterInitProfile(pidProfile);
 }
 
 void INIT_CODE pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileIndex)

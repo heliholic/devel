@@ -94,7 +94,7 @@ static inline float setpointAutoSmoothingCutoff(float frameTimeUs, uint8_t autoS
 
 static inline void setpointFilterSetCutoffs(float frameTimeUs)
 {
-    float cutoff = setpointAutoSmoothingCutoff(frameTimeUs, currentPidProfile->setpoint.smoothness);
+    float cutoff = setpointAutoSmoothingCutoff(frameTimeUs, currentControlRateProfile->rates_smoothness);
 
     cutoff = MIN(spFilter.styleCutoff, cutoff);
     cutoff = constrain(cutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
@@ -133,25 +133,24 @@ FAST_CODE void setpointFilterUpdate(int currentRxRateUs)
 }
 
 
-INIT_CODE void setpointFilterInitProfile(const pidProfile_t * pidProfile)
+INIT_CODE void setpointFilterInitProfile(void)
 {
     for (int i = 0; i < 4; i++) {
-        spFilter.accelLimit[i] = 10.0f * pidProfile->setpoint.accel_limit[i] * pidGetDT();
+        spFilter.accelLimit[i] = 10.0f * currentControlRateProfile->accel_limit[i] * pidGetDT();
     }
 
-    spFilter.styleCutoff  = 1000.0f / constrain(pidProfile->setpoint.style, 1, 250);
+    spFilter.styleCutoff  = 1000.0f / constrain(currentControlRateProfile->rates_response, 1, 250);
     spFilter.activeCutoff = constrain(spFilter.styleCutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
-
 }
 
-INIT_CODE void setpointFilterInit(const pidProfile_t * pidProfile)
+INIT_CODE void setpointFilterInit(void)
 {
     spFilter.currentFrameTimeUs = 10;
     spFilter.averageFrameTimeUs = 10;
 
     spFilter.averageFrameCount = 0;
 
-    setpointFilterInitProfile(pidProfile);
+    setpointFilterInitProfile();
 
     const float gain = pt3FilterGain(spFilter.activeCutoff, pidGetDT());
     for (int i = 0; i < 4; i++) {
