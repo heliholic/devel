@@ -41,6 +41,9 @@
 #include "fc/rc_modes.h"
 #include "fc/rc_rates.h"
 
+#include "flight/pid.h"
+#include "flight/setpoint.h"
+
 #include "pg/rx.h"
 
 #include "rx/rx.h"
@@ -52,7 +55,6 @@ FAST_DATA_ZERO_INIT float rcCommand[5];                  // -500..+500 for RPYC 
 FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1 for THROTTLE
 
 static FAST_DATA_ZERO_INIT float rawSetpoint[4];
-static FAST_DATA_ZERO_INIT float smoothSetpoint[4];
 
 static FAST_DATA_ZERO_INIT float rcDivider[4];
 static FAST_DATA_ZERO_INIT float rcDeadband[4];
@@ -66,17 +68,11 @@ void resetYawAxis(void)
     rcCommand[YAW] = 0;
     rcDeflection[YAW] = 0;
     rawSetpoint[YAW] =  0;
-    smoothSetpoint[YAW] = 0;
 }
 
 float getRawSetpoint(int axis)
 {
     return rawSetpoint[axis];
-}
-
-float getRcSetpoint(int axis)
-{
-    return smoothSetpoint[axis];
 }
 
 float getRcDeflection(int axis)
@@ -123,6 +119,8 @@ FAST_CODE void updateRcCommands(void)
 {
     float data;
 
+    setpointFilterUpdate(currentRxRefreshRate);
+
     // rcData => rcCommand => rcDeflection
     for (int axis = 0; axis < 4; axis++) {
         data = rcData[axis] - rxConfig()->midrc;
@@ -149,14 +147,6 @@ FAST_CODE void updateRcCommands(void)
     rcDeflection[THROTTLE] = data / PWM_RANGE;
 }
 
-FAST_CODE void processRcCommand(void)
-{
-    // rawSetpoint => smoothSetpoint
-    for (int axis = 0; axis < 4; axis++) {
-        smoothSetpoint[axis] = rawSetpoint[axis];
-    }
-}
-
 INIT_CODE void initRcProcessing(void)
 {
     rcDivider[0] = 500 - rcControlsConfig()->deadband;
@@ -169,3 +159,4 @@ INIT_CODE void initRcProcessing(void)
     rcDeadband[2] = rcControlsConfig()->yaw_deadband;
     rcDeadband[3] = 0;
 }
+
