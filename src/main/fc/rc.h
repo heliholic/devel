@@ -39,5 +39,6 @@ float getRawSetpoint(int axis);
 float getRcDeflection(int axis);
 
 uint16_t getCurrentRxRefreshRate(void);
+float getAverageRxRefreshRate(void);
 
 void updateRcRefreshRate(timeUs_t currentTimeUs);

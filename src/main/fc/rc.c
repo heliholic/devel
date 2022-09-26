@@ -51,6 +51,12 @@
 #include "rc.h"
 
 
+#define RX_REFRESH_RATE_MIN_US          950
+#define RX_REFRESH_RATE_MAX_US        65000
+
+#define RX_REFRESH_RATE_AVERAGING       100
+
+
 FAST_DATA_ZERO_INIT float rcCommand[5];                  // -500..+500 for RPYC and 0..1000 for THROTTLE
 FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1 for THROTTLE
 
@@ -59,8 +65,10 @@ static FAST_DATA_ZERO_INIT float rawSetpoint[4];
 static FAST_DATA_ZERO_INIT float rcDivider[4];
 static FAST_DATA_ZERO_INIT float rcDeadband[4];
 
-static FAST_DATA_ZERO_INIT timeUs_t lastRxTimeUs;
 static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
+static FAST_DATA_ZERO_INIT float    averageRxRefreshRate;
+static FAST_DATA_ZERO_INIT uint16_t averageLength;
+static FAST_DATA_ZERO_INIT timeUs_t lastRxTimeUs;
 
 
 void resetYawAxis(void)
@@ -86,11 +94,21 @@ uint16_t getCurrentRxRefreshRate(void)
     return currentRxRefreshRate;
 }
 
+float getAverageRxRefreshRate(void)
+{
+    return averageRxRefreshRate;
+}
+
+
 void updateRcRefreshRate(timeUs_t currentTimeUs)
 {
-    timeDelta_t frameAgeUs;
+    timeDelta_t frameAgeUs = 0;
     timeDelta_t frameDeltaUs = rxGetFrameDelta(&frameAgeUs);
     timeDelta_t localDeltaUs = cmpTimeUs(currentTimeUs, lastRxTimeUs);
+
+    DEBUG(RX_TIMING, 4, frameDeltaUs);
+    DEBUG(RX_TIMING, 5, localDeltaUs);
+    DEBUG(RX_TIMING, 6, frameAgeUs);
 
     if (frameDeltaUs == 0 || localDeltaUs <= frameAgeUs) {
         frameDeltaUs = localDeltaUs;
@@ -99,9 +117,23 @@ void updateRcRefreshRate(timeUs_t currentTimeUs)
     currentRxRefreshRate = frameDeltaUs;
     lastRxTimeUs = currentTimeUs;
 
-    DEBUG(RX_TIMING, 0, frameDeltaUs);
-    DEBUG(RX_TIMING, 1, localDeltaUs);
-    DEBUG(RX_TIMING, 2, frameAgeUs);
+    float currentRateUs = frameDeltaUs;
+
+    if (averageLength >= RX_REFRESH_RATE_AVERAGING) {
+        if (rxIsReceivingSignal() && currentRxRefreshRate > RX_REFRESH_RATE_MIN_US && currentRxRefreshRate < RX_REFRESH_RATE_MAX_US) {
+            currentRateUs = constrainf(currentRateUs, 0.75f * averageRxRefreshRate, 1.25f * averageRxRefreshRate);
+        } else {
+            currentRateUs = averageRxRefreshRate;
+        }
+    }
+    else {
+        averageLength++;
+    }
+
+    averageRxRefreshRate += (currentRateUs - averageRxRefreshRate) / averageLength;
+
+    DEBUG(RX_TIMING, 0, averageRxRefreshRate);
+    DEBUG(RX_TIMING, 1, currentRxRefreshRate);
 }
 
 
