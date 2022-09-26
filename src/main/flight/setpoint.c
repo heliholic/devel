@@ -52,7 +52,7 @@ typedef struct
 
     pt3Filter_t filter[4];
 
-    uint16_t styleCutoff;
+    uint16_t limitCutoff;
     uint16_t activeCutoff;
 
 } setpointFilter_t;
@@ -109,8 +109,8 @@ INIT_CODE void setpointFilterInitProfile(void)
         spFilter.accelLimit[i] = 10.0f * currentControlRateProfile->accel_limit[i] * pidGetDT();
     }
 
-    spFilter.styleCutoff  = 1000.0f / constrain(currentControlRateProfile->rates_response, 1, 250);
-    spFilter.activeCutoff = constrain(spFilter.styleCutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
+    spFilter.limitCutoff  = 1000.0f / constrain(currentControlRateProfile->rates_response, 1, 250);
+    spFilter.activeCutoff = constrain(spFilter.limitCutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
 }
 
 INIT_CODE void setpointFilterInit(void)
