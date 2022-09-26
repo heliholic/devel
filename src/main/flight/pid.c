@@ -124,6 +124,7 @@ static void INIT_CODE pidSetLooptime(uint32_t pidLooptime)
 void INIT_CODE pidInit(const pidProfile_t *pidProfile)
 {
     pidSetLooptime(gyro.targetLooptime);
+    setpointFilterInit(pidProfile);
     pidInitProfile(pidProfile);
 }
 
@@ -200,6 +201,8 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 #ifdef USE_ACRO_TRAINER
     acroTrainerInit(pidProfile);
 #endif
+
+    setpointFilterInitProfile(pidProfile);
 }
 
 void INIT_CODE pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileIndex)
@@ -283,7 +286,7 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
     UNUSED(pidProfile);
 
     // Rate setpoint
-    float setpoint = getRcSetpoint(axis);
+    float setpoint = getSetpoint(axis);
 
 #ifdef USE_ACC
     if (axis == PID_ROLL || axis == PID_PITCH) {
@@ -310,7 +313,7 @@ static inline void pidApplyCollective(const pidProfile_t *pidProfile)
 {
     UNUSED(pidProfile);
 
-    pid.collective = getRcSetpoint(FD_COLL) / 1000.0f;
+    pid.collective = getSetpoint(FD_COLL) / 1000.0f;
 }
 
 static FAST_CODE void pidApplyPrecomp(const pidProfile_t *pidProfile)
