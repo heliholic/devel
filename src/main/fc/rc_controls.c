@@ -106,10 +106,11 @@ throttleStatus_e calculateThrottleStatus(void)
 #define ARM_DELAY_MS        500
 #define STICK_DELAY_MS      50
 #define STICK_AUTOREPEAT_MS 250
-#define repeatAfter(t) { \
+
+#define repeatAfter(t) do { \
     rcDelayMs -= (t); \
     doNotRepeat = false; \
-}
+} while (0)
 
 void processRcStickPositions()
 {
@@ -375,10 +376,6 @@ void processRcStickPositions()
         cameraControlKeyPress(CAMERA_CONTROL_KEY_UP, 2000);
     }
 #endif
-}
-
-int32_t getRcStickDeflection(int32_t axis, uint16_t midrc) {
-    return MIN(ABS(rcData[axis] - midrc), 500);
 }
 
 void rcControlsInit(void)
