@@ -29,14 +29,7 @@
 #define PID_CONTROLLER_BETAFLIGHT   1
 #define PID_CONTROLLER_ROTORFLIGHT  2
 
-#if defined(STM32F3)
 #define PID_PROCESS_DENOM_DEFAULT   8
-#elif defined(STM32F411xE) || defined(STM32G4)
-#define PID_PROCESS_DENOM_DEFAULT   4
-#else
-#define PID_PROCESS_DENOM_DEFAULT   2
-#endif
-
 #define MAX_PID_PROCESS_DENOM       16
 
 #define PID_GAIN_MAX                2500
