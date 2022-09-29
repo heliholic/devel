@@ -172,13 +172,31 @@ static inline float scaleRangef(float x, float srcFrom, float srcTo, float dstFr
     return (a / b) + dstFrom;
 }
 
-static inline float slew_limit(float current, float target, float rate)
+static inline float slewLimit(float current, float target, float rate)
 {
     if (rate > 0) {
-        if (target > current)
-            return MIN(current + rate, target);
-        else
-            return MAX(current - rate, target);
+        if (target > current + rate)
+            return current + rate;
+        if (target < current - rate)
+            return current - rate;
+    }
+    return target;
+}
+
+static inline float slewUpLimit(float current, float target, float rate)
+{
+    if (rate > 0) {
+        if (target > current + rate)
+            return current + rate;
+    }
+    return target;
+}
+
+static inline float slewDownLimit(float current, float target, float rate)
+{
+    if (rate > 0) {
+        if (target < current - rate)
+            return current - rate;
     }
     return target;
 }
