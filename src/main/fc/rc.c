@@ -191,7 +191,7 @@ static inline float deadband(float x, float deadband)
         return 0;
 }
 
-FAST_CODE void updateRcCommands(void)
+void updateRcCommands(void)
 {
     float data;
 
