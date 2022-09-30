@@ -186,13 +186,13 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pid.yawCCWStopGain = pidProfile->yaw_ccw_stop_gain / 100.0f;
 
     // Tail/yaw precomp
-    pid.precomp.yawCyclicFFGain = pidProfile->yaw_cyclic_ff_gain;
-    pid.precomp.yawCollectiveFFGain = pidProfile->yaw_collective_ff_gain;
-    pid.precomp.yawCollectiveImpulseFFGain = pidProfile->yaw_collective_ff_impulse_gain;
+    pid.precomp.yawCyclicFFGain = pidProfile->yaw_cyclic_ff_gain / 500.0f;
+    pid.precomp.yawCollectiveFFGain = pidProfile->yaw_collective_ff_gain / 500.0f;
+    pid.precomp.yawCollectiveImpulseFFGain = pidProfile->yaw_collective_ff_impulse_gain / 500.0f;
 
     // Pitch precomp
-    pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain;
-    pid.precomp.pitchCollectiveImpulseFFGain = pidProfile->pitch_collective_ff_impulse_gain;
+    pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
+    pid.precomp.pitchCollectiveImpulseFFGain = pidProfile->pitch_collective_ff_impulse_gain / 500.0f;
 
 #ifdef USE_ACC
     pidLevelInit(pidProfile);
