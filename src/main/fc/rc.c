@@ -64,7 +64,6 @@ FAST_DATA_ZERO_INIT float rcDeflection[5];               // -1..1 for RPYC, 0..1
 
 static FAST_DATA_ZERO_INIT float rawSetpoint[4];
 
-static FAST_DATA_ZERO_INIT float rcDivider[4];
 static FAST_DATA_ZERO_INIT float rcDeadband[4];
 
 static FAST_DATA_ZERO_INIT uint16_t currentRxRefreshRate;
@@ -199,11 +198,12 @@ void updateRcCommands(void)
     // rcData => rcCommand => rcDeflection
     for (int axis = 0; axis < 4; axis++) {
         data = rcData[axis] - rxConfig()->midrc;
-        data = deadband(data, rcDeadband[axis]);
         data = constrainf(data, -500, 500);
+        data = deadband(data, rcDeadband[axis]);
         rcCommand[axis] = data;
-        rcDeflection[axis] = data / rcDivider[axis];
-        DEBUG(RC_COMMAND, axis, data);
+        rcDeflection[axis] = data / (500 - rcDeadband[axis]);
+        DEBUG(RC_COMMAND, axis, rcCommand[axis]);
+        DEBUG(RC_COMMAND, axis+4, rcDeflection[axis] * 1000);
     }
 
     if (rcControlsConfig()->yaw_control_reversed)
@@ -224,11 +224,6 @@ void updateRcCommands(void)
 
 INIT_CODE void initRcProcessing(void)
 {
-    rcDivider[0] = 500 - rcControlsConfig()->deadband;
-    rcDivider[1] = 500 - rcControlsConfig()->deadband;
-    rcDivider[2] = 500 - rcControlsConfig()->yaw_deadband;
-    rcDivider[3] = 500;
-
     rcDeadband[0] = rcControlsConfig()->deadband;
     rcDeadband[1] = rcControlsConfig()->deadband;
     rcDeadband[2] = rcControlsConfig()->yaw_deadband;
