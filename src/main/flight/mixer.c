@@ -220,17 +220,17 @@ static FAST_CODE void mixerUpdateMotorizedTail(void)
 static FAST_CODE void mixerUpdateInputs(void)
 {
     // Flight Dynamics
-    mixerSetInput(MIXER_IN_RC_COMMAND_ROLL, rcCommand[ROLL] * MIXER_RPY_SCALING);
-    mixerSetInput(MIXER_IN_RC_COMMAND_PITCH, rcCommand[PITCH] * MIXER_RPY_SCALING);
-    mixerSetInput(MIXER_IN_RC_COMMAND_YAW, rcCommand[YAW] * MIXER_RPY_SCALING);
-    mixerSetInput(MIXER_IN_RC_COMMAND_COLLECTIVE, rcCommand[COLLECTIVE] * MIXER_RPY_SCALING);
+    mixerSetInput(MIXER_IN_RC_COMMAND_ROLL, getRcDeflection(ROLL));
+    mixerSetInput(MIXER_IN_RC_COMMAND_PITCH, getRcDeflection(PITCH));
+    mixerSetInput(MIXER_IN_RC_COMMAND_YAW, getRcDeflection(YAW));
+    mixerSetInput(MIXER_IN_RC_COMMAND_COLLECTIVE, getRcDeflection(COLLECTIVE));
 
     // Throttle input
-    mixerSetInput(MIXER_IN_RC_COMMAND_THROTTLE, rcCommand[THROTTLE] * MIXER_THR_SCALING);
+    mixerSetInput(MIXER_IN_RC_COMMAND_THROTTLE, getRcDeflection(THROTTLE));
 
     // RC channels
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++)
-        mixerSetInput(MIXER_IN_RC_CHANNEL_ROLL + i, (rcData[i] - rxConfig()->midrc) * MIXER_RPY_SCALING);
+        mixerSetInput(MIXER_IN_RC_CHANNEL_ROLL + i, (rcData[i] - rxConfig()->midrc) / 500);
 
     // Stabilised inputs
     mixerSetInput(MIXER_IN_STABILIZED_ROLL, pidGetOutput(PID_ROLL));
