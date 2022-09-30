@@ -443,11 +443,6 @@ static FAST_CODE void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
 
-    // No D if axis saturated
-    if (pidAxisSaturated(axis)) {
-        dTerm = 0;
-    }
-
     // No accumulation if axis saturated
     if (pidAxisSaturated(axis)) {
         dTerm = 0;
