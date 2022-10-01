@@ -286,8 +286,8 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
     // Rate setpoint
     float setpoint = getSetpoint(axis);
 
-#ifdef USE_ACC
     if (axis == PID_ROLL || axis == PID_PITCH) {
+#ifdef USE_ACC
         // Apply leveling
         if (FLIGHT_MODE(ANGLE_MODE | HORIZON_MODE | RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
             setpoint = pidLevelApply(axis, setpoint);
@@ -298,8 +298,12 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
             setpoint = acroTrainerApply(axis, setpoint);
         }
 #endif
-    }
 #endif
+    }
+    else /* (axis == PID_YAW */ {
+        // RF TODO WTF. The gyro sign does not match the setpoint sign?
+        setpoint = -setpoint;
+    }
 
     // Save setpoint
     pid.data[axis].setPoint = setpoint;
