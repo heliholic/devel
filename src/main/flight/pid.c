@@ -164,6 +164,7 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 
     // Filters
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+        pt1FilterInit(&pid.gyrorFilter[i], pt1FilterGain(constrain(pidProfile->gyro_cutoff[i], 1, 250), pid.dT));
         pt1FilterInit(&pid.errorFilter[i], pt1FilterGain(constrain(pidProfile->error_cutoff[i], 1, 250), pid.dT));
         pt1FilterInit(&pid.dtermFilter[i], pt1FilterGain(constrain(pidProfile->dterm_cutoff[i], 1, 250), pid.dT));
         pt1FilterInit(&pid.ftermFilter[i], pt1FilterGain(constrain(pidProfile->fterm_cutoff[i], 1, 250), pid.dT));
