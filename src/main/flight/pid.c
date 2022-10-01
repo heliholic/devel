@@ -292,7 +292,7 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
         if (FLIGHT_MODE(ANGLE_MODE | HORIZON_MODE | RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
             setpoint = pidLevelApply(axis, setpoint);
         }
-#ifdef USE_ACRO_TRAINER
+#ifdef USE_ACRO_TRAINER_XXX // RF TODO
         else {
             // Apply trainer
             setpoint = acroTrainerApply(axis, setpoint);

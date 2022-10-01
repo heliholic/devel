@@ -101,7 +101,7 @@ static inline sign_t Sign(float x)
 
 FAST_CODE float acroTrainerApply(int axis, float setPoint)
 {
-    if (axis == FD_ROLL || axis == FD_PITCH)
+    if (acroTrainer.Active && axis != FD_YAW)
     {
         const rollAndPitchTrims_t *angleTrim = &accelerometerConfig()->accelerometerTrims;
         const float currentAngle = (attitude.raw[axis] - angleTrim->raw[axis]) / 10.0f;
@@ -124,7 +124,8 @@ FAST_CODE float acroTrainerApply(int axis, float setPoint)
         }
 
         if (acroTrainer.AxisState[axis] != 0) {
-            setPoint = constrainf(((acroTrainer.AngleLimit * angleSign) - currentAngle) * acroTrainer.Gain, -ACRO_TRAINER_SETPOINT_LIMIT, ACRO_TRAINER_SETPOINT_LIMIT);
+            setPoint = constrainf(((acroTrainer.AngleLimit * angleSign) - currentAngle) * acroTrainer.Gain,
+                                  -ACRO_TRAINER_SETPOINT_LIMIT, ACRO_TRAINER_SETPOINT_LIMIT);
         }
         else {
             // Not currently over the limit so project the angle based on current angle and
