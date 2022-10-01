@@ -1051,10 +1051,10 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->setpoint[i] = lrintf(getRcSetpoint(i));
     }
 
-    blackboxCurrent->control[0] = mixerGetInput(MIXER_IN_STABILIZED_ROLL);
-    blackboxCurrent->control[1] = mixerGetInput(MIXER_IN_STABILIZED_PITCH);
-    blackboxCurrent->control[2] = mixerGetInput(MIXER_IN_STABILIZED_YAW);
-    blackboxCurrent->control[3] = mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE);
+    blackboxCurrent->control[0] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1000);
+    blackboxCurrent->control[1] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1000);
+    blackboxCurrent->control[2] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 1000);
+    blackboxCurrent->control[3] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1000);
 
     const pidAxisData_t *pidData = pidGetAxisData();
 
