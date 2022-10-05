@@ -345,6 +345,7 @@
 
 // SPI RX is not supported in Rotorflight
 #undef  USE_RX_SPI
+#undef  USE_BRUSHED_ESC_AUTODETECT
 
 #ifdef USE_RX_SPI
 #define USE_RX_FRSKY_SPI_D
