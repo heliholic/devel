@@ -1055,7 +1055,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
     for (int i = 0; i < 4; i++) {
-        blackboxCurrent->setpoint[i] = lrintf(getRcSetpoint(i));
+        blackboxCurrent->setpoint[i] = lrintf(getRcSetpoint(i) * 10);
     }
 
     blackboxCurrent->mixer[0] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1000);
@@ -1073,8 +1073,8 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
-        blackboxCurrent->gyroRAW[i] = lrintf(gyro.gyroADCd[i]);
+        blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i] * 10);
+        blackboxCurrent->gyroRAW[i] = lrintf(gyro.gyroADCd[i] * 10);
 #ifdef USE_ACC
         blackboxCurrent->accADC[i] = lrintf(acc.accADC[i]);
 #endif
