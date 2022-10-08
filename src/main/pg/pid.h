@@ -95,6 +95,20 @@ typedef struct {
     uint8_t     collective_ff_weight;
 } governorProfile_t;
 
+typedef struct {
+    uint8_t     mode;
+    uint8_t     flip_mode;
+    uint8_t     flip_gain;
+    uint8_t     level_gain;
+    uint8_t     pull_up_time;
+    uint8_t     climb_time;
+    uint8_t     flip_time;
+    uint8_t     exit_time;
+    uint16_t    pull_up_collective;
+    uint16_t    climb_collective;
+    uint16_t    max_roll_rate;
+} pidRescueConfig_t;
+
 
 #define MAX_PROFILE_NAME_LENGTH 8u
 
@@ -136,6 +150,7 @@ typedef struct pidProfile_s {
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
     pidTrainerMode_t    trainer;
+    pidRescueConfig_t   rescue;
     governorProfile_t   governor;
 
 } pidProfile_t;
