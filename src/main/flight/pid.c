@@ -52,6 +52,7 @@
 #include "flight/agc.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/rescue.h"
 #include "flight/trainer.h"
 #include "flight/leveling.h"
 #include "flight/governor.h"
@@ -204,7 +205,7 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 #ifdef USE_ACRO_TRAINER
     acroTrainerInit(pidProfile);
 #endif
-
+    rescueInitProfile(pidProfile);
     agcInitProfile(pidProfile);
 }
 
@@ -294,7 +295,7 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
 #ifdef USE_ACC
     if (axis == PID_ROLL || axis == PID_PITCH) {
         // Apply leveling
-        if (FLIGHT_MODE(ANGLE_MODE | HORIZON_MODE | RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
+        if (FLIGHT_MODE(ANGLE_MODE | HORIZON_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
             setpoint = pidLevelApply(axis, setpoint);
         }
 #ifdef USE_ACRO_TRAINER
@@ -306,23 +307,27 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
     }
 #endif
 
+    // Apply rescue (override setpoint)
+    setpoint = rescueApply(axis, setpoint);
+
     // Save setpoint
     pid.data[axis].setPoint = setpoint;
 
     return setpoint;
 }
 
-static inline void pidApplyCollective(const pidProfile_t *pidProfile)
+static inline void pidApplyCollective(void)
 {
-    UNUSED(pidProfile);
+    float collective = getSetpoint(FD_COLL);
 
-    pid.collective = getSetpoint(FD_COLL) / 1000.0f;
+    // Apply rescue (override)
+    collective = rescueApply(FD_COLL, collective);
+
+    pid.collective = collective / 1000;
 }
 
-static FAST_CODE void pidApplyPrecomp(const pidProfile_t *pidProfile)
+static FAST_CODE void pidApplyPrecomp(void)
 {
-    UNUSED(pidProfile);
-
     // Yaw precompensation direction
     const int rotSign = mixerRotationSign();
 
@@ -953,7 +958,7 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     rotateAxisError();
 
     // Calculate stabilized collective
-    pidApplyCollective(pidProfile);
+    pidApplyCollective();
 
     // Apply PID for each axis
     switch (pid.pidMode) {
@@ -980,7 +985,7 @@ FAST_CODE void pidController(const pidProfile_t *pidProfile, timeUs_t currentTim
     }
 
     // Calculate cyclic/collective precompensation
-    pidApplyPrecomp(pidProfile);
+    pidApplyPrecomp();
 
     // Reset PID control if gyro overflow detected
     if (gyroOverflowDetected())
