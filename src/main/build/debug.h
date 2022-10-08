@@ -118,6 +118,7 @@ typedef enum {
     DEBUG_PITCH_PRECOMP,
     DEBUG_YAW_PRECOMP,
     DEBUG_GYRO_AGC,
+    DEBUG_RESCUE,
     DEBUG_COUNT
 } debugType_e;
 
