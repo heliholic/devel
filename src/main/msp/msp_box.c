@@ -191,6 +191,7 @@ void initActiveBoxIds(void)
     if (sensors(SENSOR_ACC)) {
         BME(BOXANGLE);
         BME(BOXHORIZON);
+        BME(BOXRESCUE);
     }
 
 #ifdef USE_GPS
