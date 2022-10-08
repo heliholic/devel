@@ -107,4 +107,5 @@ const char * const debugModeNames[DEBUG_COUNT] = {
     DEBUG_NAME(PITCH_PRECOMP),
     DEBUG_NAME(YAW_PRECOMP),
     DEBUG_NAME(GYRO_AGC),
+    DEBUG_NAME(RESCUE),
 };
