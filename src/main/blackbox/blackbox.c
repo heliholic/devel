@@ -97,7 +97,7 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .sample_rate = BLACKBOX_RATE_QUARTER,
     .device = DEFAULT_BLACKBOX_DEVICE,
     .fields = BIT(FLIGHT_LOG_FIELD_SELECT_SETPOINT) |
-              BIT(FLIGHT_LOG_FIELD_SELECT_CONTROL) |
+              BIT(FLIGHT_LOG_FIELD_SELECT_MIXER) |
               BIT(FLIGHT_LOG_FIELD_SELECT_PID) |
               BIT(FLIGHT_LOG_FIELD_SELECT_GYRO) |
               BIT(FLIGHT_LOG_FIELD_SELECT_BATTERY) |
@@ -207,11 +207,11 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"setpoint",    2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
     {"setpoint",    3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(SETPOINT)},
 
-    /* Flight controls */
-    {"control",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
-    {"control",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
-    {"control",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
-    {"control",     3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(CONTROL)},
+    /* Mixer inputs */
+    {"mixer",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(MIXER)},
+    {"mixer",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(MIXER)},
+    {"mixer",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(MIXER)},
+    {"mixer",       3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16),  CONDITION(MIXER)},
 
     /* PID control terms */
     {"axisP",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(PID)},
@@ -337,7 +337,7 @@ typedef struct blackboxMainState_s {
 
     int16_t command[4];
     int16_t setpoint[4];
-    int16_t control[4];
+    int16_t mixer[4];
 
     int32_t axisPID_P[XYZ_AXIS_COUNT];
     int32_t axisPID_I[XYZ_AXIS_COUNT];
@@ -480,8 +480,8 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case CONDITION(SETPOINT):
         return isFieldEnabled(FIELD_SELECT(SETPOINT));
 
-    case CONDITION(CONTROL):
-        return isFieldEnabled(FIELD_SELECT(CONTROL));
+    case CONDITION(MIXER):
+        return isFieldEnabled(FIELD_SELECT(MIXER));
 
     case CONDITION(PID):
         return isFieldEnabled(FIELD_SELECT(PID));
@@ -632,8 +632,8 @@ static void writeIntraframe(void)
         blackboxWriteSigned16VBArray(blackboxCurrent->setpoint, 4);
     }
 
-    if (testBlackboxCondition(CONDITION(CONTROL))) {
-        blackboxWriteSigned16VBArray(blackboxCurrent->control, 4);
+    if (testBlackboxCondition(CONDITION(MIXER))) {
+        blackboxWriteSigned16VBArray(blackboxCurrent->mixer, 4);
     }
 
     if (testBlackboxCondition(CONDITION(PID))) {
@@ -759,8 +759,8 @@ static void writeInterframe(void)
         blackboxWriteTag8_4S16(deltas);
     }
 
-    if (testBlackboxCondition(CONDITION(CONTROL))) {
-        CALC_DELTAS(deltas, blackboxCurrent->control, blackboxPrev->control, 4);
+    if (testBlackboxCondition(CONDITION(MIXER))) {
+        CALC_DELTAS(deltas, blackboxCurrent->mixer, blackboxPrev->mixer, 4);
         blackboxWriteTag8_4S16(deltas);
     }
 
@@ -1062,10 +1062,10 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->setpoint[i] = lrintf(getSetpoint(i) * 10);
     }
 
-    blackboxCurrent->control[FD_ROLL]  = lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1000);
-    blackboxCurrent->control[FD_PITCH] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1000);
-    blackboxCurrent->control[FD_YAW]   = lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 1000);
-    blackboxCurrent->control[FD_COLL]  = lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1000);
+    blackboxCurrent->mixer[0] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1000);
+    blackboxCurrent->mixer[1] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1000);
+    blackboxCurrent->mixer[2] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 1000);
+    blackboxCurrent->mixer[3] = lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1000);
 
     const pidAxisData_t *pidData = pidGetAxisData();
 
