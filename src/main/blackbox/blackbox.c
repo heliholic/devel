@@ -103,8 +103,7 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
               BIT(FLIGHT_LOG_FIELD_SELECT_BATTERY) |
               BIT(FLIGHT_LOG_FIELD_SELECT_RSSI) |
               BIT(FLIGHT_LOG_FIELD_SELECT_MOTOR) |
-              BIT(FLIGHT_LOG_FIELD_SELECT_SERVO) |
-              BIT(FLIGHT_LOG_FIELD_SELECT_DEBUG),
+              BIT(FLIGHT_LOG_FIELD_SELECT_SERVO),
     .mode = BLACKBOX_MODE_NORMAL
 );
 
@@ -550,7 +549,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return (batteryConfig()->currentMeterSource != CURRENT_METER_NONE) && isFieldEnabled(FIELD_SELECT(BATTERY));
 
     case CONDITION(DEBUG):
-        return (debugMode != DEBUG_NONE) && isFieldEnabled(FIELD_SELECT(DEBUG));
+        return (debugMode != DEBUG_NONE);
 
     case CONDITION(NOT_EVERY_FRAME):
         return (blackboxPInterval != blackboxIInterval);
