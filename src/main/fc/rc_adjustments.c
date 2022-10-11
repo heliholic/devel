@@ -527,11 +527,11 @@ void processRcAdjustments(void)
                 else {
                     if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
                         adjval = getAdjustmentValue(adjRange->function);
-                        newval = scaleRange(rcData[adjRange->adjChannel],
+                        newval = scaleRange(rcData[adjRange->adjChannel + NON_AUX_CHANNEL_COUNT],
                             STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.startStep),
                             STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.endStep),
                             adjRange->adjMin,
-                            adjRange->adjMax);
+                            adjRange->adjMax + 1);
                     }
                     else {
                         continue;
