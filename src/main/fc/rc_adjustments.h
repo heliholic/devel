@@ -86,6 +86,7 @@ typedef enum {
 
 typedef struct {
     timeMs_t timer;
+    int32_t  value;
 } adjustmentState_t;
 
 typedef struct {

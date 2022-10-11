@@ -101,8 +101,8 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(YAW_D_GAIN,         PROF,  0, 1000),
     ADJ_CONFIG(YAW_F_GAIN,         PROF,  0, 1000),
 
-    ADJ_CONFIG(YAW_CW_GAIN,        PROF, 25, 250),
-    ADJ_CONFIG(YAW_CCW_GAIN,       PROF, 25, 250),
+    ADJ_CONFIG(YAW_CW_GAIN,        PROF,  25, 250),
+    ADJ_CONFIG(YAW_CCW_GAIN,       PROF,  25, 250),
     ADJ_CONFIG(YAW_CYCLIC_FF,      PROF,  0, 2500),
     ADJ_CONFIG(YAW_COLLECTIVE_FF,  PROF,  0, 2500),
     ADJ_CONFIG(YAW_IMPULSE_FF,     PROF,  0, 2500),
@@ -502,7 +502,7 @@ void processRcAdjustments(void)
             {
                 adjustmentState_t * adjState = &adjustmentState[index];
                 const timeMs_t now = millis();
-                int adjval, newval;
+                int adjval = adjState->value;
 
                 if (adjState->timer && cmp32(now, adjState->timer) < 0)
                     continue;
@@ -512,12 +512,10 @@ void processRcAdjustments(void)
                 // Stepped adjustment
                 if (adjRange->adjStep) {
                     if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
-                        adjval = getAdjustmentValue(adjRange->function);
-                        newval = adjval - adjRange->adjStep;
+                        adjval -= adjRange->adjStep;
                     }
                     else if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange2)) {
-                        adjval = getAdjustmentValue(adjRange->function);
-                        newval = adjval + adjRange->adjStep;
+                        adjval += adjRange->adjStep;
                     }
                     else {
                         continue;
@@ -525,33 +523,34 @@ void processRcAdjustments(void)
                 }
                 // Continuous adjustment
                 else {
-                    if (isRangeActive(adjRange->adjChannel, &adjRange->adjRange1)) {
-                        adjval = getAdjustmentValue(adjRange->function);
-                        newval = scaleRange(rcData[adjRange->adjChannel],
-                            STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.startStep),
-                            STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.endStep),
-                            adjRange->adjMin,
-                            adjRange->adjMax);
-                    }
-                    else {
-                        continue;
+                    const int adjWidth = adjRange->adjMax - adjRange->adjMin;
+                    const int chValue = rcData[adjRange->adjChannel + NON_AUX_CHANNEL_COUNT];
+                    const int chWidth = STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.endStep) -
+                                        STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.startStep);
+                    const int chStep  = chWidth / adjWidth / 2;
+                    const int chStart = STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.startStep) - chStep;
+                    const int chEnd   = STEP_TO_CHANNEL_VALUE(adjRange->adjRange1.endStep) + chStep;
+
+                    if (chValue > chStart && chValue < chEnd) {
+                        adjval = adjRange->adjMin + (chValue - chStart) * adjWidth / chWidth;
                     }
                 }
 
-                newval = constrain(newval, adjConfig->cfgMin, adjConfig->cfgMax);
-                newval = constrain(newval, adjRange->adjMin, adjRange->adjMax);
+                adjval = constrain(adjval, adjConfig->cfgMin, adjConfig->cfgMax);
+                adjval = constrain(adjval, adjRange->adjMin, adjRange->adjMax);
 
-                if (newval != adjval) {
+                if (adjval != adjState->value) {
                     const uint8_t adjFunc = adjRange->function;
 
-                    setAdjustmentValue(adjFunc, newval);
-                    updateAdjustmentData(adjFunc, newval);
-                    blackboxAdjustmentEvent(adjFunc, newval);
+                    setAdjustmentValue(adjFunc, adjval);
+                    updateAdjustmentData(adjFunc, adjval);
+                    blackboxAdjustmentEvent(adjFunc, adjval);
 
                     beeperConfirmationBeeps(1);
                     setConfigDirty();
 
                     adjState->timer = now + REPEAT_STEP_FREQ;
+                    adjState->value = adjval;
 
                     changed |= adjConfig->cfgType;
                 }
@@ -559,7 +558,7 @@ void processRcAdjustments(void)
         }
 
         if (changed & ADJUSTMENT_TYPE_RATE) {
-            // TODO
+            loadControlRateProfile();
         }
         if (changed & ADJUSTMENT_TYPE_PROF) {
             pidInitProfile(currentPidProfile);
@@ -597,4 +596,5 @@ void adjustmentRangeInit(void)
 void adjustmentRangeReset(int index)
 {
     adjustmentState[index].timer = 0;
+    adjustmentState[index].value = getAdjustmentValue(index);
 }
