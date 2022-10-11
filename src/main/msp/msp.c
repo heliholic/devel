@@ -2242,6 +2242,19 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             adjRange->adjStep = sbufReadU8(src);
             adjRange->adjMin = sbufReadU16(src);
             adjRange->adjMax = sbufReadU16(src);
+            // RF TODO Remove
+            if (adjRange->adjStep) {
+                adjRange->adjRange1.startStep = -105;
+                adjRange->adjRange1.endStep = -40;
+                adjRange->adjRange2.startStep = 40;
+                adjRange->adjRange2.endStep = 105;
+            }
+            else {
+                adjRange->adjRange1.startStep = -105;
+                adjRange->adjRange1.endStep = 105;
+                adjRange->adjRange2.startStep = -105;
+                adjRange->adjRange2.endStep = 105;
+            }
             adjustmentRangeReset(i);
         } else {
             return MSP_RESULT_ERROR;
