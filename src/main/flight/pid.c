@@ -621,13 +621,16 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
     pid.data[axis].prevError = dError;
 
     // Filter D-term
-    dTerm = pt1FilterApply(&pid.dtermFilter[axis],  dTerm);
+    dTerm = pt1FilterApply(&pid.dtermFilter[axis], dTerm);
 
     // Calculate D-component
     pid.data[axis].D = pid.coef[axis].Kd * dTerm;
 
 
   //// I-term
+
+    // Apply error relax
+    errorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
 
     // I-term change
     float itermDelta = saturation ? 0 : errorRate * pid.dT;
@@ -708,6 +711,9 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
 
 
   //// I-term
+
+    // Apply error relax
+    errorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
 
     // I-term change
     float itermDelta = saturation ? 0 : errorRate * pid.dT;
@@ -798,6 +804,9 @@ static FAST_CODE void pidApplyCyclicMode9(const pidProfile_t *pidProfile, uint8_
 
   //// I-term
 
+    // Apply error relax
+    errorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
+
     // I-term change
     float itermDelta = saturation ? 0 : errorRate * pid.dT;
 
@@ -877,6 +886,9 @@ static FAST_CODE void pidApplyYawMode9(const pidProfile_t *pidProfile)
 
 
   //// I-term
+
+    // Apply error relax
+    errorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
 
     // I-term change
     float itermDelta = saturation ? 0 : errorRate * pid.dT;
