@@ -616,7 +616,7 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pidProfile->dterm_mode ? errorRate : -gyro.gyroDtermADCf[axis];
+    float dError = pidProfile->dterm_mode ? -gyro.gyroADCf[axis] : errorRate;
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
 
@@ -696,7 +696,7 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pidProfile->dterm_mode ? errorRate : -gyro.gyroDtermADCf[axis];
+    float dError = pidProfile->dterm_mode ? -gyro.gyroADCf[axis] : errorRate;
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
 
@@ -785,7 +785,7 @@ static FAST_CODE void pidApplyCyclicMode9(const pidProfile_t *pidProfile, uint8_
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pidProfile->dterm_mode ? errorRate : -gyro.gyroDtermADCf[axis];
+    float dError = pidProfile->dterm_mode ? -gyro.gyroADCf[axis] : errorRate;
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
 
@@ -865,7 +865,7 @@ static FAST_CODE void pidApplyYawMode9(const pidProfile_t *pidProfile)
   //// D-term
 
     // Calculate D-term with bandwidth limit
-    float dError = pidProfile->dterm_mode ? errorRate : -gyro.gyroDtermADCf[axis];
+    float dError = pidProfile->dterm_mode ? -gyro.gyroADCf[axis] : errorRate;
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
 
