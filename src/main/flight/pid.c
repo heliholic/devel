@@ -692,7 +692,7 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
     }
 
     // Select stop gain
-    float stopGain = (errorRate > 0) ? pid.yawCWStopGain : pid.yawCCWStopGain;
+    float stopGain = transition(errorRate, -30, 30, pid.yawCCWStopGain, pid.yawCWStopGain);
 
     // Saturation
     const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * errorRate > 0);

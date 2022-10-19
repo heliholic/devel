@@ -209,6 +209,17 @@ static inline float fapplyDeadband(const float value, const float deadband)
     return value;
 }
 
+static inline float transition(const float src, const float srcMin, const float srcMax,
+                               const float dstMin, const float dstMax)
+{
+    if (src > srcMax)
+        return dstMax;
+    else if (src < srcMin)
+        return dstMin;
+
+    return scaleRangef(src, srcMin, srcMax, dstMin, dstMax);
+}
+
 static inline float degreesToRadians(int16_t degrees)
 {
     return DEGREES_TO_RADIANS(degrees);
