@@ -71,9 +71,10 @@ void pgResetFn_servoParams(servoParam_t *instance)
                      .mid   = DEFAULT_SERVO_CENTER,
                      .min   = DEFAULT_SERVO_MIN,
                      .max   = DEFAULT_SERVO_MAX,
-                     .rate  = DEFAULT_SERVO_RATE,
                      .trim  = DEFAULT_SERVO_TRIM,
+                     .scale = DEFAULT_SERVO_SCALE,
                      .speed = DEFAULT_SERVO_SPEED,
+                     .flags = 0,
         );
     }
 }
@@ -132,11 +133,10 @@ static inline float limitTravel(uint8_t servo, float pos, float min, float max)
     return pos;
 }
 
-static inline float limitSpeed(float rate, float speed, float old, float new)
+static inline float limitSpeed(float scale, float speed, float old, float new)
 {
     float diff = new - old;
-
-    rate = fabsf(rate * gyro.targetLooptime) / (speed * 1000);
+    float rate = fabsf(scale * gyro.targetLooptime) / (speed * 1000);
 
     if (diff > rate)
         return old + rate;
@@ -146,26 +146,41 @@ static inline float limitSpeed(float rate, float speed, float old, float new)
     return new;
 }
 
+#ifdef USE_GEOMETRY_CORRECTION
+static float geometryCorrection(float pos)
+{
+    // 1.0 == 50° without correction
+    float height = constrainf(pos * 0.7660444431f, -1, 1);
+
+    // Scale 50° in rad => 1.0
+    float rotation = asin_approx(height) * 1.14591559026f;
+
+    return rotation;
+}
+#endif
+
 void servoUpdate(void)
 {
-    float pos, trim;
-
     for (int i = 0; i < servoCount; i++)
     {
         const servoParam_t *servo = servoParams(i);
+        float pos = mixerGetServoOutput(i);
 
-        trim = (servo->rate >= 0) ? servo->trim : -servo->trim;
+        pos += servo->trim / 1000.0f;
+
+#ifdef USE_GEOMETRY_CORRECTION
+        if (servo->flags & SERVO_FLAG_GEOMETRY_CORRECTION)
+            pos = geometryCorrection(pos);
+#endif
 
         if (!ARMING_FLAG(ARMED) && hasServoOverride(i))
             pos = servoOverride[i] / 1000.0f;
-        else
-            pos = mixerGetServoOutput(i);
 
-        pos = limitTravel(i, servo->rate * pos, servo->min, servo->max);
-        pos = servo->mid + trim + pos;
+        pos = limitTravel(i, servo->scale * pos, servo->min, servo->max);
+        pos = servo->mid + pos;
 
         if (servo->speed > 0)
-            pos = limitSpeed(servo->rate, servo->speed, servoOutput[i], pos);
+            pos = limitSpeed(servo->scale, servo->speed, servoOutput[i], pos);
 
         servoOutput[i] = pos;
 
