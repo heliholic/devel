@@ -24,12 +24,12 @@ Servos have now geometry correction. This is for correcting the rotation
 geometry. Not needed with linear servos. 
 
 The servo CLI command now has an extra argument for flags.
-Geometry correction = 1.
+Geometry correction FLAG = 1 (bit0).
 
 NOTE!!! 
 
 This will only work if the servo rate is set correctly, i.e. the servo is
-actually rotation the way the FC is expecting.
+actually rotating the way the FC is expecting it to move.
 
 ALSO!!!
 
@@ -143,16 +143,21 @@ set blackbox_log_gps = OFF
 
 ## Debug
 
-Debug has now 8x 32bit values, rather than 4x 16bit values.
+Debug has now eight 32bit values, rather than four 16bit values.
 
-This will need changes in the Blackbox Explorer eventually.
+This will require changes in the Blackbox Explorer eventually.
 
 Some debug modes are logging only one axis, which is selected
 with the `debug_axis` parameter.
 
+This parameter replaces the following BF parameters:
+
 ```
-set debug_axis = PITCH
+gyro_filter_debug_axis
+acro_trainer_debug_axis
+rc_smoothing_debug_axis
 ```
+
 
 ## Sensors
 
@@ -199,6 +204,12 @@ set way_d_gain = 10
 set way_f_gain = 0
 ```
 
+### `pid_dterm_mode = 0|1`
+
+Selects between D-term on gyro signal (0) vs. D-term on error signal (1).
+
+Available in modes 2 and 9.
+
 
 ### PID Gains
 
@@ -207,6 +218,12 @@ The PID gain parameters have been renamed. Should be obvious.
 #### `yaw_[c]cw_stop_gain = <N>`
 
 Stop gain for yaw. Works differently in each mode.
+
+Mode 1: Same as RF1.0. P and D gains multiplied by stop gain.
+
+Mode 2: Only P gain multiplied by stop gain.
+
+Mode 9: Not used
 
 
 ### PID Filters
@@ -241,6 +258,18 @@ Gyro signal bandwidth limit, separate for each axis. 0 = disabled.
 This is an extra PT1 filter for each gyro axis.
 
 Available in modes 2 and 9.
+
+#### `iterm_relax_type = <OFF/RP/RPY>`
+
+Selects the I-term relax type, i.e. which axis to apply to.
+
+#### `iterm_relax_level = 40`
+
+Sets the setpoint limit/level for I-term relax. This is fixed to 40 in BF.
+
+#### `iterm_relax_cutoff = R,P,Y`
+
+I-term relax filter cutoffs for roll, pitch, and yaw.
 
 
 ## Rates
