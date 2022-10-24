@@ -28,10 +28,20 @@
 #define ESC_SENSOR_TASK_FREQ_HZ 50
 #endif
 
+enum {
+    ESC_SENSOR_PROTO_NONE = 0,
+    ESC_SENSOR_PROTO_KISS,
+    ESC_SENSOR_PROTO_HW4,
+};
+
 typedef struct escSensorConfig_s {
+    uint8_t protocol;               // ESC telemetry protocol
     uint8_t halfDuplex;             // Set to false to listen on the TX pin for telemetry data
     uint16_t offset;                // offset consumed by the flight controller / VTX / cam / ... in milliampere
     uint16_t update_hz;             // Update frequency
+    uint16_t hw4_current_offset;    // HobbyWing V4 raw current offset (depends on specific HWV4 ESC)
+    uint8_t hw4_current_scale;      // HobbyWing V4 current scaling (100 = 1.0 times the default scaling)
+    uint8_t hw4_voltage_div;        // HobbyWing V4 voltage divisor (11 for LV ESCs, 21 for HV ESCs)
 } escSensorConfig_t;
 
 PG_DECLARE(escSensorConfig_t, escSensorConfig);
