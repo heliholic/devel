@@ -157,7 +157,7 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
                 combinedEscSensorData.consumption = 0;
                 combinedEscSensorData.rpm = 0;
 
-                for (int i = 0; i < getMotorCount(); i = i + 1) {
+                for (int i = 0; i < getMotorCount(); i++) {
                     combinedEscSensorData.dataAge = MAX(combinedEscSensorData.dataAge, escSensorData[i].dataAge);
                     combinedEscSensorData.temperature = MAX(combinedEscSensorData.temperature, escSensorData[i].temperature);
                     combinedEscSensorData.voltage += escSensorData[i].voltage;
@@ -397,11 +397,12 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
  *
  */
 
-static uint8_t hwData[19] = { 0, };
+static uint8_t hwData[20];
 static uint8_t skipBytes = 0;
 static uint8_t bytesRead = 0;
 
-static timeUs_t lastProcessTimeUs = 0;
+static timeUs_t dataUpdateUs = 0;
+static timeUs_t consumptionUpdateUs = 0;
 
 static float totalConsumption = 0.0f;
 
@@ -455,14 +456,14 @@ static bool processHW4TelemetryStream(uint8_t dataByte)
         hwData[bytesRead++] = dataByte;
     }
     else if (bytesRead == 1 && dataByte == 0x9B) {
-        // Signature packet. Skit it.
+        // Signature packet - skip it
         bytesRead = 0;
         skipBytes = 11;
     }
     else if (bytesRead > 0) {
         // Store each portion of what looks to be a valid data packet
         hwData[bytesRead++] = dataByte;
-        if (bytesRead == 20) {
+        if (bytesRead == 19) {
             bytesRead = 0;
             return true;
         }
@@ -473,8 +474,11 @@ static bool processHW4TelemetryStream(uint8_t dataByte)
 
 static void hw4SensorProcess(timeUs_t currentTimeUs)
 {
-    // Increment data aging so we'll know if we don't get a valid data packet
-    escSensorData[0].dataAge++;
+    // Increment data age counter if no updates in 250ms
+    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
+        increaseDataAge();
+        dataUpdateUs = currentTimeUs;
+    }
 
     // check for any available bytes in the rx buffer
     while (serialRxBytesWaiting(escSensorPort)) {
@@ -489,7 +493,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                 float voltage = calcVoltHW(hwData[11] << 8 | hwData[12]);
                 float current = calcCurrHW(hwData[13] << 8 | hwData[14]);
                 float tempFET = calcTempHW(hwData[15] << 8 | hwData[16]);
-                //float tempBEC = calcTempHW(hwData[17] << 8 | hwData[18]);
+                float tempBEC = calcTempHW(hwData[17] << 8 | hwData[18]);
 
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = lrintf(tempFET);
@@ -499,7 +503,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
                 // Hobbywing reports the last current reading when the motor stops.
                 // That's completely useless, so set it to zero.
-                if (escSensorData[0].rpm < 100 || thr < 50) {
+                if (rpm < 100 || thr < 50) {
                     escSensorData[0].current = 0.0f;
                 }
 
@@ -510,6 +514,9 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
                 DEBUG(ESC_SENSOR_RPM, 0, lrintf(rpm));
                 DEBUG(ESC_SENSOR_TMP, 0, lrintf(tempFET));
+                DEBUG(ESC_SENSOR_TMP, 1, lrintf(tempBEC));
+
+                dataUpdateUs = currentTimeUs;
             }
             else {
                 DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_CRC_ERRORS, ++totalCrcErrorCount);
@@ -520,15 +527,15 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
     // Log the buffer size as "timeouts"
     DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_TIMEOUTS, bytesRead);
 
-    // Log the data age to see how old the data gets between HW telemetry packets
-    DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorData[0].dataAge);
+    // Log the data age to see how old the data gets
+    DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorData[escSensorMotor].dataAge);
 
-    // Accumulate consumption (mAh) as a float since we're updating at 100Hz... even 100A for 10ms is only 0.28 mAh.
-    //  Calculate it using the last valid current reading we received
-    totalConsumption += (currentTimeUs - lastProcessTimeUs) * escSensorData[0].current * 10.0f / 1000000.0f / 3600.0f;
-    lastProcessTimeUs = currentTimeUs;
+    // Calculate consumption using the last valid current reading
+    totalConsumption += cmp32(currentTimeUs, consumptionUpdateUs) * escSensorData[0].current * 10.0f;
+    consumptionUpdateUs = currentTimeUs;
 
-    escSensorData[0].consumption = lrintf(totalConsumption);
+    // Convert mAus to mAh
+    escSensorData[0].consumption = lrintf(totalConsumption / 3600e6f);
 }
 
 void escSensorProcess(timeUs_t currentTimeUs)
