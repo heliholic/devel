@@ -23,6 +23,8 @@
 
 #include "flight/pid.h"
 
+#define RESCUE_EXIT_TIME 2000
+
 enum {
     RESCUE_MODE_OFF = 0,
     RESCUE_MODE_NORMAL,
@@ -32,21 +34,21 @@ enum {
 
 enum {
     RESCUE_STATE_OFF,
-    RESCUE_INIT_CLIMB,
+    RESCUE_PULL_UP,
     RESCUE_FLIP_OVER,
-    RESCUE_FINAL_CLIMB,
+    RESCUE_CLIMB,
     RESCUE_ALT_HOLD,
     RESCUE_POS_HOLD,
-    RESCUE_FINISHING,
+    RESCUE_EXIT,
 };
 
 typedef struct rescueConfig_s {
     uint8_t  rescue_mode;
     uint8_t  inverted_mode;
-    uint16_t init_climb_time;
-    uint16_t init_climb_collective;
-    uint16_t final_climb_time;
-    uint16_t final_climb_collective;
+    uint16_t pull_up_time;
+    uint16_t pull_up_collective;
+    uint16_t climb_time;
+    uint16_t climb_collective;
 } rescueConfig_t;
 
 
