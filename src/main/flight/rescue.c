@@ -73,12 +73,12 @@ static inline long rescueStateTime(void)
     return cmp32(millis(), rescue.stateEntryTime);
 }
 
-static void rescueStabiliseToLevel(void)
+static void rescueStabilise(void)
 {
 
 }
 
-static void rescueFlipUpright(void)
+static void rescueFlip(void)
 {
 
 }
@@ -88,10 +88,80 @@ static void rescueClimb(void)
 
 }
 
-static void rescueExitSlew(void)
+static void rescueExit(void)
 {
 
 }
+
+#if 0
+
+float pidRescueCollective(void)
+{
+    float collective = rescueCollective;
+
+    // Initial rescue with boost
+    if (rescueInverted)
+        collective = constrainf(collective + rescueBoost, 0, 1);
+
+    // attitude.values.roll/pitch = 0 when level, 1800 when fully inverted (decidegrees)
+    const float absRoll = fabsf(attitude.values.roll / 900.0f);
+    const float absPitch = fabsf(attitude.values.pitch / 900.0f);
+
+    // Pitch is +90/-90 at straight down and straight up. Convert it so that level = 1.0
+    const float pitchCurrentInclination = 1.0f - absPitch;
+
+    // Roll is +90/-90 when sideways, and +180/-180 when inverted
+    const float rollCurrentInclination = (absRoll < 1.0f) ?  1.0f - absRoll : -1.0f + absRoll;
+
+    // Smaller of the two
+    const float vertCurrentInclination = MIN(pitchCurrentInclination, rollCurrentInclination);
+
+    // Add more pitch as the heli approaches level
+    collective *= vertCurrentInclination * vertCurrentInclination;
+
+    // We're closer to inverted. Use negative collective pitch
+    if (absRoll > 1.0f)
+        collective = -collective;
+
+    return collective;
+}
+
+float calcRescueErrorAngle(int axis)
+{
+    const rollAndPitchTrims_t *angleTrim = &accelerometerConfig()->accelerometerTrims;
+    const float roll = (attitude.raw[FD_ROLL] - angleTrim->raw[FD_ROLL]) / 10.0f;
+    const float angle = (attitude.raw[axis] - angleTrim->raw[axis]) / 10.0f;
+
+    float error = 0;
+
+    if (roll > 90 && rescueInverted) {
+        // Rolled right closer to inverted, continue to roll right to inverted (+180 degrees)
+        if (axis == FD_PITCH) {
+            error = angle;
+        } else if (axis == FD_ROLL) {
+            error = 180.0f - angle;
+        }
+    } else if (roll < -90 && rescueInverted) {
+        // Rolled left closer to inverted, continue to roll left to inverted (-180 degrees)
+        if (axis == FD_PITCH) {
+            error = angle;
+        } else if (axis == FD_ROLL) {
+            error = -180.0f - angle;
+        }
+    } else {
+        // We're rolled left or right between -90 and 90, and thus are closer to up-right
+        if (axis == FD_PITCH) {
+            error = -angle;
+        } else if (axis == FD_ROLL) {
+            error = -angle;
+        }
+    }
+
+    return error;
+}
+
+#endif
+
 
 static void rescueUpdateState(void)
 {
@@ -111,11 +181,11 @@ static void rescueUpdateState(void)
                 if (!FLIGHT_MODE(RESCUE_MODE))
                     rescueChangeState(RESCUE_EXIT);
                 else
-                    rescueStabiliseToLevel();
+                    rescueStabilise();
                 break;
 
             case RESCUE_FLIP_OVER:
-                rescueFlipUpright();
+                rescueFlip();
                 break;
 
             case RESCUE_CLIMB:
@@ -134,7 +204,7 @@ static void rescueUpdateState(void)
                 } else if (rescueStateTime() > RESCUE_EXIT_TIME) {
                     rescueChangeState(RESCUE_STATE_OFF);
                 } else {
-                    rescueExitSlew();
+                    rescueExit();
                 }
                 break;
         }
