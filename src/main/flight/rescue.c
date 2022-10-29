@@ -40,21 +40,30 @@
 #include "flight/pid.h"
 
 
+enum {
+    RSTATE_OFF = 0,
+    RSTATE_PULL_UP,
+    RSTATE_FLIP_OVER,
+    RSTATE_CLIMB,
+    RSTATE_ALT_HOLD,
+    RSTATE_POS_HOLD,
+    RSTATE_EXIT,
+};
+
 typedef struct {
 
     uint8_t     mode;
-    uint8_t     inverted;
+    uint8_t     flip;
 
     uint8_t     state;
     timeMs_t    stateEntryTime;
 
     int32_t     pullUpTime;
-    float       pullUpCollective;
-
     int32_t     climbTime;
-    float       climbCollective;
+    int32_t     exitTime;
 
-    int32_t     exitRampTime;
+    float       pullUpCollective;
+    float       climbCollective;
 
     float       setpoint[4];
 
@@ -76,6 +85,10 @@ static inline long rescueStateTime(void)
     return cmp32(millis(), rescue.stateEntryTime);
 }
 
+static inline bool rescueActive(void)
+{
+    return FLIGHT_MODE(RESCUE_MODE);
+}
 
 static void rescuePullUp(void)
 {
@@ -120,7 +133,7 @@ static void rescueExitRamp(void)
 
 static bool rescueExitRampDone(void)
 {
-    if (rescueStateTime() > rescue.exitRampTime)
+    if (rescueStateTime() > rescue.exitTime)
         return true;
 
     return false;
@@ -200,55 +213,55 @@ static void rescueUpdateState(void)
 {
     // Handle DISARM separately for SAFETY!
     if (!ARMING_FLAG(ARMED)) {
-        rescueChangeState(RESCUE_STATE_OFF);
+        rescueChangeState(RSTATE_OFF);
     }
     else {
-        again: switch (rescue.state)
+        switch (rescue.state)
         {
-            case RESCUE_STATE_OFF:
-                if (FLIGHT_MODE(RESCUE_MODE)) {
-                    rescueChangeState(RESCUE_PULL_UP);
-                    goto again;
+            case RSTATE_OFF:
+                if (rescueActive()) {
+                    rescueChangeState(RSTATE_PULL_UP);
+                    rescuePullUp();
                 }
                 break;
 
-            case RESCUE_PULL_UP:
+            case RSTATE_PULL_UP:
                 rescuePullUp();
-                if (!FLIGHT_MODE(RESCUE_MODE))
-                    rescueChangeState(RESCUE_EXIT);
+                if (!rescueActive())
+                    rescueChangeState(RSTATE_EXIT);
                 else if (rescuePullUpDone()) {
-                    if (rescue.inverted)
-                        rescueChangeState(RESCUE_CLIMB);
+                    if (rescue.flip)
+                        rescueChangeState(RSTATE_FLIP_OVER);
                     else
-                        rescueChangeState(RESCUE_FLIP_OVER);
+                        rescueChangeState(RSTATE_CLIMB);
                 }
                 break;
 
-            case RESCUE_FLIP_OVER:
+            case RSTATE_FLIP_OVER:
                 rescueFlipOver();
                 // Flip can't be interrupted
                 if (rescueFlipDone()) {
-                    if (!FLIGHT_MODE(RESCUE_MODE))
-                        rescueChangeState(RESCUE_EXIT);
+                    if (!rescueActive())
+                        rescueChangeState(RSTATE_EXIT);
                     else
-                        rescueChangeState(RESCUE_CLIMB);
+                        rescueChangeState(RSTATE_CLIMB);
                 }
                 break;
 
-            case RESCUE_CLIMB:
+            case RSTATE_CLIMB:
                 rescueClimb();
-                if (!FLIGHT_MODE(RESCUE_MODE))
-                    rescueChangeState(RESCUE_EXIT);
+                if (!rescueActive())
+                    rescueChangeState(RSTATE_EXIT);
                 else if (rescueClimbDone())
-                    rescueChangeState(RESCUE_EXIT);
+                    rescueChangeState(RSTATE_EXIT);
                 break;
 
-            case RESCUE_EXIT:
+            case RSTATE_EXIT:
                 rescueExitRamp();
-                if (FLIGHT_MODE(RESCUE_MODE))
-                    rescueChangeState(RESCUE_PULL_UP);
+                if (rescueActive())
+                    rescueChangeState(RSTATE_PULL_UP);
                 else if (rescueExitRampDone())
-                    rescueChangeState(RESCUE_STATE_OFF);
+                    rescueChangeState(RSTATE_OFF);
                 break;
         }
     }
@@ -273,13 +286,15 @@ void rescueUpdate(void)
 
 void rescueInitProfile(const pidProfile_t *pidProfile)
 {
-    rescue.mode = pidProfile->rescue.rescue_mode;
-    rescue.inverted = pidProfile->rescue.inverted_mode;
-    rescue.pullUpCollective = pidProfile->rescue.pull_up_collective / 1000.0f;
+    rescue.mode = pidProfile->rescue.mode;
+    rescue.flip = pidProfile->rescue.flip_mode;
+
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100000;
-    rescue.climbCollective = pidProfile->rescue.climb_collective / 1000.0f;
     rescue.climbTime = pidProfile->rescue.climb_time * 100000;
-    rescue.exitRampTime = 2000000;
+    rescue.exitTime = 2000000;
+
+    rescue.pullUpCollective = pidProfile->rescue.pull_up_collective / 1000.0f;
+    rescue.climbCollective = pidProfile->rescue.climb_collective / 1000.0f;
 }
 
 void rescueInit(const pidProfile_t *pidProfile)

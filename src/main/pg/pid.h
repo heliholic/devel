@@ -96,8 +96,8 @@ typedef struct {
 } governorProfile_t;
 
 typedef struct {
-    uint8_t     rescue_mode;
-    uint8_t     inverted_mode;
+    uint8_t     mode;
+    uint8_t     flip_mode;
     uint16_t    pull_up_time;
     uint16_t    pull_up_collective;
     uint16_t    climb_time;

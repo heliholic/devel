@@ -32,16 +32,6 @@ enum {
     RESCUE_MODE_POS_HOLD,
 };
 
-enum {
-    RESCUE_STATE_OFF = 0,
-    RESCUE_PULL_UP,
-    RESCUE_FLIP_OVER,
-    RESCUE_CLIMB,
-    RESCUE_ALT_HOLD,
-    RESCUE_POS_HOLD,
-    RESCUE_EXIT,
-};
-
 
 float rescueApply(uint8_t axis, float setpoint);
 
