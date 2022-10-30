@@ -98,6 +98,7 @@ typedef struct {
 typedef struct {
     uint8_t     mode;
     uint8_t     flip_mode;
+    uint8_t     level_gain;
     uint16_t    pull_up_time;
     uint16_t    pull_up_collective;
     uint16_t    climb_time;

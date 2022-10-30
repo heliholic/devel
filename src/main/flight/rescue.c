@@ -33,11 +33,14 @@
 
 #include "drivers/time.h"
 
+#include "sensors/acceleration.h"
+
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
 
 #include "flight/rescue.h"
 #include "flight/pid.h"
+#include "flight/imu.h"
 
 
 enum {
@@ -61,6 +64,8 @@ typedef struct {
     int32_t     pullUpTime;
     int32_t     climbTime;
     int32_t     exitTime;
+
+    float       levelGain;
 
     float       pullUpCollective;
     float       climbCollective;
@@ -90,41 +95,37 @@ static inline bool rescueActive(void)
     return FLIGHT_MODE(RESCUE_MODE);
 }
 
-#if 0
-static float calcRescueSetpoints(void)
+#if 1
+void rescueApplyStabilisation(void)
 {
     const rollAndPitchTrims_t *angleTrim = &accelerometerConfig()->accelerometerTrims;
+
     const float roll = (attitude.raw[FD_ROLL] - angleTrim->raw[FD_ROLL]) / 10.0f;
     const float pitch = (attitude.raw[FD_PITCH] - angleTrim->raw[FD_PITCH]) / 10.0f;
 
     float rollError = 0;
     float pitchError = 0;
 
-    if (roll > 90 && rescueInverted) {
+    if (roll > 90) {
         // Rolled right closer to inverted, continue to roll right to inverted (+180 degrees)
-        if (axis == FD_PITCH) {
-            error = angle;
-        } else if (axis == FD_ROLL) {
-            error = 180.0f - angle;
-        }
-    } else if (roll < -90 && rescueInverted) {
+        pitchError = pitch;
+        rollError = 180 - roll;
+    }
+    else if (roll < -90) {
         // Rolled left closer to inverted, continue to roll left to inverted (-180 degrees)
-        if (axis == FD_PITCH) {
-            error = angle;
-        } else if (axis == FD_ROLL) {
-            error = -180.0f - angle;
-        }
-    } else {
+        pitchError = pitch;
+        rollError = -180 - roll;
+    }
+    else {
         // We're rolled left or right between -90 and 90, and thus are closer to up-right
-        if (axis == FD_PITCH) {
-            error = -angle;
-        } else if (axis == FD_ROLL) {
-            error = -angle;
-        }
+        pitchError = -pitch;
+        rollError = -roll;
     }
 
-    return error;
+    rescue.setpoint[FD_PITCH] = pitchError * rescue.levelGain;
+    rescue.setpoint[FD_ROLL] = rollError * rescue.levelGain;
 }
+
 #endif
 
 static void rescuePullUp(void)
@@ -325,6 +326,8 @@ void rescueInitProfile(const pidProfile_t *pidProfile)
 {
     rescue.mode = pidProfile->rescue.mode;
     rescue.flip = pidProfile->rescue.flip_mode;
+
+    rescue.levelGain = pidProfile->rescue.level_gain;
 
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100000;
     rescue.climbTime = pidProfile->rescue.climb_time * 100000;
