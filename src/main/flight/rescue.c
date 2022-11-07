@@ -117,7 +117,7 @@ static inline float rescueSetpoint(uint8_t axis, float setpoint)
     return setpoint;
 }
 
-static void rescueApplyLimits(float max_accel)
+static void rescueApplyLimits(void)
 {
     // Rate limit is for RPY
     for (int i=0; i<3; i++) {
@@ -125,7 +125,7 @@ static void rescueApplyLimits(float max_accel)
     }
 
     for (int i=0; i<4; i++) {
-        rescue.setpoint[i] = slewLimit(rescue.prevSetpoint[i], rescue.setpoint[i], max_accel);
+        rescue.setpoint[i] = slewLimit(rescue.prevSetpoint[i], rescue.setpoint[i], rescue.maxAccel);
         rescue.prevSetpoint[i] = rescue.setpoint[i];
     }
 }
@@ -187,7 +187,7 @@ static void rescuePullUp(void)
 {
     rescueApplyStabilisation();
     rescueApplyCollective(rescue.pullUpCollective);
-    rescueApplyLimits(rescue.maxAccel);
+    rescueApplyLimits();
 }
 
 static inline bool rescuePullUpDone(void)
@@ -199,7 +199,7 @@ static void rescueFlipOver(void)
 {
     rescueApplyFlip();
     rescueApplyCollective(rescue.pullUpCollective);
-    rescueApplyLimits(rescue.maxAccel);
+    rescueApplyLimits();
 }
 
 static inline bool rescueFlipDone(void)
@@ -216,7 +216,7 @@ static void rescueClimb(void)
 {
     rescueApplyStabilisation();
     rescueApplyCollective(rescue.climbCollective);
-    rescueApplyLimits(rescue.maxAccel);
+    rescueApplyLimits();
 }
 
 static inline bool rescueClimbDone(void)
@@ -228,7 +228,7 @@ static void rescueHover(void)
 {
     rescueApplyStabilisation();
     rescueApplyCollective(rescue.hoverCollective);
-    rescueApplyLimits(rescue.maxAccel);
+    rescueApplyLimits();
 }
 
 static inline bool rescueSlowExitDone(void)
