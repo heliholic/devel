@@ -117,6 +117,16 @@ static inline float rescueSetpoint(uint8_t axis, float setpoint)
     return setpoint;
 }
 
+static inline bool rescueIsInverted(void)
+{
+    return getCosTiltAngle() < 0;
+}
+
+static inline bool rescueIsLeveled(void)
+{
+    return fabsf(getCosTiltAngle()) > 0.7f; // less than 45deg error from level
+}
+
 static void rescueApplyLimits(void)
 {
     // Rate limit is for RPY
@@ -258,10 +268,15 @@ static void rescueUpdateState(void)
                 if (!rescueActive())
                     rescueChangeState(RSTATE_EXIT);
                 else if (rescuePullUpDone()) {
-                    if (rescue.flip)
-                        rescueChangeState(RSTATE_FLIP);
-                    else
-                        rescueChangeState(RSTATE_CLIMB);
+                    if (rescueIsLeveled()) {
+                        if (rescue.flip && rescueIsInverted())
+                            rescueChangeState(RSTATE_FLIP);
+                        else
+                            rescueChangeState(RSTATE_CLIMB);
+                    }
+                    else {
+                        rescueChangeState(RSTATE_EXIT);
+                    }
                 }
                 break;
 
@@ -274,7 +289,10 @@ static void rescueUpdateState(void)
                         rescueChangeState(RSTATE_CLIMB);
                 }
                 else if (rescueFlipTimeout()) {
-                    rescueChangeState(RSTATE_EXIT);
+                    if (rescueIsLeveled())
+                        rescueChangeState(RSTATE_CLIMB);
+                    else
+                        rescueChangeState(RSTATE_EXIT);
                 }
                 break;
 
