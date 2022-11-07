@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
@@ -162,8 +163,8 @@ static FAST_CODE void mixerCyclicUpdate(void)
         const mixerInput_t *mixP = mixerInputs(MIXER_IN_STABILIZED_PITCH);
 
         // Assume min<0 and max>0 for cyclic & pitch
-        const float maxR = ABS((SR < 0) ? mixR->min : mixR->max) / 1000.0f;
-        const float maxP = ABS((SP < 0) ? mixP->min : mixP->max) / 1000.0f;
+        const float maxR = abs((SR < 0) ? mixR->min : mixR->max) / 1000.0f;
+        const float maxP = abs((SP < 0) ? mixP->min : mixP->max) / 1000.0f;
 
         // Stretch the limits to the unit circle
         SR /= fmaxf(maxR, 0.001f) * cyclicLimit;
