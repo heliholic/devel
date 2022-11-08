@@ -122,9 +122,6 @@ float pow_approx(float a, float b);
     __typeof__ (x) _x = (x); \
     _x > 0 ? _x : -_x; })
 
-#define SIGN(x) \
-  (x<0) ? -1 : 1)
-
 
 /*
  * Basic math operations
