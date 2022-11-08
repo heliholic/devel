@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -615,7 +616,7 @@ void processRcAdjustments(void)
 
                 // Stepped adjustment
                 if (adjRange->adjStep) {
-                    if (ABS(chValue - adjState->chValue) > 2) {
+                    if (abs(chValue - adjState->chValue) > 2) {
                         adjState->trigTime = now + TRIGGER_DELAY;
                         adjState->chValue = chValue;
                         continue;
