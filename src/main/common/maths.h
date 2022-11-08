@@ -123,7 +123,7 @@ float pow_approx(float a, float b);
     _x > 0 ? _x : -_x; })
 
 #define SIGN(x) \
-  (x<0) ? -1 : 1)
+  ((x<0) ? -1 : 1)
 
 
 /*
