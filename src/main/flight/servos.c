@@ -44,12 +44,21 @@
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 
-
 static FAST_DATA_ZERO_INIT uint8_t  servoCount;
 
 static FAST_DATA_ZERO_INIT float    servoOutput[MAX_SUPPORTED_SERVOS];
 static FAST_DATA_ZERO_INIT int16_t  servoOverride[MAX_SUPPORTED_SERVOS];
 
+#ifdef USE_SERVO_CORRECTION_CURVE
+
+typedef struct {
+    float y[5];
+    float v[5];
+} servoSpline_t;
+
+static FAST_DATA_ZERO_INIT servoSpline_t servoSpline[MAX_SUPPORTED_SERVOS];
+
+#endif
 
 PG_REGISTER_WITH_RESET_FN(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
 
@@ -75,6 +84,7 @@ void pgResetFn_servoParams(servoParam_t *instance)
                      .trim  = DEFAULT_SERVO_TRIM,
                      .speed = DEFAULT_SERVO_SPEED,
                      .flags = DEFAULT_SERVO_FLAGS,
+                     .curve = { 0, },
         );
     }
 }
@@ -105,6 +115,70 @@ int16_t setServoOverride(uint8_t servo, int16_t val)
     return servoOverride[servo] = val;
 }
 
+#ifdef USE_SERVO_CORRECTION_CURVE
+
+static const float spx[5] = { -1.0f, -0.5f, 0, 0.5f, 1.0f };
+
+void servoInitCurve(uint8_t servo)
+{
+    const servoParam_t *param = servoParams(servo);
+    servoSpline_t *sp = &servoSpline[servo];
+
+    float u[5], v[5];
+
+    for (int i = 0; i < 5; i++) {
+        sp->y[i] = spx[i];
+        v[i] = u[i] = 0;
+    }
+
+    sp->y[0] += param->curve[0] / 1000.0f;
+    sp->y[1] += param->curve[1] / 1000.0f;
+    sp->y[3] += param->curve[2] / 1000.0f;
+    sp->y[4] += param->curve[3] / 1000.0f;
+
+    for (int i = 1; i < 4; i++) {
+        const float S = (spx[i] - spx[i-1]) / (spx[i+1] - spx[i-1]);
+        const float P = S * v[i-1] + 2;
+        v[i] = (S - 1) / P;
+        const float U = (sp->y[i+1] - sp->y[i]) / (spx[i+1] - spx[i]) - (sp->y[i] - sp->y[i-1]) / (spx[i] - spx[i-1]);
+        u[i] = (6 * U / (spx[i+1] - spx[i-1]) - S * u[i-1]) / P;
+    }
+
+    for (int i = 3; i >= 0; i--)
+        v[i] = v[i] * v[i+1] + u[i];
+
+    for (int i = 0; i < 5; i++)
+        sp->v[i] = v[i];
+}
+
+static float servoEvalSpline(servoSpline_t * sp, float x, uint8_t index)
+{
+    const float h = spx[index] - spx[index - 1];
+    const float a = (spx[index] - x) / h;
+    const float b = (x - spx[index - 1]) / h;
+
+    return a * sp->y[index - 1] + b * sp->y[index] +
+        ((a*a*a - a) * sp->v[index - 1] + (b*b*b - b) * sp->v[index]) * (h*h / 6);
+}
+
+static float servoCorrection(uint8_t servo, float x)
+{
+    servoSpline_t *sp = &servoSpline[servo];
+
+    for (int i = 1; i < 4; i++) {
+        if (x < spx[i])
+            return servoEvalSpline(sp, x, i);
+    }
+
+    return servoEvalSpline(sp, x, 4);
+}
+#else
+void servoInitCurve(uint8_t servo)
+{
+    UNUSED(servo);
+}
+#endif
+
 void servoInit(void)
 {
     const ioTag_t *ioTags = servoConfig()->dev.ioTags;
@@ -118,6 +192,7 @@ void servoInit(void)
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servoOutput[i] = servoParams(i)->mid;
         servoOverride[i] = SERVO_OVERRIDE_OFF;
+        servoInitCurve(i);
     }
 }
 
@@ -138,7 +213,6 @@ static inline float limitSpeed(float rate, float speed, float old, float new)
     float diff = new - old;
 
     rate = fabsf(rate * gyro.targetLooptime) / (speed * 1000);
-
     if (diff > rate)
         return old + rate;
     else if (diff < -rate)
@@ -169,6 +243,10 @@ void servoUpdate(void)
 
         pos += servo->trim / 1000.0f;
 
+#ifdef USE_SERVO_CORRECTION_CURVE
+        if (servo->flags & SERVO_FLAG_CURVE_CORRECTION)
+            pos = servoCorrection(i, pos);
+#endif
 #ifdef USE_GEOMETRY_CORRECTION
         if (servo->flags & SERVO_FLAG_GEOMETRY_CORRECTION)
             pos = geometryCorrection(pos);
