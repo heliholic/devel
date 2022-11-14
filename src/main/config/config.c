@@ -218,6 +218,18 @@ static void validateAndFixPositionConfig(void)
     }
 }
 
+static void validateAndFixServoConfig()
+{
+    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+#ifndef USE_SERVO_GEOMETRY_CORRECTION
+        servoParamsMutable(i)->flags &= ~SERVO_FLAG_GEOMETRY_CORRECTION;
+#endif
+#ifndef USE_SERVO_CORRECTION_CURVE
+        servoParamsMutable(i)->flags &= ~SERVO_FLAG_CURVE_CORRECTION;
+#endif
+    }
+}
+
 static void validateAndFixConfig(void)
 {
     if (!isSerialConfigValid(serialConfig())) {
@@ -536,6 +548,7 @@ static void validateAndFixConfig(void)
 #endif
 
     validateAndFixPositionConfig();
+    validateAndFixServoConfig();
 }
 
 void validateAndFixGyroConfig(void)
