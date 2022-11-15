@@ -472,6 +472,9 @@ unified: $(UNIFIED_TARGETS)
 ## unified_zip : build all Unified Targets as zip files (for posting on GitHub)
 unified_zip: $(addsuffix _clean,$(UNIFIED_TARGETS)) $(addsuffix _zip,$(UNIFIED_TARGETS))
 
+## osd: : build all Unified Targets with OSD support
+osd: $(OSD_TARGETS)
+
 ## legacy : Build legacy targets
 legacy: $(LEGACY_TARGETS)
 

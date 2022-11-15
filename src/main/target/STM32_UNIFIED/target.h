@@ -20,7 +20,12 @@
 
 #pragma once
 
-#if defined(STM32F405)
+/*
+ * STM32F405
+ */
+
+#if defined(STM32F405) || defined(STM32F405OSD)
+
 #define TARGET_BOARD_IDENTIFIER "S405"
 
 #define USBD_PRODUCT_STRING     "Rotorflight STM32F405"
@@ -58,7 +63,13 @@
 #define CURRENT_TASK_FREQ_HZ     100
 #define ESC_SENSOR_TASK_FREQ_HZ  100
 
-#elif defined(STM32F411)
+
+/*
+ * STM32F411
+ */
+
+#elif defined(STM32F411) || defined(STM32F411OSD)
+
 #define TARGET_BOARD_IDENTIFIER "S411"
 
 #define USBD_PRODUCT_STRING     "Rotorflight STM32F411"
@@ -89,7 +100,13 @@
 #define CURRENT_TASK_FREQ_HZ     100
 #define ESC_SENSOR_TASK_FREQ_HZ  100
 
-#elif defined(STM32F7X2)
+
+/*
+ * STM32F7x2
+ */
+
+#elif defined(STM32F7X2) || defined(STM32F7X2OSD)
+
 #define TARGET_BOARD_IDENTIFIER "S7X2"
 
 #define USBD_PRODUCT_STRING     "Rotorflight STM32F7x2"
@@ -126,7 +143,13 @@
 #define CURRENT_TASK_FREQ_HZ     200
 #define ESC_SENSOR_TASK_FREQ_HZ  200
 
-#elif defined(STM32F745)
+
+/*
+ * STM32F745
+ */
+
+#elif defined(STM32F745) || defined(STM32F745OSD)
+
 #define TARGET_BOARD_IDENTIFIER "S745"
 
 #define USBD_PRODUCT_STRING     "Rotorflight STM32F745"
@@ -167,7 +190,13 @@
 #define CURRENT_TASK_FREQ_HZ     200
 #define ESC_SENSOR_TASK_FREQ_HZ  200
 
-#elif defined(STM32G47X)
+
+/*
+ * STM32G47x
+ */
+
+#elif defined(STM32G47X) || defined(STM32G47XOSD)
+
 #define TARGET_BOARD_IDENTIFIER "SG47"
 
 #define USBD_PRODUCT_STRING     "Betaflight STM32G47x"
@@ -202,7 +231,13 @@
 #define CURRENT_TASK_FREQ_HZ     100
 #define ESC_SENSOR_TASK_FREQ_HZ  100
 
-#elif defined(STM32H743)
+
+/*
+ * STM32H743
+ */
+
+#elif defined(STM32H743) || defined(STM32H743OSD)
+
 #define TARGET_BOARD_IDENTIFIER "SH74"
 
 #define USBD_PRODUCT_STRING     "Rotorflight STM32H743"
@@ -247,11 +282,15 @@
 #define CURRENT_TASK_FREQ_HZ     250
 #define ESC_SENSOR_TASK_FREQ_HZ  250
 
+
+/*
+ * UNKNOWN target
+ */
+
 #elif !defined(UNIT_TEST)
-
 #error "No resources defined for this Unified Target."
-
 #endif
+
 
 // Treat the target as unified, and expect manufacturer id / board name
 // to be supplied when the board is configured for the first time
@@ -352,13 +391,20 @@
 
 #define USE_FREQ_SENSOR
 
-#ifdef DISABLE_OSD_VIDEO
-#undef USE_OSD
-#undef USE_CMS
-#undef USE_MAX7456
-#undef USE_RCDEVICE
-#undef USE_VTX_CONTROL
-#undef USE_CAMERA_CONTROL
+#if defined(STM32F405OSD) || defined(STM32F411OSD) || defined(STM32F7X2OSD) || defined(STM32F745OSD) || defined(STM32G47XOSD) || defined(STM32H743OSD)
+#define USE_OSD
+#define USE_CMS
+#define USE_MAX7456
+#define USE_RCDEVICE
+#define USE_VTX_CONTROL
+#define USE_CAMERA_CONTROL
+#else
+#undef  USE_OSD
+#undef  USE_CMS
+#undef  USE_MAX7456
+#undef  USE_RCDEVICE
+#undef  USE_VTX_CONTROL
+#undef  USE_CAMERA_CONTROL
 #endif
 
 // SPI RX is not supported in Rotorflight
