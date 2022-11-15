@@ -1,65 +1,48 @@
-ifeq ($(TARGET), STM32F405)
+
+ifeq ($(TARGET), $(filter $(TARGET), STM32F405 STM32F405_OSD))
 F405_TARGETS += $(TARGET)
+endif
 
-else
-ifeq ($(TARGET), STM32F411)
+ifeq ($(TARGET), $(filter $(TARGET), STM32F411 STM32F411_OSD))
 F411_TARGETS += $(TARGET)
+endif
 
-else
-ifeq ($(TARGET), STM32F7X2)
+ifeq ($(TARGET), $(filter $(TARGET), STM32F7X2 STM32F7X2_OSD))
 F7X2RE_TARGETS += $(TARGET)
+endif
 
-else
-ifeq ($(TARGET), STM32F745)
+ifeq ($(TARGET), $(filter $(TARGET), STM32F745 STM32F745_OSD))
 F7X5XG_TARGETS += $(TARGET)
+endif
 
-else
-ifeq ($(TARGET), STM32G47X)
+ifeq ($(TARGET), $(filter $(TARGET), STM32G47X STM32G47X_OSD))
 G47X_TARGETS += $(TARGET)
+endif
 
-else # STM32H743
+ifeq ($(TARGET), $(filter $(TARGET), STM32H743 STM32H743_OSD))
 H743xI_TARGETS += $(TARGET)
-
-endif
-endif
-endif
-endif
 endif
 
-ifeq ($(TARGET), $(filter $(TARGET), STM32F405 STM32F745 STM32H743))
 # Use a full block (16 kB) of flash for custom defaults - with 1 MB flash we have more than we know how to use anyway
-
+ifeq ($(TARGET), $(filter $(TARGET), STM32F405 STM32F405_OSD STM32F745 STM32F745_OSD STM32H743 STM32H743_OSD))
 CUSTOM_DEFAULTS_EXTENDED = yes
 endif
 
-ifeq ($(TARGET), STM32G47X)
-FEATURES       += VCP SDCARD_SPI ONBOARDFLASH
+ifeq ($(TARGET), $(filter $(TARGET), STM32G47X STM32G47X_OSD))
+FEATURES += VCP SDCARD_SPI ONBOARDFLASH
 else
-FEATURES       += VCP SDCARD_SPI SDCARD_SDIO ONBOARDFLASH
+FEATURES += VCP SDCARD_SPI SDCARD_SDIO ONBOARDFLASH
 endif
 
 TARGET_SRC = \
     $(addprefix drivers/accgyro/,$(notdir $(wildcard $(SRC_DIR)/drivers/accgyro/*.c))) \
     $(ROOT)/lib/main/BoschSensortec/BMI270-Sensor-API/bmi270_maximum_fifo.c \
     $(addprefix drivers/barometer/,$(notdir $(wildcard $(SRC_DIR)/drivers/barometer/*.c))) \
-    $(addprefix drivers/compass/,$(notdir $(wildcard $(SRC_DIR)/drivers/compass/*.c))) \
+    $(addprefix drivers/compass/,$(notdir $(wildcard $(SRC_DIR)/drivers/compass/*.c)))
+
+ifeq ($(TARGET), $(filter $(TARGET), STM32F405_OSD STM32F411_OSD STM32F7X2_OSD STM32F745_OSD STM32G47X_OSD STM32H743_OSD))
+VARIANT_SRC = \
     drivers/max7456.c \
     drivers/vtx_rtc6705.c \
-    drivers/vtx_rtc6705_soft_spi.c \
-    rx/cc2500_common.c \
-    rx/cc2500_frsky_shared.c \
-    rx/cc2500_frsky_d.c \
-    rx/cc2500_frsky_x.c \
-    rx/cc2500_sfhss.c \
-    rx/cc2500_redpine.c \
-    rx/a7105_flysky.c \
-    rx/cyrf6936_spektrum.c \
-    drivers/rx/expresslrs_driver.c \
-    rx/expresslrs.c \
-    rx/expresslrs_common.c \
-    rx/expresslrs_telemetry.c \
-    drivers/rx/rx_cc2500.c \
-    drivers/rx/rx_a7105.c \
-    drivers/rx/rx_cyrf6936.c \
-    drivers/rx/rx_sx127x.c \
-    drivers/rx/rx_sx1280.c \
+    drivers/vtx_rtc6705_soft_spi.c
+endif
