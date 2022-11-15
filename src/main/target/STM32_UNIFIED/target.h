@@ -24,7 +24,7 @@
  * STM32F405
  */
 
-#if defined(STM32F405) || defined(STM32F405OSD)
+#if defined(STM32F405) || defined(STM32F405_OSD)
 
 #define TARGET_BOARD_IDENTIFIER "S405"
 
@@ -68,7 +68,7 @@
  * STM32F411
  */
 
-#elif defined(STM32F411) || defined(STM32F411OSD)
+#elif defined(STM32F411) || defined(STM32F411_OSD)
 
 #define TARGET_BOARD_IDENTIFIER "S411"
 
@@ -105,7 +105,7 @@
  * STM32F7x2
  */
 
-#elif defined(STM32F7X2) || defined(STM32F7X2OSD)
+#elif defined(STM32F7X2) || defined(STM32F7X2_OSD)
 
 #define TARGET_BOARD_IDENTIFIER "S7X2"
 
@@ -148,7 +148,7 @@
  * STM32F745
  */
 
-#elif defined(STM32F745) || defined(STM32F745OSD)
+#elif defined(STM32F745) || defined(STM32F745_OSD)
 
 #define TARGET_BOARD_IDENTIFIER "S745"
 
@@ -195,7 +195,7 @@
  * STM32G47x
  */
 
-#elif defined(STM32G47X) || defined(STM32G47XOSD)
+#elif defined(STM32G47X) || defined(STM32G47X_OSD)
 
 #define TARGET_BOARD_IDENTIFIER "SG47"
 
@@ -236,7 +236,7 @@
  * STM32H743
  */
 
-#elif defined(STM32H743) || defined(STM32H743OSD)
+#elif defined(STM32H743) || defined(STM32H743_OSD)
 
 #define TARGET_BOARD_IDENTIFIER "SH74"
 
@@ -391,7 +391,7 @@
 
 #define USE_FREQ_SENSOR
 
-#if defined(STM32F405OSD) || defined(STM32F411OSD) || defined(STM32F7X2OSD) || defined(STM32F745OSD) || defined(STM32G47XOSD) || defined(STM32H743OSD)
+#if defined(STM32F405_OSD) || defined(STM32F411_OSD) || defined(STM32F7X2_OSD) || defined(STM32F745_OSD) || defined(STM32G47X_OSD) || defined(STM32H743_OSD)
 #define USE_OSD
 #define USE_CMS
 #define USE_MAX7456

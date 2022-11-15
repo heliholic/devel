@@ -23,12 +23,12 @@ UNIFIED_TARGETS := \
 	STM32H743  \
 
 OSD_TARGETS:= \
-	STM32F405OSD  \
-	STM32F411OSD  \
-	STM32F7X2OSD  \
-	STM32F745OSD  \
-	STM32G47XOSD  \
-	STM32H743OSD  \
+	STM32F405_OSD  \
+	STM32F411_OSD  \
+	STM32F7X2_OSD  \
+	STM32F745_OSD  \
+	STM32G47X_OSD  \
+	STM32H743_OSD  \
 
 # Legacy targets are targets that have been replaced by Unified Target configurations
 LEGACY_TARGETS := \
