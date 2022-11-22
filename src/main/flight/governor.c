@@ -148,9 +148,11 @@ static FAST_DATA_ZERO_INIT float govF;
 static FAST_DATA_ZERO_INIT float govPidSum;
 static FAST_DATA_ZERO_INIT float govError;
 
+static FAST_DATA_ZERO_INIT float govYawWeight;
 static FAST_DATA_ZERO_INIT float govCycWeight;
 static FAST_DATA_ZERO_INIT float govColWeight;
 
+static FAST_DATA_ZERO_INIT float govYawFF;
 static FAST_DATA_ZERO_INIT float govCyclicFF;
 static FAST_DATA_ZERO_INIT float govCollectiveFF;
 static FAST_DATA_ZERO_INIT float govFeedForward;
@@ -356,8 +358,12 @@ static void govUpdateData(void)
     // Calculate feedforward from cyclic deflection
     govCyclicFF = govCycWeight * getCyclicDeflection();
 
+    // Calculate feedforward from yaw deflection
+    govYawFF = govYawWeight * getYawDeflectionAbs();
+
     // Angle-of-attack vs. FeedForward curve
-    govFeedForward = powf(govCollectiveFF + govCyclicFF, govFFexponent);
+    govFeedForward = powf(govCollectiveFF + govCyclicFF, govFFexponent) +
+                     powf(govYawFF, govFFexponent);
 
     // Tail Torque Assist
     if (mixerMotorizedTail() && govTTAGain != 0) {
@@ -900,6 +906,7 @@ void governorInitProfile(const pidProfile_t *pidProfile)
         if (govMode >= GM_STANDARD)
             govTTAGain /= govK * govKp;
 
+        govYawWeight = pidProfile->governor.yaw_ff_weight / 100.0f;
         govCycWeight = pidProfile->governor.cyclic_ff_weight / 100.0f;
         govColWeight = pidProfile->governor.collective_ff_weight / 100.0f;
 
