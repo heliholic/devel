@@ -111,7 +111,9 @@ static FAST_DATA_ZERO_INIT float govHeadSpeed;
 static FAST_DATA_ZERO_INIT float govFullHeadSpeed;
 static FAST_DATA_ZERO_INIT float govTargetHeadSpeed;
 
-static FAST_DATA_ZERO_INIT float govHeadSpeedRatio;
+static FAST_DATA_ZERO_INIT float govFullHeadSpeedRatio;
+static FAST_DATA_ZERO_INIT float govTargetHeadSpeedRatio;
+
 static FAST_DATA_ZERO_INIT bool  govHeadSpeedError;
 static FAST_DATA_ZERO_INIT bool  govHeadSpeedPresent;
 
@@ -202,7 +204,14 @@ float getGovernorOutput(void)
     return govOutput;
 }
 
-float getHeadSpeedRatio(void)
+float getTargetHeadSpeedRatio(void)
+{
+    return (govMode > GM_PASSTHROUGH && govState == GS_ACTIVE) ?
+        govTargetHeadSpeedRatio :
+        1.0f;
+}
+
+float getFullHeadSpeedRatio(void)
 {
     if (govMode > GM_PASSTHROUGH) {
         switch (govState)
@@ -214,9 +223,8 @@ float getHeadSpeedRatio(void)
             case GS_LOST_HEADSPEED:
             case GS_AUTOROTATION:
             case GS_AUTOROTATION_BAILOUT:
-                return govHeadSpeedRatio;
+                return govFullHeadSpeedRatio;
         }
-        return 1.0f;
     }
 
     return 1.0f;
@@ -306,11 +314,11 @@ static void govUpdateInputs(void)
     // Calculate headspeed from filtered motor speed
     govHeadSpeed = filteredRPM * govGearRatio;
 
-    // Calculate HS vs MaxHS ratio
-    govHeadSpeedRatio = govHeadSpeed / govFullHeadSpeed;
+    // Calculate HS vs FullHS ratio
+    govFullHeadSpeedRatio = govHeadSpeed / govFullHeadSpeed;
 
     // Evaluate RPM signal quality
-    if (govMotorRPM > 0 && govHeadSpeedRatio > GOV_HS_DETECT_RATIO) {
+    if (govMotorRPM > 0 && govFullHeadSpeedRatio > GOV_HS_DETECT_RATIO) {
         if (!govMotorRPMGood) {
             govMotorRPMGood = millis();
         }
@@ -324,7 +332,7 @@ static void govUpdateInputs(void)
     govHeadSpeedPresent = (govMotorRPMGood && cmp32(millis(),govMotorRPMGood) > GOV_HS_DETECT_DELAY);
 
     // Headspeed should be available if throttle is high enough
-    govHeadSpeedError = ((govHeadSpeedRatio < GOV_HS_INVALID_RATIO || govMotorRPM < 1) && govOutput > GOV_HS_INVALID_THROTTLE);
+    govHeadSpeedError = ((govFullHeadSpeedRatio < GOV_HS_INVALID_RATIO || govMotorRPM < 1) && govOutput > GOV_HS_INVALID_THROTTLE);
 
     // Battery state - zero when battery unplugged
     govNominalVoltage = getBatteryCellCount() * 3.70f;
@@ -338,6 +346,9 @@ static void govUpdateData(void)
 {
     // Update headspeed target
     govTargetHeadSpeed = govThrottle * govFullHeadSpeed;
+
+    // Calculate HS vs TargetHS ratio
+    govTargetHeadSpeedRatio = govHeadSpeed / govTargetHeadSpeed;
 
     // Calculate feedforward from collective deflection
     govCollectiveFF = govColWeight * getCollectiveDeflectionAbs();

@@ -72,7 +72,8 @@ uint8_t getGovernorState();
 
 float getGovernorOutput(void);
 
-float getHeadSpeedRatio(void);
+float getFullHeadSpeedRatio(void);
+float getTargetHeadSpeedRatio(void);
 
 bool isSpooledUp(void);
 
