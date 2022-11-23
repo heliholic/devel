@@ -195,7 +195,7 @@ static FAST_CODE void mixerCyclicUpdate(void)
 static FAST_CODE void mixerCollectiveUpdate(void)
 {
     // Headspeed fluctuation ratio
-    const float ratio = getTargetHeadSpeedRatio();
+    const float ratio = constrainf(getHeadSpeedRatio(), 0.90f, 1.25f);
 
     // Collective correction - TODO: CHECK
     const float corr = collectivePrecomp * (1.0f / (ratio * ratio) - 1.0f) + 1.0f;
@@ -463,4 +463,9 @@ float getCyclicDeflection(void)
 float getCollectiveDeflection(void)
 {
     return mixInput[MIXER_IN_STABILIZED_COLLECTIVE];
+}
+
+float getYawDeflection(void)
+{
+    return mixInput[MIXER_IN_STABILIZED_YAW];
 }
