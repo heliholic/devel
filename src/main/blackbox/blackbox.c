@@ -247,11 +247,12 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
 #endif
 
 #ifdef USE_BARO
-    {"BaroAlt",    -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(BARO)},
+    {"baro",       -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(BARO)},
 #endif
 
-    {"vbatLatest",     -1, UNSIGNED, .Ipredict = PREDICT(VBATREF),  .Iencode = ENCODING(NEG_14BIT),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(VOLTAGE)},
-    {"amperageLatest", -1, UNSIGNED, .Ipredict = PREDICT(0),        .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(CURRENT)},
+    {"voltageBAT", -1, UNSIGNED, .Ipredict = PREDICT(VBATREF), .Iencode = ENCODING(NEG_14BIT),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(VOLTAGE)},
+    {"currentBAT", -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(CURRENT)},
+    {"voltageBEC", -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(VOLTBEC)},
 
     {"rssi",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB),  CONDITION(RSSI)},
 
@@ -356,6 +357,8 @@ typedef struct blackboxMainState_s {
 
     uint16_t voltage;
     uint16_t current;
+
+    uint16_t voltbec;
 
     uint16_t rssi;
 
@@ -553,6 +556,9 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case CONDITION(CURRENT):
         return (batteryConfig()->currentMeterSource != CURRENT_METER_NONE) && isFieldEnabled(FIELD_SELECT(BATTERY));
 
+    case CONDITION(VOLTBEC):
+        return isFieldEnabled(FIELD_SELECT(BEC));
+
     case CONDITION(DEBUG):
         return (debugMode != DEBUG_NONE);
 
@@ -672,6 +678,9 @@ static void writeIntraframe(void)
     }
     if (testBlackboxCondition(CONDITION(CURRENT))) {
         blackboxWriteUnsignedVB(blackboxCurrent->current);
+    }
+    if (testBlackboxCondition(CONDITION(VOLTBEC))) {
+        blackboxWriteUnsignedVB(blackboxCurrent->voltbec);
     }
     if (testBlackboxCondition(CONDITION(RSSI))) {
         blackboxWriteUnsignedVB(blackboxCurrent->rssi);
@@ -814,6 +823,9 @@ static void writeInterframe(void)
     }
     if (testBlackboxCondition(CONDITION(CURRENT))) {
         deltas[packedFieldCount++] = (int32_t) blackboxCurrent->current - blackboxPrev->current;
+    }
+    if (testBlackboxCondition(CONDITION(VOLTBEC))) {
+        deltas[packedFieldCount++] = (int32_t) blackboxCurrent->voltbec - blackboxPrev->voltbec;
     }
     if (testBlackboxCondition(CONDITION(RSSI))) {
         deltas[packedFieldCount++] = (int32_t) blackboxCurrent->rssi - blackboxPrev->rssi;
@@ -1096,6 +1108,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->voltage = getBatteryVoltageLatest();
     blackboxCurrent->current = constrain(getAmperageLatest(), 0, 50000); // 500Amps
+    blackboxCurrent->voltbec = 0; //getBECVoltageLatest();
     blackboxCurrent->rssi = getRssi();
 
     blackboxCurrent->headspeed = lrintf(getHeadSpeed());
