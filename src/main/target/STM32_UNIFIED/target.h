@@ -392,6 +392,7 @@
 #define USE_ESCSERIAL
 
 #define USE_ADC
+#define MAX_VOLTAGE_SENSOR_ADC  6
 
 #define USE_FREQ_SENSOR
 

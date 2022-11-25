@@ -71,4 +71,8 @@ typedef enum {
     //...
     VOLTAGE_METER_ID_CELL_40 = 119,
 
+    VOLTAGE_METER_ID_3V3_1 = 120,      // 120-129 for 3.3V meters
+
+    VOLTAGE_METER_ID_BEC_1 = 130,        // 130-139 for BECs
+
 } voltageMeterId_e;

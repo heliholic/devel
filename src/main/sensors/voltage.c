@@ -52,29 +52,17 @@ const char * const voltageMeterSourceNames[VOLTAGE_METER_COUNT] = {
 
 const uint8_t voltageMeterIds[] = {
     VOLTAGE_METER_ID_BATTERY_1,
-#ifdef ADC_POWER_12V
-    VOLTAGE_METER_ID_12V_1,
-#endif
-#ifdef ADC_POWER_9V
-    VOLTAGE_METER_ID_9V_1,
-#endif
-#ifdef ADC_POWER_5V
+    VOLTAGE_METER_ID_BEC_1,
+    VOLTAGE_METER_ID_3V3_1,
     VOLTAGE_METER_ID_5V_1,
-#endif
+    VOLTAGE_METER_ID_9V_1,
+    VOLTAGE_METER_ID_12V_1,
 #ifdef USE_ESC_SENSOR
-    VOLTAGE_METER_ID_ESC_COMBINED_1,
     VOLTAGE_METER_ID_ESC_MOTOR_1,
     VOLTAGE_METER_ID_ESC_MOTOR_2,
     VOLTAGE_METER_ID_ESC_MOTOR_3,
     VOLTAGE_METER_ID_ESC_MOTOR_4,
-    VOLTAGE_METER_ID_ESC_MOTOR_5,
-    VOLTAGE_METER_ID_ESC_MOTOR_6,
-    VOLTAGE_METER_ID_ESC_MOTOR_7,
-    VOLTAGE_METER_ID_ESC_MOTOR_8,
-    VOLTAGE_METER_ID_ESC_MOTOR_9,
-    VOLTAGE_METER_ID_ESC_MOTOR_10,
-    VOLTAGE_METER_ID_ESC_MOTOR_11,
-    VOLTAGE_METER_ID_ESC_MOTOR_12,
+    VOLTAGE_METER_ID_ESC_COMBINED_1,
 #endif
 };
 
@@ -276,48 +264,48 @@ void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter)
 
 // the order of these much match the indexes in voltageSensorADC_e
 const uint8_t voltageMeterADCtoIDMap[MAX_VOLTAGE_SENSOR_ADC] = {
-    VOLTAGE_METER_ID_BATTERY_1,
-#ifdef ADC_POWER_12V
-    VOLTAGE_METER_ID_12V_1,
-#endif
-#ifdef ADC_POWER_9V
-    VOLTAGE_METER_ID_9V_1,
-#endif
-#ifdef ADC_POWER_5V
-    VOLTAGE_METER_ID_5V_1,
-#endif
+    [VOLTAGE_SENSOR_ADC_VBAT]   = VOLTAGE_METER_ID_BATTERY_1,
+    [VOLTAGE_SENSOR_ADC_VBEC]   = VOLTAGE_METER_ID_BEC_1,
+    [VOLTAGE_SENSOR_ADC_3V3]    = VOLTAGE_METER_ID_3V3_1,
+    [VOLTAGE_SENSOR_ADC_5V]     = VOLTAGE_METER_ID_5V_1,
+    [VOLTAGE_SENSOR_ADC_9V]     = VOLTAGE_METER_ID_9V_1,
+    [VOLTAGE_SENSOR_ADC_12V]    = VOLTAGE_METER_ID_12V_1,
 };
 
 void voltageMeterRead(voltageMeterId_e id, voltageMeter_t *meter)
 {
-    if (id == VOLTAGE_METER_ID_BATTERY_1) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_VBAT, meter);
-    } else
-#ifdef ADC_POWER_12V
-    if (id == VOLTAGE_METER_ID_12V_1) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_12V, meter);
-    } else
-#endif
-#ifdef ADC_POWER_9V
-    if (id == VOLTAGE_METER_ID_9V_1) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_9V, meter);
-    } else
-#endif
-#ifdef ADC_POWER_5V
-    if (id == VOLTAGE_METER_ID_5V_1) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_5V, meter);
-    } else
-#endif
+    switch (id) {
+        case VOLTAGE_METER_ID_BATTERY_1:
+            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_VBAT, meter);
+            break;
+        case VOLTAGE_METER_ID_BEC_1:
+            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_VBEC, meter);
+            break;
+        case VOLTAGE_METER_ID_3V3_1:
+            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_3V3, meter);
+            break;
+        case VOLTAGE_METER_ID_5V_1:
+            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_5V, meter);
+            break;
+        case VOLTAGE_METER_ID_9V_1:
+            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_9V, meter);
+            break;
+        case VOLTAGE_METER_ID_12V_1:
+            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_12V, meter);
+            break;
 #ifdef USE_ESC_SENSOR
-    if (id == VOLTAGE_METER_ID_ESC_COMBINED_1) {
-        voltageMeterESCReadCombined(meter);
-    } else
-    if (id >= VOLTAGE_METER_ID_ESC_MOTOR_1 && id <= VOLTAGE_METER_ID_ESC_MOTOR_20 ) {
-        int motor = id - VOLTAGE_METER_ID_ESC_MOTOR_1;
-        voltageMeterESCReadMotor(motor, meter);
-    } else
+        case VOLTAGE_METER_ID_ESC_MOTOR_1:
+        case VOLTAGE_METER_ID_ESC_MOTOR_2:
+        case VOLTAGE_METER_ID_ESC_MOTOR_3:
+        case VOLTAGE_METER_ID_ESC_MOTOR_4:
+            voltageMeterESCReadMotor(id - VOLTAGE_METER_ID_ESC_MOTOR_1, meter);
+            break;
+        case VOLTAGE_METER_ID_ESC_COMBINED_1:
+            voltageMeterESCReadCombined(meter);
+            break;
 #endif
-    {
-        voltageMeterReset(meter);
+        default:
+            voltageMeterReset(meter);
+            break;
     }
 }
