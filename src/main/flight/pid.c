@@ -660,11 +660,7 @@ static FAST_CODE void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_
   //// F-term
 
     // Calculate feedforward component
-    float fTerm = setpoint;
-    if (pidProfile->fterm_cutoff[axis]) {
-        fTerm -= pt1FilterApply(&pid.ftermFilter[axis], setpoint);
-    }
-    pid.data[axis].F = pid.coef[axis].Kf * fTerm;
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
 
 
   //// PID Sum
@@ -745,11 +741,7 @@ static FAST_CODE void pidApplyYawMode2(const pidProfile_t *pidProfile)
   //// F-term
 
     // Calculate feedforward component
-    float fTerm = setpoint;
-    if (pidProfile->fterm_cutoff[axis]) {
-        fTerm -= pt1FilterApply(&pid.ftermFilter[axis], fTerm);
-    }
-    pid.data[axis].F = pid.coef[axis].Kf * fTerm;
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
 
 
   //// PID Sum
