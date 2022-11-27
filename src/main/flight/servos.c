@@ -127,11 +127,11 @@ void servoInitCurve(uint8_t servo)
     float *y = sp->y;
     float *u = sp->u;
 
-    y[0] = -1.0f + param->curve[0] / 1000.0f;
-    y[1] = -0.5f + param->curve[1] / 1000.0f;
+    y[0] = -1.0f + param->curve[0] / 250.0f;
+    y[1] = -0.5f + param->curve[1] / 250.0f;
     y[2] =  0.0f;
-    y[3] =  0.5f + param->curve[2] / 1000.0f;
-    y[4] =  1.0f + param->curve[3] / 1000.0f;
+    y[3] =  0.5f + param->curve[2] / 250.0f;
+    y[4] =  1.0f + param->curve[3] / 250.0f;
 
     u[0] = 0;
     u[1] = ((y[2] - 2*y[1] + y[0])        ) / 4.0f;
