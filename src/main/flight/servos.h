@@ -40,21 +40,13 @@
 #define SERVO_OVERRIDE_MAX    2000
 #define SERVO_OVERRIDE_OFF   (SERVO_OVERRIDE_MAX + 1)
 
-enum {
-    SERVO_FLAG_GEOMETRY_CORRECTION = BIT(0),
-    SERVO_FLAG_CURVE_CORRECTION = BIT(1),
-    SERVO_FLAG_ALL = BIT(2) - 1,
-};
-
 typedef struct servoParam_s {
-    uint16_t    mid;        // center point
-    int16_t     min;        // movement lower limit in us
-    int16_t     max;        // movement upper limit in us
-    int16_t     rate;       // scaling in us - sign indicates direction
-    int16_t     trim;       // link trim in 0.1% steps
-    uint16_t    speed;      // speed limit (ms/50deg) ; 0 = disabled
-    uint16_t    flags;      // feature flags
-    int8_t      curve[4];   // correction curve
+    uint8_t     servo_flags;   // Servo type, reverse, linear
+    int8_t      servo_trim;    // Servo trim (%)
+    int8_t      high_trim;     // High trim (%)
+    int8_t      low_trim;      // Low trim (%)
+    int8_t      high_limit;    // High travel limit (%)
+    int8_t      low_limit;     // Low travel limit (%)
 } servoParam_t;
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
