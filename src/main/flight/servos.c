@@ -74,8 +74,8 @@ void pgResetFn_servoParams(servoParam_t *instance)
 typedef struct {
     uint16_t    center;
     uint16_t    rate;
-    uint16_t    max;
-    uint16_t    min;
+    int16_t     max;
+    int16_t     min;
     bool        linear;
 } servoData_t;
 
@@ -84,7 +84,6 @@ static FAST_DATA_ZERO_INIT servoData_t  servos[MAX_SUPPORTED_SERVOS];
 static FAST_DATA_ZERO_INIT float        servoOutput[MAX_SUPPORTED_SERVOS];
 static FAST_DATA_ZERO_INIT int16_t      servoOverride[MAX_SUPPORTED_SERVOS];
 static FAST_DATA_ZERO_INIT uint8_t      servoCount;
-
 
 
 uint8_t getServoCount(void)
@@ -124,14 +123,14 @@ void INIT_CODE servoInitConfig(void)
             case SERVO_TYPE_NORMAL:
                 rate = 500;
                 mid = 1520 + param->servo_trim * 2;
-                max = param->high_limit * 2;
-                min = param->low_limit * 2;
+                max = rate + param->high_limit * 2;
+                min = rate + param->low_limit * 2;
                 break;
             case SERVO_TYPE_NARROW:
                 rate = 250;
                 mid = 760 + param->servo_trim;
-                max = param->high_limit;
-                min = param->low_limit;
+                max = rate + param->high_limit;
+                min = rate + param->low_limit;
                 break;
         }
 
@@ -139,13 +138,12 @@ void INIT_CODE servoInitConfig(void)
 
         if (param->servo_flags & SERVO_FLAGS_REVERSED) {
             servo->rate = -rate;
-            servo->max =  (rate + min);
-            servo->min = -(rate + max);
-        }
-        else {
+            servo->max =   min;
+            servo->min =  -max;
+        } else {
             servo->rate = rate;
-            servo->max =  (rate + max);
-            servo->min = -(rate + min);
+            servo->max =  max;
+            servo->min = -min;
         }
 
         servo->linear = (param->servo_flags & SERVO_FLAGS_LINEAR);
