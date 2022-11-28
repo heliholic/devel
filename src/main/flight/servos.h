@@ -19,34 +19,26 @@
 
 #include "pg/pg.h"
 
-#define DEFAULT_SERVO_CENTER  1500
-#define DEFAULT_SERVO_MIN     -500
-#define DEFAULT_SERVO_MAX      500
-#define DEFAULT_SERVO_RATE     500
-#define DEFAULT_SERVO_TRIM       0
-#define DEFAULT_SERVO_SPEED      0
-#define DEFAULT_SERVO_UPDATE   333
-#define DEFAULT_SERVO_FLAGS      0
+#define DEFAULT_SERVO_UPDATE    333
 
-#define SERVO_RANGE_MIN      -1000
-#define SERVO_RANGE_MAX       1000
-#define SERVO_RATE_MIN       -2500
-#define SERVO_RATE_MAX        2500
-#define SERVO_TRIM_MIN        -250
-#define SERVO_TRIM_MAX         250
-#define SERVO_SPEED_MIN          0
-#define SERVO_SPEED_MAX      10000
-#define SERVO_OVERRIDE_MIN   -2000
-#define SERVO_OVERRIDE_MAX    2000
-#define SERVO_OVERRIDE_OFF   (SERVO_OVERRIDE_MAX + 1)
+#define SERVO_OVERRIDE_MIN     -2000
+#define SERVO_OVERRIDE_MAX      2000
+#define SERVO_OVERRIDE_OFF      (SERVO_OVERRIDE_MAX + 1)
+
+#define SERVO_TYPE_NORMAL       0
+#define SERVO_TYPE_NARROW       1
+
+#define SERVO_FLAGS_TYPE        (BIT(0) | BIT(1) | BIT(2))
+#define SERVO_FLAGS_LINEAR      BIT(6)
+#define SERVO_FLAGS_REVERSED    BIT(7)
 
 typedef struct servoParam_s {
     uint8_t     servo_flags;   // Servo type, reverse, linear
-    int8_t      servo_trim;    // Servo trim (%)
-    int8_t      high_trim;     // High trim (%)
-    int8_t      low_trim;      // Low trim (%)
-    int8_t      high_limit;    // High travel limit (%)
-    int8_t      low_limit;     // Low travel limit (%)
+    int8_t      servo_trim;    // Servo trim (x0.1%)
+    int8_t      high_trim;     // High trim (x0.1%)
+    int8_t      low_trim;      // Low trim (x0.1%)
+    int8_t      high_limit;    // High travel limit (x0.2%)
+    int8_t      low_limit;     // Low travel limit (x0.2%)
 } servoParam_t;
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
@@ -58,14 +50,13 @@ typedef struct servoConfig_s {
 PG_DECLARE(servoConfig_t, servoConfig);
 
 void servoInit(void);
+void servoInitConfig(void);
 void servoUpdate(void);
-
-void servoInitCurve(uint8_t servo);
 
 uint8_t getServoCount(void);
 int16_t getServoOutput(uint8_t servo);
 
+bool    hasServoOverride(uint8_t servo);
 int16_t getServoOverride(uint8_t servo);
 int16_t setServoOverride(uint8_t servo, int16_t val);
-bool    hasServoOverride(uint8_t servo);
 

@@ -32,33 +32,16 @@
 #include "config/config.h"
 #include "config/config_reset.h"
 
-#include "drivers/pwm_output.h"
-
-#include "sensors/gyro.h"
-
 #include "fc/runtime_config.h"
-
-#include "flight/servos.h"
-#include "flight/mixer.h"
 
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 
-static FAST_DATA_ZERO_INIT uint8_t  servoCount;
+#include "drivers/pwm_output.h"
 
-static FAST_DATA_ZERO_INIT float    servoOutput[MAX_SUPPORTED_SERVOS];
-static FAST_DATA_ZERO_INIT int16_t  servoOverride[MAX_SUPPORTED_SERVOS];
+#include "flight/servos.h"
+#include "flight/mixer.h"
 
-#ifdef USE_SERVO_CORRECTION_CURVE
-
-typedef struct {
-    float y[5];
-    float u[5];
-} servoSpline_t;
-
-static FAST_DATA_ZERO_INIT servoSpline_t servoSpline[MAX_SUPPORTED_SERVOS];
-
-#endif
 
 PG_REGISTER_WITH_RESET_FN(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
 
@@ -77,17 +60,31 @@ void pgResetFn_servoParams(servoParam_t *instance)
 {
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         RESET_CONFIG(servoParam_t, &instance[i],
-                     .mid   = DEFAULT_SERVO_CENTER,
-                     .min   = DEFAULT_SERVO_MIN,
-                     .max   = DEFAULT_SERVO_MAX,
-                     .rate  = DEFAULT_SERVO_RATE,
-                     .trim  = DEFAULT_SERVO_TRIM,
-                     .speed = DEFAULT_SERVO_SPEED,
-                     .flags = DEFAULT_SERVO_FLAGS,
-                     .curve = { 0, },
+            .servo_flags = 0,
+            .servo_trim = 0,
+            .high_trim = 0,
+            .low_trim = 0,
+            .high_limit = 0,
+            .low_limit = 0,
         );
     }
 }
+
+
+typedef struct {
+    uint16_t    center;
+    uint16_t    rate;
+    uint16_t    max;
+    uint16_t    min;
+    bool        linear;
+} servoData_t;
+
+static FAST_DATA_ZERO_INIT servoData_t  servos[MAX_SUPPORTED_SERVOS];
+
+static FAST_DATA_ZERO_INIT float        servoOutput[MAX_SUPPORTED_SERVOS];
+static FAST_DATA_ZERO_INIT int16_t      servoOverride[MAX_SUPPORTED_SERVOS];
+static FAST_DATA_ZERO_INIT uint8_t      servoCount;
+
 
 
 uint8_t getServoCount(void)
@@ -110,67 +107,55 @@ int16_t getServoOverride(uint8_t servo)
     return servoOverride[servo];
 }
 
-int16_t setServoOverride(uint8_t servo, int16_t val)
+int16_t setServoOverride(uint8_t servo, int16_t value)
 {
-    return servoOverride[servo] = val;
+    return servoOverride[servo] = value;
 }
 
-#ifdef USE_SERVO_CORRECTION_CURVE
-
-static const float spx[5] = { -1.0f, -0.5f, 0, 0.5f, 1.0f };
-
-void servoInitCurve(uint8_t servo)
+void INIT_CODE servoInitConfig(void)
 {
-    const servoParam_t *param = servoParams(servo);
-    servoSpline_t *sp = &servoSpline[servo];
+    for (int i = 0; i < servoCount; i++) {
+        const servoParam_t *param = servoParams(i);
+        servoData_t *servo = &servos[i];
 
-    float *y = sp->y;
-    float *u = sp->u;
+        uint16_t rate = 0, mid = 0, max = 0, min = 0;
 
-    y[0] = -1.0f + param->curve[0] / 250.0f;
-    y[1] = -0.5f + param->curve[1] / 250.0f;
-    y[2] =  0.0f;
-    y[3] =  0.5f + param->curve[2] / 250.0f;
-    y[4] =  1.0f + param->curve[3] / 250.0f;
+        switch (param->servo_flags & SERVO_FLAGS_TYPE) {
+            case SERVO_TYPE_NORMAL:
+                rate = 500;
+                mid = 1520 + param->servo_trim * 2;
+                max = param->high_limit * 2;
+                min = param->low_limit * 2;
+                break;
+            case SERVO_TYPE_NARROW:
+                rate = 250;
+                mid = 760 + param->servo_trim;
+                max = param->high_limit;
+                min = param->low_limit;
+                break;
+        }
 
-    u[0] = 0;
-    u[1] = ((y[2] - 2*y[1] + y[0])        ) / 4.0f;
-    u[2] = ((y[3] - 2*y[2] + y[1]) - u[1] ) / 3.75f;
-    u[3] = ((y[4] - 2*y[3] + y[2]) - u[2] ) / 3.7333333333f;
-    u[4] = 0;
+        servo->center = mid;
 
-    u[2] = -0.2666666666f * u[3] + u[2];
-    u[1] = -0.25f * u[2] + u[1];
-}
+        if (param->servo_flags & SERVO_FLAGS_REVERSED) {
+            servo->rate = -rate;
+            servo->max =  (rate + min);
+            servo->min = -(rate + max);
+        }
+        else {
+            servo->rate = rate;
+            servo->max =  (rate + max);
+            servo->min = -(rate + min);
+        }
 
-static float servoEvalSpline(servoSpline_t * sp, float x, uint8_t index)
-{
-    const float a = 2 * (spx[index] - x);
-    const float b = 1.0f - a;
+        servo->linear = (param->servo_flags & SERVO_FLAGS_LINEAR);
 
-    return a * sp->y[index - 1] + b * sp->y[index] +
-        (a*a*a - a) * sp->u[index - 1] + (b*b*b - b) * sp->u[index];
-}
-
-static float servoCorrection(uint8_t servo, float x)
-{
-    servoSpline_t *sp = &servoSpline[servo];
-
-    for (int i = 1; i < 4; i++) {
-        if (x < spx[i])
-            return servoEvalSpline(sp, x, i);
+        servoOutput[i] = mid;
+        servoOverride[i] = SERVO_OVERRIDE_OFF;
     }
-
-    return servoEvalSpline(sp, x, 4);
 }
-#else
-void servoInitCurve(uint8_t servo)
-{
-    UNUSED(servo);
-}
-#endif
 
-void servoInit(void)
+void INIT_CODE servoInit(void)
 {
     const ioTag_t *ioTags = servoConfig()->dev.ioTags;
 
@@ -180,43 +165,26 @@ void servoInit(void)
 
     servoDevInit(&servoConfig()->dev, servoCount);
 
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servoOutput[i] = servoParams(i)->mid;
-        servoOverride[i] = SERVO_OVERRIDE_OFF;
-        servoInitCurve(i);
-    }
+    servoInitConfig();
 }
 
-static inline float limitTravel(uint8_t servo, float pos, float min, float max)
+static inline float limitTravel(uint8_t servo, float output, float min, float max)
 {
-    if (pos > max) {
+    if (output > max) {
         mixerSaturateServoOutput(servo);
         return max;
-    } else if (pos < min) {
+    } else if (output < min) {
         mixerSaturateServoOutput(servo);
         return min;
     }
-    return pos;
-}
-
-static inline float limitSpeed(float rate, float speed, float old, float new)
-{
-    float diff = new - old;
-
-    rate = fabsf(rate * gyro.targetLooptime) / (speed * 1000);
-    if (diff > rate)
-        return old + rate;
-    else if (diff < -rate)
-        return old - rate;
-
-    return new;
+    return output;
 }
 
 #ifdef USE_SERVO_GEOMETRY_CORRECTION
-static float geometryCorrection(float pos)
+static inline float geometryCorrection(float angle)
 {
     // 1.0 == 50° without correction
-    float height = constrainf(pos * 0.7660444431f, -1, 1);
+    float height = constrainf(angle * 0.7660444431f, -1, 1);
 
     // Scale 50° in rad => 1.0
     float rotation = asin_approx(height) * 1.14591559026f;
@@ -225,36 +193,27 @@ static float geometryCorrection(float pos)
 }
 #endif
 
-void servoUpdate(void)
+void FAST_CODE servoUpdate(void)
 {
     for (int i = 0; i < servoCount; i++)
     {
-        const servoParam_t *servo = servoParams(i);
-        float pos = mixerGetServoOutput(i);
+        servoData_t *servo = &servos[i];
+        float output = mixerGetServoOutput(i);
 
-        pos += servo->trim / 1000.0f;
-
-#ifdef USE_SERVO_CORRECTION_CURVE
-        if (servo->flags & SERVO_FLAG_CURVE_CORRECTION)
-            pos = servoCorrection(i, pos);
-#endif
 #ifdef USE_SERVO_GEOMETRY_CORRECTION
-        if (servo->flags & SERVO_FLAG_GEOMETRY_CORRECTION)
-            pos = geometryCorrection(pos);
+        if (!servo->linear)
+            output = geometryCorrection(output);
 #endif
 
         if (!ARMING_FLAG(ARMED) && hasServoOverride(i))
-            pos = servoOverride[i] / 1000.0f;
+            output = getServoOverride(i) / 1000.0f;
 
-        pos = limitTravel(i, servo->rate * pos, servo->min, servo->max);
-        pos = servo->mid + pos;
+        output = limitTravel(i, servo->rate * output, servo->min, servo->max);
+        output = servo->center + output;
 
-        if (servo->speed > 0)
-            pos = limitSpeed(servo->rate, servo->speed, servoOutput[i], pos);
+        servoOutput[i]= output;
 
-        servoOutput[i] = pos;
-
-        pwmWriteServo(i, servoOutput[i]);
+        pwmWriteServo(i, output);
     }
 }
 

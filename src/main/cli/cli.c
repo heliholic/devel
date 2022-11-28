@@ -2045,7 +2045,7 @@ static void cliModeColor(const char *cmdName, char *cmdline)
 }
 #endif
 
-#ifdef USE_SERVOS
+#ifdef USE_SERVOS_XX
 static void printServo(dumpFlags_t dumpMask, const servoParam_t *servoParams, const servoParam_t *defaultServoParams, const char *headingStr)
 {
     const char *format = "servo %u %d %d %d %d %d %d %u";
@@ -6700,7 +6700,7 @@ static void printConfig(const char *cmdName, char *cmdline, bool doDiff)
             printFeature(dumpMask, featureConfig_Copy.enabledFeatures, featureConfig()->enabledFeatures, "feature");
             printSerial(dumpMask, &serialConfig_Copy, serialConfig(), "serial");
 
-#ifdef USE_SERVOS
+#ifdef USE_SERVOS_XX
             printServo(dumpMask, servoParams_CopyArray, servoParams(0), "servo");
 #ifdef USE_SERVO_CORRECTION_CURVE
             printServoCurve(dumpMask, servoParams_CopyArray, servoParams(0), "servo curve");
@@ -7019,7 +7019,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data from port 1 to VCP / port 2", "<id1> [<baud1>] [<mode1>] [none|reset] [<id2>] [<baud2>] [<mode2>]", cliSerialPassthrough),
 #endif
 #endif
-#ifdef USE_SERVOS
+#ifdef USE_SERVOS_XX
     CLI_COMMAND_DEF("servo", "configure servos",
                     "<servo> <center> <min> <max> <rate> [trim] [speed] [flags]\r\n\t"
                     "status\r\n\t"

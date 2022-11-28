@@ -1103,7 +1103,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         }
         break;
 
-#ifdef USE_SERVOS
+#ifdef USE_SERVOS_XX
     case MSP_SERVO:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             sbufWriteU16(dst, getServoOutput(i));
@@ -2372,7 +2372,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #endif
 #endif
 
-#ifdef USE_SERVOS
+#ifdef USE_SERVOS_XX
     case MSP_SET_SERVO_CONFIGURATION:
         if (dataSize != 1 + 12) {
             return MSP_RESULT_ERROR;
