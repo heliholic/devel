@@ -1117,7 +1117,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
             sbufWriteU16(dst, servoParams(i)->max);
             sbufWriteU16(dst, servoParams(i)->rneg);
             sbufWriteU16(dst, servoParams(i)->rpos);
-            sbufWriteU16(dst, servoParams(i)->speed);
+            sbufWriteU16(dst, servoParams(i)->rate);
         }
         break;
 
@@ -2386,7 +2386,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         servoParamsMutable(i)->max = sbufReadU16(src);
         servoParamsMutable(i)->rneg = sbufReadU16(src);
         servoParamsMutable(i)->rpos = sbufReadU16(src);
-        servoParamsMutable(i)->speed = sbufReadU16(src);
+        servoParamsMutable(i)->rate = sbufReadU16(src);
         break;
 
     case MSP_SET_SERVO_OVERRIDE:

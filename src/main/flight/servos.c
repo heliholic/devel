@@ -71,9 +71,9 @@ void pgResetFn_servoParams(servoParam_t *instance)
                      .mid   = DEFAULT_SERVO_CENTER,
                      .min   = DEFAULT_SERVO_MIN,
                      .max   = DEFAULT_SERVO_MAX,
-                     .rpos  = DEFAULT_SERVO_RATE,
-                     .rneg  = DEFAULT_SERVO_RATE,
-                     .speed = DEFAULT_SERVO_SPEED,
+                     .rneg  = DEFAULT_SERVO_RANGE,
+                     .rpos  = DEFAULT_SERVO_RANGE,
+                     .rate  = DEFAULT_SERVO_RATE,
                      .flags = DEFAULT_SERVO_FLAGS,
         );
     }
@@ -133,20 +133,6 @@ static inline float limitTravel(uint8_t servo, float pos, float min, float max)
     return pos;
 }
 
-static inline float limitSpeed(float rate, float speed, float old, float new)
-{
-    float diff = new - old;
-
-    rate = fabsf(rate * gyro.targetLooptime) / (speed * 1000);
-
-    if (diff > rate)
-        return old + rate;
-    else if (diff < -rate)
-        return old - rate;
-
-    return new;
-}
-
 #ifdef USE_SERVO_GEOMETRY_CORRECTION
 static float geometryCorrection(float pos)
 {
@@ -183,9 +169,6 @@ void servoUpdate(void)
         pos = servo->mid + rate * pos;
 
         pos = limitTravel(i, pos, servo->min, servo->max);
-
-        if (servo->speed > 0)
-            pos = limitSpeed(rate, servo->speed, servoOutput[i], pos);
 
         servoOutput[i] = pos;
 

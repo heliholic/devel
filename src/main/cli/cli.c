@@ -2067,7 +2067,7 @@ static void printServo(dumpFlags_t dumpMask, const servoParam_t *servoParams, co
                 defaultServoConf->max,
                 defaultServoConf->rneg,
                 defaultServoConf->rpos,
-                defaultServoConf->speed,
+                defaultServoConf->rate,
                 defaultServoConf->flags
             );
         }
@@ -2078,7 +2078,7 @@ static void printServo(dumpFlags_t dumpMask, const servoParam_t *servoParams, co
             servoConf->max,
             servoConf->rneg,
             servoConf->rpos,
-            servoConf->speed,
+            servoConf->rate,
             servoConf->flags
         );
     }
@@ -2210,20 +2210,18 @@ static void cliServo(const char *cmdName, char *cmdline)
     }
     else if (count >= 5) {
         const char *format = "servo %u %u %u %u %u %u %u %u";
-        enum { INDEX = 0, MID, MIN, MAX, RNEG, RPOS, SPEED, FLAGS, ARGS_COUNT };
+        enum { INDEX = 0, MID, MIN, MAX, RNEG, RPOS, RATE, FLAGS, ARGS_COUNT };
         int vals[ARGS_COUNT] = { 0, };
         for (int i=0; i<count; i++)
             vals[i] = atoi(args[i]);
         if (vals[INDEX] < 1 || vals[INDEX] > MAX_SUPPORTED_SERVOS ||
             vals[MID] < PWM_SERVO_PULSE_MIN || vals[MID] > PWM_SERVO_PULSE_MAX ||
-            vals[MIN] < SERVO_RANGE_MIN || vals[MIN] > SERVO_RANGE_MAX  ||
-            vals[MAX] < SERVO_RANGE_MIN || vals[MAX] > SERVO_RANGE_MAX ||
-            vals[MIN] + vals[MID] < PWM_SERVO_PULSE_MIN ||
-            vals[MAX] + vals[MID] > PWM_SERVO_PULSE_MAX ||
+            vals[MIN] < SERVO_LIMIT_MIN || vals[MIN] > SERVO_LIMIT_MAX  ||
+            vals[MAX] < SERVO_LIMIT_MIN || vals[MAX] > SERVO_LIMIT_MAX ||
             vals[MIN] > vals[MAX] ||
-            vals[RNEG] < SERVO_RATE_MIN || vals[RNEG] > SERVO_RATE_MAX ||
-            vals[RPOS] < SERVO_RATE_MIN || vals[RPOS] > SERVO_RATE_MAX ||
-            vals[SPEED] < SERVO_SPEED_MIN || vals[SPEED] > SERVO_SPEED_MAX ||
+            vals[RNEG] < SERVO_RANGE_MIN || vals[RNEG] > SERVO_RANGE_MAX ||
+            vals[RPOS] < SERVO_RANGE_MIN || vals[RPOS] > SERVO_RANGE_MAX ||
+            vals[RATE] < SERVO_RATE_MIN || vals[RATE] > SERVO_RATE_MAX ||
             vals[FLAGS] > SERVO_FLAGS_ALL) {
             cliShowArgumentRangeError(cmdName, NULL, 0, 0);
             return;
@@ -2235,7 +2233,7 @@ static void cliServo(const char *cmdName, char *cmdline)
         servo->max = vals[MAX];
         servo->rneg = vals[RNEG];
         servo->rpos = vals[RPOS];
-        servo->speed = vals[SPEED];
+        servo->rate = vals[RATE];
         servo->flags = vals[FLAGS];
         cliPrintLinef(format,
             index + 1,
@@ -2244,7 +2242,7 @@ static void cliServo(const char *cmdName, char *cmdline)
             servo->max,
             servo->rneg,
             servo->rpos,
-            servo->speed,
+            servo->rate,
             servo->flags
         );
     }
