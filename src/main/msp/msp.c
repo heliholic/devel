@@ -1115,9 +1115,9 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
             sbufWriteU16(dst, servoParams(i)->mid);
             sbufWriteU16(dst, servoParams(i)->min);
             sbufWriteU16(dst, servoParams(i)->max);
+            sbufWriteU16(dst, servoParams(i)->rneg);
+            sbufWriteU16(dst, servoParams(i)->rpos);
             sbufWriteU16(dst, servoParams(i)->rate);
-            sbufWriteU16(dst, servoParams(i)->trim);
-            sbufWriteU16(dst, servoParams(i)->speed);
         }
         break;
 
@@ -1703,7 +1703,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, motorConfig()->dev.useUnsyncedPwm);
         sbufWriteU8(dst, motorConfig()->dev.motorPwmProtocol);
         sbufWriteU16(dst, motorConfig()->dev.motorPwmRate);
-        sbufWriteU16(dst, servoConfig()->dev.servoPwmRate);
+        sbufWriteU16(dst, 50); // was servoConfig()->dev.servoPwmRate
         sbufWriteU32(dst, 0); // compat: deprecated
         sbufWriteU32(dst, 0);
         sbufWriteU32(dst, 0);
@@ -2384,9 +2384,9 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         servoParamsMutable(i)->mid = sbufReadU16(src);
         servoParamsMutable(i)->min = sbufReadU16(src);
         servoParamsMutable(i)->max = sbufReadU16(src);
+        servoParamsMutable(i)->rneg = sbufReadU16(src);
+        servoParamsMutable(i)->rpos = sbufReadU16(src);
         servoParamsMutable(i)->rate = sbufReadU16(src);
-        servoParamsMutable(i)->trim = sbufReadU16(src);
-        servoParamsMutable(i)->speed = sbufReadU16(src);
         break;
 
     case MSP_SET_SERVO_OVERRIDE:
@@ -2423,7 +2423,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         sbufReadU8(src);  // compat: gyro denom
         pidConfigMutable()->pid_process_denom = sbufReadU8(src);
         sbufReadU32(src); // compat: deprecated
-        servoConfigMutable()->dev.servoPwmRate = sbufReadU16(src);
+        sbufReadU16(src); // was servoConfig()->dev.servoPwmRate
         break;
 
     case MSP_SET_FILTER_CONFIG:
