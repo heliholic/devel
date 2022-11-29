@@ -222,7 +222,7 @@ static void validateAndFixServoConfig()
 {
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
 #ifndef USE_SERVO_GEOMETRY_CORRECTION
-        servoParamsMutable(i)->flags &= ~SERVO_FLAG_GEOMETRY_CORRECTION;
+        servoParamsMutable(i)->flags &= ~SERVO_FLAG_GEO_CORR;
 #endif
     }
 }
