@@ -71,8 +71,8 @@ void pgResetFn_servoParams(servoParam_t *instance)
                      .mid   = DEFAULT_SERVO_CENTER,
                      .min   = DEFAULT_SERVO_MIN,
                      .max   = DEFAULT_SERVO_MAX,
-                     .rate  = DEFAULT_SERVO_RATE,
-                     .trim  = DEFAULT_SERVO_TRIM,
+                     .rpos  = DEFAULT_SERVO_RATE,
+                     .rneg  = DEFAULT_SERVO_RATE,
                      .speed = DEFAULT_SERVO_SPEED,
                      .flags = DEFAULT_SERVO_FLAGS,
         );
@@ -167,21 +167,25 @@ void servoUpdate(void)
         const servoParam_t *servo = servoParams(i);
         float pos = mixerGetServoOutput(i);
 
-        pos += servo->trim / 1000.0f;
-
 #ifdef USE_SERVO_GEOMETRY_CORRECTION
-        if (servo->flags & SERVO_FLAG_GEOMETRY_CORRECTION)
+        if (servo->flags & SERVO_FLAG_GEO_CORR)
             pos = geometryCorrection(pos);
 #endif
 
         if (!ARMING_FLAG(ARMED) && hasServoOverride(i))
             pos = servoOverride[i] / 1000.0f;
 
-        pos = limitTravel(i, servo->rate * pos, servo->min, servo->max);
-        pos = servo->mid + pos;
+        if (servo->flags & SERVO_FLAG_REVERSED)
+            pos = -pos;
+
+        float rate = (pos > 0) ? servo->rpos : servo->rneg;
+
+        pos = servo->mid + rate * pos;
+
+        pos = limitTravel(i, pos, servo->min, servo->max);
 
         if (servo->speed > 0)
-            pos = limitSpeed(servo->rate, servo->speed, servoOutput[i], pos);
+            pos = limitSpeed(rate, servo->speed, servoOutput[i], pos);
 
         servoOutput[i] = pos;
 
