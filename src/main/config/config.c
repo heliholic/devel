@@ -216,15 +216,6 @@ static void validateAndFixPositionConfig(void)
 
 }
 
-static void validateAndFixServoConfig()
-{
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-#ifndef USE_SERVO_GEOMETRY_CORRECTION
-        servoParamsMutable(i)->flags &= ~SERVO_FLAG_GEOMETRY_CORRECTION;
-#endif
-    }
-}
-
 static void validateAndFixConfig(void)
 {
     if (!isSerialConfigValid(serialConfig())) {
@@ -245,8 +236,8 @@ static void validateAndFixConfig(void)
         featureDisableImmediate(FEATURE_GPS);
     }
 
-    if ((motorConfig()->dev.motorPwmProtocol == PWM_TYPE_STANDARD) && (motorConfig()->dev.motorPwmRate > BRUSHLESS_MOTORS_PWM_RATE)) {
-        motorConfigMutable()->dev.motorPwmRate = BRUSHLESS_MOTORS_PWM_RATE;
+    if ((motorConfig()->dev.motorPwmProtocol == PWM_TYPE_STANDARD) && (motorConfig()->dev.motorPwmRate > MOTORS_MAX_PWM_RATE)) {
+        motorConfigMutable()->dev.motorPwmRate = MOTORS_MAX_PWM_RATE;
     }
 
     validateAndFixGyroConfig();
@@ -599,7 +590,7 @@ void validateAndFixGyroConfig(void)
 
         switch (motorConfig()->dev.motorPwmProtocol) {
         case PWM_TYPE_STANDARD:
-                motorUpdateRestriction = 1.0f / BRUSHLESS_MOTORS_PWM_RATE;
+                motorUpdateRestriction = 1.0f / MOTORS_MAX_PWM_RATE;
                 break;
         case PWM_TYPE_ONESHOT125:
                 motorUpdateRestriction = 0.0005f;
