@@ -5291,7 +5291,7 @@ const cliResourceValue_t resourceTable[] = {
 #endif
     DEFA( OWNER_MOTOR,         PG_MOTOR_CONFIG, motorConfig_t, dev.ioTags[0], MAX_SUPPORTED_MOTORS ),
 #ifdef USE_SERVOS
-    DEFA( OWNER_SERVO,         PG_SERVO_CONFIG, servoConfig_t, dev.ioTags[0], MAX_SUPPORTED_SERVOS ),
+    DEFA( OWNER_SERVO,         PG_SERVO_CONFIG, servoConfig_t, ioTags[0], MAX_SUPPORTED_SERVOS ),
 #endif
 #if defined(USE_PPM)
     DEFS( OWNER_PPMINPUT,      PG_PPM_CONFIG, ppmConfig_t, ioTag ),

@@ -25,7 +25,6 @@
 #define DEFAULT_SERVO_MAX     2000
 #define DEFAULT_SERVO_RANGE    500
 #define DEFAULT_SERVO_RATE     333
-#define DEFAULT_SERVO_UPDATE   333
 
 #define SERVO_LIMIT_MIN        100
 #define SERVO_LIMIT_MAX       2500
@@ -56,7 +55,7 @@ typedef struct servoParam_s {
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
 
 typedef struct servoConfig_s {
-    servoDevConfig_t dev;
+    ioTag_t  ioTags[MAX_SUPPORTED_SERVOS];
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);
@@ -65,7 +64,7 @@ void servoInit(void);
 void servoUpdate(void);
 
 uint8_t getServoCount(void);
-int16_t getServoOutput(uint8_t servo);
+uint16_t getServoOutput(uint8_t servo);
 
 int16_t getServoOverride(uint8_t servo);
 int16_t setServoOverride(uint8_t servo, int16_t val);

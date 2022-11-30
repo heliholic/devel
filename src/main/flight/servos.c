@@ -45,20 +45,20 @@
 #include "pg/pg_ids.h"
 
 
-static FAST_DATA_ZERO_INIT uint8_t  servoCount;
+static FAST_DATA_ZERO_INIT uint8_t      servoCount;
 
-static FAST_DATA_ZERO_INIT float    servoOutput[MAX_SUPPORTED_SERVOS];
-static FAST_DATA_ZERO_INIT int16_t  servoOverride[MAX_SUPPORTED_SERVOS];
+static FAST_DATA_ZERO_INIT uint16_t     servoOutput[MAX_SUPPORTED_SERVOS];
+static FAST_DATA_ZERO_INIT int16_t      servoOverride[MAX_SUPPORTED_SERVOS];
+
+static FAST_DATA_ZERO_INIT timerChannel_t servoChannel[MAX_SUPPORTED_SERVOS];
 
 
 PG_REGISTER_WITH_RESET_FN(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
 
 void pgResetFn_servoConfig(servoConfig_t *servoConfig)
 {
-    servoConfig->dev.servoPwmRate = DEFAULT_SERVO_UPDATE;
-
     for (unsigned i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servoConfig->dev.ioTags[i] = timerioTagGetByUsage(TIM_USE_SERVO, i);
+        servoConfig->ioTags[i] = timerioTagGetByUsage(TIM_USE_SERVO, i);
     }
 }
 
@@ -85,9 +85,9 @@ uint8_t getServoCount(void)
     return servoCount;
 }
 
-int16_t getServoOutput(uint8_t servo)
+uint16_t getServoOutput(uint8_t servo)
 {
-    return lrintf(servoOutput[servo]);
+    return servoOutput[servo];
 }
 
 bool hasServoOverride(uint8_t servo)
@@ -107,18 +107,49 @@ int16_t setServoOverride(uint8_t servo, int16_t val)
 
 void servoInit(void)
 {
-    const ioTag_t *ioTags = servoConfig()->dev.ioTags;
+    const ioTag_t *ioTags = servoConfig()->ioTags;
+    const timerHardware_t *timer[MAX_SUPPORTED_SERVOS];
+    uint8_t index;
 
-    for (servoCount = 0;
-         servoCount < MAX_SUPPORTED_SERVOS && ioTags[servoCount] != IO_TAG_NONE;
-         servoCount++);
-
-    servoDevInit(&servoConfig()->dev, servoCount);
-
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servoOutput[i] = servoParams(i)->mid;
-        servoOverride[i] = SERVO_OVERRIDE_OFF;
+    for (index = 0; index < MAX_SUPPORTED_SERVOS; index++)
+    {
+        servoOutput[index] = servoParams(index)->mid;
+        servoOverride[index] = SERVO_OVERRIDE_OFF;
     }
+
+    for (index = 0; index < MAX_SUPPORTED_SERVOS && ioTags[index]; index++)
+    {
+        const ioTag_t tag = ioTags[index];
+        const IO_t io = IOGetByTag(tag);
+
+        timer[index] = timerAllocate(tag, OWNER_SERVO, RESOURCE_INDEX(index));
+
+        if (!timer[index])
+            break;
+
+        IOInit(io, OWNER_SERVO, RESOURCE_INDEX(index));
+        IOConfigGPIOAF(io, IOCFG_AF_PP, timer[index]->alternateFunction);
+    }
+
+    servoCount = index;
+
+    for (index = 0; index < servoCount; index++)
+    {
+        int rate = servoParams(index)->rate;
+
+        for (int jndex = 0; jndex < servoCount; jndex++) {
+            if (timer[index]->tim == timer[jndex]->tim && servoParams(jndex)->rate < rate)
+                rate = servoParams(jndex)->rate;
+        }
+
+        pwmOutConfig(&servoChannel[index], timer[index], PWM_TIMER_1MHZ, PWM_TIMER_1MHZ / rate, 0, 0);
+    }
+}
+
+static inline void servoWrite(uint8_t index, uint16_t value)
+{
+    if (servoChannel[index].ccr)
+        *servoChannel[index].ccr = value;
 }
 
 static inline float limitTravel(uint8_t servo, float pos, float min, float max)
@@ -170,9 +201,9 @@ void servoUpdate(void)
 
         pos = limitTravel(i, pos, servo->min, servo->max);
 
-        servoOutput[i] = pos;
+        servoOutput[i] = lrintf(pos);
 
-        pwmWriteServo(i, servoOutput[i]);
+        servoWrite(i, servoOutput[i]);
     }
 }
 
