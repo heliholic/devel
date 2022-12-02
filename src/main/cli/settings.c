@@ -492,7 +492,7 @@ static const char * const lookupTableEscSensorProtocol[] = {
 #endif
 
 const char * const lookupTableRescueMode[] = {
-    "OFF", "CLIMB",
+    "OFF", "CLIMB", "ALT_HOLD",
 };
 
 

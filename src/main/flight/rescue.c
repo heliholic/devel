@@ -74,6 +74,10 @@ typedef struct {
     float           climbCollective;
     float           hoverCollective;
 
+    float           hoverAltitude;
+    float           currentAltitude;
+    float           currentClimbRate;
+
     float           maxRate;
     float           maxAccel;
 
@@ -86,6 +90,8 @@ static FAST_DATA_ZERO_INIT rescueState_t rescue;
 
 
 //// Internal functions
+
+
 
 static inline void rescueChangeState(uint8_t newState)
 {
@@ -200,6 +206,36 @@ static void rescueApplyStabilisation(bool allow_inverted)
     rescue.setpoint[FD_YAW] = getSetpoint(FD_YAW);
 }
 
+static void rescueApplyClimbCollective(void)
+{
+    const float ct = getCosTiltAngle();
+    float collective = rescue.climbCollective;
+
+    if (rescue.mode == RESCUE_MODE_CLIMB) {
+
+    }
+    else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
+
+    }
+
+    rescue.setpoint[FD_COLL] = collective * copysignf(ct*ct, ct);
+}
+
+static void rescueApplyHoverCollective(void)
+{
+    const float ct = getCosTiltAngle();
+    float collective = rescue.hoverCollective;
+
+    if (rescue.mode == RESCUE_MODE_CLIMB) {
+        collective += 0.5f * getSetpoint(FD_COLL);
+    }
+    else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
+
+    }
+
+    rescue.setpoint[FD_COLL] = collective * copysignf(ct*ct, ct);
+}
+
 static void rescueApplyCollective(float collective)
 {
     const float ct = getCosTiltAngle();
@@ -238,7 +274,7 @@ static inline bool rescueFlipTimeout(void)
 static void rescueClimb(void)
 {
     rescueApplyStabilisation(true);
-    rescueApplyCollective(rescue.climbCollective);
+    rescueApplyClimbCollective();
     rescueApplyLimits();
 }
 
@@ -250,7 +286,7 @@ static inline bool rescueClimbDone(void)
 static void rescueHover(void)
 {
     rescueApplyStabilisation(true);
-    rescueApplyCollective(rescue.hoverCollective + 0.5f * getSetpoint(FD_COLL));
+    rescueApplyHoverCollective();
     rescueApplyLimits();
 }
 
