@@ -250,7 +250,7 @@ static inline bool rescueClimbDone(void)
 static void rescueHover(void)
 {
     rescueApplyStabilisation(true);
-    rescueApplyCollective(rescue.hoverCollective);
+    rescueApplyCollective(rescue.hoverCollective + 0.5f * getSetpoint(FD_COLL));
     rescueApplyLimits();
 }
 
