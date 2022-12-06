@@ -38,6 +38,7 @@
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
 
+#include "flight/position.h"
 #include "flight/rescue.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -75,8 +76,19 @@ typedef struct {
     float           hoverCollective;
 
     float           hoverAltitude;
-    float           currentAltitude;
-    float           currentClimbRate;
+    float           maxClimbRate;
+
+    float           var_Kp;
+    float           var_Ki;
+    float           var_Kd;
+    float           var_Fd;
+
+    float           alt_Kp;
+    float           alt_Kd;
+    float           alt_Fd;
+
+    float           prevVarioError;
+    float           prevVarioDelta;
 
     float           maxRate;
     float           maxAccel;
@@ -90,8 +102,6 @@ static FAST_DATA_ZERO_INIT rescueState_t rescue;
 
 
 //// Internal functions
-
-
 
 static inline void rescueChangeState(uint8_t newState)
 {
@@ -204,6 +214,22 @@ static void rescueApplyStabilisation(bool allow_inverted)
     rescue.setpoint[FD_PITCH] = pitchError * rescue.levelGain;
     rescue.setpoint[FD_ROLL] = rollError * rescue.levelGain;
     rescue.setpoint[FD_YAW] = getSetpoint(FD_YAW);
+}
+
+static float rescueApplyClimbRate(float rate)
+{
+    float vario = getEstimatedVario() / 100.0f;
+    float error = rate - vario;
+
+    float pTerm = error * rescue.var_Kp;
+
+    float delta = (error - rescue.prevVarioError) * pidGetPidFrequency();
+    delta += (delta - rescue.prevVarioDelta) * rescue.var_Fd;
+
+    rescue.prevVarioDelta = delta;
+    rescue.prevVarioError = error;
+
+    float dTerm = delta * rescue.var_Kd;
 }
 
 static void rescueApplyClimbCollective(void)
