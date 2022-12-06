@@ -34,10 +34,12 @@
 #include "drivers/time.h"
 
 #include "sensors/acceleration.h"
+#include "sensors/barometer.h"
 
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
 
+#include "flight/position.h"
 #include "flight/rescue.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -56,6 +58,8 @@ enum {
 
 typedef struct {
 
+    /* Config parameters */
+
     uint8_t         mode;
     uint8_t         flip;
 
@@ -70,16 +74,40 @@ typedef struct {
     float           levelGain;
     float           flipGain;
 
+    /* Climb only */
+
     float           pullUpCollective;
     float           climbCollective;
     float           hoverCollective;
 
+    /* Altitude hold */
+
     float           hoverAltitude;
-    float           currentAltitude;
-    float           currentClimbRate;
+    float           maxClimbRate;
+
+    float           var_Kp;
+    float           var_Ki;
+    float           var_Kd;
+
+    float           alt_Kp;
+    float           alt_Kd;
+
+    float           altitude;
+    float           vario;
+    float           delta;
+
+    float           var_I;
+
+    pt3Filter_t     altFilter;
+    pt2Filter_t     varFilter;
+    pt1Filter_t     accFilter;
+
+    /* Setpoint limits */
 
     float           maxRate;
     float           maxAccel;
+
+    /* Setpoint output */
 
     float           setpoint[4];
     float           prevSetpoint[4];
@@ -90,8 +118,6 @@ static FAST_DATA_ZERO_INIT rescueState_t rescue;
 
 
 //// Internal functions
-
-
 
 static inline void rescueChangeState(uint8_t newState)
 {
@@ -206,16 +232,80 @@ static void rescueApplyStabilisation(bool allow_inverted)
     rescue.setpoint[FD_YAW] = getSetpoint(FD_YAW);
 }
 
+static void rescueUpdateData(void)
+{
+    float altitude = baro.BaroAlt / 100.0f;
+    altitude = pt3FilterApply(&rescue.altFilter, altitude);
+
+    float vario = (altitude - rescue.altitude) * pidGetPidFrequency();
+    vario = pt2FilterApply(&rescue.varFilter, vario);
+
+    float delta = (vario - rescue.vario) * pidGetPidFrequency();
+    delta = pt1FilterApply(&rescue.accFilter, delta);
+
+    rescue.altitude = altitude;
+    rescue.vario = vario;
+    rescue.delta = delta;
+
+    DEBUG(RESCUE_BARO, 0, baro.BaroAlt);
+    DEBUG(RESCUE_BARO, 1, altitude * 100);
+    DEBUG(RESCUE_BARO, 2, vario * 100);
+    DEBUG(RESCUE_BARO, 3, delta * 100);
+}
+
+static float rescueApplyAltitudePID(float altitude)
+{
+    float error = altitude - rescue.altitude;
+
+    float pTerm = error * rescue.alt_Kp;
+    float dTerm = rescue.vario * rescue.alt_Kd;
+
+    float rate = pTerm + dTerm;
+
+    rate = constrainf(rate, -rescue.maxClimbRate, rescue.maxClimbRate);
+
+    DEBUG(RESCUE_ALTHOLD, 0, error * 100);
+    DEBUG(RESCUE_ALTHOLD, 1, pTerm * 100);
+    DEBUG(RESCUE_ALTHOLD, 2, dTerm * 100);
+    DEBUG(RESCUE_ALTHOLD, 3, rate * 100);
+
+    return rate;
+}
+
+static float rescueApplyClimbRatePID(float rate)
+{
+    float error = rate - rescue.vario;
+
+    float pTerm = error * rescue.var_Kp;
+    float iTerm = error * rescue.var_Ki + rescue.var_I;
+    float dTerm = rescue.delta * rescue.var_Kd;
+
+    iTerm = constrainf(iTerm, -0.5f, 0.5f);
+
+    float pidSum = pTerm + dTerm + iTerm;
+
+    DEBUG(RESCUE_ALTHOLD, 4, pTerm * 1000);
+    DEBUG(RESCUE_ALTHOLD, 5, iTerm * 1000);
+    DEBUG(RESCUE_ALTHOLD, 6, dTerm * 1000);
+    DEBUG(RESCUE_ALTHOLD, 7, pidSum * 1000);
+
+    rescue.var_I = iTerm;
+
+    return pidSum;
+}
+
 static void rescueApplyClimbCollective(void)
 {
     const float ct = getCosTiltAngle();
-    float collective = rescue.climbCollective;
+    float collective = 0;
+    float climb = 0;
 
     if (rescue.mode == RESCUE_MODE_CLIMB) {
-
+        collective = rescue.climbCollective;
     }
     else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
-
+        climb = rescueApplyAltitudePID(rescue.hoverAltitude);
+        collective = rescueApplyClimbRatePID(climb);
     }
 
     rescue.setpoint[FD_COLL] = collective * copysignf(ct*ct, ct);
@@ -225,12 +315,14 @@ static void rescueApplyHoverCollective(void)
 {
     const float ct = getCosTiltAngle();
     float collective = rescue.hoverCollective;
+    float climb = 0;
 
     if (rescue.mode == RESCUE_MODE_CLIMB) {
         collective += 0.5f * getSetpoint(FD_COLL);
     }
     else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
-
+        climb = rescueApplyAltitudePID(rescue.hoverAltitude);
+        collective = rescueApplyClimbRatePID(climb);
     }
 
     rescue.setpoint[FD_COLL] = collective * copysignf(ct*ct, ct);
@@ -298,6 +390,8 @@ static inline bool rescueSlowExitDone(void)
 
 static void rescueUpdateState(void)
 {
+    rescueUpdateData();
+
     // Handle DISARM separately
     if (!ARMING_FLAG(ARMED)) {
         rescueChangeState(RSTATE_OFF);
@@ -409,6 +503,9 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.levelGain = pidProfile->rescue.level_gain / 250.0f;
     rescue.flipGain = pidProfile->rescue.flip_gain / 250.0f;
 
+    rescue.maxRate = pidProfile->rescue.max_setpoint_rate;
+    rescue.maxAccel = pidProfile->rescue.max_setpoint_accel * pidGetDT();
+
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100;
     rescue.climbTime = pidProfile->rescue.climb_time * 100;
     rescue.flipTime = pidProfile->rescue.flip_time * 100;
@@ -418,6 +515,18 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.climbCollective = pidProfile->rescue.climb_collective;
     rescue.hoverCollective = pidProfile->rescue.hover_collective;
 
-    rescue.maxRate = pidProfile->rescue.max_rate;
-    rescue.maxAccel = pidProfile->rescue.max_accel * pidGetDT();
+    rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
+
+    rescue.maxClimbRate = pidProfile->rescue.max_climb_rate / 100.0f;
+
+    rescue.var_Kp = pidProfile->rescue.var_p_gain / 1000.0f;
+    rescue.var_Ki = pidProfile->rescue.var_i_gain / 1000.0f;
+    rescue.var_Kd = pidProfile->rescue.var_d_gain / 1000.0f;
+
+    rescue.alt_Kp = pidProfile->rescue.alt_p_gain / 1000.0f;
+    rescue.alt_Kd = pidProfile->rescue.alt_d_gain / 1000.0f;
+
+    pt3FilterInit(&rescue.altFilter, pt3FilterGain(pidProfile->rescue.alt_cutoff, pidGetDT()));
+    pt2FilterInit(&rescue.varFilter, pt2FilterGain(pidProfile->rescue.var_cutoff, pidGetDT()));
+    pt1FilterInit(&rescue.accFilter, pt1FilterGain(pidProfile->rescue.acc_cutoff, pidGetDT()));
 }
