@@ -116,10 +116,8 @@ void calculateEstimatedAltitude(timeUs_t currentTimeUs)
     bool haveGpsAlt = false;
 #ifdef USE_BARO
     if (sensors(SENSOR_BARO)) {
-        if (!baroIsCalibrationComplete()) {
-            performBaroCalibrationCycle();
-        } else {
-            baroAlt = baroCalculateAltitude();
+        if (isBaroReady()) {
+            baroAlt = baro.BaroAlt;
             haveBaroAlt = true;
         }
     }
