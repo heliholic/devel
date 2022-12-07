@@ -254,7 +254,7 @@ static const char * const mixerNames[] = {
 
 // sync this with features_e
 static const char * const featureNames[] = {
-    "RX_PPM", "", "INFLIGHT_ACC_CAL", "RX_SERIAL", "MOTOR_STOP",
+    "RX_PPM", "", "", "RX_SERIAL", "MOTOR_STOP",
     "SERVO_TILT", "SOFTSERIAL", "GPS", "",
     "RANGEFINDER", "TELEMETRY", "", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DISPLAY", "OSD",
@@ -4335,7 +4335,7 @@ static void cliDefaults(const char *cmdName, char *cmdline)
 
             if (!parameterGroupId) {
                 cliShowParseError(cmdName);
-                
+
                 return;
             }
         } else if (strcasestr(tok, "group_id")) {
