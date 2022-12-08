@@ -84,11 +84,11 @@ typedef struct {
 
     float           hoverAltitude;
 
+    float           alt_Ka;
     float           alt_Kp;
     float           alt_Ki;
-    float           alt_Kd;
 
-    float           alt_iTerm;
+    float           alt_Iterm;
 
     float           altitude;
     float           vario;
@@ -100,11 +100,8 @@ typedef struct {
 
     float           maxRate;
     float           maxAccel;
-
-    /* Collective limits */
-
-    float           maxCollective;
-    float           maxCollAccel;
+    float           maxColl;
+    float           maxClimb;
 
     /* Setpoint output */
 
@@ -124,7 +121,7 @@ static inline void rescueChangeState(uint8_t newState)
     rescue.stateEntryTime = millis();
 
     if (newState == RSTATE_CLIMB)
-        rescue.alt_iTerm = rescue.climbCollective;
+        rescue.alt_Iterm = rescue.prevSetpoint[FD_COLL];
 }
 
 static inline timeDelta_t rescueStateTime(void)
@@ -173,7 +170,7 @@ static void rescueApplyLimits(void)
     }
 
     // Collective limit
-    rescue.setpoint[FD_COLL] = slewLimit(rescue.prevSetpoint[FD_COLL], rescue.setpoint[FD_COLL], rescue.maxCollAccel);
+    rescue.setpoint[FD_COLL] = constrainf(rescue.setpoint[FD_COLL], -rescue.maxColl, rescue.maxColl);
     rescue.prevSetpoint[FD_COLL] = rescue.setpoint[FD_COLL];
 }
 
@@ -255,27 +252,29 @@ static float rescueApplyAltitudePID(float altitude)
 {
     const float tilt = getCosTiltAngle();
 
-    float error = altitude - rescue.altitude;
+    float alterr = altitude - rescue.altitude;
+    alterr = copysignf(sqrtf(fabsf(alterr)), alterr);
 
-    float pTerm = error * rescue.alt_Kp;
-    float iTerm = error * rescue.alt_Ki * tilt * tilt + rescue.alt_iTerm;
-    float dTerm = -rescue.vario * rescue.alt_Kd;
+    float climb = alterr * rescue.alt_Ka;
+    climb = constrainf(climb, -rescue.maxClimb, rescue.maxClimb);
 
-    pTerm = constrainf(pTerm, -500, 500);
-    iTerm = constrainf(iTerm, -750, 750);
-    dTerm = constrainf(iTerm, -500, 500);
+    float error = climb - rescue.vario;
+    float Pterm = error * rescue.alt_Kp;
+    float Iterm = error * rescue.alt_Ki * tilt * tilt + rescue.alt_Iterm;
 
-    float pidSum = pTerm + iTerm + dTerm;
+    Iterm = constrainf(Iterm, -rescue.maxColl, rescue.maxColl);
 
-    pidSum = constrainf(pidSum, -rescue.maxCollective, rescue.maxCollective);
+    float pidSum = Pterm + Iterm;
 
-    rescue.alt_iTerm = iTerm;
+    pidSum = constrainf(pidSum, -rescue.maxColl, rescue.maxColl);
 
-    DEBUG(ALT_HOLD, 3, error * 100);
-    DEBUG(ALT_HOLD, 4, pTerm);
-    DEBUG(ALT_HOLD, 5, iTerm);
-    DEBUG(ALT_HOLD, 6, dTerm);
+    DEBUG(ALT_HOLD, 3, alterr * 100);
+    DEBUG(ALT_HOLD, 4, climb * 100);
+    DEBUG(ALT_HOLD, 5, Pterm);
+    DEBUG(ALT_HOLD, 6, Iterm);
     DEBUG(ALT_HOLD, 7, pidSum);
+
+    rescue.alt_Iterm = Iterm;
 
     return pidSum;
 }
@@ -488,9 +487,8 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.maxRate = pidProfile->rescue.max_setpoint_rate;
     rescue.maxAccel = pidProfile->rescue.max_setpoint_accel * pidGetDT() * 10.0f;
-
-    rescue.maxCollective = pidProfile->rescue.max_collective;
-    rescue.maxCollAccel = pidProfile->rescue.max_collective_accel * pidGetDT() * 10.0f;
+    rescue.maxColl = pidProfile->rescue.max_collective;
+    rescue.maxClimb = pidProfile->rescue.max_climb_rate / 100.0f;
 
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100;
     rescue.climbTime = pidProfile->rescue.climb_time * 100;
@@ -503,9 +501,9 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
+    rescue.alt_Ka = pidProfile->rescue.alt_a_gain;
     rescue.alt_Kp = pidProfile->rescue.alt_p_gain;
     rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT();
-    rescue.alt_Kd = pidProfile->rescue.alt_d_gain;
 
     pt3FilterInit(&rescue.altFilter, pt3FilterGain(pidProfile->rescue.alt_cutoff / 100.0f, pidGetDT()));
     pt2FilterInit(&rescue.varFilter, pt2FilterGain(pidProfile->rescue.var_cutoff / 100.0f, pidGetDT()));
