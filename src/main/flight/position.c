@@ -1,50 +1,46 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <limits.h>
+#include <math.h>
 
 #include "platform.h"
 
 #include "build/debug.h"
 
 #include "common/maths.h"
+#include "common/filter.h"
 
 #include "fc/runtime_config.h"
 
-#include "flight/position.h"
-#include "flight/imu.h"
-#include "flight/pid.h"
+#include "pg/pg.h"
+#include "pg/pg_ids.h"
 
 #include "io/gps.h"
-
-#include "scheduler/scheduler.h"
 
 #include "sensors/sensors.h"
 #include "sensors/barometer.h"
 
-#include "pg/pg.h"
-#include "pg/pg_ids.h"
+#include "flight/imu.h"
+#include "flight/pid.h"
+#include "flight/position.h"
 
 typedef enum {
     DEFAULT = 0,
@@ -52,175 +48,190 @@ typedef enum {
     GPS_ONLY
 } altSource_e;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionConfig_t, positionConfig, PG_POSITION, 2);
+
+PG_REGISTER_WITH_RESET_TEMPLATE(positionConfig_t, positionConfig, PG_POSITION, 0);
 
 PG_RESET_TEMPLATE(positionConfig_t, positionConfig,
-    .altSource = DEFAULT,
-    .altNumSatsGpsUse = POSITION_DEFAULT_ALT_NUM_SATS_GPS_USE,
-    .altNumSatsBaroFallback = POSITION_DEFAULT_ALT_NUM_SATS_BARO_FALLBACK,
+    .alt_source = DEFAULT,
+    .baro_alt_lpf = 25,
+    .baro_offset_lpf = 10,
+    .baro_drift_lpf = 5,
+    .gps_alt_lpf = 25,
+    .gps_offset_lpf = 10,
+    .gps_min_sats = 12,
+    .vario_lpf = 25,
 );
 
-static int32_t estimatedAltitudeCm = 0;                // in cm
+static bool wasARMED = false;
 
-#define BARO_UPDATE_FREQUENCY_40HZ (1000 * 25)
+static bool haveBaroAlt = false;
+static bool haveGpsAlt = false;
 
-#ifdef USE_VARIO
-static int16_t estimatedVario = 0;                   // in cm/s
+static bool haveBaroOffset = false;
+static bool haveGpsOffset = false;
 
-int16_t calculateEstimatedVario(int32_t baroAlt, const uint32_t dTime) {
-    static float vel = 0;
-    static int32_t lastBaroAlt = 0;
+static float estimatedAltitude = 0;
+static float estimatedVario = 0;
 
-    int32_t baroVel = 0;
+static float baroAlt = 0;
+static float gpsAlt = 0;
 
-    baroVel = (baroAlt - lastBaroAlt) * 1000000.0f / dTime;
-    lastBaroAlt = baroAlt;
+static float baroAltOffset = 0;
+static float gpsAltOffset = 0;
 
-    baroVel = constrain(baroVel, -1500.0f, 1500.0f);
-    baroVel = applyDeadband(baroVel, 10.0f);
+static float varioAltPrev = 0;
 
-    vel = vel * CONVERT_PARAMETER_TO_FLOAT(barometerConfig()->baro_cf_vel) + baroVel * (1.0f - CONVERT_PARAMETER_TO_FLOAT(barometerConfig()->baro_cf_vel));
-    int32_t vel_tmp = lrintf(vel);
-    vel_tmp = applyDeadband(vel_tmp, 5.0f);
+static pt2Filter_t     gpsFilter;
+static pt2Filter_t     baroFilter;
+static pt2Filter_t     varioFilter;
 
-    return constrain(vel_tmp, SHRT_MIN, SHRT_MAX);
-}
-#endif
+static pt3Filter_t     gpsOffsetFilter;
+static pt3Filter_t     baroOffsetFilter;
 
-#if defined(USE_BARO) || defined(USE_GPS)
-static bool altitudeOffsetSetBaro = false;
-static bool altitudeOffsetSetGPS = false;
+static pt2Filter_t     driftFilter;
 
-void calculateEstimatedAltitude(timeUs_t currentTimeUs)
+
+bool hasAltitudeOffset(void)
 {
-    static timeUs_t previousTimeUs = 0;
-    static int32_t baroAltOffset = 0;
-    static int32_t gpsAltOffset = 0;
+    return haveBaroOffset || haveGpsOffset;
+}
 
-    const uint32_t dTime = currentTimeUs - previousTimeUs;
-    if (dTime < BARO_UPDATE_FREQUENCY_40HZ) {
-        schedulerIgnoreTaskExecTime();
-        return;
-    }
-    previousTimeUs = currentTimeUs;
+float getAltitude(void)
+{
+    return estimatedAltitude;
+}
 
-    int32_t baroAlt = 0;
-    int32_t gpsAlt = 0;
-    uint8_t gpsNumSat = 0;
+float getVario(void)
+{
+    return estimatedVario;
+}
 
-#if defined(USE_GPS) && defined(USE_VARIO)
-    int16_t gpsVertSpeed = 0;
-#endif
-    float gpsTrust = 0.3; //conservative default
-    bool haveBaroAlt = false;
-    bool haveGpsAlt = false;
+int32_t getEstimatedAltitudeCm(void)
+{
+    return lrintf(estimatedAltitude);
+}
+
+int16_t getEstimatedVario(void)
+{
+    return lrintf(estimatedVario);
+}
+
+
+static float calculateVario(float altitude)
+{
+    float vario = (altitude - varioAltPrev) * pidGetPidFrequency();
+    vario = pt2FilterApply(&varioFilter, vario);
+
+    varioAltPrev = altitude;
+
+    return vario;
+}
+
+static void calculateAltitude(void)
+{
+    float gpsGround = 0;
+    float baroGround = 0;
+    float baroDrift = 0;
+
 #ifdef USE_BARO
     if (sensors(SENSOR_BARO)) {
         if (baroIsReady()) {
-            baroAlt = baro.baroAltitude;
+            baroAlt = pt2FilterApply(&baroFilter, baro.baroAltitude);
+            baroGround = pt3FilterApply(&baroOffsetFilter, baroAlt);
             haveBaroAlt = true;
+        }
+        else {
+            haveBaroAlt = false;
         }
     }
 #endif
 
 #ifdef USE_GPS
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
-        gpsAlt = gpsSol.llh.altCm;
-        gpsNumSat = gpsSol.numSat;
-#ifdef USE_VARIO
-        gpsVertSpeed = GPS_verticalSpeedInCmS;
-#endif
-        haveGpsAlt = true;
-
-        if (gpsSol.hdop != 0) {
-            gpsTrust = 100.0 / gpsSol.hdop;
+    if (sensors(SENSOR_GPS)) {
+        if (STATE(GPS_FIX) && gpsSol.numSat >= positionConfig()->gps_min_sats) {
+            gpsAlt = pt2FilterApply(&gpsFilter, gpsSol.llh.altCm);
+            gpsGround = pt3FilterApply(&gpsOffsetFilter, gpsAlt);
+            haveGpsAlt = true;
         }
-        // always use at least 10% of other sources besides gps if available
-        gpsTrust = MIN(gpsTrust, 0.9f);
+        else {
+            haveGpsAlt = false;
+        }
     }
 #endif
-
-    if (ARMING_FLAG(ARMED) && !altitudeOffsetSetBaro) {
-        baroAltOffset = baroAlt;
-        altitudeOffsetSetBaro = true;
-    } else if (!ARMING_FLAG(ARMED) && altitudeOffsetSetBaro) {
-        altitudeOffsetSetBaro = false;
-    }
-
-    baroAlt -= baroAltOffset;
-
-    int goodGpsSats = 0;
-    int badGpsSats = -1;
-
-    if (haveBaroAlt) {
-        goodGpsSats = positionConfig()->altNumSatsGpsUse;
-        badGpsSats = positionConfig()->altNumSatsBaroFallback;
-    }
 
     if (ARMING_FLAG(ARMED)) {
-        if (!altitudeOffsetSetGPS && gpsNumSat >= goodGpsSats) {
-            gpsAltOffset = gpsAlt - baroAlt;
-            altitudeOffsetSetGPS = true;
-        } else if (gpsNumSat <= badGpsSats) {
-            altitudeOffsetSetGPS = false;
+        if (!wasARMED) {
+            if (haveBaroAlt) {
+                haveBaroOffset = true;
+                baroAltOffset = baroGround;
+            }
+            if (haveGpsAlt) {
+                haveGpsOffset = true;
+                gpsAltOffset = gpsGround;
+            }
+            wasARMED = true;
         }
-    } else if (!ARMING_FLAG(ARMED) && altitudeOffsetSetGPS) {
-        altitudeOffsetSetGPS = false;
     }
-
-    gpsAlt -= gpsAltOffset;
-
-    if (!altitudeOffsetSetGPS) {
-        haveGpsAlt = false;
-        gpsTrust = 0.0f;
-    }
-
-    if (haveGpsAlt && haveBaroAlt && positionConfig()->altSource == DEFAULT) {
-        if (ARMING_FLAG(ARMED)) {
-            estimatedAltitudeCm = gpsAlt * gpsTrust + baroAlt * (1 - gpsTrust);
-        } else {
-            estimatedAltitudeCm = gpsAlt; //absolute altitude is shown before arming, ignore baro
+    else {
+        if (wasARMED) {
+            haveBaroOffset = false;
+            haveGpsOffset = false;
+            wasARMED = false;
         }
-#ifdef USE_VARIO
-        // baro is a better source for vario, so ignore gpsVertSpeed
-        estimatedVario = calculateEstimatedVario(baroAlt, dTime);
-#endif
-    } else if (haveGpsAlt && (positionConfig()->altSource == GPS_ONLY || positionConfig()->altSource == DEFAULT )) {
-        estimatedAltitudeCm = gpsAlt;
-#if defined(USE_VARIO) && defined(USE_GPS)
-        estimatedVario = gpsVertSpeed;
-#endif
-    } else if (haveBaroAlt && (positionConfig()->altSource == BARO_ONLY || positionConfig()->altSource == DEFAULT)) {
-        estimatedAltitudeCm = baroAlt;
-#ifdef USE_VARIO
-        estimatedVario = calculateEstimatedVario(baroAlt, dTime);
-#endif
     }
 
+    if (haveBaroAlt && haveBaroOffset)
+        baroAlt -= baroAltOffset;
 
+    if (haveGpsAlt && haveGpsOffset)
+        gpsAlt -= gpsAltOffset;
 
-    DEBUG_SET(DEBUG_ALTITUDE, 0, (int32_t)(100 * gpsTrust));
-    DEBUG_SET(DEBUG_ALTITUDE, 1, baroAlt);
-    DEBUG_SET(DEBUG_ALTITUDE, 2, gpsAlt);
-#ifdef USE_VARIO
-    DEBUG_SET(DEBUG_ALTITUDE, 3, estimatedVario);
+    if (haveBaroAlt) {
+        estimatedAltitude = baroAlt;
+        estimatedVario = calculateVario(baroAlt);
+        if (haveBaroOffset && haveGpsAlt && haveGpsOffset) {
+            baroDrift = pt2FilterApply(&driftFilter, baroAlt - gpsAlt);
+            estimatedAltitude -= baroDrift;
+        }
+    }
+    else if (haveGpsAlt) {
+        estimatedAltitude = gpsAlt;
+        estimatedVario = calculateVario(gpsAlt);
+    }
+    else {
+        estimatedAltitude = 0;
+        estimatedVario = 0;
+    }
+
+#if 1
+    DEBUG(ALTITUDE, 0, estimatedAltitude);
+    DEBUG(ALTITUDE, 1, estimatedVario);
+    DEBUG(ALTITUDE, 2, baroAlt);
+    DEBUG(ALTITUDE, 3, baroGround);
+    DEBUG(ALTITUDE, 4, baroDrift);
+    DEBUG(ALTITUDE, 5, gpsAlt);
+    DEBUG(ALTITUDE, 6, gpsGround);
+#else
+    DEBUG(ALTITUDE, 0, baroGround);
+    DEBUG(ALTITUDE, 1, baroDrift);
+    DEBUG(ALTITUDE, 2, gpsAlt);
+    DEBUG(ALTITUDE, 3, gpsGround);
 #endif
 }
 
-bool isAltitudeOffset(void)
+void positionUpdate(void)
 {
-    return altitudeOffsetSetBaro || altitudeOffsetSetGPS;
-}
-#endif
-
-int32_t getEstimatedAltitudeCm(void)
-{
-    return estimatedAltitudeCm;
+    calculateAltitude();
 }
 
-#ifdef USE_VARIO
-int16_t getEstimatedVario(void)
+void positionInit(void)
 {
-    return estimatedVario;
+    pt2FilterInit(&gpsFilter, pt2FilterGain(positionConfig()->gps_alt_lpf / 100.0f, pidGetDT()));
+    pt2FilterInit(&baroFilter, pt2FilterGain(positionConfig()->baro_alt_lpf / 100.0f, pidGetDT()));
+    pt2FilterInit(&varioFilter, pt2FilterGain(positionConfig()->vario_lpf / 100.0f, pidGetDT()));
+
+    pt3FilterInit(&gpsOffsetFilter, pt3FilterGain(positionConfig()->gps_offset_lpf / 1000.0f, pidGetDT()));
+    pt3FilterInit(&baroOffsetFilter, pt3FilterGain(positionConfig()->baro_offset_lpf / 1000.0f, pidGetDT()));
+
+    pt2FilterInit(&driftFilter, pt2FilterGain(positionConfig()->baro_drift_lpf / 1000.0f, pidGetDT()));
 }
-#endif

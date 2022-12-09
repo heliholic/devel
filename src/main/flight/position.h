@@ -22,18 +22,26 @@
 
 #include "common/time.h"
 
-#define POSITION_DEFAULT_ALT_NUM_SATS_GPS_USE 10
-#define POSITION_DEFAULT_ALT_NUM_SATS_BARO_FALLBACK 7
-
 typedef struct positionConfig_s {
-    uint8_t altSource;
-    uint8_t altNumSatsGpsUse;
-    uint8_t altNumSatsBaroFallback;
+    uint8_t alt_source;
+    uint8_t baro_alt_lpf;
+    uint8_t baro_offset_lpf;
+    uint8_t baro_drift_lpf;
+    uint8_t gps_alt_lpf;
+    uint8_t gps_offset_lpf;
+    uint8_t gps_min_sats;
+    uint8_t vario_lpf;
 } positionConfig_t;
 
 PG_DECLARE(positionConfig_t, positionConfig);
 
-bool isAltitudeOffset(void);
-void calculateEstimatedAltitude(timeUs_t currentTimeUs);
+bool hasAltitudeOffset(void);
+
+void positionInit(void);
+void positionUpdate(void);
+
+float getAltitude(void);
+float getVario(void);
+
 int32_t getEstimatedAltitudeCm(void);
 int16_t getEstimatedVario(void);
