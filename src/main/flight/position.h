@@ -28,7 +28,7 @@ typedef struct positionConfig_s {
 
 PG_DECLARE(positionConfig_t, positionConfig);
 
-bool isAltitudeOffset(void);
+bool hasAltitudeOffset(void);
 
 void positionInit(void);
 void positionUpdate(void);

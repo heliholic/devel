@@ -56,23 +56,24 @@ PG_RESET_TEMPLATE(positionConfig_t, positionConfig,
     .altSource = DEFAULT,
 );
 
+static bool wasARMED = false;
 
 static bool haveBaroAlt = false;
 static bool haveGpsAlt = false;
 
-static bool baroOffsetSet = false;
-static bool gpsOffsetSet = false;
+static bool haveBaroOffset = false;
+static bool haveGpsOffset = false;
 
-static float estimatedAltitudeCm = 0;
-static float estimatedVarioCms = 0;
+static float estimatedAltitude = 0;
+static float estimatedVario = 0;
 
 static float baroAlt = 0;
 static float gpsAlt = 0;
 
-static float varioAltPrev = 0;
-
 static float baroAltOffset = 0;
 static float gpsAltOffset = 0;
+
+static float varioAltPrev = 0;
 
 static pt3Filter_t     gpsFilter;
 static pt3Filter_t     baroFilter;
@@ -100,24 +101,15 @@ static void calculateAltitude(void)
     float baroGround = 0;
     float baroDrift = 0;
 
-    if (!ARMING_FLAG(ARMED)) {
-        baroOffsetSet = false;
-        gpsOffsetSet = false;
-    }
-
 #ifdef USE_BARO
     if (sensors(SENSOR_BARO)) {
         if (baroIsReady()) {
             baroAlt = pt3FilterApply(&baroFilter, baro.baroAltitude);
             baroGround = pt3FilterApply(&baroOffsetFilter, baroAlt);
             haveBaroAlt = true;
-
-            if (ARMING_FLAG(ARMED) && !baroOffsetSet) {
-                baroAltOffset = baroGround;
-                baroOffsetSet = true;
-            }
-
-            baroAlt -= baroAltOffset;
+        }
+        else {
+            haveBaroAlt = false;
         }
     }
 #endif
@@ -128,38 +120,60 @@ static void calculateAltitude(void)
             gpsAlt = pt3FilterApply(&gpsFilter, gpsSol.llh.altCm);
             gpsGround = pt3FilterApply(&gpsOffsetFilter, gpsAlt);
             haveGpsAlt = true;
-
-            if (ARMING_FLAG(ARMED) && !gpsOffsetSet) {
-                gpsAltOffset = gpsGround;
-                gpsOffsetSet = true;
-            }
-
-            gpsAlt -= gpsAltOffset;
         }
-
-        if (!gpsOffsetSet) {
+        else {
             haveGpsAlt = false;
         }
     }
-
 #endif
 
-    if (haveGpsAlt && haveBaroAlt) {
-        baroDrift = pt3FilterApply(&driftFilter, baroAlt - gpsAlt);
-        estimatedAltitudeCm = baroAlt - baroDrift;
-        estimatedVarioCms = calculateVario(baroAlt);
+    if (ARMING_FLAG(ARMED)) {
+        if (!wasARMED) {
+            if (haveBaroAlt) {
+                haveBaroOffset = true;
+                baroAltOffset = baroGround;
+            }
+            if (haveGpsAlt) {
+                haveGpsOffset = true;
+                gpsAltOffset = gpsGround;
+            }
+            wasARMED = true;
+        }
+
     }
-    else if (haveGpsAlt) {
-        estimatedAltitudeCm = gpsAlt;
-        estimatedVarioCms = calculateVario(gpsAlt);
-    }
-    else if (haveBaroAlt) {
-        estimatedAltitudeCm = baroAlt;
-        estimatedVarioCms = calculateVario(baroAlt);
+    else {
+        if (wasARMED) {
+            haveBaroOffset = false;
+            haveGpsOffset = false;
+            wasARMED = false;
+        }
     }
 
-    DEBUG(ALTITUDE, 0, estimatedAltitudeCm);
-    DEBUG(ALTITUDE, 1, estimatedVarioCms);
+    if (haveBaroOffset)
+        baroAlt -= baroAltOffset;
+
+    if (haveGpsAlt)
+        gpsAlt -= gpsAltOffset;
+
+    if (haveBaroAlt && haveBaroOffset) {
+        estimatedAltitude = baroAlt;
+        estimatedVario = calculateVario(baroAlt);
+        if (haveGpsAlt && haveGpsOffset) {
+            baroDrift = pt3FilterApply(&driftFilter, baroAlt - gpsAlt);
+            estimatedAltitude -= baroDrift;
+        }
+    }
+    else if (haveGpsAlt) {
+        estimatedAltitude = gpsAlt;
+        estimatedVario = calculateVario(gpsAlt);
+    }
+    else {
+        estimatedAltitude = 0;
+        estimatedVario = 0;
+    }
+
+    DEBUG(ALTITUDE, 0, estimatedAltitude);
+    DEBUG(ALTITUDE, 1, estimatedVario);
     DEBUG(ALTITUDE, 2, baroAlt);
     DEBUG(ALTITUDE, 3, baroGround);
     DEBUG(ALTITUDE, 4, baroDrift);
@@ -167,19 +181,24 @@ static void calculateAltitude(void)
     DEBUG(ALTITUDE, 6, gpsGround);
 }
 
-bool isAltitudeOffset(void)
+bool hasAltitudeOffset(void)
 {
-    return baroOffsetSet || gpsOffsetSet;
+    return haveBaroOffset || haveGpsOffset;
+}
+
+float getAltitude(void)
+{
+    return estimatedAltitude;
 }
 
 int32_t getEstimatedAltitudeCm(void)
 {
-    return estimatedAltitudeCm;
+    return estimatedAltitude;
 }
 
 int16_t getEstimatedVarioCms(void)
 {
-    return estimatedVarioCms;
+    return estimatedVario;
 }
 
 
