@@ -116,7 +116,7 @@ static void calculateAltitude(void)
 
 #ifdef USE_GPS
     if (sensors(SENSOR_GPS)) {
-        if (STATE(GPS_FIX)) {
+        if (STATE(GPS_FIX) && gpsSol.numSat > 12) {
             gpsAlt = pt3FilterApply(&gpsFilter, gpsSol.llh.altCm);
             gpsGround = pt3FilterApply(&gpsOffsetFilter, gpsAlt);
             haveGpsAlt = true;
@@ -139,7 +139,6 @@ static void calculateAltitude(void)
             }
             wasARMED = true;
         }
-
     }
     else {
         if (wasARMED) {
@@ -152,7 +151,7 @@ static void calculateAltitude(void)
     if (haveBaroOffset)
         baroAlt -= baroAltOffset;
 
-    if (haveGpsAlt)
+    if (haveGpsOffset)
         gpsAlt -= gpsAltOffset;
 
     if (haveBaroAlt && haveBaroOffset) {
@@ -172,6 +171,7 @@ static void calculateAltitude(void)
         estimatedVario = 0;
     }
 
+#if 1
     DEBUG(ALTITUDE, 0, estimatedAltitude);
     DEBUG(ALTITUDE, 1, estimatedVario);
     DEBUG(ALTITUDE, 2, baroAlt);
@@ -179,6 +179,12 @@ static void calculateAltitude(void)
     DEBUG(ALTITUDE, 4, baroDrift);
     DEBUG(ALTITUDE, 5, gpsAlt);
     DEBUG(ALTITUDE, 6, gpsGround);
+#else
+    DEBUG(ALTITUDE, 0, baroGround);
+    DEBUG(ALTITUDE, 1, baroDrift);
+    DEBUG(ALTITUDE, 2, gpsAlt);
+    DEBUG(ALTITUDE, 3, gpsGround);
+#endif
 }
 
 bool hasAltitudeOffset(void)
