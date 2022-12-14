@@ -1508,15 +1508,6 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, rxConfig()->mincheck);
         sbufWriteU16(dst, rxConfig()->rx_min_usec);
         sbufWriteU16(dst, rxConfig()->rx_max_usec);
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rcInterpolation
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rcInterpolationInterval
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rcInterpolationChannels
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rc_smoothing_mode
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rc_smoothing_input_type
-        sbufWriteU8(dst, 0); // RF TODO  rxConfig()->rc_smoothing_input_cutoff
-        sbufWriteU8(dst, 0); // RF TODO  rxConfig()->rc_smoothing_derivative_type
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rc_smoothing_derivative_cutoff
-        sbufWriteU8(dst, 0); // RF TODO rxConfig()->rc_smoothing_factor
 #ifdef USE_RX_SPI
         sbufWriteU8(dst, rxSpiConfig()->rx_spi_protocol);
         sbufWriteU32(dst, rxSpiConfig()->rx_spi_id);
@@ -2956,15 +2947,6 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         rxConfigMutable()->mincheck = sbufReadU16(src);
         rxConfigMutable()->rx_min_usec = sbufReadU16(src);
         rxConfigMutable()->rx_max_usec = sbufReadU16(src);
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
-        sbufReadU8(src); // RF TODO remove
 #ifdef USE_RX_SPI
         rxSpiConfigMutable()->rx_spi_protocol = sbufReadU8(src);
         rxSpiConfigMutable()->rx_spi_id = sbufReadU32(src);
