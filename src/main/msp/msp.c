@@ -768,8 +768,7 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
 
     case MSP_DEBUG:
         for (int i = 0; i < DEBUG_VALUE_COUNT; i++) {
-            // RF TODO sbufWriteU32(dst, debug[i]);
-            sbufWriteU16(dst, debug[i]);
+            sbufWriteU32(dst, debug[i]);
         }
         break;
 
@@ -1273,6 +1272,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 
     case MSP_DEBUG_CONFIG:
         sbufWriteU8(dst, DEBUG_COUNT);
+        sbufWriteU8(dst, DEBUG_VALUE_COUNT);
         sbufWriteU8(dst, systemConfig()->debug_mode);
         sbufWriteU8(dst, systemConfig()->debug_axis);
         break;
@@ -2195,7 +2195,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 
     case MSP_SET_DEBUG_CONFIG:
         systemConfigMutable()->debug_mode = sbufReadU8(src);
-        // RF TODO systemConfigMutable()->debug_axis = sbufReadU8(src);
+        systemConfigMutable()->debug_axis = sbufReadU8(src);
         break;
 
     case MSP_SET_ARMING_CONFIG:
