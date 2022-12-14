@@ -1643,19 +1643,13 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 
     case MSP_BLACKBOX_CONFIG:
 #ifdef USE_BLACKBOX
-        sbufWriteU8(dst, 1); //Blackbox supported
+        sbufWriteU8(dst, 1); // Blackbox supported
         sbufWriteU8(dst, blackboxConfig()->device);
-        sbufWriteU8(dst, 1); // Rate numerator, not used anymore
-        sbufWriteU8(dst, blackboxGetRateDenom());
-        sbufWriteU16(dst, blackboxGetPRatio());
-        sbufWriteU8(dst, blackboxConfig()->sample_rate);
+        sbufWriteU16(dst, blackboxConfig()->denom);
 #else
         sbufWriteU8(dst, 0); // Blackbox not supported
         sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
         sbufWriteU16(dst, 0);
-        sbufWriteU8(dst, 0);
 #endif
         break;
 
@@ -2613,24 +2607,9 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         // Don't allow config to be updated while Blackbox is logging
         if (blackboxMayEditConfig()) {
             blackboxConfigMutable()->device = sbufReadU8(src);
-            const int rateNum = sbufReadU8(src); // was rate_num
-            const int rateDenom = sbufReadU8(src); // was rate_denom
-            uint16_t pRatio = 0;
-            if (sbufBytesRemaining(src) >= 2) {
-                // p_ratio specified, so use it directly
-                pRatio = sbufReadU16(src);
-            } else {
-                // p_ratio not specified in MSP, so calculate it from old rateNum and rateDenom
-                pRatio = blackboxCalculatePDenom(rateNum, rateDenom);
-            }
-            // RF TODO refactor
-            if (false && sbufBytesRemaining(src) >= 1) {
-                // sample_rate specified, so use it directly
-                blackboxConfigMutable()->sample_rate = sbufReadU8(src);
-            } else {
-                // sample_rate not specified in MSP, so calculate it from old p_ratio
-                blackboxConfigMutable()->sample_rate = blackboxCalculateSampleRate(pRatio);
-            }
+            blackboxConfigMutable()->mode = sbufReadU8(src);
+            blackboxConfigMutable()->denom = sbufReadU16(src);
+            blackboxConfigMutable()->fields = sbufReadU32(src);
         }
         break;
 #endif
