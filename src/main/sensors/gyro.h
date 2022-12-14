@@ -79,9 +79,15 @@ typedef struct gyroSensor_s {
 
 typedef struct gyro_s {
     uint16_t sampleRateHz;
-    uint32_t targetLooptime;
+    uint16_t filterRateHz;
+    uint16_t targetRateHz;
+
     uint32_t sampleLooptime;
+    uint32_t filterLooptime;
+    uint32_t targetLooptime;
+
     float scale;
+
     float gyroADC[XYZ_AXIS_COUNT];     // aligned, calibrated, scaled, but unfiltered data from the sensor(s)
     float gyroADCd[XYZ_AXIS_COUNT];    // downsampled gyro data
     float gyroADCf[XYZ_AXIS_COUNT];    // filtered gyro data

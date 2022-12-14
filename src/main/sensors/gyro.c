@@ -473,7 +473,7 @@ FAST_CODE void gyroFiltering(timeUs_t currentTimeUs)
     if (!overflowDetected) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             // integrate using trapezium rule to avoid bias
-            accumulatedMeasurements[axis] += 0.5f * (gyroPrevious[axis] + gyro.gyroADCf[axis]) * gyro.targetLooptime;
+            accumulatedMeasurements[axis] += 0.5f * (gyroPrevious[axis] + gyro.gyroADCf[axis]) * gyro.filterLooptime;
             gyroPrevious[axis] = gyro.gyroADCf[axis];
         }
         accumulatedMeasurementCount++;
@@ -488,7 +488,7 @@ bool gyroGetAccumulationAverage(float *accumulationAverage)
 {
     if (accumulatedMeasurementCount) {
         // If we have gyro data accumulated, calculate average rate that will yield the same rotation
-        const timeUs_t accumulatedMeasurementTimeUs = accumulatedMeasurementCount * gyro.targetLooptime;
+        const timeUs_t accumulatedMeasurementTimeUs = accumulatedMeasurementCount * gyro.filterLooptime;
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             accumulationAverage[axis] = accumulatedMeasurements[axis] / accumulatedMeasurementTimeUs;
             accumulatedMeasurements[axis] = 0.0f;
@@ -556,7 +556,7 @@ static void dynLpfGyroUpdate(float ratio)
     if (gyro.dynLpfFilter != DYN_LPF_NONE) {
         const float cutoffFreq = constrainf(ratio * gyro.dynLpfHz, gyro.dynLpfMin, gyro.dynLpfMax);
         DEBUG_SET(DEBUG_DYN_LPF, 2, lrintf(cutoffFreq));
-        const float gyroDt = gyro.targetLooptime * 1e-6f;
+        const float gyroDt = gyro.filterLooptime * 1e-6f;
         switch (gyro.dynLpfFilter) {
         case DYN_LPF_PT1:
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -565,7 +565,7 @@ static void dynLpfGyroUpdate(float ratio)
             break;
         case DYN_LPF_BIQUAD:
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-                biquadFilterUpdateLPF(&gyro.lowpassFilter[axis].biquadFilterState, cutoffFreq, gyro.targetLooptime);
+                biquadFilterUpdateLPF(&gyro.lowpassFilter[axis].biquadFilterState, cutoffFreq, gyro.filterLooptime);
             }
             break;
         case  DYN_LPF_PT2:
@@ -586,7 +586,7 @@ static void dynLpfDTermUpdate(float ratio)
 {
     if (gyro.dynLpfDtermFilter != DYN_LPF_NONE) {
         const float cutoffFreq = constrainf(ratio * gyro.dynLpfDtermHz, gyro.dynLpfDtermMin, gyro.dynLpfDtermMax);
-        const float gyroDt = gyro.targetLooptime * 1e-6f;
+        const float gyroDt = gyro.filterLooptime * 1e-6f;
         switch (gyro.dynLpfDtermFilter) {
         case DYN_LPF_PT1:
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -595,7 +595,7 @@ static void dynLpfDTermUpdate(float ratio)
             break;
         case DYN_LPF_BIQUAD:
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-                biquadFilterUpdateLPF(&gyro.dtermLowpassFilter[axis].biquadFilterState, cutoffFreq, gyro.targetLooptime);
+                biquadFilterUpdateLPF(&gyro.dtermLowpassFilter[axis].biquadFilterState, cutoffFreq, gyro.filterLooptime);
             }
             break;
         case DYN_LPF_PT2:
