@@ -126,7 +126,7 @@ enum {
 int16_t magHold;
 #endif
 
-static FAST_DATA_ZERO_INIT uint8_t pidUpdateCounter;
+static FAST_DATA_ZERO_INIT int16_t pidUpdateCounter;
 
 static timeUs_t disarmAt;     // Time of automatic disarm when "Don't spin the motors when armed" is enabled and auto_disarm_delay is nonzero
 
@@ -741,27 +741,18 @@ void taskGyroSample(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
     gyroUpdate();
-    if (pidUpdateCounter % activePidLoopDenom == 0) {
-        pidUpdateCounter = 0;
-    }
-    pidUpdateCounter++;
+
+    pidUpdateCounter = (pidUpdateCounter + 1) % activePidLoopDenom;
 }
 
 bool gyroFilterReady(void)
 {
-    if (pidUpdateCounter % activePidLoopDenom == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return (pidUpdateCounter % activeFilterLoopDenom == 0);
 }
 
 bool pidLoopReady(void)
 {
-    if ((pidUpdateCounter % activePidLoopDenom) == (activePidLoopDenom / 2)) {
-        return true;
-    }
-    return false;
+    return ((pidUpdateCounter - 1) % activePidLoopDenom == 0);
 }
 
 void taskFiltering(timeUs_t currentTimeUs)

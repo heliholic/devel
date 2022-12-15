@@ -31,10 +31,11 @@
 #include "pid.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pidConfig_t, pidConfig, PG_PID_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(pidConfig_t, pidConfig, PG_PID_CONFIG, 0);
 
 PG_RESET_TEMPLATE(pidConfig_t, pidConfig,
-    .pid_process_denom = PID_PROCESS_DENOM_DEFAULT
+    .pid_process_denom = PID_PROCESS_DENOM_DEFAULT,
+    .filter_process_denom = PID_PROCESS_DENOM_DEFAULT,
 );
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(pidProfile_t, PID_PROFILE_COUNT, pidProfiles, PG_PID_PROFILE, 0);
