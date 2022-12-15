@@ -153,6 +153,7 @@ typedef struct gyro_s {
 
 extern gyro_t gyro;
 extern uint8_t activePidLoopDenom;
+extern uint8_t activeFilterLoopDenom;
 
 enum {
     GYRO_OVERFLOW_CHECK_NONE = 0,
