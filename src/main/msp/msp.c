@@ -2892,7 +2892,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         mixerConfigMutable()->tail_rotor_mode = sbufReadU8(src);
         mixerConfigMutable()->tail_motor_idle = sbufReadU8(src);
         mixerConfigMutable()->swash_ring = sbufReadU8(src);
-        // RF TODO mixerConfigMutable()->swash_phase = sbufReadU8(src);
+        mixerConfigMutable()->swash_phase = sbufReadU8(src);
         break;
 
     case MSP_SET_MIXER_INPUT:
