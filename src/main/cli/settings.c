@@ -492,6 +492,9 @@ const char * const lookupTableRescueMode[] = {
     "OFF", "CLIMB", "ALT_HOLD",
 };
 
+const char * const lookupTableSwashType[] = {
+    "NONE", "PASSTHROUGH", "CP120", "CP135", "CP140", "FP90L", "FP90V",
+};
 
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
@@ -603,6 +606,7 @@ const lookupTableEntry_t lookupTables[] = {
 #endif
 
     LOOKUP_TABLE_ENTRY(lookupTableRescueMode),
+    LOOKUP_TABLE_ENTRY(lookupTableSwashType),
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -874,6 +878,7 @@ const clivalue_t valueTable[] = {
     { "main_rotor_dir",             VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ROTATION_DIR }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, main_rotor_dir) },
     { "tail_rotor_mode",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_TAIL_MODE }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_rotor_mode) },
     { "tail_motor_idle",            VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_motor_idle) },
+    { "swash_type",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_SWASH_TYPE }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_type) },
     { "swash_ring",                 VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_ring) },
     { "swash_phase",                VAR_INT16  | MASTER_VALUE,  .config.minmax = { -1800, 1800 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_phase) },
     { "collective_hs_correction",   VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, coll_correction) },
