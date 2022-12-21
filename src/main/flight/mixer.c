@@ -54,6 +54,8 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_GENERIC_MIXER_CONFIG, 0);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
+    .mixer_type = MIXER_TYPE_NONE,
+    .mixer_flags = 0,
     .main_rotor_dir = DIR_CW,
     .tail_rotor_mode = TAIL_MODE_VARIABLE,
     .tail_motor_idle = 0,
@@ -116,7 +118,7 @@ static inline void mixerHistoryUpdate(void)
 
 #endif /* USE_MIXER_HISTORY */
 
-static FAST_CODE void mixerSetInput(int index, float value)
+static void mixerSetInput(int index, float value)
 {
     const mixerInput_t *in = mixerInputs(index);
 
@@ -144,7 +146,27 @@ static FAST_CODE void mixerSetInput(int index, float value)
     }
 }
 
-static FAST_CODE void mixerCyclicUpdate(void)
+static inline void mixerSetServoOutput(uint8_t i, float value)
+{
+    mixOutput[MIXER_SERVO_OFFSET + i] = value;
+}
+
+static inline void mixerSetMotorOutput(uint8_t i, float value)
+{
+    mixOutput[MIXER_MOTOR_OFFSET + i] = value;
+}
+
+static inline void mixerSetServoOutputMap(uint8_t input, uint8_t servo)
+{
+    mixOutputMap[MIXER_SERVO_OFFSET + servo] |= BIT(input);
+}
+
+static inline void mixerSetMotorOutputMap(uint8_t input, uint8_t motor)
+{
+    mixOutputMap[MIXER_MOTOR_OFFSET + motor] |= BIT(input);
+}
+
+static void mixerCyclicUpdate(void)
 {
     // Swash phasing
     if (phaseSin != 0)
@@ -192,7 +214,7 @@ static FAST_CODE void mixerCyclicUpdate(void)
                         sq(mixInput[MIXER_IN_STABILIZED_PITCH]));
 }
 
-static FAST_CODE void mixerCollectiveUpdate(void)
+static void mixerCollectiveUpdate(void)
 {
     // Headspeed fluctuation ratio
     const float ratio = constrainf(getHeadSpeedRatio(), 0.90f, 1.25f);
@@ -204,7 +226,7 @@ static FAST_CODE void mixerCollectiveUpdate(void)
     mixInput[MIXER_IN_STABILIZED_COLLECTIVE] *= corr;
 }
 
-static FAST_CODE void mixerUpdateMotorizedTail(void)
+static void mixerUpdateMotorizedTail(void)
 {
     // Motorized tail control
     if (mixerIsTailMode(TAIL_MODE_MOTORIZED)) {
@@ -255,7 +277,91 @@ static FAST_CODE void mixerUpdateMotorizedTail(void)
     }
 }
 
-static FAST_CODE void mixerUpdateInputs(void)
+
+#define invert(bit)     ((mixerConfig()->mixer_flags & BIT(bit)) ? -1 : 1)
+#define inputVal(index) (mixInput[index] * mixerInputs(index)->rate / 1000.0f)
+
+static void mixerUpdateBasic(void)
+{
+    if (mixerConfig()->mixer_type)
+    {
+        const float SR = inputVal(MIXER_IN_STABILIZED_ROLL) * invert(ROLL);
+        const float SP = inputVal(MIXER_IN_STABILIZED_PITCH) * invert(PITCH);
+        const float SY = inputVal(MIXER_IN_STABILIZED_YAW) * invert(YAW);
+        const float SC = inputVal(MIXER_IN_STABILIZED_COLLECTIVE) * invert(COLLECTIVE);
+        const float ST = inputVal(MIXER_IN_STABILIZED_THROTTLE) * invert(THROTTLE);
+
+        switch (mixerConfig()->mixer_type) {
+            case MIXER_TYPE_120:
+                mixerSetServoOutput(0, 0.5f * SC - SP);
+                mixerSetServoOutput(1, 0.5f * SC + 0.86602540f * SR + 0.5f * SP);
+                mixerSetServoOutput(2, 0.5f * SC - 0.86602540f * SR + 0.5f * SP);
+                break;
+
+            case MIXER_TYPE_135:
+                mixerSetServoOutput(0, 0.5f * SC - SP);
+                mixerSetServoOutput(1, 0.5f * SC + 0.70710678f * SR + 0.70710678f * SP);
+                mixerSetServoOutput(2, 0.5f * SC - 0.70710678f * SR + 0.70710678f * SP);
+                break;
+
+            case MIXER_TYPE_140:
+                mixerSetServoOutput(0, 0.5f * SC - SP);
+                mixerSetServoOutput(1, 0.5f * SC + 0.64278760f * SR + 0.7660444f * SP);
+                mixerSetServoOutput(2, 0.5f * SC - 0.64278760f * SR + 0.7660444f * SP);
+                break;
+
+            case MIXER_TYPE_90L:
+                mixerSetServoOutput(0, -SP);
+                mixerSetServoOutput(1, -SR);
+                break;
+
+            case MIXER_TYPE_90V:
+                mixerSetServoOutput(0,  0.70710678f * SR - 0.70710678f * SP);
+                mixerSetServoOutput(1, -0.70710678f * SR - 0.70710678f * SP);
+                break;
+
+            default:
+                mixerSetServoOutput(0, SP);
+                mixerSetServoOutput(1, SR);
+                mixerSetServoOutput(2, SC);
+                break;
+        }
+
+        mixerSetMotorOutput(0, ST);
+
+        if (mixerMotorizedTail())
+            mixerSetMotorOutput(1, SY);
+        else
+            mixerSetServoOutput(3, SY);
+    }
+}
+
+static void mixerUpdateRules(void)
+{
+    for (int i = 0; i < MIXER_RULE_COUNT; i++) {
+        if (rules[i].oper) {
+            uint8_t src = rules[i].input;
+            uint8_t dst = rules[i].output;
+            float   val = inputVal(src);
+            float   out = (rules[i].offset + rules[i].weight * val) / 1000.0f;
+
+            switch (rules[i].oper)
+            {
+                case MIXER_OP_SET:
+                    mixOutput[dst] = out;
+                    break;
+                case MIXER_OP_ADD:
+                    mixOutput[dst] += out;
+                    break;
+                case MIXER_OP_MUL:
+                    mixOutput[dst] *= out;
+                    break;
+            }
+        }
+    }
+}
+
+static void mixerUpdateInputs(void)
 {
     // Flight Dynamics
     mixerSetInput(MIXER_IN_RC_COMMAND_ROLL, getRcDeflection(ROLL));
@@ -279,11 +385,11 @@ static FAST_CODE void mixerUpdateInputs(void)
     // Calculate cyclic
     mixerCyclicUpdate();
 
-    // Update governor sub-mixer
-    governorUpdate();
-
     // Calculate collective
     mixerCollectiveUpdate();
+
+    // Update governor sub-mixer
+    governorUpdate();
 
     // Update throttle from governor
     mixerSetInput(MIXER_IN_STABILIZED_THROTTLE, getGovernorOutput());
@@ -298,7 +404,7 @@ static FAST_CODE void mixerUpdateInputs(void)
 #endif
 }
 
-void FAST_CODE mixerUpdate(void)
+void mixerUpdate(void)
 {
     // Reset saturation
     for (int i = 0; i < MIXER_INPUT_COUNT; i++) {
@@ -314,28 +420,11 @@ void FAST_CODE mixerUpdate(void)
     // Fetch input values
     mixerUpdateInputs();
 
-    // Calculate mixer outputs
-    for (int i = 0; i < MIXER_RULE_COUNT; i++) {
-        if (rules[i].oper) {
-            uint8_t src = rules[i].input;
-            uint8_t dst = rules[i].output;
-            float   val = mixInput[src] * mixerInputs(src)->rate / 1000.0f;
-            float   out = (rules[i].offset + rules[i].weight * val) / 1000.0f;
+    // Evaluate hard-coded mixer
+    mixerUpdateBasic();
 
-            switch (rules[i].oper)
-            {
-                case MIXER_OP_SET:
-                    mixOutput[dst] = out;
-                    break;
-                case MIXER_OP_ADD:
-                    mixOutput[dst] += out;
-                    break;
-                case MIXER_OP_MUL:
-                    mixOutput[dst] *= out;
-                    break;
-            }
-        }
-    }
+    // Evaluate rule-based mixer
+    mixerUpdateRules();
 }
 
 void INIT_CODE mixerInitConfig(void)
@@ -370,6 +459,46 @@ void INIT_CODE mixerInit(void)
     for (int i = 1; i < MIXER_INPUT_COUNT; i++) {
         mixOverride[i] = MIXER_OVERRIDE_OFF;
     }
+
+    switch (mixerConfig()->mixer_type) {
+        case MIXER_TYPE_120:
+        case MIXER_TYPE_135:
+        case MIXER_TYPE_140:
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_COLLECTIVE, 0);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_COLLECTIVE, 1);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_COLLECTIVE, 2);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 0);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 1);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 2);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_ROLL, 1);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_ROLL, 2);
+            break;
+
+        case MIXER_TYPE_90L:
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 0);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_ROLL, 1);
+            break;
+
+        case MIXER_TYPE_90V:
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 0);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 1);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_ROLL, 0);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_ROLL, 1);
+            break;
+
+        case MIXER_TYPE_THRU:
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_COLLECTIVE, 0);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_PITCH, 1);
+            mixerSetServoOutputMap(MIXER_IN_STABILIZED_ROLL, 2);
+            break;
+    }
+
+    mixerSetMotorOutputMap(MIXER_IN_STABILIZED_THROTTLE, 0);
+
+    if (mixerMotorizedTail())
+        mixerSetMotorOutputMap(MIXER_IN_STABILIZED_YAW, 1);
+    else
+        mixerSetServoOutputMap(MIXER_IN_STABILIZED_YAW, 3);
 
     for (int i = 0; i < MIXER_RULE_COUNT; i++)
     {

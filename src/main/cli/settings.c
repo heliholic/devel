@@ -492,6 +492,9 @@ const char * const lookupTableRescueMode[] = {
     "OFF", "CLIMB", "ALT_HOLD",
 };
 
+const char * const lookupTableMixerType[] = {
+    "NONE", "PASSTHROUGH", "CP120", "CP135", "CP140", "FP90L", "FP90V",
+};
 
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
@@ -603,6 +606,7 @@ const lookupTableEntry_t lookupTables[] = {
 #endif
 
     LOOKUP_TABLE_ENTRY(lookupTableRescueMode),
+    LOOKUP_TABLE_ENTRY(lookupTableMixerType),
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -871,6 +875,11 @@ const clivalue_t valueTable[] = {
 #endif // USE_BEEPER
 
 // PG_MIXER_CONFIG
+    { "mixer_type",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_MIXER_TYPE }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, mixer_type) },
+    { "mixer_invert_roll",          VAR_UINT8  | MASTER_VALUE | MODE_BITSET, .config.bitpos = ROLL, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t,  mixer_flags) },
+    { "mixer_invert_pitch",         VAR_UINT8  | MASTER_VALUE | MODE_BITSET, .config.bitpos = PITCH, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t,  mixer_flags) },
+    { "mixer_invert_yaw",           VAR_UINT8  | MASTER_VALUE | MODE_BITSET, .config.bitpos = YAW, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t,  mixer_flags) },
+    { "mixer_invert_collective",    VAR_UINT8  | MASTER_VALUE | MODE_BITSET, .config.bitpos = COLLECTIVE, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t,  mixer_flags) },
     { "main_rotor_dir",             VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ROTATION_DIR }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, main_rotor_dir) },
     { "tail_rotor_mode",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_TAIL_MODE }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_rotor_mode) },
     { "tail_motor_idle",            VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_motor_idle) },
