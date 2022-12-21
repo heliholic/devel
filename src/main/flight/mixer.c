@@ -54,6 +54,9 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_GENERIC_MIXER_CONFIG, 0);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
+    .mixer_type = MIXER_TYPE_NONE,
+    .mixer_elev_inv = 0,
+    .mixer_coll_inv = 0,
     .main_rotor_dir = DIR_CW,
     .tail_rotor_mode = TAIL_MODE_VARIABLE,
     .tail_motor_idle = 0,
@@ -255,6 +258,11 @@ static FAST_CODE void mixerUpdateMotorizedTail(void)
     }
 }
 
+static FAST_CODE void mixerCalcMixing(void)
+{
+
+}
+
 static FAST_CODE void mixerUpdateInputs(void)
 {
     // Flight Dynamics
@@ -314,7 +322,10 @@ void FAST_CODE mixerUpdate(void)
     // Fetch input values
     mixerUpdateInputs();
 
-    // Calculate mixer outputs
+    // Evaluate hard-coded mixer
+    mixerUpdateMixing();
+
+    // Evaluate mixer rules
     for (int i = 0; i < MIXER_RULE_COUNT; i++) {
         if (rules[i].oper) {
             uint8_t src = rules[i].input;
