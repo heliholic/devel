@@ -417,7 +417,7 @@ const char * const lookupTableLedstripColors[COLOR_COUNT] = {
 };
 
 static const char * const lookupTablePositionAltSource[] = {
-    "DEFAULT", "BARO_ONLY", "GPS_ONLY"
+    "NONE", "BARO", "GPS", "BOTH"
 };
 
 static const char * const lookupTableOffOnAuto[] = {
