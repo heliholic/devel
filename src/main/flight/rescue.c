@@ -231,7 +231,7 @@ static float rescueApplyAltitudePID(float altitude)
     const float tilt = getCosTiltAngle();
 
     float alterr = altitude - getAltitude();
-    alterr = copysignf(sqrtf(fabsf(alterr)), alterr);
+    alterr = copysignf(sqrtf(fabsf(alterr)), alterr) * 10;
 
     float climb = alterr * rescue.alt_Ka;
     climb = constrainf(climb, -rescue.maxClimb, rescue.maxClimb);
@@ -246,9 +246,9 @@ static float rescueApplyAltitudePID(float altitude)
 
     pidSum = constrainf(pidSum, -rescue.maxColl, rescue.maxColl);
 
-    DEBUG(RESCUE_ALTHOLD, 0, alterr * 100);
-    DEBUG(RESCUE_ALTHOLD, 1, climb * 100);
-    DEBUG(RESCUE_ALTHOLD, 2, error * 100);
+    DEBUG(RESCUE_ALTHOLD, 0, alterr);
+    DEBUG(RESCUE_ALTHOLD, 1, climb);
+    DEBUG(RESCUE_ALTHOLD, 2, error);
     DEBUG(RESCUE_ALTHOLD, 3, Pterm);
     DEBUG(RESCUE_ALTHOLD, 4, Iterm);
     DEBUG(RESCUE_ALTHOLD, 5, pidSum);
@@ -466,7 +466,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.maxRate = pidProfile->rescue.max_setpoint_rate;
     rescue.maxAccel = pidProfile->rescue.max_setpoint_accel * pidGetDT() * 10.0f;
     rescue.maxColl = pidProfile->rescue.max_collective;
-    rescue.maxClimb = pidProfile->rescue.max_climb_rate / 100.0f;
+    rescue.maxClimb = pidProfile->rescue.max_climb_rate;
 
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100;
     rescue.climbTime = pidProfile->rescue.climb_time * 100;
@@ -477,9 +477,9 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.climbCollective = pidProfile->rescue.climb_collective;
     rescue.hoverCollective = pidProfile->rescue.hover_collective;
 
-    rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
+    rescue.hoverAltitude = pidProfile->rescue.hover_altitude;
 
-    rescue.alt_Ka = pidProfile->rescue.alt_a_gain;
-    rescue.alt_Kp = pidProfile->rescue.alt_p_gain;
-    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT();
+    rescue.alt_Ka = pidProfile->rescue.alt_a_gain / 100.0f;
+    rescue.alt_Kp = pidProfile->rescue.alt_p_gain / 100.0f;
+    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() / 100.0f;
 }
