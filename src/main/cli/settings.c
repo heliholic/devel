@@ -417,7 +417,7 @@ const char * const lookupTableLedstripColors[COLOR_COUNT] = {
 };
 
 static const char * const lookupTablePositionAltSource[] = {
-    "DEFAULT", "BARO_ONLY", "GPS_ONLY"
+    "NONE", "BARO", "GPS", "BOTH"
 };
 
 static const char * const lookupTableOffOnAuto[] = {
@@ -1614,7 +1614,6 @@ const clivalue_t valueTable[] = {
     { "position_alt_source",       VAR_UINT8 | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_POSITION_ALT_SOURCE }, PG_POSITION, offsetof(positionConfig_t, alt_source) },
     { "position_baro_alt_lpf",     VAR_UINT8 | MASTER_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_POSITION, offsetof(positionConfig_t, baro_alt_lpf) },
     { "position_baro_offset_lpf",  VAR_UINT8 | MASTER_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_POSITION, offsetof(positionConfig_t, baro_offset_lpf) },
-    { "position_baro_drift_lpf",   VAR_UINT8 | MASTER_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_POSITION, offsetof(positionConfig_t, baro_drift_lpf) },
     { "position_gps_alt_lpf",      VAR_UINT8 | MASTER_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_POSITION, offsetof(positionConfig_t, gps_alt_lpf) },
     { "position_gps_offset_lpf",      VAR_UINT8 | MASTER_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_POSITION, offsetof(positionConfig_t, gps_offset_lpf) },
     { "position_vario_lpf",      VAR_UINT8 | MASTER_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_POSITION, offsetof(positionConfig_t, vario_lpf) },
