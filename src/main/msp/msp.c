@@ -1783,11 +1783,9 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, currentPidProfile->rescue.climb_collective);
         sbufWriteU16(dst, currentPidProfile->rescue.hover_collective);
         sbufWriteU16(dst, currentPidProfile->rescue.hover_altitude);
-        sbufWriteU16(dst, currentPidProfile->rescue.alt_a_gain);
         sbufWriteU16(dst, currentPidProfile->rescue.alt_p_gain);
         sbufWriteU16(dst, currentPidProfile->rescue.alt_i_gain);
         sbufWriteU16(dst, currentPidProfile->rescue.max_collective);
-        sbufWriteU16(dst, currentPidProfile->rescue.max_climb_rate);
         sbufWriteU16(dst, currentPidProfile->rescue.max_setpoint_rate);
         sbufWriteU16(dst, currentPidProfile->rescue.max_setpoint_accel);
         /* Governor */
@@ -2513,11 +2511,9 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         currentPidProfile->rescue.climb_collective = sbufReadU16(src);
         currentPidProfile->rescue.hover_collective = sbufReadU16(src);
         currentPidProfile->rescue.hover_altitude = sbufReadU16(src);
-        currentPidProfile->rescue.alt_a_gain = sbufReadU16(src);
         currentPidProfile->rescue.alt_p_gain = sbufReadU16(src);
         currentPidProfile->rescue.alt_i_gain = sbufReadU16(src);
         currentPidProfile->rescue.max_collective = sbufReadU16(src);
-        currentPidProfile->rescue.max_climb_rate = sbufReadU16(src);
         currentPidProfile->rescue.max_setpoint_rate = sbufReadU16(src);
         currentPidProfile->rescue.max_setpoint_accel = sbufReadU16(src);
         /* Governor */
