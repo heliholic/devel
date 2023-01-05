@@ -187,17 +187,21 @@ void updateRcCommands(void)
         if (axis == FD_YAW)
             data = -data;
 
-        rcCommand[axis] = data;
-        rcDeflection[axis] = data / (500 - rcDeadband[axis]);
+        // rcCommand range is -500..500
+        data = data / (500 - rcDeadband[axis]);
+        rcDeflection[axis] = data;
+        rcCommand[axis] = data * 500;
 
         DEBUG(RC_COMMAND, axis, rcCommand[axis]);
-        DEBUG(RC_COMMAND, axis+4, rcDeflection[axis] * 1000);
     }
 
-    // RF TODO FIXME
-    data = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN;
-    rcCommand[THROTTLE] = data;
-    rcDeflection[THROTTLE] = data / PWM_RANGE;
+    // throttle range is 0..1000
+    data = scaleRangef(rcData[THROTTLE], rxConfig()->mincheck, rxConfig()->maxcheck, 0, 1);
+    data = constrainf(data, 0, 1);
+    rcDeflection[THROTTLE] = data;
+    rcCommand[THROTTLE] = data * 1000;
+
+    DEBUG(RC_COMMAND, THROTTLE, rcCommand[THROTTLE]);
 }
 
 INIT_CODE void initRcProcessing(void)
