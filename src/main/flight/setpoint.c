@@ -90,12 +90,12 @@ void setpointUpdateTiming(float frameTimeUs)
 {
     float cutoff = setpointAutoSmoothingCutoff(frameTimeUs, rxConfig()->rx_smoothness);
 
-    DEBUG(SETPOINT, 4, cutoff);
+    DEBUG(SETPOINT, 5, cutoff);
 
     cutoff = MIN(sp.smoothCutoff, cutoff);
     cutoff = constrain(cutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
 
-    DEBUG(SETPOINT, 5, cutoff);
+    DEBUG(SETPOINT, 6, cutoff);
 
     if (sp.activeCutoff != cutoff) {
         const float gain = pt3FilterGain(cutoff, pidGetDT());
@@ -104,6 +104,8 @@ void setpointUpdateTiming(float frameTimeUs)
         }
         sp.activeCutoff = cutoff;
     }
+
+    DEBUG(SETPOINT, 7, frameTimeUs);
 }
 
 INIT_CODE void setpointInitProfile(void)
