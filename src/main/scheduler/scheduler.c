@@ -270,6 +270,17 @@ timeDelta_t getTaskDeltaTimeUs(taskId_e taskId)
     }
 }
 
+timeDelta_t getTaskAverateCycleTime(taskId_e taskId)
+{
+    if (taskId == TASK_SELF) {
+        return currentTask->movingAverageCycleTimeUs;
+    } else if (taskId < TASK_COUNT) {
+        return getTask(taskId)->movingAverageCycleTimeUs;
+    } else {
+        return 0;
+    }
+}
+
 // Called by tasks executing what are known to be short states
 void schedulerIgnoreTaskStateTime()
 {
