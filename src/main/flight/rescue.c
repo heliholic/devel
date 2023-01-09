@@ -114,7 +114,7 @@ static inline void rescueChangeState(uint8_t newState)
     rescue.stateEntryTime = millis();
 
     if (newState == RSTATE_CLIMB)
-        rescue.alt_Iterm = rescue.climbCollective;
+        rescue.alt_Iterm = rescue.hoverCollective;
 }
 
 static inline timeDelta_t rescueStateTime(void)
