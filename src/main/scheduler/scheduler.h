@@ -222,6 +222,7 @@ void getTaskInfo(taskId_e taskId, taskInfo_t *taskInfo);
 void rescheduleTask(taskId_e taskId, timeDelta_t newPeriodUs);
 void setTaskEnabled(taskId_e taskId, bool newEnabledState);
 timeDelta_t getTaskDeltaTimeUs(taskId_e taskId);
+timeDelta_t getTaskAverateCycleTime(taskId_e taskId);
 void schedulerIgnoreTaskStateTime();
 void schedulerIgnoreTaskExecRate();
 void schedulerIgnoreTaskExecTime();
