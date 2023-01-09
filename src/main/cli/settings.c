@@ -1007,6 +1007,7 @@ const clivalue_t valueTable[] = {
 
     { "pid_mode",                   VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 9 }, PG_PID_PROFILE, offsetof(pidProfile_t, pid_mode) },
     { "pid_dterm_mode",             VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1 }, PG_PID_PROFILE, offsetof(pidProfile_t, dterm_mode) },
+    { "pid_dterm_yaw_mode",         VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 1 }, PG_PID_PROFILE, offsetof(pidProfile_t, dterm_yaw_mode) },
 
     { "pitch_p_gain",               VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, PID_GAIN_MAX }, PG_PID_PROFILE, offsetof(pidProfile_t, pid[PID_PITCH].P) },
     { "pitch_i_gain",               VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, PID_GAIN_MAX }, PG_PID_PROFILE, offsetof(pidProfile_t, pid[PID_PITCH].I) },
