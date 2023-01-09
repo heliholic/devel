@@ -760,6 +760,7 @@ static void pidApplyYawMode2(const pidProfile_t *pidProfile)
  **
  **   -- Separate PID gains for yaw CW & CCW
  **   -- D-term selectable D(error) or D(gyro)
+ **   -- Yaw D-gain selectable on P-term or D-term sign
  **   -- Gyro D-term filters not used
  **   -- Yaw stop gains not used
  **
@@ -866,8 +867,8 @@ static void pidApplyYawMode9(const pidProfile_t *pidProfile)
         errorRate = pt1FilterApply(&pid.errorFilter[axis], errorRate);
     }
 
-    // Select direction
-    const uint8_t index = (errorRate > 0) ? PID_YAW : PID_WAY;
+    // Select P-gain
+    const float Kp = transition(errorRate, -10, 10, pid.coef[PID_WAY].Kp, pid.coef[PID_YAW].Kp);
 
     // Saturation
     const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * errorRate > 0);
@@ -876,7 +877,7 @@ static void pidApplyYawMode9(const pidProfile_t *pidProfile)
   //// P-term
 
     // Calculate P-component
-    pid.data[axis].P = pid.coef[index].Kp * errorRate;
+    pid.data[axis].P = Kp * errorRate;
 
 
   //// D-term
@@ -886,13 +887,18 @@ static void pidApplyYawMode9(const pidProfile_t *pidProfile)
     float dTerm = (dError - pid.data[axis].prevError) * pid.freq;
     pid.data[axis].prevError = dError;
 
-    // Filter D-term * Kd
+    // Select D-gain
+    const float Kd = (pidProfile->dterm_yaw_mode) ?
+        transition(dError,    -10, 10, pid.coef[PID_YAW].Kd, pid.coef[PID_WAY].Kd):
+        transition(errorRate, -10, 10, pid.coef[PID_WAY].Kd, pid.coef[PID_YAW].Kd);
+
+    // Filter D-term
     if (pidProfile->dterm_cutoff[axis]) {
-       dTerm = pt1FilterApply(&pid.dtermFilter[axis], pid.coef[index].Kd * dTerm);
+       dTerm = pt1FilterApply(&pid.dtermFilter[axis], dTerm);
     }
 
-    // Apply D-term
-    pid.data[axis].D = dTerm;
+    // Calculate D-term
+    pid.data[axis].D = Kd * dTerm;
 
 
   //// I-term
@@ -903,6 +909,9 @@ static void pidApplyYawMode9(const pidProfile_t *pidProfile)
     // I-term change
     float itermDelta = saturation ? 0 : errorRate * pid.dT;
 
+    // Select I-gain
+    const float Ki = transition(errorRate, -10, 10, pid.coef[PID_WAY].Ki, pid.coef[PID_YAW].Ki);
+
     // Calculate I-component
     if (pid.data[axis].axisError + itermDelta > pid.errorLimit[axis]) {
         pid.data[axis].axisError = pid.errorLimit[axis];
@@ -912,7 +921,7 @@ static void pidApplyYawMode9(const pidProfile_t *pidProfile)
     }
     else {
         pid.data[axis].axisError += itermDelta;
-        pid.data[axis].I += pid.coef[index].Ki * itermDelta;
+        pid.data[axis].I += Ki * itermDelta;
     }
 
     // Apply I-term error decay
