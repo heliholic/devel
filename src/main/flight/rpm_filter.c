@@ -173,6 +173,9 @@ void rpmFilterUpdate()
 {
     if (activeBankCount > 0) {
 
+        // Use the measured filter task speed
+        uint32_t looptime = getTaskAverateCycleTime(TASK_FILTER);
+
         // Update one filter bank per cycle
         rpmFilterBank_t *filt = &filterBank[currentBank];
 
@@ -186,7 +189,7 @@ void rpmFilterUpdate()
         biquadFilter_t *Y = &filt->notch[2];
 
         // Update the filter coefficients
-        biquadFilterUpdate(R, freq, gyro.filterLooptime, filt->Q, FILTER_NOTCH, 1);
+        biquadFilterUpdate(R, freq, looptime, filt->Q, FILTER_NOTCH, 1);
 
         // Transfer the filter coefficients from Roll axis filter into Pitch and Yaw
         P->b0 = Y->b0 = R->b0;
