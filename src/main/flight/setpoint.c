@@ -48,6 +48,10 @@ typedef struct
     float accelLimit[4];
     float ringLimit;
 
+    float maxCollective;
+    float maxCollGainUp;
+    float maxCollGainDown;
+
     pt3Filter_t filter[4];
 
     uint16_t smoothCutoff;
@@ -66,6 +70,11 @@ float getSetpoint(int axis)
 float getDeflection(int axis)
 {
     return sp.deflection[axis];
+}
+
+float getMaxCollective(void)
+{
+    return sp.maxCollective;
 }
 
 uint16_t setpointFilterGetCutoffFreq(void)
@@ -128,6 +137,9 @@ INIT_CODE void setpointInit(void)
     for (int i = 0; i < 4; i++) {
         pt3FilterInit(&sp.filter[i], gain);
     }
+
+    sp.maxCollGainUp = pt1FilterGain(5.0f, pidGetDT());
+    sp.maxCollGainDown = pt1FilterGain(0.1f, pidGetDT());
 }
 
 void setpointUpdate(void)
@@ -136,6 +148,11 @@ void setpointUpdate(void)
         sp.deflection[axis] = getRcDeflection(axis);
         DEBUG_AXIS(SETPOINT, axis, 0, sp.deflection[axis] * 1000);
     }
+
+    const float collDelta = fabsf(sp.deflection[COLLECTIVE]) - sp.maxCollective;
+    sp.maxCollective += collDelta * ((collDelta > 0) ? sp.maxCollGainUp : sp.maxCollGainDown);
+    DEBUG(AIRBORNE, 5, sp.deflection[COLLECTIVE] * 1000);
+    DEBUG(AIRBORNE, 6, sp.maxCollective * 1000);
 
     const float R = sp.deflection[FD_ROLL]  * sp.ringLimit;
     const float P = sp.deflection[FD_PITCH] * sp.ringLimit;

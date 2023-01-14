@@ -83,3 +83,5 @@ void imuSetHasNewData(uint32_t dt);
 
 bool shouldInitializeGPSHeading(void);
 bool isUpright(void);
+bool isMoving(void);
+bool isAirborne(void);

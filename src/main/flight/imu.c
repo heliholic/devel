@@ -37,7 +37,10 @@
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 
+#include "flight/setpoint.h"
+#include "flight/governor.h"
 #include "flight/gps_rescue.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -88,6 +91,17 @@ static bool imuUpdated = false;
 #define GPS_COG_MIN_GROUNDSPEED 500        // 500cm/s minimum groundspeed for a gps heading to be considered valid
 
 float accAverage[XYZ_AXIS_COUNT];
+
+static float accMagnitude;
+static float accMaxAverage;
+
+static float gyroMagnitude;
+static float gyroMaxAverage;
+
+#define GYROACC_MAX_UP_GAIN            0.1f
+#define GYROACC_MAX_DOWN_GAIN          0.001f
+
+bool airborneStatus = false;
 
 bool canUseGPSHeading = true;
 
@@ -324,18 +338,31 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static bool imuIsAccelerometerHealthy(float *accAverage)
+static void updateAirborneGyro(float *gyroAvg)
 {
-    float accMagnitudeSq = 0;
-    for (int axis = 0; axis < 3; axis++) {
-        const float a = accAverage[axis];
-        accMagnitudeSq += a * a;
-    }
+    gyroMagnitude = sqrtf(sq(gyroAvg[X]) + sq(gyroAvg[Y]) + sq(gyroAvg[Z]));
+    DEBUG(AIRBORNE, 0, gyroMagnitude);
 
-    accMagnitudeSq = accMagnitudeSq * sq(acc.dev.acc_1G_rec);
+    const float gyroMaxDelta = gyroMagnitude - gyroMaxAverage;
+    gyroMaxAverage += gyroMaxDelta * ((gyroMaxDelta > 0) ? GYROACC_MAX_UP_GAIN : GYROACC_MAX_DOWN_GAIN);
+    DEBUG(AIRBORNE, 1, gyroMaxAverage);
+}
 
+static void updateAirborneAcc(float *accAvg)
+{
+    accMagnitude = acc.dev.acc_1G_rec *
+        sqrtf(sq(accAvg[X]) + sq(accAvg[Y]) + sq(accAvg[Z])) - 1.0f;
+    DEBUG(AIRBORNE, 2, accMagnitude * 100);
+
+    const float accMaxDelta = fabsf(accMagnitude) - accMaxAverage;
+    accMaxAverage += accMaxDelta * ((accMaxDelta > 0) ? GYROACC_MAX_UP_GAIN : GYROACC_MAX_DOWN_GAIN);
+    DEBUG(AIRBORNE, 3, accMaxAverage * 100);
+}
+
+static bool imuIsAccelerometerHealthy(void)
+{
     // Accept accel readings only in range 0.9g - 1.1g
-    return (0.81f < accMagnitudeSq) && (accMagnitudeSq < 1.21f);
+    return fabsf(accMagnitude) < 0.1f;
 }
 
 // Calculate the dcmKpGain to use. When armed, the gain is imuRuntimeConfig.dcm_kp * 1.0 scaling.
@@ -504,10 +531,19 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 #endif
     float gyroAverage[XYZ_AXIS_COUNT];
     gyroGetAccumulationAverage(gyroAverage);
+    updateAirborneGyro(gyroAverage);
 
     if (accGetAccumulationAverage(accAverage)) {
-        useAcc = imuIsAccelerometerHealthy(accAverage);
+        updateAirborneAcc(accAverage);
+        useAcc = imuIsAccelerometerHealthy();
     }
+
+    airborneStatus = ARMING_FLAG(ARMED) &&
+        (calculateThrottleStatus() == THROTTLE_HIGH) &&
+        isSpooledUp() &&
+        (isMoving() || getMaxCollective() > 0.20f);
+
+    DEBUG(AIRBORNE, 7, airborneStatus);
 
     imuMahonyAHRSupdate(deltaT * 1e-6f,
                         DEGREES_TO_RADIANS(gyroAverage[X]), DEGREES_TO_RADIANS(gyroAverage[Y]), DEGREES_TO_RADIANS(gyroAverage[Z]),
@@ -633,4 +669,19 @@ bool isUpright(void)
 #else
     return true;
 #endif
+}
+
+bool isMoving(void)
+{
+    return (
+#ifdef USE_ACC
+        accMaxAverage > 0.05f ||
+#endif
+        gyroMaxAverage > 10
+    );
+}
+
+bool isAirborne(void)
+{
+    return airborneStatus;
 }
