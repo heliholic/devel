@@ -28,6 +28,8 @@
 float getSetpoint(int axis);
 float getDeflection(int axis);
 
+float getMaxCollective(void);
+
 uint16_t setpointFilterGetCutoffFreq(void);
 
 void setpointInit(void);
