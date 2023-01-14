@@ -37,7 +37,10 @@
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 
+#include "flight/setpoint.h"
+#include "flight/governor.h"
 #include "flight/gps_rescue.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -89,6 +92,21 @@ static bool imuUpdated = false;
 
 float accAverage[XYZ_AXIS_COUNT];
 
+static float accDeviation;
+static float accAirborneLevel;
+static float accAirborneEstimate;
+
+static float gyroDeviation;
+static float gyroAirborneLevel;
+static float gyroAirborneEstimate;
+
+static float collAirborneLevel;
+
+#define GYROACC_PROB_UP_GAIN           0.05f
+#define GYROACC_PROB_DOWN_GAIN         0.005f
+
+bool airborneStatus = false;
+
 bool canUseGPSHeading = true;
 
 static float fc_acc;
@@ -111,6 +129,9 @@ PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 1);
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp = 2500,                // 1.0 * 10000
     .dcm_ki = 0,                   // 0.003 * 10000
+    .airborne_coll_level = 15,
+    .airborne_gyro_level = 10,
+    .airborne_acc_level = 100,
 );
 
 static void imuQuaternionComputeProducts(quaternion *quat, quaternionProducts *quatProd)
@@ -162,6 +183,10 @@ void imuConfigure(void)
     imuRuntimeConfig.dcm_ki = imuConfig()->dcm_ki / 10000.0f;
 
     fc_acc = calculateAccZLowPassFilterRCTimeConstant(5.0f); // Set to fix value
+
+    collAirborneLevel = imuConfig()->airborne_coll_level / 100.0f;
+    gyroAirborneLevel = imuConfig()->airborne_gyro_level;
+    accAirborneLevel = imuConfig()->airborne_acc_level / 100.0f;
 }
 
 void imuInit(void)
@@ -324,18 +349,32 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static bool imuIsAccelerometerHealthy(float *accAverage)
+static void updateAirborneGyro(float *gyroAvg)
 {
-    float accMagnitudeSq = 0;
-    for (int axis = 0; axis < 3; axis++) {
-        const float a = accAverage[axis];
-        accMagnitudeSq += a * a;
-    }
+    gyroDeviation = sqrtf(sq(gyroAvg[X]) + sq(gyroAvg[Y]) + sq(gyroAvg[Z]));
+    DEBUG(AIRBORNE, 0, gyroDeviation);
 
-    accMagnitudeSq = accMagnitudeSq * sq(acc.dev.acc_1G_rec);
+    const float gyroAirborneProb = (gyroDeviation > gyroAirborneLevel) ? 1 : 0;
+    const float gyroAirborneDelta = gyroAirborneProb - gyroAirborneEstimate;
+    gyroAirborneEstimate += gyroAirborneDelta * ((gyroAirborneDelta > 0) ? GYROACC_PROB_UP_GAIN : GYROACC_PROB_DOWN_GAIN);
+    DEBUG(AIRBORNE, 1, gyroAirborneEstimate * 100);
+}
 
+static void updateAirborneAcc(float *accAvg)
+{
+    accDeviation = fabsf(acc.dev.acc_1G_rec * sqrtf(sq(accAvg[X]) + sq(accAvg[Y]) + sq(accAvg[Z])) - 1.0f);
+    DEBUG(AIRBORNE, 2, accDeviation * 100);
+
+    const float accAirborneProb = (accDeviation > accAirborneLevel) ? 1 : 0;
+    const float accAirborneDelta = accAirborneProb - accAirborneEstimate;
+    accAirborneEstimate += accAirborneDelta * ((accAirborneDelta > 0) ? GYROACC_PROB_UP_GAIN : GYROACC_PROB_DOWN_GAIN);
+    DEBUG(AIRBORNE, 3, accAirborneEstimate * 100);
+}
+
+static bool imuIsAccelerometerHealthy(void)
+{
     // Accept accel readings only in range 0.9g - 1.1g
-    return (0.81f < accMagnitudeSq) && (accMagnitudeSq < 1.21f);
+    return accDeviation < 0.1f;
 }
 
 // Calculate the dcmKpGain to use. When armed, the gain is imuRuntimeConfig.dcm_kp * 1.0 scaling.
@@ -504,10 +543,17 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 #endif
     float gyroAverage[XYZ_AXIS_COUNT];
     gyroGetAccumulationAverage(gyroAverage);
+    updateAirborneGyro(gyroAverage);
 
     if (accGetAccumulationAverage(accAverage)) {
-        useAcc = imuIsAccelerometerHealthy(accAverage);
+        updateAirborneAcc(accAverage);
+        useAcc = imuIsAccelerometerHealthy();
     }
+
+    airborneStatus = ARMING_FLAG(ARMED) && isSpooledUp() &&
+        (gyroAirborneEstimate > 0.20f || accAirborneEstimate > 0.20f || getMaxCollective() > collAirborneLevel);
+
+    DEBUG(AIRBORNE, 7, airborneStatus);
 
     imuMahonyAHRSupdate(deltaT * 1e-6f,
                         DEGREES_TO_RADIANS(gyroAverage[X]), DEGREES_TO_RADIANS(gyroAverage[Y]), DEGREES_TO_RADIANS(gyroAverage[Z]),
@@ -633,4 +679,9 @@ bool isUpright(void)
 #else
     return true;
 #endif
+}
+
+bool isAirborne(void)
+{
+    return airborneStatus;
 }
