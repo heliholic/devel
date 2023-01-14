@@ -167,7 +167,7 @@ static float calcHorizonLevelStrength(void)
 
 float angleModeApply(int axis, float pidSetpoint)
 {
-    if (axis == FD_ROLL || axis == FD_PITCH)
+    if (isAirborne() && (axis == FD_ROLL || axis == FD_PITCH))
     {
         float errorAngle = calcLevelErrorAngle(axis);
 
@@ -180,7 +180,7 @@ float angleModeApply(int axis, float pidSetpoint)
 
 float horizonModeApply(int axis, float pidSetpoint)
 {
-    if (axis == FD_ROLL || axis == FD_PITCH)
+    if (isAirborne() && (axis == FD_ROLL || axis == FD_PITCH))
     {
         float errorAngle = calcLevelErrorAngle(axis);
 
