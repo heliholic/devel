@@ -24,12 +24,16 @@
 #include "build/debug.h"
 
 #include "common/axis.h"
+#include "common/maths.h"
 
 #include "config/config.h"
 #include "config/feature.h"
 
 #include "flight/pid.h"
+#include "flight/position.h"
+#include "flight/governor.h"
 
+#include "fc/runtime_config.h"
 #include "fc/rc.h"
 
 #include "setpoint.h"
@@ -48,7 +52,13 @@ typedef struct
     float accelLimit[4];
     float ringLimit;
 
+    float maximum[4];
+    float deviation[4];
+    float maxGainUp;
+    float maxGainDown;
+
     pt3Filter_t filter[4];
+    pt2Filter_t dcFilter[4];
 
     uint16_t smoothCutoff;
     uint16_t activeCutoff;
@@ -122,20 +132,48 @@ INIT_CODE void setpointInitProfile(void)
 
 INIT_CODE void setpointInit(void)
 {
+    float gain;
+
     setpointInitProfile();
 
-    const float gain = pt3FilterGain(sp.activeCutoff, pidGetDT());
+    gain = pt3FilterGain(sp.activeCutoff, pidGetDT());
     for (int i = 0; i < 4; i++) {
         pt3FilterInit(&sp.filter[i], gain);
     }
+
+    gain = pt2FilterGain(0.1f, pidGetDT());
+    for (int i = 0; i < 4; i++) {
+        pt2FilterInit(&sp.dcFilter[i], gain);
+    }
+
+    sp.maxGainUp    = pt1FilterGain(10, pidGetDT());
+    sp.maxGainDown  = sp.maxGainUp / 25;
 }
 
 void setpointUpdate(void)
 {
     for (int axis = 0; axis < 4; axis++) {
-        sp.deflection[axis] = getRcDeflection(axis);
-        DEBUG_AXIS(SETPOINT, axis, 0, sp.deflection[axis] * 1000);
+        float deflection, delta;
+
+        deflection = sp.deflection[axis] = getRcDeflection(axis);
+        DEBUG_AXIS(SETPOINT, axis, 0, deflection * 1000);
+
+        delta = sq(deflection)- sp.maximum[axis];
+        sp.maximum[axis] += delta * ((delta > 0) ? sp.maxGainUp : sp.maxGainDown);
+
+        deflection -= pt2FilterApply(&sp.dcFilter[axis], deflection);
+        delta = sq(deflection)- sp.deviation[axis];
+        sp.deviation[axis] += delta * ((delta > 0) ? sp.maxGainUp : sp.maxGainDown);
+
+        DEBUG_AXIS(SETPOINT, axis, 6, sp.maximum[axis]);
+        DEBUG_AXIS(SETPOINT, axis, 7, sp.deviation[axis]);
+
     }
+
+    DEBUG(AIRBORNE, 0, sqrtf(sp.deviation[FD_ROLL]) * 1000);
+    DEBUG(AIRBORNE, 1, sqrtf(sp.deviation[FD_PITCH]) * 1000);
+    DEBUG(AIRBORNE, 2, sqrtf(sp.maximum[FD_COLL]) * 1000);
+    DEBUG(AIRBORNE, 3, isAirborne() ? 1 : 0);
 
     const float R = sp.deflection[FD_ROLL]  * sp.ringLimit;
     const float P = sp.deflection[FD_PITCH] * sp.ringLimit;
@@ -159,4 +197,18 @@ void setpointUpdate(void)
         SP = sp.setpoint[axis] = applyRatesCurve(axis, SP);
         DEBUG_AXIS(SETPOINT, axis, 4, SP);
     }
+}
+
+bool isAirborne(void)
+{
+    return (
+        ARMING_FLAG(ARMED) &&
+        isSpooledUp() && (
+            sp.maximum[FD_COLL] > 0.025f ||
+            sp.deviation[FD_ROLL] > 0.01f ||
+            sp.deviation[FD_PITCH] > 0.01f ||
+            getAltitude() > 2.0f ||
+            FLIGHT_MODE(RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)
+        )
+    );
 }
