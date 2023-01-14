@@ -56,6 +56,9 @@ extern float rMat[3][3];
 typedef struct imuConfig_s {
     uint16_t dcm_kp;                        // DCM filter proportional gain ( x 10000)
     uint16_t dcm_ki;                        // DCM filter integral gain ( x 10000)
+    uint8_t airborne_coll_level;
+    uint8_t airborne_gyro_level;
+    uint8_t airborne_acc_level;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
@@ -83,3 +86,4 @@ void imuSetHasNewData(uint32_t dt);
 
 bool shouldInitializeGPSHeading(void);
 bool isUpright(void);
+bool isAirborne(void);
