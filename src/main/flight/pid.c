@@ -516,7 +516,7 @@ static void pidApplyCyclicMode1(const pidProfile_t *pidProfile, uint8_t axis)
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
     // Apply I-term error decay
-    if (!isSpooledUp()) {
+    if (!isAirborne()) {
         pid.data[axis].axisError *= pid.errorDecay;
     }
 
@@ -599,7 +599,7 @@ static void pidApplyYawMode1(const pidProfile_t *pidProfile)
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
     // Apply I-term error decay
-    if (!isSpooledUp()) {
+    if (!isAirborne()) {
         pid.data[axis].axisError *= pid.errorDecay;
     }
 
@@ -689,7 +689,7 @@ static void pidApplyCyclicMode2(const pidProfile_t *pidProfile, uint8_t axis)
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
     // Apply I-term error decay
-    if (!isSpooledUp()) {
+    if (!isAirborne()) {
         pid.data[axis].axisError *= pid.errorDecay;
     }
 
@@ -770,7 +770,7 @@ static void pidApplyYawMode2(const pidProfile_t *pidProfile)
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
     // Apply I-term error decay
-    if (!isSpooledUp()) {
+    if (!isAirborne()) {
         pid.data[axis].axisError *= pid.errorDecay;
     }
 
@@ -862,7 +862,7 @@ static void pidApplyCyclicMode9(const pidProfile_t *pidProfile, uint8_t axis)
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
     // Apply I-term error decay
-    if (!isSpooledUp()) {
+    if (!isAirborne()) {
         pid.data[axis].axisError *= pid.errorDecay;
     }
 
@@ -972,7 +972,7 @@ static void pidApplyYawMode9(const pidProfile_t *pidProfile)
     }
 
     // Apply I-term error decay
-    if (!isSpooledUp()) {
+    if (!isAirborne()) {
         pid.data[axis].I *= pid.errorDecay;
     }
 
