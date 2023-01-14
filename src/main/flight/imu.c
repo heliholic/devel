@@ -37,7 +37,10 @@
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 
+#include "flight/setpoint.h"
+#include "flight/governor.h"
 #include "flight/gps_rescue.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -88,6 +91,21 @@ static bool imuUpdated = false;
 #define GPS_COG_MIN_GROUNDSPEED 500        // 500cm/s minimum groundspeed for a gps heading to be considered valid
 
 float accAverage[XYZ_AXIS_COUNT];
+
+static float accDeviation;
+static float accStillEstimate;
+
+#define ACC_STILL_LIMIT                0.05f
+
+static float gyroDeviation;
+static float gyroStillEstimate;
+
+#define GYRO_STILL_LIMIT               20
+
+#define GYROACC_PROB_UP_GAIN           0.05f
+#define GYROACC_PROB_DOWN_GAIN         0.005f
+
+bool airborneStatus = false;
 
 bool canUseGPSHeading = true;
 
@@ -324,18 +342,32 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static bool imuIsAccelerometerHealthy(float *accAverage)
+static void updateAirborneGyro(float *gyroAvg)
 {
-    float accMagnitudeSq = 0;
-    for (int axis = 0; axis < 3; axis++) {
-        const float a = accAverage[axis];
-        accMagnitudeSq += a * a;
-    }
+    gyroDeviation = sqrtf(sq(gyroAvg[X]) + sq(gyroAvg[Y]) + sq(gyroAvg[Z]));
+    DEBUG(AIRBORNE, 0, gyroDeviation);
 
-    accMagnitudeSq = accMagnitudeSq * sq(acc.dev.acc_1G_rec);
+    const float gyroStillProb = (gyroDeviation > GYRO_STILL_LIMIT) ? 1 : 0;
+    const float gyroStillDelta = gyroStillProb - gyroStillEstimate;
+    gyroStillEstimate += gyroStillDelta * ((gyroStillDelta > 0) ? GYROACC_PROB_UP_GAIN : GYROACC_PROB_DOWN_GAIN);
+    DEBUG(AIRBORNE, 1, gyroStillEstimate * 100);
+}
 
+static void updateAirborneAcc(float *accAvg)
+{
+    accDeviation = fabsf(acc.dev.acc_1G_rec * sqrtf(sq(accAvg[X]) + sq(accAvg[Y]) + sq(accAvg[Z])) - 1.0f);
+    DEBUG(AIRBORNE, 2, accDeviation * 100);
+
+    const float accStillProb = (accDeviation > ACC_STILL_LIMIT) ? 1 : 0;
+    const float accStillDelta = accStillProb - accStillEstimate;
+    accStillEstimate += accStillDelta * ((accStillDelta > 0) ? GYROACC_PROB_UP_GAIN : GYROACC_PROB_DOWN_GAIN);
+    DEBUG(AIRBORNE, 3, accStillEstimate * 100);
+}
+
+static bool imuIsAccelerometerHealthy(void)
+{
     // Accept accel readings only in range 0.9g - 1.1g
-    return (0.81f < accMagnitudeSq) && (accMagnitudeSq < 1.21f);
+    return accDeviation < 0.1f;
 }
 
 // Calculate the dcmKpGain to use. When armed, the gain is imuRuntimeConfig.dcm_kp * 1.0 scaling.
@@ -504,10 +536,18 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 #endif
     float gyroAverage[XYZ_AXIS_COUNT];
     gyroGetAccumulationAverage(gyroAverage);
+    updateAirborneGyro(gyroAverage);
 
     if (accGetAccumulationAverage(accAverage)) {
-        useAcc = imuIsAccelerometerHealthy(accAverage);
+        updateAirborneAcc(accAverage);
+        useAcc = imuIsAccelerometerHealthy();
     }
+
+    // ACC noise can be very high on helis, up to +-1G. ACC detection won't work here.
+    airborneStatus = ARMING_FLAG(ARMED) && isSpooledUp() &&
+        (gyroStillEstimate > 0.20f || getMaxCollective() > 0.20f);
+
+    DEBUG(AIRBORNE, 7, airborneStatus);
 
     imuMahonyAHRSupdate(deltaT * 1e-6f,
                         DEGREES_TO_RADIANS(gyroAverage[X]), DEGREES_TO_RADIANS(gyroAverage[Y]), DEGREES_TO_RADIANS(gyroAverage[Z]),
@@ -633,4 +673,9 @@ bool isUpright(void)
 #else
     return true;
 #endif
+}
+
+bool isAirborne(void)
+{
+    return airborneStatus;
 }
