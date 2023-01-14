@@ -101,7 +101,7 @@ static inline sign_t Sign(float x)
 
 float acroTrainerApply(int axis, float setPoint)
 {
-    if (acroTrainer.Active && (axis == FD_ROLL || axis == FD_PITCH))
+    if (acroTrainer.Active && isAirborne() && (axis == FD_ROLL || axis == FD_PITCH))
     {
         const rollAndPitchTrims_t *angleTrim = &accelerometerConfig()->accelerometerTrims;
         const float currentAngle = (attitude.raw[axis] - angleTrim->raw[axis]) / 10.0f;
