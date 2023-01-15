@@ -89,6 +89,10 @@ static bool imuUpdated = false;
 
 float accAverage[XYZ_AXIS_COUNT];
 
+static float accMaxAverage;
+static float accMaxGainUp;
+static float accMaxGainDown;
+
 bool canUseGPSHeading = true;
 
 static float fc_acc;
@@ -173,6 +177,9 @@ void imuInit(void)
 #endif
 
     imuComputeRotationMatrix();
+
+    accMaxGainUp = 1.0f / 10;
+    accMaxGainDown = 1.0f / 500;
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_MULTITHREAD)
     if (pthread_mutex_init(&imuUpdateLock, NULL) != 0) {
@@ -326,16 +333,14 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 
 static bool imuIsAccelerometerHealthy(float *accAverage)
 {
-    float accMagnitudeSq = 0;
-    for (int axis = 0; axis < 3; axis++) {
-        const float a = accAverage[axis];
-        accMagnitudeSq += a * a;
-    }
+    const float accMagnitude = acc.dev.acc_1G_rec *
+        sqrtf(sq(accAverage[X]) + sq(accAverage[Y]) + sq(accAverage[Z]));
 
-    accMagnitudeSq = accMagnitudeSq * sq(acc.dev.acc_1G_rec);
+    const float accDelta = fabsf(accMagnitude - 1.0f) - accMaxAverage;
+    accMaxAverage += accDelta * ((accDelta > 0) ? accMaxGainUp : accMaxGainDown);
 
     // Accept accel readings only in range 0.9g - 1.1g
-    return (0.81f < accMagnitudeSq) && (accMagnitudeSq < 1.21f);
+    return (0.9f < accMagnitude) && (accMagnitude < 1.1f);
 }
 
 // Calculate the dcmKpGain to use. When armed, the gain is imuRuntimeConfig.dcm_kp * 1.0 scaling.
@@ -630,6 +635,15 @@ bool isUpright(void)
 {
 #ifdef USE_ACC
     return !sensors(SENSOR_ACC) || attitudeIsEstablished;
+#else
+    return true;
+#endif
+}
+
+bool isMoving(void)
+{
+#ifdef USE_ACC
+    return (accMaxAverage > 0.05f);
 #else
     return true;
 #endif
