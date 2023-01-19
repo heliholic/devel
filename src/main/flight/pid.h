@@ -132,6 +132,8 @@ float pidGetDT();
 float pidGetPidFrequency();
 
 float pidGetSetpoint(int axis);
+float pidGetSetpointHistory(int axis, uint16_t delay);
+
 float pidGetOutput(int axis);
 
 float pidGetCollective();

@@ -41,6 +41,8 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
+#include "flight/governor.h"
 #include "flight/gps_rescue.h"
 
 #include "sensors/acceleration.h"
@@ -61,20 +63,44 @@ typedef struct {
     uint8_t TiltExpertMode;
 } horizon_t;
 
+typedef struct {
+    uint8_t mode;
+    uint8_t delay[3];
+    float gain[3];
+    float error[3];
+    float errorLimit[3];
+    float setpointLimit[3];
+    pt1Filter_t filter[3];
+} attitude_t;
+
 static FAST_DATA_ZERO_INIT level_t level;
 static FAST_DATA_ZERO_INIT horizon_t horizon;
+static FAST_DATA_ZERO_INIT attitude_t att;
 
 
 INIT_CODE void levelingInit(const pidProfile_t *pidProfile)
 {
+    // ANGLE mode
     level.Gain = pidProfile->angle.level_strength / 10.0f;
     level.AngleLimit = pidProfile->angle.level_limit;
 
+    // HORIZON mode
     horizon.Gain = pidProfile->horizon.level_strength;
     horizon.Transition = pidProfile->horizon.transition;
     horizon.TiltExpertMode = pidProfile->horizon.tilt_expert_mode;
     horizon.CutoffDegrees = (175 - pidProfile->horizon.tilt_effect) * 1.8f;
     horizon.FactorRatio = (100 - pidProfile->horizon.tilt_effect) * 0.01f;
+
+    // ATTITUDE control
+    att.mode = pidProfile->attitude.mode;
+    for (int axis = 0; axis < 3; axis++) {
+        att.gain[axis] = pidProfile->attitude.gain[axis] / 10.0f;
+        att.delay[axis] = pidProfile->attitude.delay[axis];
+        att.errorLimit[axis] = constrain(pidProfile->attitude.error_limit[axis], 0, 180);
+        att.setpointLimit[axis] = constrain(pidProfile->attitude.setpoint_limit[axis], 0, 360);
+        pt1FilterInit(&att.filter[axis],
+            pt1FilterGain(constrain(pidProfile->attitude.cutoff[axis], 1, 100), pidGetDT()));
+    }
 }
 
 // calculate the stick deflection while applying level mode expo
@@ -187,6 +213,113 @@ float horizonModeApply(int axis, float pidSetpoint)
         // HORIZON mode - mix of ANGLE and ACRO modes
         // mix in errorAngle to setpoint to add a little auto-level feel
         pidSetpoint += errorAngle * horizon.Gain * calcHorizonLevelStrength();
+    }
+
+    return pidSetpoint;
+}
+
+void rotateAttitudeError(void)
+{
+    if (att.mode)
+    {
+        const float x = att.error[PID_ROLL];
+        const float y = att.error[PID_PITCH];
+        const float r = gyro.gyroADCf[Z] * M_RADf * pidGetDT();
+
+        const float a = r * r / 2;
+        const float c = 1 - a + (a * a / 6);
+        const float s = r * (1 - a / 3);
+
+        att.error[PID_ROLL]  = x * c + y * s;
+        att.error[PID_PITCH] = y * c - x * s;
+    }
+}
+
+//
+// Original Betaflight ABSOLUTE_CONTROL
+//
+static float calcAbsoluteControl(int axis, float pidSetpoint)
+{
+    const float LPF = pt1FilterApply(&att.filter[axis], pidSetpoint);
+    const float HPF = fabsf(pidSetpoint - LPF);
+    const float Gmax = LPF + 2 * HPF;
+    const float Gmin = LPF - 2 * HPF;
+
+    const float gyroRate = gyro.gyroADCf[axis];
+    const float error1 = Gmax - gyroRate;
+    const float error2 = Gmin - gyroRate;
+
+    float error, delta;
+
+    // gyroRate > Gmax
+    if (error1 < 0) {
+        error = error1;
+    }
+    // gyroRate < Gmin
+    else if (error2 > 0) {
+        error = error2;
+    }
+    // Gmin < gyroRate < Gmax
+    else {
+        if (att.error[axis] < 0)
+            error = error1; // > 0
+        else
+            error = error2; // < 0
+    }
+
+    delta = error * pidGetDT();
+
+    if (fabsf(delta) > fabsf(att.error[axis]))
+        delta = -att.error[axis];
+
+    if (isSpooledUp() && !pidAxisSaturated(axis))
+        att.error[axis] = constrainf(att.error[axis] + delta, -att.errorLimit[axis], att.errorLimit[axis]);
+
+    const float correction = constrainf(att.error[axis] * att.gain[axis], -att.setpointLimit[axis], att.setpointLimit[axis]);
+
+    DEBUG_AXIS(ATTITUDE, axis, 0, gyroRate * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 1, pidSetpoint * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 2, HPF * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 3, Gmin * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 4, Gmax * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 5, error * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 6, att.error[axis] * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 7, correction * 10);
+
+    return pidSetpoint + correction;
+}
+
+static float calcAttitudeControl(int axis, float pidSetpoint)
+{
+    const float gyroRate = gyro.gyroADCf[axis];
+    const float setpoint = pidGetSetpointHistory(axis, att.delay[axis]);
+
+    const float error = setpoint - gyroRate;
+    const float delta = pt1FilterApply(&att.filter[axis], error);
+
+    if (isSpooledUp() && !pidAxisSaturated(axis))
+        att.error[axis] = constrainf(att.error[axis] + delta * pidGetDT(), -att.errorLimit[axis], att.errorLimit[axis]);
+
+    const float correction = constrainf(att.error[axis] * att.gain[axis], -att.setpointLimit[axis], att.setpointLimit[axis]);
+
+    DEBUG_AXIS(ATTITUDE, axis, 0, gyroRate * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 1, pidSetpoint * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 2, setpoint * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 4, error * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 5, delta * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 6, att.error[axis] * 10);
+    DEBUG_AXIS(ATTITUDE, axis, 7, correction * 10);
+
+    return pidSetpoint + correction;
+}
+
+float attitudeModeApply(int axis, float pidSetpoint)
+{
+    if (att.mode == 1) {
+        pidSetpoint = calcAbsoluteControl(axis, pidSetpoint);
+    }
+    else if (att.mode == 2) {
+        pidSetpoint = calcAttitudeControl(axis, pidSetpoint);
     }
 
     return pidSetpoint;
