@@ -29,3 +29,6 @@ void levelingInit(const pidProfile_t *pidProfile);
 
 float angleModeApply(int axis, float pidSetpoint);
 float horizonModeApply(int axis, float pidSetpoint);
+float attitudeModeApply(int axis, float pidSetpoint);
+
+void rotateAttitudeError(void);
