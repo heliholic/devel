@@ -291,7 +291,6 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
     // Rate setpoint
     float setpoint = getSetpoint(axis);
 
-#ifdef USE_ACC
     // Apply leveling modes
     if (FLIGHT_MODE(ANGLE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
         setpoint = angleModeApply(axis, setpoint);
@@ -304,9 +303,14 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
         setpoint = acroTrainerApply(axis, setpoint);
     }
 #endif
+
     // Apply rescue
     setpoint = rescueApply(axis, setpoint);
-#endif
+
+    // Apply attitude stabilisation if not in "angle" mode
+    if (!FLIGHT_MODE(ANGLE_MODE | RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
+        setpoint = attitudeModeApply(axis, setpoint);
+    }
 
     // Save setpoint
     pid.data[axis].setPoint = setpoint;
@@ -955,6 +959,7 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
 
     // Rotate pitch/roll axis error with yaw rotation
     rotateAxisError();
+    rotateAttitudeError();
 
     // Calculate stabilized collective
     pidApplyCollective();

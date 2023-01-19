@@ -41,6 +41,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/gps_rescue.h"
 
 #include "sensors/acceleration.h"
@@ -61,8 +62,18 @@ typedef struct {
     uint8_t TiltExpertMode;
 } horizon_t;
 
+typedef struct {
+    uint8_t enabled;
+    float gain;
+    float error[3];
+    float errorLimit[3];
+    float setpointLimit[3];
+    pt1Filter_t filter[3];
+} attitude_t;
+
 static FAST_DATA_ZERO_INIT level_t level;
 static FAST_DATA_ZERO_INIT horizon_t horizon;
+static FAST_DATA_ZERO_INIT attitude_t att;
 
 
 INIT_CODE void levelingInit(const pidProfile_t *pidProfile)
@@ -75,6 +86,15 @@ INIT_CODE void levelingInit(const pidProfile_t *pidProfile)
     horizon.TiltExpertMode = pidProfile->horizon.tilt_expert_mode;
     horizon.CutoffDegrees = (175 - pidProfile->horizon.tilt_effect) * 1.8f;
     horizon.FactorRatio = (100 - pidProfile->horizon.tilt_effect) * 0.01f;
+
+    att.gain = pidProfile->attitude.gain / 10.0f;
+    att.enabled = (att.gain > 0);
+
+    for (int axis = 0; axis < 3; axis++) {
+        att.errorLimit[axis] = pidProfile->attitude.error_limit;
+        att.setpointLimit[axis] = pidProfile->attitude.setpoint_limit;
+        pt1FilterInit(&att.filter[axis], pt1FilterGain(pidProfile->attitude.relax_cutoff, pidGetDT()));
+    }
 }
 
 // calculate the stick deflection while applying level mode expo
@@ -187,6 +207,86 @@ float horizonModeApply(int axis, float pidSetpoint)
         // HORIZON mode - mix of ANGLE and ACRO modes
         // mix in errorAngle to setpoint to add a little auto-level feel
         pidSetpoint += errorAngle * horizon.Gain * calcHorizonLevelStrength();
+    }
+
+    return pidSetpoint;
+}
+
+void rotateAttitudeError(void)
+{
+    if (att.enabled)
+    {
+        const float x = att.error[PID_ROLL];
+        const float y = att.error[PID_PITCH];
+        const float r = gyro.gyroADCf[Z] * M_RADf * pidGetDT();
+
+        const float a = r * r / 2;
+        const float c = 1 - a + (a * a / 6);
+        const float s = r * (1 - a / 3);
+
+        att.error[PID_ROLL]  = x * c + y * s;
+        att.error[PID_PITCH] = y * c - x * s;
+    }
+}
+
+//
+// Original Betaflight ABSOLUTE_CONTROL
+//
+static float calcAbsoluteControl(int axis, float pidSetpoint)
+{
+    const float LPF = pt1FilterApply(&att.filter[axis], pidSetpoint);
+    const float HPF = fabsf(pidSetpoint - LPF);
+    const float Gmax = LPF + 2 * HPF;
+    const float Gmin = LPF - 2 * HPF;
+
+    const float gyroRate = gyro.gyroADCf[axis];
+    const float error1 = Gmax - gyroRate;
+    const float error2 = Gmin - gyroRate;
+
+    float error, delta;
+
+    // gyroRate > Gmax
+    if (error1 < 0) {
+        error = error1;
+    }
+    // gyroRate < Gmin
+    else if (error2 > 0) {
+        error = error2;
+    }
+    // Gmin < gyroRate < Gmax
+    else {
+        if (att.error[axis] < 0)
+            error = error1; // > 0
+        else
+            error = error2; // < 0
+    }
+
+    delta = error * pidGetDT();
+
+    if (fabsf(delta) > fabsf(att.error[axis]))
+        delta = -att.error[axis];
+
+    if (isAirborne() && !pidAxisSaturated(axis))
+        att.error[axis] = constrainf(att.error[axis] + delta, -att.errorLimit[axis], att.errorLimit[axis]);
+
+    float correction = constrainf(att.error[axis] * att.gain, -att.setpointLimit[axis], att.setpointLimit[axis]);
+
+    DEBUG(ATTITUDE, 0, gyroRate * 1000);
+    DEBUG(ATTITUDE, 1, pidSetpoint * 1000);
+    DEBUG(ATTITUDE, 2, LPF * 1000);
+    DEBUG(ATTITUDE, 3, HPF * 1000);
+    DEBUG(ATTITUDE, 4, error1 * 1000);
+    DEBUG(ATTITUDE, 5, error2 * 1000);
+    DEBUG(ATTITUDE, 6, error * 1000);
+    DEBUG(ATTITUDE, 7, correction * 1000);
+
+    return correction;
+}
+
+float attitudeModeApply(int axis, float pidSetpoint)
+{
+    if (att.enabled) {
+        pidSetpoint += calcAbsoluteControl(axis, pidSetpoint);
     }
 
     return pidSetpoint;
