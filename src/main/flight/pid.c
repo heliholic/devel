@@ -61,6 +61,35 @@
 
 static FAST_DATA_ZERO_INIT pid_t pid;
 
+#define USE_SETPOINT_HISTORY
+
+#ifdef USE_SETPOINT_HISTORY
+
+// History lengh is 1024 samples (must be power of 2)
+#define SETPOINT_HISTORY_TIME   (1<<10)
+#define SETPOINT_HISTORY_MASK   (SETPOINT_HISTORY_TIME-1)
+
+static float setpointHistory[4][SETPOINT_HISTORY_TIME];
+
+static FAST_DATA_ZERO_INIT uint16_t historyIndex;
+
+float pidGetSetpointHistory(int axis, uint16_t delay)
+{
+    return setpointHistory[axis][(historyIndex - delay) & SETPOINT_HISTORY_MASK];
+}
+
+static inline void setpointIncrementHistory(void)
+{
+    historyIndex = (historyIndex + 1) & SETPOINT_HISTORY_MASK;
+}
+
+static inline void setpointSetHistory(int axis, float setpoint)
+{
+    setpointHistory[axis][historyIndex] = setpoint;
+}
+
+#endif /* USE_SETPOINT_HISTORY */
+
 
 float pidGetDT()
 {
@@ -291,7 +320,6 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
     // Rate setpoint
     float setpoint = getSetpoint(axis);
 
-#ifdef USE_ACC
     // Apply leveling modes
     if (FLIGHT_MODE(ANGLE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
         setpoint = angleModeApply(axis, setpoint);
@@ -304,9 +332,19 @@ static inline float pidApplySetpoint(const pidProfile_t *pidProfile, uint8_t axi
         setpoint = acroTrainerApply(axis, setpoint);
     }
 #endif
+
     // Apply rescue
     setpoint = rescueApply(axis, setpoint);
+
+#ifdef USE_SETPOINT_HISTORY
+    // Save history
+    setpointSetHistory(axis, setpoint);
 #endif
+
+    // Apply attitude stabilisation if not in "angle" mode
+    if (!FLIGHT_MODE(ANGLE_MODE | RESCUE_MODE | GPS_RESCUE_MODE | FAILSAFE_MODE)) {
+        setpoint = attitudeModeApply(axis, setpoint);
+    }
 
     // Save setpoint
     pid.data[axis].setPoint = setpoint;
@@ -964,6 +1002,12 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
 
     // Rotate pitch/roll axis error with yaw rotation
     rotateAxisError();
+    rotateAttitudeError();
+
+#ifdef USE_SETPOINT_HISTORY
+    // Increment setpoint history pointer
+    setpointIncrementHistory();
+#endif
 
     // Calculate stabilized collective
     pidApplyCollective();
