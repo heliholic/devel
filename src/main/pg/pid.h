@@ -75,6 +75,13 @@ typedef struct {
 } pidTrainerMode_t;
 
 typedef struct {
+    uint8_t gain;
+    uint8_t relax_cutoff;
+    uint8_t error_limit;
+    uint8_t setpoint_limit;
+} pidAttitudeMode_t;
+
+typedef struct {
     uint16_t    headspeed;
     uint8_t     gain;
     uint8_t     p_gain;
@@ -150,6 +157,7 @@ typedef struct pidProfile_s {
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
     pidTrainerMode_t    trainer;
+    pidAttitudeMode_t   attitude;
     pidRescueConfig_t   rescue;
     governorProfile_t   governor;
 

@@ -1079,6 +1079,11 @@ const clivalue_t valueTable[] = {
     { "acro_trainer_gain",          VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 25, 255 }, PG_PID_PROFILE, offsetof(pidProfile_t, trainer.gain) },
 #endif // USE_ACRO_TRAINER
 
+    { "attitude_gain",              VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, attitude.gain) },
+    { "attitude_relax_cutoff",      VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, attitude.relax_cutoff) },
+    { "attitude_error_limit",       VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, attitude.error_limit) },
+    { "attitude_setpoint_limit",    VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, attitude.setpoint_limit) },
+
     { "rescue_mode",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_RESCUE_MODE }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.mode) },
     { "rescue_flip",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.flip_mode) },
     { "rescue_flip_gain",           VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 5, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.flip_gain) },
