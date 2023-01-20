@@ -110,8 +110,10 @@ static void calculateAltitude(void)
 #ifdef USE_BARO
     if (alt.source & ALT_SOURCE_BARO) {
         if (baroIsReady()) {
-            alt.baroAlt = pt2FilterApply(&alt.baroFilter, baro.baroAltitude / 100.0f);
-            alt.haveBaroAlt = true;
+            if (baro.baroAltitude < 10000 && baro.baroAltitude > -10000) {
+                alt.baroAlt = pt2FilterApply(&alt.baroFilter, baro.baroAltitude / 100.0f);
+                alt.haveBaroAlt = true;
+            }
         }
         else {
             alt.haveBaroAlt = false;
@@ -159,12 +161,14 @@ static void calculateAltitude(void)
         alt.variometer = 0;
     }
 
-    DEBUG(ALTITUDE, 0, alt.altitude * 100);
-    DEBUG(ALTITUDE, 1, alt.variometer * 100);
-    DEBUG(ALTITUDE, 2, alt.baroAlt * 100);
-    DEBUG(ALTITUDE, 3, alt.baroAltOffset * 100);
-    DEBUG(ALTITUDE, 4, alt.gpsAlt * 100);
-    DEBUG(ALTITUDE, 5, alt.gpsAltOffset * 100);
+    DEBUG(ALTITUDE, 0, alt.baroAlt * 100);
+    DEBUG(ALTITUDE, 1, alt.baroAltOffset * 100);
+    DEBUG(ALTITUDE, 2, alt.gpsAlt * 100);
+    DEBUG(ALTITUDE, 3, alt.gpsAltOffset * 100);
+    DEBUG(ALTITUDE, 4, gpsSol.llh.altCm);
+    DEBUG(ALTITUDE, 5, gpsSol.numSat);
+    DEBUG(ALTITUDE, 6, alt.altitude * 100);
+    DEBUG(ALTITUDE, 7, alt.variometer * 100);
 }
 
 void positionUpdate(void)
@@ -179,8 +183,10 @@ void positionInit(void)
 
     if (!sensors(SENSOR_BARO))
         alt.source &= ~ALT_SOURCE_BARO;
+#if 0
     if (!sensors(SENSOR_GPS))
         alt.source &= ~ALT_SOURCE_GPS;
+#endif
 
     pt2FilterInit(&alt.gpsFilter, pt2FilterGain(positionConfig()->gps_alt_lpf / 100.0f, pidGetDT()));
     pt2FilterInit(&alt.baroFilter, pt2FilterGain(positionConfig()->baro_alt_lpf / 100.0f, pidGetDT()));
