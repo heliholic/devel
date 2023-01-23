@@ -152,9 +152,13 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(YAW_DTERM_CUTOFF,   PROF,  0, 250),
     ADJ_CONFIG(YAW_FTERM_CUTOFF,   PROF,  0, 250),
 
-    ADJ_CONFIG(RESCUE_ALT_P_GAIN, PROF,  0, 1000),
-    ADJ_CONFIG(RESCUE_ALT_I_GAIN, PROF,  0, 1000),
-    ADJ_CONFIG(RESCUE_ALT_D_GAIN, PROF,  0, 1000),
+    ADJ_CONFIG(RESCUE_ALT_P_GAIN,  PROF,  0, 1000),
+    ADJ_CONFIG(RESCUE_ALT_I_GAIN,  PROF,  0, 1000),
+    ADJ_CONFIG(RESCUE_ALT_D_GAIN,  PROF,  0, 1000),
+
+    ADJ_CONFIG(ATTITUDE_PITCH_GAIN, PROF, 0, 250),
+    ADJ_CONFIG(ATTITUDE_ROLL_GAIN,  PROF, 0, 250),
+    ADJ_CONFIG(ATTITUDE_YAW_GAIN,   PROF, 0, 250),
 };
 
 
@@ -360,6 +364,16 @@ static int getAdjustmentValue(uint8_t adjFunc)
         case ADJUSTMENT_RESCUE_ALT_D_GAIN:
             value = currentPidProfile->rescue.alt_d_gain;
             break;
+
+        case ADJUSTMENT_ATTITUDE_PITCH_GAIN:
+            value = currentPidProfile->attitude.gain[PID_PITCH];
+            break;
+        case ADJUSTMENT_ATTITUDE_ROLL_GAIN:
+            value = currentPidProfile->attitude.gain[PID_ROLL];
+            break;
+        case ADJUSTMENT_ATTITUDE_YAW_GAIN:
+            value = currentPidProfile->attitude.gain[PID_YAW];
+            break;
     }
 
     return value;
@@ -564,6 +578,16 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
             break;
         case ADJUSTMENT_RESCUE_ALT_D_GAIN:
             currentPidProfile->rescue.alt_d_gain = value;
+            break;
+
+        case ADJUSTMENT_ATTITUDE_PITCH_GAIN:
+            currentPidProfile->attitude.gain[PID_PITCH] = value;
+            break;
+        case ADJUSTMENT_ATTITUDE_ROLL_GAIN:
+            currentPidProfile->attitude.gain[PID_ROLL] = value;
+            break;
+        case ADJUSTMENT_ATTITUDE_YAW_GAIN:
+            currentPidProfile->attitude.gain[PID_YAW] = value;
             break;
     }
 }
