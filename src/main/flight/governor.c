@@ -125,14 +125,14 @@ typedef struct {
 
     // Input data filters
     float           motorRPM;
-    biquadFilter_t  motorRPMFilter;
+    filter_t        motorRPMFilter;
     uint32_t        motorRPMGood;
 
     float           motorVoltage;
-    biquadFilter_t  motorVoltageFilter;
+    filter_t        motorVoltageFilter;
 
     float           motorCurrent;
-    biquadFilter_t  motorCurrentFilter;
+    filter_t        motorCurrentFilter;
 
     // Nominal battery voltage
     float           nominalVoltage;
@@ -162,7 +162,7 @@ typedef struct {
     float           TTAMull;
     float           TTAGain;
     float           TTALimit;
-    biquadFilter_t  TTAFilter;
+    filter_t        TTAFilter;
 
     // Autorotation
     bool            autoEnabled;
@@ -343,7 +343,7 @@ static void govUpdateInputs(void)
     gov.motorRPM = getMotorRawRPMf(0);
 
     // RPM signal is noisy - filtering is required
-    float filteredRPM = biquadFilterApply(&gov.motorRPMFilter, gov.motorRPM);
+    float filteredRPM = filterApply(&gov.motorRPMFilter, gov.motorRPM);
 
     // Calculate headspeed from filtered motor speed
     gov.actualHeadSpeed = filteredRPM * gov.mainGearRatio;
@@ -372,8 +372,8 @@ static void govUpdateInputs(void)
     gov.nominalVoltage = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
 
     // Voltage & current filters
-    gov.motorVoltage = biquadFilterApply(&gov.motorVoltageFilter, getBatteryVoltageLatest() * 0.01f);
-    gov.motorCurrent = biquadFilterApply(&gov.motorCurrentFilter, getAmperageLatest() * 0.01f);
+    gov.motorVoltage = filterApply(&gov.motorVoltageFilter, getBatteryVoltageLatest() * 0.01f);
+    gov.motorCurrent = filterApply(&gov.motorCurrentFilter, getAmperageLatest() * 0.01f);
 }
 
 static void govUpdateData(void)
@@ -398,7 +398,7 @@ static void govUpdateData(void)
 
     // Tail Torque Assist
     if (mixerMotorizedTail() && gov.TTAGain != 0 && isSpooledUp()) {
-        float TTA = gov.TTAGain * biquadFilterApply(&gov.TTAFilter, mixerGetInput(MIXER_IN_STABILIZED_YAW));
+        float TTA = gov.TTAGain * filterApply(&gov.TTAFilter, mixerGetInput(MIXER_IN_STABILIZED_YAW));
         gov.TTAMull = constrainf(TTA, 0, gov.TTALimit) + 1.0f;
     }
     else {
@@ -1013,10 +1013,10 @@ void governorInit(const pidProfile_t *pidProfile)
 
         const float maxFreq = pidGetPidFrequency() / 4;
 
-        biquadFilterInitLPF(&gov.TTAFilter, constrainf(governorConfig()->gov_tta_filter, 1, maxFreq), gyro.targetLooptime);
-        biquadFilterInitLPF(&gov.motorVoltageFilter, constrainf(governorConfig()->gov_pwr_filter, 1, maxFreq), gyro.targetLooptime);
-        biquadFilterInitLPF(&gov.motorCurrentFilter, constrainf(governorConfig()->gov_pwr_filter, 1, maxFreq), gyro.targetLooptime);
-        biquadFilterInitLPF(&gov.motorRPMFilter, constrainf(governorConfig()->gov_rpm_filter, 1, maxFreq), gyro.targetLooptime);
+        lowpassFilterInit(&gov.motorVoltageFilter, LPF_PT2, constrainf(governorConfig()->gov_pwr_filter, 1, maxFreq), gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.motorCurrentFilter, LPF_PT2, constrainf(governorConfig()->gov_pwr_filter, 1, maxFreq), gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, constrainf(governorConfig()->gov_rpm_filter, 1, maxFreq), gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.TTAFilter, LPF_PT2, constrainf(governorConfig()->gov_tta_filter, 1, maxFreq), gyro.targetRateHz, 0);
 
         governorInitProfile(pidProfile);
     }
