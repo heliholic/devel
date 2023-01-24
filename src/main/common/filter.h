@@ -1,115 +1,170 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma once
+
 #include <stdbool.h>
 
-struct filter_s;
-typedef struct filter_s filter_t;
+#define BUTTER_Q    0.707106781f     /* 2nd order Butterworth: 1/sqrt(2) */
+#define BESSEL_Q    0.577350269f     /* 2nd order Bessel: 1/sqrt(3) */
+#define DAMPED_Q    0.5f             /* 2nd order Critically damped: 1/sqrt(4) */
 
-typedef struct pt1Filter_s {
-    float state;
-    float k;
+enum {
+    LPF_NULL = 0,
+    LPF_PT1,
+    LPF_PT2,
+    LPF_PT3,
+    LPF_PT4,
+    LPF_BUTTER,
+    LPF_BESSEL,
+    LPF_DAMPED,
+};
+
+enum {
+    BIQUAD_NULL = 0,
+    BIQUAD_LPF,
+    BIQUAD_HPF,
+    BIQUAD_BPF,
+    BIQUAD_NOTCH,
+};
+
+typedef struct {
+    float y1;
+} nullFilter_t;
+
+typedef struct {
+    float y1;
+    float gain;
 } pt1Filter_t;
 
-typedef struct pt2Filter_s {
-    float state;
-    float state1;
-    float k;
+typedef struct {
+    float y1, y2;
+    float gain;
 } pt2Filter_t;
 
-typedef struct pt3Filter_s {
-    float state;
-    float state1;
-    float state2;
-    float k;
+typedef struct {
+    float y1, y2, y3;
+    float gain;
 } pt3Filter_t;
 
-typedef struct slewFilter_s {
-    float state;
-    float slewLimit;
-    float threshold;
-} slewFilter_t;
+typedef struct {
+    float y1, y2, y3, y4;
+    float gain;
+} pt4Filter_t;
 
-/* this holds the data required to update samples thru a filter */
-typedef struct biquadFilter_s {
-    float b0, b1, b2, a1, a2;
-    float x1, x2, y1, y2;
-    float weight;
+typedef struct {
+    float y1, y2;
+    float x1, x2;
+    float b0, b1, b2;
+    float a1, a2;
 } biquadFilter_t;
 
-typedef struct laggedMovingAverage_s {
-    uint16_t movingWindowIndex;
-    uint16_t windowSize;
-    float movingSum;
-    float *buf;
-    bool primed;
-} laggedMovingAverage_t;
+typedef union {
+    nullFilter_t    nul;
+    pt1Filter_t     pt1;
+    pt2Filter_t     pt2;
+    pt3Filter_t     pt3;
+    pt4Filter_t     pt4;
+    biquadFilter_t  sos;
+} filterData_t;
 
-typedef enum {
-    FILTER_PT1 = 0,
-    FILTER_BIQUAD,
-    FILTER_PT2,
-    FILTER_PT3,
-} lowpassFilterType_e;
+typedef struct filter_s filter_t;
 
-typedef enum {
-    FILTER_LPF,    // 2nd order Butterworth section
-    FILTER_NOTCH,
-    FILTER_BPF,
-} biquadFilterType_e;
+typedef void  (*filterInitFn)(filterData_t *filter, float cutoff, float sampleRate);
+typedef void  (*filterUpdateFn)(filterData_t *filter, float cutoff, float sampleRate);
+typedef float (*filterApplyFn)(filterData_t *filter, float input);
 
-typedef float (*filterApplyFnPtr)(filter_t *filter, float input);
+typedef struct filter_s {
+    filterInitFn    init;
+    filterApplyFn   apply;
+    filterUpdateFn  update;
+    filterData_t    data;
+} filter_t;
 
-float nullFilterApply(filter_t *filter, float input);
+enum {
+    LPF_UPDATE  = BIT(0),
+};
 
-void biquadFilterInitLPF(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate);
-void biquadFilterInit(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType, float weight);
-void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType, float weight);
-void biquadFilterUpdateLPF(biquadFilter_t *filter, float filterFreq, uint32_t refreshRate);
 
-float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
-float biquadFilterApplyDF1Weighted(biquadFilter_t *filter, float input);
-float biquadFilterApply(biquadFilter_t *filter, float input);
-float filterGetNotchQ(float centerFreq, float cutoffFreq);
+void lowpassFilterInit(filter_t *filter, uint8_t type, float cutoff, float sampleRate, uint32_t flags);
 
-void laggedMovingAverageInit(laggedMovingAverage_t *filter, uint16_t windowSize, float *buf);
-float laggedMovingAverageUpdate(laggedMovingAverage_t *filter, float input);
+float notchFilterGetQ(float centerFreq, float cutoffFreq);
+void notchFilterInit(filter_t *filter, float cutoff, float Q, float sampleRate, uint32_t flags);
+void notchFilterUpdate(filter_t *filter, float cutoff, float Q, float sampleRate);
 
-float pt1FilterGain(float f_cut, float dT);
-void pt1FilterInit(pt1Filter_t *filter, float k);
-void pt1FilterUpdateCutoff(pt1Filter_t *filter, float k);
+
+static inline void filterUpdate(filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->update(&filter->data, cutoff, sampleRate);
+}
+
+static inline float filterApply(filter_t *filter, float input)
+{
+    return filter->apply(&filter->data, input);
+}
+
+void nullFilterInit(nullFilter_t *filter, float cutoff, float sampleRate);
+void nullFilterUpdate(nullFilter_t *filter, float cutoff, float sampleRate);
+float nullFilterApply(nullFilter_t *filter, float input);
+
+void pt1FilterInit(pt1Filter_t *filter, float cutoff, float sampleRate);
+void pt1FilterUpdate(pt1Filter_t *filter, float cutoff, float sampleRate);
+void pt1FilterInitGain(pt1Filter_t *filter, float gain);
+void pt1FilterUpdateGain(pt1Filter_t *filter, float gain);
+float pt1FilterGain(float cutoff, float sampleRate);
 float pt1FilterApply(pt1Filter_t *filter, float input);
 
-float pt2FilterGain(float f_cut, float dT);
-void pt2FilterInit(pt2Filter_t *filter, float k);
-void pt2FilterUpdateCutoff(pt2Filter_t *filter, float k);
+void pt2FilterInit(pt2Filter_t *filter, float cutoff, float sampleRate);
+void pt2FilterUpdate(pt2Filter_t *filter, float cutoff, float sampleRate);
+void pt2FilterInitGain(pt2Filter_t *filter, float gain);
+void pt2FilterUpdateGain(pt2Filter_t *filter, float gain);
+float pt2FilterGain(float cutoff, float sampleRate);
 float pt2FilterApply(pt2Filter_t *filter, float input);
 
-float pt3FilterGain(float f_cut, float dT);
-void pt3FilterInit(pt3Filter_t *filter, float k);
-void pt3FilterUpdateCutoff(pt3Filter_t *filter, float k);
+void pt3FilterInit(pt3Filter_t *filter, float cutoff, float sampleRate);
+void pt3FilterUpdate(pt3Filter_t *filter, float cutoff, float sampleRate);
+void pt3FilterInitGain(pt3Filter_t *filter, float gain);
+void pt3FilterUpdateGain(pt3Filter_t *filter, float gain);
+float pt3FilterGain(float cutoff, float sampleRate);
 float pt3FilterApply(pt3Filter_t *filter, float input);
 
-void slewFilterInit(slewFilter_t *filter, float slewLimit, float threshold);
-float slewFilterApply(slewFilter_t *filter, float input);
+void pt4FilterInit(pt4Filter_t *filter, float cutoff, float sampleRate);
+void pt4FilterUpdate(pt4Filter_t *filter, float cutoff, float sampleRate);
+void pt4FilterInitGain(pt4Filter_t *filter, float gain);
+void pt4FilterUpdateGain(pt4Filter_t *filter, float gain);
+float pt4FilterGain(float cutoff, float sampleRate);
+float pt4FilterApply(pt4Filter_t *filter, float input);
+
+void biquadBesselInit(biquadFilter_t *filter, float cutoff, float sampleRate);
+void biquadBesselUpdate(biquadFilter_t *filter, float cutoff, float sampleRate);
+
+void biquadButterInit(biquadFilter_t *filter, float cutoff, float sampleRate);
+void biquadButterUpdate(biquadFilter_t *filter, float cutoff, float sampleRate);
+
+void biquadDampedInit(biquadFilter_t *filter, float cutoff, float sampleRate);
+void biquadDampedUpdate(biquadFilter_t *filter, float cutoff, float sampleRate);
+
+void biquadFilterInit(biquadFilter_t *filter, float cutoff, float sampleRate, float Q, uint8_t filterType);
+void biquadFilterUpdate(biquadFilter_t *filter, float cutoff, float sampleRate, float Q, uint8_t filterType);
+
+float biquadFilterApply(biquadFilter_t *filter, float input);
+float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
+float biquadFilterApplyDF2(biquadFilter_t *filter, float input);
+
 
 typedef struct simpleLowpassFilter_s {
     int32_t fp;

@@ -69,7 +69,7 @@ typedef struct {
     float error[3];
     float errorLimit[3];
     float setpointLimit[3];
-    pt1Filter_t filter[3];
+    filter_t filter[3];
 } attitude_t;
 
 static FAST_DATA_ZERO_INIT level_t level;
@@ -94,8 +94,7 @@ INIT_CODE void levelingInit(const pidProfile_t *pidProfile)
         att.delay[axis] = pidProfile->attitude.delay[axis];
         att.errorLimit[axis] = constrain(pidProfile->attitude.error_limit[axis], 0, 180);
         att.setpointLimit[axis] = constrain(pidProfile->attitude.setpoint_limit[axis], 0, 360);
-        pt1FilterInit(&att.filter[axis],
-            pt1FilterGain(constrain(pidProfile->attitude.cutoff[axis], 1, 100), pidGetDT()));
+        lowpassFilterInit(&att.filter[axis], LPF_PT1, constrain(pidProfile->attitude.cutoff[axis], 1, 100), pidGetPidFrequency(), 0);
     }
 }
 
@@ -236,7 +235,7 @@ void rotateAttitudeError(void)
 //
 static float calcAbsoluteControl(int axis, float pidSetpoint)
 {
-    const float LPF = pt1FilterApply(&att.filter[axis], pidSetpoint);
+    const float LPF = filterApply(&att.filter[axis], pidSetpoint);
     const float HPF = fabsf(pidSetpoint - LPF);
     const float Gmax = LPF + 2 * HPF;
     const float Gmin = LPF - 2 * HPF;
@@ -291,7 +290,7 @@ static float calcAttitudeControl(int axis, float pidSetpoint)
     const float setpoint = pidGetSetpointHistory(axis, att.delay[axis]);
 
     const float error = setpoint - gyroRate;
-    const float delta = pt1FilterApply(&att.filter[axis], error);
+    const float delta = filterApply(&att.filter[axis], error);
 
     if (isAirborne() && !pidAxisSaturated(axis))
         att.error[axis] = constrainf(att.error[axis] + delta * pidGetDT(), -att.errorLimit[axis], att.errorLimit[axis]);

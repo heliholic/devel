@@ -194,10 +194,10 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 
     // Filters
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        pt1FilterInit(&pid.gyrorFilter[i], pt1FilterGain(constrain(pidProfile->gyro_cutoff[i], 1, 250), pid.dT));
-        pt1FilterInit(&pid.errorFilter[i], pt1FilterGain(constrain(pidProfile->error_cutoff[i], 1, 250), pid.dT));
-        pt1FilterInit(&pid.dtermFilter[i], pt1FilterGain(constrain(pidProfile->dterm_cutoff[i], 1, 250), pid.dT));
-        pt1FilterInit(&pid.ftermFilter[i], pt1FilterGain(constrain(pidProfile->fterm_cutoff[i], 1, 250), pid.dT));
+        pt1FilterInit(&pid.gyrorFilter[i], constrain(pidProfile->gyro_cutoff[i], 1, 250), pid.freq);
+        pt1FilterInit(&pid.errorFilter[i], constrain(pidProfile->error_cutoff[i], 1, 250), pid.freq);
+        pt1FilterInit(&pid.dtermFilter[i], constrain(pidProfile->dterm_cutoff[i], 1, 250), pid.freq);
+        pt1FilterInit(&pid.ftermFilter[i], constrain(pidProfile->fterm_cutoff[i], 1, 250), pid.freq);
     }
 
     // Error relax
@@ -205,13 +205,13 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     if (pid.itermRelaxType) {
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
             uint8_t freq = constrain(pidProfile->iterm_relax_cutoff[i], 1, 100);
-            pt1FilterInit(&pid.relaxFilter[i], pt1FilterGain(freq, pid.dT));
+            pt1FilterInit(&pid.relaxFilter[i], freq, pid.freq);
             pid.itermRelaxLevel[i] = constrain(pidProfile->iterm_relax_level[i], 10, 250);
         }
     }
 
     // Collective impulse high-pass filter
-    pid.precomp.collectiveImpulseFilterGain = pt1FilterGain(pidProfile->yaw_collective_ff_impulse_freq / 100.0f, pid.dT);
+    pid.precomp.collectiveImpulseFilterGain = pt1FilterGain(pidProfile->yaw_collective_ff_impulse_freq / 100.0f, pid.freq);
 
     // Tail/yaw PID parameters
     pid.yawCWStopGain = pidProfile->yaw_cw_stop_gain / 100.0f;
