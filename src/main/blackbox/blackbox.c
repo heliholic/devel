@@ -400,6 +400,7 @@ static uint32_t blackboxLastArmingBeep = 0;
 static uint32_t blackboxLastFlightModeFlags = 0; // New event tracking of flight modes
 static uint8_t  blackboxLastGovState = 0;
 static uint8_t  blackboxLastRescueState = 0;
+static uint8_t  blackboxLastAirborneState = 0;
 
 static struct {
     uint32_t headerIndex;
@@ -979,6 +980,7 @@ static void blackboxStart(void)
 
     blackboxLastGovState = getGovernorState();
     blackboxLastRescueState = getRescueState();
+    blackboxLastAirborneState = isAirborne();
 
     blackboxSetState(BLACKBOX_STATE_PREPARE_LOG_FILE);
 }
@@ -1545,6 +1547,14 @@ static void blackboxCheckAndLogFlightMode(void)
         eventData.rescueState = blackboxLastRescueState;
         blackboxLogEvent(FLIGHT_LOG_EVENT_RESCUE_STATE, (flightLogEventData_t *)&eventData);
     }
+
+    if (isAirborne() != blackboxLastAirborneState) {
+        blackboxLastAirborneState = isAirborne();
+        flightLogEvent_airborneState_t eventData;
+        eventData.airborneState = blackboxLastAirborneState;
+        blackboxLogEvent(FLIGHT_LOG_EVENT_AIRBORNE_STATE, (flightLogEventData_t *)&eventData);
+    }
+
 }
 
 static bool blackboxShouldLogFastFrame(void)
