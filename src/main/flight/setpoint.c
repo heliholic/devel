@@ -44,7 +44,7 @@
 #define SP_SMOOTHING_FILTER_MAX_HZ           500
 
 #define SP_MAX_UP_CUTOFF                     20.0f
-#define SP_MAX_DN_CUTOFF                     0.25f
+#define SP_MAX_DN_CUTOFF                     0.5f
 
 typedef struct
 {
@@ -163,6 +163,7 @@ void setpointUpdate(void)
     DEBUG(AIRBORNE, 2, sqrtf(sp.maximum[FD_YAW]) * 1000);
     DEBUG(AIRBORNE, 3, sqrtf(sp.maximum[FD_COLL]) * 1000);
     DEBUG(AIRBORNE, 4, getCosTiltAngle() * 1000);
+    DEBUG(AIRBORNE, 5, isSpooledUp());
     DEBUG(AIRBORNE, 6, isHandsOn());
     DEBUG(AIRBORNE, 7, isAirborne());
 
