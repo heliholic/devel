@@ -56,6 +56,8 @@ typedef struct
     float accelLimit[4];
     float ringLimit;
 
+    float movementThreshold[4];
+
     float maxGainUp;
     float maxGainDown;
 
@@ -127,6 +129,10 @@ INIT_CODE void setpointInitProfile(void)
         sp.accelLimit[i] = 10.0f * currentControlRateProfile->accel_limit[i] * pidGetDT();
     }
 
+    for (int i = 0; i < 4; i++) {
+        sp.movementThreshold[i] = sq(rcControlsConfig()->movement_threshold[i] / 1000.0f);
+    }
+
     sp.smoothCutoff = 1000.0f / constrain(currentControlRateProfile->rates_smoothness, 1, 250);
     sp.activeCutoff = constrain(sp.smoothCutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
 }
@@ -194,10 +200,10 @@ void setpointUpdate(void)
 bool isHandsOn(void)
 {
     return (
-        sp.maximum[FD_ROLL] > 0.005f ||
-        sp.maximum[FD_PITCH] > 0.005f ||
-        sp.maximum[FD_YAW] > 0.005f ||
-        sp.maximum[FD_COLL] > 0.025f
+        sp.maximum[FD_ROLL] > sp.movementThreshold[FD_ROLL] ||
+        sp.maximum[FD_PITCH] > sp.movementThreshold[FD_PITCH] ||
+        sp.maximum[FD_YAW] > sp.movementThreshold[FD_YAW] ||
+        sp.maximum[FD_COLL] > sp.movementThreshold[FD_COLL]
     );
 }
 
