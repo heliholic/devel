@@ -39,9 +39,6 @@
 #include "pg/freq.h"
 
 
-// Enable DEBUG
-#define FREQ_DEBUG
-
 // Accepted frequence range
 #define FREQ_RANGE_MIN        10.0
 #define FREQ_RANGE_MAX        5000.0
@@ -63,6 +60,9 @@
 // Maximum number of overflow failures
 #define FREQ_MAX_FAILURES     3
 
+// Timeout for missing signal in 32bit mode [s]
+#define FREQ_TIMEOUT          0.2f
+
 // Input signal max deviation from average 75%..150%
 #define FREQ_PERIOD_MIN(p)    ((p)*3/4)
 #define FREQ_PERIOD_MAX(p)    ((p)*3/2)
@@ -81,17 +81,19 @@
 typedef struct {
 
     bool enabled;
+    bool timer32;
 
     float freq;
     float clock;
 
     int32_t  period;
     int32_t  percoef;
-    uint16_t capture;
+    uint32_t capture;
     uint32_t prescaler;
 
     uint32_t failures;
     uint32_t overflows;
+
 
     timerCCHandlerRec_t edgeCb;
     timerOvrHandlerRec_t overflowCb;
@@ -100,20 +102,8 @@ typedef struct {
 
 } freqInputPort_t;
 
-static freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT];
+static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT];
 
-
-static inline void freqDebug(freqInputPort_t *input)
-{
-#ifdef FREQ_DEBUG
-    DEBUG_SET(DEBUG_FREQ_SENSOR, 0, input->period);
-    DEBUG_SET(DEBUG_FREQ_SENSOR, 1, input->percoef);
-    DEBUG_SET(DEBUG_FREQ_SENSOR, 2, 32 - __builtin_clz(input->prescaler));
-    DEBUG_SET(DEBUG_FREQ_SENSOR, 3, input->freq * 10);
-#else
-    UNUSED(input);
-#endif
-}
 
 /*
  * Set the base clock to a frequency that gives a reading in range
@@ -126,7 +116,7 @@ static inline void freqDebug(freqInputPort_t *input)
  * We need to be able to adjust to the startup quickly enough.
  */
 
-static const int32_t perCoeffs[16] = {
+static const uint8_t perCoeffs[16] = {
      4,  4,  4,  4,
      4,  4,  4,  4,
      4,  6,  8, 16,
@@ -139,66 +129,14 @@ static void freqSetBaseClock(freqInputPort_t *input, uint32_t prescaler)
 
     input->prescaler = prescaler;
     input->percoef = perCoeffs[(__builtin_clz(prescaler) - 15)];
-    input->clock = (float)timerClock(input->timerHardware->tim) / prescaler;
+    input->clock = (float)timerClock(tim) / prescaler;
 
     tim->PSC = prescaler - 1;
+    tim->ARR = 0xffffffff;
     tim->EGR = TIM_EGR_UG;
 }
 
-static void freqReset(freqInputPort_t *input)
-{
-    input->freq = 0.0f;
-    input->period = FREQ_PERIOD_INIT;
-    input->capture = 0;
-    input->failures = 0;
-    input->overflows = 0;
-
-    freqSetBaseClock(input, FREQ_PRESCALER_MAX);
-
-    freqDebug(input);
-}
-
-static void freqEdgeCallback(timerCCHandlerRec_t *cbRec, captureCompare_t capture)
-{
-    freqInputPort_t *input = container_of(cbRec, freqInputPort_t, edgeCb);
-
-    if (input->capture) {
-
-        // Must use uint16 here because of wraparound
-        uint16_t period = capture - input->capture;
-
-        UPDATE_PERIOD_FILTER(input, period);
-
-        // Signal conditioning. Update freq filter only if period within acceptable range.
-        if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
-            float freq = input->clock / period;
-            if (freq > FREQ_RANGE_MIN && freq < FREQ_RANGE_MAX) {
-                UPDATE_FREQ_FILTER(input, freq);
-            }
-        }
-
-        freqDebug(input);
-
-        // Filtered period out of range. Change prescaler.
-        if (input->period < FREQ_SHIFT_MIN && input->prescaler > FREQ_PRESCALER_MIN) {
-            freqSetBaseClock(input, input->prescaler >> 1);
-            input->period <<= 1;
-            capture = 0;
-        }
-        else if (input->period > FREQ_SHIFT_MAX && input->prescaler < FREQ_PRESCALER_MAX) {
-            freqSetBaseClock(input, input->prescaler << 1);
-            input->period >>= 1;
-            capture = 0;
-        }
-
-        input->failures = 0;
-    }
-
-    input->overflows = 0;
-    input->capture = capture;
-}
-
-static void freqOverflowCallback(timerOvrHandlerRec_t *cbRec, captureCompare_t capture)
+static FAST_CODE void freqOverflowCallback16(timerOvrHandlerRec_t *cbRec, captureCompare_t capture)
 {
     UNUSED(capture);
     freqInputPort_t *input = container_of(cbRec, freqInputPort_t, overflowCb);
@@ -212,7 +150,11 @@ static void freqOverflowCallback(timerOvrHandlerRec_t *cbRec, captureCompare_t c
 
         // Reset after too many dead periods
         if (input->failures > FREQ_MAX_FAILURES) {
-            freqReset(input);
+            input->freq = 0;
+            input->period = FREQ_PERIOD_INIT;
+            input->failures = 0;
+
+            freqSetBaseClock(input, FREQ_PRESCALER_MAX);
         }
 
         input->overflows = 0;
@@ -220,21 +162,101 @@ static void freqOverflowCallback(timerOvrHandlerRec_t *cbRec, captureCompare_t c
     }
 }
 
+static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureCompare_t capture)
+{
+    freqInputPort_t *input = container_of(cbRec, freqInputPort_t, edgeCb);
+
+    if (input->enabled) {
+        if (input->capture) {
+            // Must use uint16 here because of wraparound
+            uint16_t period = capture - input->capture;
+            float freq = 0;
+
+            UPDATE_PERIOD_FILTER(input, period);
+
+            // Signal conditioning. Update freq filter only if period within acceptable range.
+            if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
+                freq = input->clock / period;
+                if (freq > FREQ_RANGE_MIN && freq < FREQ_RANGE_MAX) {
+                    UPDATE_FREQ_FILTER(input, freq);
+                }
+            }
+
+            const uint8_t index = input - freqInputPorts;
+            DEBUG_AXIS(FREQ_SENSOR, index, 0, input->freq * 1000);
+            DEBUG_AXIS(FREQ_SENSOR, index, 1, freq * 1000);
+            DEBUG_AXIS(FREQ_SENSOR, index, 2, capture);
+            DEBUG_AXIS(FREQ_SENSOR, index, 3, period);
+            DEBUG_AXIS(FREQ_SENSOR, index, 4, input->period);
+            DEBUG_AXIS(FREQ_SENSOR, index, 5, input->percoef);
+            DEBUG_AXIS(FREQ_SENSOR, index, 6, 32 - __builtin_clz(input->prescaler));
+
+            // Filtered period out of range. Change prescaler.
+            if (input->period < FREQ_SHIFT_MIN && input->prescaler > FREQ_PRESCALER_MIN) {
+                freqSetBaseClock(input, input->prescaler >> 1);
+                input->period <<= 1;
+                capture = 0;
+            }
+            else if (input->period > FREQ_SHIFT_MAX && input->prescaler < FREQ_PRESCALER_MAX) {
+                freqSetBaseClock(input, input->prescaler << 1);
+                input->period >>= 1;
+                capture = 0;
+            }
+
+            input->failures = 0;
+        }
+
+        input->overflows = 0;
+        input->capture = capture;
+    }
+}
+
+static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureCompare_t capture16)
+{
+    UNUSED(capture16);
+
+    freqInputPort_t *input = container_of(cbRec, freqInputPort_t, edgeCb);
+
+    if (input->enabled) {
+        uint32_t capture = *timerChCCR(input->timerHardware);
+
+        if (input->capture) {
+            uint32_t period = capture - input->capture;
+
+            float freq = input->clock / period;
+
+            if (freq > FREQ_RANGE_MIN && freq < FREQ_RANGE_MAX) {
+                UPDATE_FREQ_FILTER(input, freq);
+            }
+
+            const uint8_t index = input - freqInputPorts;
+            DEBUG_AXIS(FREQ_SENSOR, index, 0, input->freq * 1000);
+            DEBUG_AXIS(FREQ_SENSOR, index, 1, freq * 1000);
+            DEBUG_AXIS(FREQ_SENSOR, index, 2, capture);
+            DEBUG_AXIS(FREQ_SENSOR, index, 3, period);
+        }
+
+        input->capture = capture;
+    }
+}
+
 #if defined(USE_HAL_DRIVER)
 void freqICConfig(const timerHardware_t *timer, bool rising, uint16_t filter)
 {
     TIM_HandleTypeDef *handle = timerFindTimerHandle(timer->tim);
-    if (handle == NULL)
-        return;
 
-    TIM_IC_InitTypeDef sInitStructure;
-    memset(&sInitStructure, 0, sizeof(sInitStructure));
-    sInitStructure.ICPolarity = rising ? TIM_ICPOLARITY_RISING : TIM_ICPOLARITY_FALLING;
-    sInitStructure.ICSelection = TIM_ICSELECTION_DIRECTTI;
-    sInitStructure.ICPrescaler = TIM_ICPSC_DIV1;
-    sInitStructure.ICFilter = filter;
-    HAL_TIM_IC_ConfigChannel(handle, &sInitStructure, timer->channel);
-    HAL_TIM_IC_Start_IT(handle, timer->channel);
+    if (handle) {
+        TIM_IC_InitTypeDef sInitStructure;
+        memset(&sInitStructure, 0, sizeof(sInitStructure));
+
+        sInitStructure.ICPolarity = rising ? TIM_ICPOLARITY_RISING : TIM_ICPOLARITY_FALLING;
+        sInitStructure.ICSelection = TIM_ICSELECTION_DIRECTTI;
+        sInitStructure.ICPrescaler = TIM_ICPSC_DIV1;
+        sInitStructure.ICFilter = filter;
+
+        HAL_TIM_IC_ConfigChannel(handle, &sInitStructure, timer->channel);
+        HAL_TIM_IC_Start_IT(handle, timer->channel);
+    }
 }
 #else
 void freqICConfig(const timerHardware_t *timer, bool rising, uint16_t filter)
@@ -259,8 +281,13 @@ void freqInit(const freqConfig_t *freqConfig)
         const timerHardware_t *timer = timerAllocate(freqConfig->ioTag[port], OWNER_FREQ, RESOURCE_INDEX(port));
         if (timer) {
             input->timerHardware = timer;
-            input->freq = 0.0f;
+            input->enabled = true;
+            input->timer32 = (timer->tim == TIM2 || timer->tim == TIM5);
+            input->overflows = 0;
+            input->failures = 0;
+            input->capture = 0;
             input->period = FREQ_PERIOD_INIT;
+            input->freq = 0;
 
             IO_t io = IOGetByTag(freqConfig->ioTag[port]);
             IOInit(io, OWNER_FREQ, RESOURCE_INDEX(port));
@@ -268,14 +295,33 @@ void freqInit(const freqConfig_t *freqConfig)
 
             timerConfigure(timer, 0, timerClock(timer->tim));
 
-            timerChCCHandlerInit(&input->edgeCb, freqEdgeCallback);
-            timerChOvrHandlerInit(&input->overflowCb, freqOverflowCallback);
-            timerChConfigCallbacks(timer, &input->edgeCb, &input->overflowCb);
+            if (input->timer32) {
+                timerChCCHandlerInit(&input->edgeCb, freqEdgeCallback32);
+                timerChConfigCallbacks(timer, &input->edgeCb, NULL);
+            }
+            else {
+                timerChCCHandlerInit(&input->edgeCb, freqEdgeCallback16);
+                timerChOvrHandlerInit(&input->overflowCb, freqOverflowCallback16);
+                timerChConfigCallbacks(timer, &input->edgeCb, &input->overflowCb);
+            }
 
             freqICConfig(timer, true, 4);
-            freqReset(input);
+            freqSetBaseClock(input, (input->timer32) ? 1 : FREQ_PRESCALER_MAX);
+        }
+    }
+}
 
-            input->enabled = true;
+void freqUpdate(void)
+{
+    for (int port = 0; port < FREQ_SENSOR_PORT_COUNT; port++) {
+        freqInputPort_t *input = &freqInputPorts[port];
+        if (input->enabled && input->timer32 && input->capture) {
+            uint32_t counter = input->timerHardware->tim->CNT;
+            float time = (counter - input->capture) / input->clock;
+            if (time > FREQ_TIMEOUT) {
+                input->freq = 0;
+                input->capture = 0;
+            }
         }
     }
 }
