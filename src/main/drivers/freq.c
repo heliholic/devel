@@ -40,19 +40,19 @@
 
 
 // Accepted frequence range
-#define FREQ_RANGE_MIN        10
-#define FREQ_RANGE_MAX        10000
+#define FREQ_RANGE_MIN        25
+#define FREQ_RANGE_MAX        5000
 
 // Prescaler limits
 #define FREQ_PRESCALER_MIN    0x0001
 
 // Maximum depends on the max clock freq
 #if defined(STM32F411xE)
-#define FREQ_PRESCALER_MAX    0x0100
+#define FREQ_PRESCALER_MAX    0x0080
 #elif defined(STM32F4) || defined(STM32G4) || defined(STM32F7)
-#define FREQ_PRESCALER_MAX    0x0200
+#define FREQ_PRESCALER_MAX    0x0100
 #elif defined(STM32H7)
-#define FREQ_PRESCALER_MAX    0x0400
+#define FREQ_PRESCALER_MAX    0x0200
 #endif
 
 // Prescaler shift points
@@ -62,19 +62,19 @@
 // Period init value
 #define FREQ_PERIOD_INIT      0x2000
 
-// Timeout for missing signal [100ms]
-#define FREQ_TIMEOUT(clk)     ((clk)/10)
+// Timeout for missing signal [40ms]
+#define FREQ_TIMEOUT(clk)     ((clk)/25)
 
-// Input signal max deviation from average 75%..133%
-#define FREQ_PERIOD_MIN(p)    ((uint32_t)(p)*3/4)
-#define FREQ_PERIOD_MAX(p)    ((uint32_t)(p)*4/3)
+// Input signal max deviation from average 66%..150%
+#define FREQ_PERIOD_MIN(p)    ((uint32_t)(p)*2/3)
+#define FREQ_PERIOD_MAX(p)    ((uint32_t)(p)*3/2)
 
 
 #define UPDATE_FREQ_FILTER(_input,_freq) \
-    (_input)->freq += ((_freq) - ((_input)->freq)) / ((_input)->freqcoef)
+    ((_input)->freq += ((_freq) - ((_input)->freq)) / ((_input)->freqcoef))
 
 #define UPDATE_PERIOD_FILTER(_input,_period) \
-    (_input)->period += ((int32_t)(_period) - (int32_t)((_input)->period)) / ((_input)->percoef)
+    ((_input)->period += ((int32_t)(_period) - (int32_t)((_input)->period)) / ((_input)->percoef))
 
 
 typedef struct {
@@ -112,17 +112,18 @@ static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT
  * RANGE_MIN..RANGE_MAX [0x1000..0x4000]. This gives enough resolution,
  * while allowing the signal to change four times slower or faster in one cycle.
  *
- * Also, set the period filter coefficient so that it allows very quick change
+ * Also, set the filter coefficient so that it allows very quick change
  * on low frequencies, but slower change on higher. This is needed because
  * electric motors have lots of torque on low speeds, especially when starting up.
- * We need to be able to adjust to the startup quickly enough.
+ * We need to be able to adjust to the startup quickly enough, while keeping
+ * high RPM noise down.
  */
 
 static const uint8_t perCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
-     2,   3,   4,   5,
-     6,   8,  12,  16,
+     2,   2,   2,   3,
+     4,   6,   8,  12,
     16,  16,  16,  16,
     16,  16,  16,  16,
     16,  16,  16,  16,
@@ -132,8 +133,8 @@ static const uint8_t perCoeffs[32] = {
 static const uint8_t freqCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
-     2,   3,   4,   5,
-     6,   8,  10,  12,
+     1,   1,   1,   2,
+     4,   6,   8,  12,
     16,  16,  16,  16,
     16,  16,  16,  16,
     16,  16,  16,  16,
@@ -162,7 +163,7 @@ static void freqResetCapture(freqInputPort_t *input, uint8_t port)
     input->freqcoef = 1;
 
     if (port == debugAxis) {
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < 4; i++)
             DEBUG(FREQ_SENSOR, i, 0);
     }
 }
@@ -200,11 +201,12 @@ static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureComp
             // Must use uint16 here because of wraparound
             const uint16_t period = capture - input->capture;
             if (period) {
-                const float freq = input->clock / period;
+                float freq = input->clock / period;
                 if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
-                    if (freq < FREQ_RANGE_MAX) {
+                    if (freq < FREQ_RANGE_MIN)
+                        freq = 0;
+                    if (freq < FREQ_RANGE_MAX)
                         UPDATE_FREQ_FILTER(input, freq);
-                    }
                 }
 
                 UPDATE_PERIOD_FILTER(input, period);
@@ -253,11 +255,12 @@ static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureComp
         if (input->capture) {
             const uint32_t period = capture - input->capture;
             if (period) {
-                const float freq = input->clock / period;
+                float freq = input->clock / period;
                 if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
-                    if (freq < FREQ_RANGE_MAX) {
+                    if (freq < FREQ_RANGE_MIN)
+                        freq = 0;
+                    if (freq < FREQ_RANGE_MAX)
                         UPDATE_FREQ_FILTER(input, freq);
-                    }
                 }
 
                 UPDATE_PERIOD_FILTER(input, period);
