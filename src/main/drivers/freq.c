@@ -122,8 +122,8 @@ static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT
 static const uint8_t perCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
-     2,   2,   2,   3,
-     4,   6,   8,  12,
+     1,   1,   2,   2,
+     2,   4,   8,  12,
     16,  16,  16,  16,
     16,  16,  16,  16,
     16,  16,  16,  16,
@@ -133,8 +133,8 @@ static const uint8_t perCoeffs[32] = {
 static const uint8_t freqCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
-     1,   1,   1,   2,
-     4,   6,   8,  12,
+     1,   1,   1,   1,
+     2,   4,   8,  12,
     16,  16,  16,  16,
     16,  16,  16,  16,
     16,  16,  16,  16,
