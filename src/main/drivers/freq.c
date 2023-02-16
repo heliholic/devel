@@ -73,14 +73,11 @@
 #define FREQ_PERIOD_MAX(p)    ((uint32_t)(p)*4/3)
 
 
-#define FILTER_UPDATE(_var,_value,_coef) \
-    ((_var) += ((_value)-(_var))/(_coef))
-
 #define UPDATE_FREQ_FILTER(_input,_freq) \
-    FILTER_UPDATE((_input)->freq, _freq, FREQ_FILTER_COEFF)
+    (_input)->freq += ((_freq) - ((_input)->freq)) / ((_input)->freqcoef)
 
 #define UPDATE_PERIOD_FILTER(_input,_period) \
-    FILTER_UPDATE((_input)->period, (int32_t)_period, (_input)->percoef)
+    (_input)->period += ((int32_t)(_period) - (int32_t)((_input)->period)) / ((_input)->percoef)
 
 
 typedef struct {
@@ -91,9 +88,10 @@ typedef struct {
     float freq;
     float clock;
 
-    int32_t  period;
-    int32_t  percoef;
+    uint16_t percoef;
+    uint16_t freqcoef;
 
+    uint32_t period;
     uint32_t capture;
     uint32_t prescaler;
 
@@ -124,10 +122,21 @@ static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT
  */
 
 static const uint8_t perCoeffs[16] = {
-     1,  1,  1,  1,
-     1,  1,  1,  1,
-     2,  3,  4,  5,
-     6,  8, 12, 16,
+     1,   1,   1,   1,
+     1,   1,   1,   1,
+     2,   3,   4,   5,
+     6,   8,  12,  16,
+};
+
+static const uint16_t freqCoeffs[32] = {
+     1,   1,   1,   1,
+     1,   1,   1,   1,
+     2,   3,   4,   5,
+     6,   8,  10,  12,
+    16,  16,  16,  16,
+    16,  16,  16,  16,
+    16,  16,  16,  16,
+    16,  16,  16,  16,
 };
 
 static void freqSetBaseClock(freqInputPort_t *input, uint32_t prescaler)
@@ -184,35 +193,37 @@ static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureComp
         if (input->capture) {
             // Must use uint16 here because of wraparound
             const uint16_t period = capture - input->capture;
-            const float freq = input->clock / period;
-
-            // Signal conditioning. Update freq filter only if period within acceptable range.
-            if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
-                if (freq < FREQ_RANGE_MAX) {
-                    UPDATE_FREQ_FILTER(input, freq);
+            if (period) {
+                const float freq = input->clock / period;
+                if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
+                    if (freq < FREQ_RANGE_MAX) {
+                        UPDATE_FREQ_FILTER(input, freq);
+                    }
                 }
-            }
 
-            UPDATE_PERIOD_FILTER(input, period);
+                UPDATE_PERIOD_FILTER(input, period);
 
-            const uint8_t port = input - freqInputPorts;
-            DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
-            DEBUG_AXIS(FREQ_SENSOR, port, 1, freq * 1000);
-            DEBUG_AXIS(FREQ_SENSOR, port, 2, period);
-            DEBUG_AXIS(FREQ_SENSOR, port, 3, input->period);
-            DEBUG_AXIS(FREQ_SENSOR, port, 4, input->percoef);
-            DEBUG_AXIS(FREQ_SENSOR, port, 5, 32 - __builtin_clz(input->prescaler));
+                input->freqcoef = freqCoeffs[__builtin_clz(input->period * input->prescaler)];
 
-            // Filtered period out of range. Change prescaler.
-            if (input->period < FREQ_SHIFT_MIN && input->prescaler > FREQ_PRESCALER_MIN) {
-                freqSetBaseClock(input, input->prescaler >> 1);
-                input->period <<= 1;
-                capture = 0;
-            }
-            else if (input->period > FREQ_SHIFT_MAX && input->prescaler < FREQ_PRESCALER_MAX) {
-                freqSetBaseClock(input, input->prescaler << 1);
-                input->period >>= 1;
-                capture = 0;
+                const uint8_t port = input - freqInputPorts;
+                DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
+                DEBUG_AXIS(FREQ_SENSOR, port, 1, freq * 1000);
+                DEBUG_AXIS(FREQ_SENSOR, port, 2, period);
+                DEBUG_AXIS(FREQ_SENSOR, port, 3, input->period);
+                DEBUG_AXIS(FREQ_SENSOR, port, 4, input->percoef);
+                DEBUG_AXIS(FREQ_SENSOR, port, 5, 32 - __builtin_clz(input->prescaler));
+
+                // Filtered period out of range. Change prescaler.
+                if (input->period < FREQ_SHIFT_MIN && input->prescaler > FREQ_PRESCALER_MIN) {
+                    freqSetBaseClock(input, input->prescaler >> 1);
+                    input->period <<= 1;
+                    capture = 0;
+                }
+                else if (input->period > FREQ_SHIFT_MAX && input->prescaler < FREQ_PRESCALER_MAX) {
+                    freqSetBaseClock(input, input->prescaler << 1);
+                    input->period >>= 1;
+                    capture = 0;
+                }
             }
         }
 
@@ -228,25 +239,22 @@ static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureComp
     freqInputPort_t *input = container_of(cbRec, freqInputPort_t, edgeCb);
 
     if (input->enabled) {
-        uint32_t capture = *timerChCCR(input->timerHardware);
-
+        const uint32_t capture = *timerChCCR(input->timerHardware);
         if (input->capture) {
             const uint32_t period = capture - input->capture;
-            const float freq = input->clock / period;
-
-            // Signal conditioning. Update freq filter only if period within acceptable range.
-            if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
+            if (period) {
+                const float freq = input->clock / period;
                 if (freq < FREQ_RANGE_MAX) {
                     UPDATE_FREQ_FILTER(input, freq);
                 }
+
+                input->freqcoef = freqCoeffs[__builtin_clz(period)];
+
+                const uint8_t port = input - freqInputPorts;
+                DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
+                DEBUG_AXIS(FREQ_SENSOR, port, 1, freq * 1000);
+                DEBUG_AXIS(FREQ_SENSOR, port, 2, period);
             }
-
-            UPDATE_PERIOD_FILTER(input, period);
-
-            const uint8_t port = input - freqInputPorts;
-            DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
-            DEBUG_AXIS(FREQ_SENSOR, port, 1, freq * 1000);
-            DEBUG_AXIS(FREQ_SENSOR, port, 2, period);
         }
 
         input->capture = capture;
