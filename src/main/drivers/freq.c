@@ -62,9 +62,6 @@
 // Period init value
 #define FREQ_PERIOD_INIT      0x2000
 
-// Freq filtering coefficient
-#define FREQ_FILTER_COEFF     3
-
 // Timeout for missing signal [100ms]
 #define FREQ_TIMEOUT(clk)     ((clk)/10)
 
@@ -121,14 +118,18 @@ static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT
  * We need to be able to adjust to the startup quickly enough.
  */
 
-static const uint8_t perCoeffs[16] = {
+static const uint8_t perCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
      2,   3,   4,   5,
      6,   8,  12,  16,
+    16,  16,  16,  16,
+    16,  16,  16,  16,
+    16,  16,  16,  16,
+    16,  16,  16,  16,
 };
 
-static const uint16_t freqCoeffs[32] = {
+static const uint8_t freqCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
      2,   3,   4,   5,
@@ -144,12 +145,26 @@ static void freqSetBaseClock(freqInputPort_t *input, uint32_t prescaler)
     TIM_TypeDef *tim = input->timerHardware->tim;
 
     input->prescaler = prescaler;
-    input->percoef = perCoeffs[(__builtin_clz(prescaler) - 16)];
     input->clock = (float)timerClock(tim) / prescaler;
 
     tim->PSC = prescaler - 1;
     tim->ARR = 0xffffffff;
     tim->EGR = TIM_EGR_UG;
+}
+
+static void freqResetCapture(freqInputPort_t *input, uint8_t port)
+{
+    input->period = FREQ_PERIOD_INIT;
+    input->capture = 0;
+    input->overflows = 0;
+
+    input->percoef = 1;
+    input->freqcoef = 1;
+
+    if (port == debugAxis) {
+        for (int i = 0; i < 7; i++)
+            DEBUG(FREQ_SENSOR, i, 0);
+    }
 }
 
 static FAST_CODE void freqOverflowCallback16(timerOvrHandlerRec_t *cbRec, captureCompare_t capture)
@@ -172,16 +187,7 @@ static FAST_CODE void freqOverflowCallback16(timerOvrHandlerRec_t *cbRec, captur
             input->freq = 0;
         }
 
-        input->period = FREQ_PERIOD_INIT;
-        input->capture = 0;
-        input->overflows = 0;
-
-        DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
-        DEBUG_AXIS(FREQ_SENSOR, port, 1, 0);
-        DEBUG_AXIS(FREQ_SENSOR, port, 2, 0);
-        DEBUG_AXIS(FREQ_SENSOR, port, 3, input->period);
-        DEBUG_AXIS(FREQ_SENSOR, port, 4, input->percoef);
-        DEBUG_AXIS(FREQ_SENSOR, port, 5, 32 - __builtin_clz(input->prescaler));
+        freqResetCapture(input, port);
     }
 }
 
@@ -203,15 +209,19 @@ static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureComp
 
                 UPDATE_PERIOD_FILTER(input, period);
 
-                input->freqcoef = freqCoeffs[__builtin_clz(input->period * input->prescaler)];
+                const uint8_t zeros = __builtin_clz(input->period * input->prescaler);
+                input->percoef = perCoeffs[zeros];
+                input->freqcoef = freqCoeffs[zeros];
 
                 const uint8_t port = input - freqInputPorts;
-                DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
-                DEBUG_AXIS(FREQ_SENSOR, port, 1, freq * 1000);
-                DEBUG_AXIS(FREQ_SENSOR, port, 2, period);
-                DEBUG_AXIS(FREQ_SENSOR, port, 3, input->period);
-                DEBUG_AXIS(FREQ_SENSOR, port, 4, input->percoef);
-                DEBUG_AXIS(FREQ_SENSOR, port, 5, 32 - __builtin_clz(input->prescaler));
+                if (port == debugAxis) {
+                    DEBUG(FREQ_SENSOR, 0, input->freq * 1000);
+                    DEBUG(FREQ_SENSOR, 1, freq * 1000);
+                    DEBUG(FREQ_SENSOR, 2, period);
+                    DEBUG(FREQ_SENSOR, 3, input->period);
+                    DEBUG(FREQ_SENSOR, 4, zeros);
+                    DEBUG(FREQ_SENSOR, 5, 32 - __builtin_clz(input->prescaler));
+                }
 
                 // Filtered period out of range. Change prescaler.
                 if (input->period < FREQ_SHIFT_MIN && input->prescaler > FREQ_PRESCALER_MIN) {
@@ -244,16 +254,26 @@ static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureComp
             const uint32_t period = capture - input->capture;
             if (period) {
                 const float freq = input->clock / period;
-                if (freq < FREQ_RANGE_MAX) {
-                    UPDATE_FREQ_FILTER(input, freq);
+                if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
+                    if (freq < FREQ_RANGE_MAX) {
+                        UPDATE_FREQ_FILTER(input, freq);
+                    }
                 }
 
-                input->freqcoef = freqCoeffs[__builtin_clz(period)];
+                UPDATE_PERIOD_FILTER(input, period);
+
+                const uint8_t zeros = __builtin_clz(period);
+                input->percoef = perCoeffs[zeros];
+                input->freqcoef = freqCoeffs[zeros];
 
                 const uint8_t port = input - freqInputPorts;
-                DEBUG_AXIS(FREQ_SENSOR, port, 0, input->freq * 1000);
-                DEBUG_AXIS(FREQ_SENSOR, port, 1, freq * 1000);
-                DEBUG_AXIS(FREQ_SENSOR, port, 2, period);
+                if (port == debugAxis) {
+                    DEBUG(FREQ_SENSOR, 0, input->freq * 1000);
+                    DEBUG(FREQ_SENSOR, 1, freq * 1000);
+                    DEBUG(FREQ_SENSOR, 2, period);
+                    DEBUG(FREQ_SENSOR, 3, input->period);
+                    DEBUG(FREQ_SENSOR, 4, zeros);
+                }
             }
         }
 
@@ -352,11 +372,7 @@ void freqUpdate(void)
             }
             if (delta > input->timeout) {
                 input->freq = 0;
-                input->period = FREQ_PERIOD_INIT;
-                input->capture = 0;
-                DEBUG_AXIS(FREQ_SENSOR, port, 0, 0);
-                DEBUG_AXIS(FREQ_SENSOR, port, 1, 0);
-                DEBUG_AXIS(FREQ_SENSOR, port, 2, 0);
+                freqResetCapture(input, port);
             }
         }
         if (input->enabled) {
