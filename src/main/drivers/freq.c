@@ -56,11 +56,11 @@
 #endif
 
 // Prescaler shift points
-#define FREQ_SHIFT_MIN        0x2000
-#define FREQ_SHIFT_MAX        0x8000
+#define FREQ_SHIFT_MIN        0x1000
+#define FREQ_SHIFT_MAX        0x4000
 
 // Period init value
-#define FREQ_PERIOD_INIT      0x4000
+#define FREQ_PERIOD_INIT      0x2000
 
 // Timeout for missing signal [40ms]
 #define FREQ_TIMEOUT(clk)     ((clk)/25)
@@ -109,7 +109,7 @@ static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT
 
 /*
  * Set the base clock to a frequency that gives a reading in range
- * RANGE_MIN..RANGE_MAX [0x2000..0x8000]. This gives enough resolution,
+ * RANGE_MIN..RANGE_MAX [0x1000..0x4000]. This gives enough resolution,
  * while allowing the signal to change four times slower or faster in one cycle.
  *
  * Also, set the filter coefficient so that it allows very quick change
@@ -122,23 +122,23 @@ static FAST_DATA_ZERO_INIT freqInputPort_t freqInputPorts[FREQ_SENSOR_PORT_COUNT
 static const uint8_t perCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
-     1,   1,   2,   2,
-     2,   4,   8,  12,
-    16,  16,  16,  16,
-    16,  16,  16,  16,
-    16,  16,  16,  16,
-    16,  16,  16,  16,
+     2,   2,   2,   2,
+     2,   4,   6,   8,
+     8,   8,   8,   8,
+     8,   8,   8,   8,
+     8,   8,   8,   8,
+     8,   8,   8,   8,
 };
 
 static const uint8_t freqCoeffs[32] = {
      1,   1,   1,   1,
      1,   1,   1,   1,
      1,   1,   1,   1,
-     2,   4,   8,  12,
-    16,  16,  16,  16,
-    16,  16,  16,  16,
-    16,  16,  16,  16,
-    16,  16,  16,  16,
+     2,   4,   6,   8,
+     8,   8,   8,   8,
+     8,   8,   8,   8,
+     8,   8,   8,   8,
+     8,   8,   8,   8,
 };
 
 static void freqSetBaseClock(freqInputPort_t *input, uint32_t prescaler)
