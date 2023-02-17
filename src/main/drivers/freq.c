@@ -146,7 +146,6 @@ static void freqSetBaseClock(freqInputPort_t *input, uint32_t prescaler)
     TIM_TypeDef *tim = input->timerHardware->tim;
 
     input->prescaler = prescaler;
-    input->clock = (float)timerClock(tim) / prescaler;
 
     tim->PSC = prescaler - 1;
     tim->ARR = 0xffffffff;
@@ -202,7 +201,7 @@ static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureComp
             // Must use uint16 here because of wraparound
             const uint16_t period = capture - input->capture;
             if (period) {
-                float freq = input->clock / period;
+                float freq = input->clock / (input->prescaler * period);
                 if (period > FREQ_PERIOD_MIN(input->period) && period < FREQ_PERIOD_MAX(input->period)) {
                     if (freq < FREQ_RANGE_MIN)
                         freq = 0;
@@ -248,7 +247,6 @@ static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureComp
 static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureCompare_t capture16)
 {
     UNUSED(capture16);
-
     freqInputPort_t *input = container_of(cbRec, freqInputPort_t, edgeCb);
 
     if (input->enabled) {
@@ -266,7 +264,7 @@ static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureComp
 
                 UPDATE_PERIOD_FILTER(input, period);
 
-                const uint8_t zeros = __builtin_clz(period);
+                const uint8_t zeros = __builtin_clz(input->period);
                 input->percoef = perCoeffs[zeros];
                 input->freqcoef = freqCoeffs[zeros];
 
@@ -329,11 +327,12 @@ void freqInit(const freqConfig_t *freqConfig)
             input->timerHardware = timer;
             input->enabled = true;
             input->timer32 = (timer->tim == TIM2 || timer->tim == TIM5);
+            input->clock = timerClock(timer->tim);
+            input->prescaler = (input->timer32) ? 1 : FREQ_PRESCALER_MAX;
             input->overflows = 0;
             input->capture = 0;
-            input->prescaler = (input->timer32) ? 1 : FREQ_PRESCALER_MAX;
-            input->timeout = FREQ_TIMEOUT(timerClock(timer->tim));
             input->period = FREQ_PERIOD_INIT;
+            input->timeout = FREQ_TIMEOUT(timerClock(timer->tim));
             input->percoef = 1;
             input->freqcoef = 1;
             input->freq = 0;
@@ -356,6 +355,7 @@ void freqInit(const freqConfig_t *freqConfig)
 
             freqICConfig(timer, true, 4);
             freqSetBaseClock(input, input->prescaler);
+            freqResetCapture(input, port);
         }
     }
 }
@@ -381,9 +381,11 @@ void freqUpdate(void)
                 freqResetCapture(input, port);
             }
         }
+#if 0
         if (input->enabled) {
             DEBUG_AXIS(FREQ_SENSOR, port, 7, IORead(input->pin));
         }
+#endif
     }
 }
 
