@@ -41,7 +41,7 @@
 
 // Accepted frequence range
 #define FREQ_RANGE_MIN        25
-#define FREQ_RANGE_MAX        5000
+#define FREQ_RANGE_MAX        10000
 
 // Prescaler limits
 #define FREQ_PRESCALER_MIN    0x0001
@@ -219,8 +219,8 @@ static FAST_CODE void freqEdgeCallback16(timerCCHandlerRec_t *cbRec, captureComp
                 if (port == debugAxis) {
                     DEBUG(FREQ_SENSOR, 0, input->freq * 1000);
                     DEBUG(FREQ_SENSOR, 1, freq * 1000);
-                    DEBUG(FREQ_SENSOR, 2, period);
-                    DEBUG(FREQ_SENSOR, 3, input->period);
+                    DEBUG(FREQ_SENSOR, 2, input->period);
+                    DEBUG(FREQ_SENSOR, 3, period);
                     DEBUG(FREQ_SENSOR, 4, zeros);
                     DEBUG(FREQ_SENSOR, 5, 32 - __builtin_clz(input->prescaler));
                 }
@@ -272,8 +272,8 @@ static FAST_CODE void freqEdgeCallback32(timerCCHandlerRec_t *cbRec, captureComp
                 if (port == debugAxis) {
                     DEBUG(FREQ_SENSOR, 0, input->freq * 1000);
                     DEBUG(FREQ_SENSOR, 1, freq * 1000);
-                    DEBUG(FREQ_SENSOR, 2, period);
-                    DEBUG(FREQ_SENSOR, 3, input->period);
+                    DEBUG(FREQ_SENSOR, 2, input->period);
+                    DEBUG(FREQ_SENSOR, 3, period);
                     DEBUG(FREQ_SENSOR, 4, zeros);
                 }
             }
