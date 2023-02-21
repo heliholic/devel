@@ -129,6 +129,7 @@ typedef struct
     uint8_t   swash_ring;       // Swash ring size
     int16_t   swash_phase;      // Swashplate phasing angle
     int8_t    swash_trim[3];    // Swashplate leveling trim
+    uint16_t  swash_blade_pitch_limit;  // Maximum main rotor blade pitch
 
     uint8_t   coll_correction;  // Collective correction vs. headspeed
 
