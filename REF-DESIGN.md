@@ -19,7 +19,6 @@ The following design is for the STM32F722RET (64 pins LQFP) chip.
 
 ## Ports
 
-
 ### Servo and Motor Port
 
 The servos and motors are connected to standard 0.1" pin headers.
@@ -55,7 +54,7 @@ The following combinations are possible:
 | BLHeli-S ESC          | DShot          | BEC           | Receiver⁶     | Holybro 20A                     |
 
 A one-wire receiver can be connected to the RX/RPM header, if the ESC Telemetry feature is not in use.
-The receiver must be high voltage compatible, e.g. up to 8.4V.
+The receiver must be high voltage capable, e.g. up to 8.4V.
 
 
 ### Receiver Port
@@ -85,7 +84,7 @@ The connector type is 3-pin JST-ZH, with the following pins:
 
 The DSM port shall be labelled as "DSM".
 
-The RX is connected to the MCU pin PA9 (UART1).
+The signal pin is connected to the MCU pin PA9.
 
 
 ### Expansion Port A
@@ -102,7 +101,7 @@ This port can act as a serial port, or an I2C port.
 
 It shall be labelled as "Port A"
 
-The signal pins (TX/RX) are connected to the MCU pins PB10/PB11.
+The signal pins are connected to the MCU pins PB10 (TX) and PB11 (RX).
 
 
 ### Expansion Port B
@@ -117,7 +116,7 @@ The connector type is 4-pin JST-GH, with the following pins:
 
 This port shall be labelled as "Port B"
 
-The signal pins (TX/RX) are connected to the MCU pins PC6/PC7.
+The signal pins are connected to the MCU pins PC6 (TX) and PC7 (RX).
 
 
 ### Expansion Port C
@@ -132,7 +131,7 @@ The connector type is 4-pin JST-GH, with the following pins:
 
 This port shall be labelled as "Port C"
 
-The signal pins (TX/RX) are connected to the MCU pins PC12/PD2.
+The signal pins are connected to the MCU pins PC12 (TX) and PD2 (RX).
 
 
 ### Expansion Port D
@@ -147,17 +146,18 @@ The connector type is 4-pin JST-GH, with the following pins:
 
 This port shall be labelled as "Port D"
 
-The TX pin is shared with the DSM port. Usually this port is not
-implemented if the DSM Port is present, unless the best possible
-expansion capability is required.
+The signal pins are connected to the MCU pins PA9 (TX) and PA10 (RX).
 
-The signal pins (TX/RX) are connected to the MCU pins PA9/PA10.
+This port shares the TX pin with the DSM Port. Usually either
+the DSM Port or Port D is implemented, but not both.
 
 
 ### Expansion Port E
 
 The expansion port E for external peripherals is _optional_,
-but it must be implemented together with Port G.
+but must be implemented together with Port G.
+
+The Ports E and G replace Ports A and B.
 
 The connector type is 4-pin JST-GH, with the following pins:
 
@@ -167,15 +167,15 @@ The connector type is 4-pin JST-GH, with the following pins:
 
 This port shall be labelled as "Port E".
 
-The signal pins (TX/RX) are connected to the MCU pins PC10/PC11.
+The signal pins are connected to the MCU pins PC10 (TX) and PC11 (RX).
 
 
 ### Expansion Port G
 
 The expansion port G for a GPS and a Compass is _optional_,
-but it must be implemented together with Port E.
+but must be implemented together with Port E.
 
-The Port G replaces Ports A and B.
+The Ports G and E replace Ports A and B.
 
 The connector type is 6-pin JST-GH, with the following pins:
 
@@ -185,7 +185,7 @@ The connector type is 6-pin JST-GH, with the following pins:
 
 This socket is Pixhawk GPS compatible.
 
-The MCU pins are PB10, PB11, PC6, PC7.
+The signal pins are connected to the MCU pins PB10 (SCL), PB11 (SDA), PC6 (TX), PC7 (RX).
 
 
 ## MCU Resource Allocation
