@@ -29,8 +29,8 @@ The design F7A has a few variants, depending on the chosen port combination.
 | F7A4      |  ✔     |  ✔     |   ✔   |  ✔   |  ✓  |        |        |        |  ✓     |  ✓     |  ✔ ᴿˣ  |  ✔     |
 
 Legend:
-  ✔ = Mandatory Port
-  ✓ = Optional Port
+  ✔ = Mandatory Port,
+  ✓ = Optional Port,
   ᴿˣ = Primary port for a serial receiver
 
 
@@ -188,10 +188,10 @@ The connector type is 3-pin JST-ZH, with the following pinout:
 | ---- | ---- | ---- |
 | 3.3V | GND  | SIG  |
 
-The signal pin is connected to the MCU pin PA9 (which is a UART TX !)
+The signal pin is connected to PA9 (which is a UART TX !)
 
 The DSM Port is sharing the TX pin with Port D. It is possible to implement
-either DSM or Port D - or both.
+either DSM Port, or Port D - or both.
 
 
 ## MCU Resource Allocation
