@@ -12,14 +12,14 @@ Lots of effort has been put into these designs for making sure they are as flexi
 The reference designs are considering only the aspects that have effect on the software support, mostly the STM32 resource allocation and the minimum set of supported features. The rest - like size, form factor, connector locations - are left for the manufacturer to decide.
 
 
-# Reference Design F7A
+# Reference Design F7Ax
 
 The following design is for the STM32F722RET (64 pins LQFP) chip.
 
 
 ## Variants
 
-The design F7A has a few variants, depending on the chosen port combination.
+The design F7Ax has a few variants, depending on the chosen port combination.
 
 | Variant   | Servos | Motors | TELE  | SBUS | DSM | Port A | Port B | Port C | Port D | Port E | Port F | Port G |
 | --------- | ------ | ------ | ----- | ---- | --- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
