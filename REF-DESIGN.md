@@ -161,7 +161,7 @@ The signal pins are connected to PC10 (TX) and PC11 (RX).
 
 ### Expansion Port G
 
-Port G is primarily for a GPS and a Compass.
+Port G is primarily for a UART/GPS and a I2C/Compass.
 
 The connector type is 6-pin JST-GH, with the following pinout:
 
