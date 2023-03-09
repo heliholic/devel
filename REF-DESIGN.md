@@ -17,6 +17,22 @@ The reference designs are considering only the aspects that have effect on the s
 The following design is for the STM32F722RET (64 pins LQFP) chip.
 
 
+## Variants
+
+The design F7A has a few variants, depending on the chosen port combination.
+
+| Variant   | Port A | Port B | Port C | Port D | Port E | Port F | Port G | DSM |
+| --------- | ------ | ------ | ------ | ------ | ------ | ------ | ------ | --- |
+| F7A1      |  Rx    |  ✔     |  ✔     |  ✔     |  ✔     |        |        | ✔   |
+| F7A2      |  Rx    |  ✔     |        |        |  ✔     |  ✔     |  ✔     | ✔   |
+| F7A3      |        |  ✔     |        |        |  ✔     |  Rx    |  ✔     | ✔   |
+
+Legend:
+
+Rx = Mandatory Port for a Receiver
+✔  = Optional Expansion Port
+
+
 ## Ports
 
 ### Servo and Motor Port
@@ -57,127 +73,96 @@ A one-wire receiver can be connected to the RX/RPM header, if the ESC Telemetry 
 The receiver must be high voltage capable, e.g. up to 8.4V.
 
 
-### Receiver Port
+### Expansion Port A
 
-A dedicated receiver port is _mandatory_.
+Port A is primarily a UART port.
 
-The connector type is 4-pin JST-GH, with the following pins:
+The connector type is 4-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3 | Pin4 |
 | ---- | ---- | ---- | ---- |
 | GND  | 5V   | RX   | TX   |
 
-The receiver port shall be labelled as "Receiver".
+The signal pins are connected to PA0 (TX) and PA1 (RX).
 
-The TX/RX are connected to the MCU pins PA0/PA1 (UART4).
-
-
-### DSM Port
-
-A port for connecting a Spektrum DSM satellite is _optional_.
-
-The connector type is 3-pin JST-ZH, with the following pins:
-
-| Pin1 | Pin2 | Pin3 |
-| ---- | ---- | ---- |
-| 3.3V | GND  | RX   |
-
-The DSM port shall be labelled as "DSM".
-
-The signal pin is connected to the MCU pin PA9.
+Port A can be also used as an RPM input port for two RPM signals,
+or two voltage inputs for the ADC.
 
 
-### Expansion Port A
+### Expansion Port B
 
-The expansion port A for external peripherals is _optional_.
+Port B is primarily a UART port.
 
-The connector type is 4-pin JST-GH, with the following pins:
+The connector type is 4-pin JST-GH, with the following pinout:
+
+| Pin1 | Pin2 | Pin3 | Pin4 |
+| ---- | ---- | ---- | ---- |
+| GND  | 5V   | RX   | TX   |
+
+The signal pins are connected to PA9 (TX) and PA10 (RX).
+
+Port B can be also used for Camera Control or LED Strip.
+
+
+### Expansion Port C
+
+Port C is a UART port or an I2C port.
+
+The connector type is 4-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3     | Pin4     |
 | ---- | ---- | -------- | -------- |
 | GND  | 5V   | RX/SDA   | TX/SCL   |
 
-This port can act as a serial port, or an I2C port.
-
-It shall be labelled as "Port A"
-
-The signal pins are connected to the MCU pins PB10 (TX) and PB11 (RX).
-
-
-### Expansion Port B
-
-The expansion port B for external peripherals is _optional_.
-
-The connector type is 4-pin JST-GH, with the following pins:
-
-| Pin1 | Pin2 | Pin3  | Pin4  |
-| ---- | ---- | ----- | ----- |
-| GND  | 5V   | RX    | TX    |
-
-This port shall be labelled as "Port B"
-
-The signal pins are connected to the MCU pins PC6 (TX) and PC7 (RX).
-
-
-### Expansion Port C
-
-The expansion port C for external peripherals is _optional_.
-
-The connector type is 4-pin JST-GH, with the following pins:
-
-| Pin1 | Pin2 | Pin3  | Pin4  |
-| ---- | ---- | ----- | ----- |
-| GND  | 5V   | RX    | TX    |
-
-This port shall be labelled as "Port C"
-
-The signal pins are connected to the MCU pins PC12 (TX) and PD2 (RX).
+The signal pins are connected to PB10 (TX) and PB11 (RX).
 
 
 ### Expansion Port D
 
-The expansion port D for external peripherals is _optional_.
+Port D is primarily a UART port.
 
-The connector type is 4-pin JST-GH, with the following pins:
+The connector type is 4-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3  | Pin4  |
 | ---- | ---- | ----- | ----- |
 | GND  | 5V   | RX    | TX    |
 
-This port shall be labelled as "Port D"
+The signal pins are connected to PC6 (TX) and PC7 (RX).
 
-The signal pins are connected to the MCU pins PA9 (TX) and PA10 (RX).
-
-This port shares the TX pin with the DSM Port. Usually either
-the DSM Port or Port D is implemented, but not both.
+Port D can be also used for Camera Control, or for LED Strip.
 
 
 ### Expansion Port E
 
-The expansion port E for external peripherals is _optional_,
-but must be implemented together with Port G.
+Port E is a UART port.
 
-The Ports E and G replace Ports A and B.
-
-The connector type is 4-pin JST-GH, with the following pins:
+The connector type is 4-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3  | Pin4  |
 | ---- | ---- | ----- | ----- |
 | GND  | 5V   | RX    | TX    |
 
-This port shall be labelled as "Port E".
+The signal pins are connected to PC12 (TX) and PD2 (RX).
 
-The signal pins are connected to the MCU pins PC10 (TX) and PC11 (RX).
+
+### Expansion Port F
+
+Port F is a UART port.
+
+The connector type is 4-pin JST-GH, with the following pinout:
+
+| Pin1 | Pin2 | Pin3  | Pin4  |
+| ---- | ---- | ----- | ----- |
+| GND  | 5V   | RX    | TX    |
+
+The signal pins are connected to PC10 (TX) and PC11 (RX).
 
 
 ### Expansion Port G
 
-The expansion port G for a GPS and a Compass is _optional_,
-but must be implemented together with Port E.
+Port G is primarily for a GPS and a Compass.
 
-The Ports G and E replace Ports A and B.
-
-The connector type is 6-pin JST-GH, with the following pins:
+The connector type is 6-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3 | Pin4 | Pin5 | Pin6 |
 | ---- | ---- | ---- | ---- | ---- | ---- |
@@ -185,7 +170,26 @@ The connector type is 6-pin JST-GH, with the following pins:
 
 This socket is Pixhawk GPS compatible.
 
-The signal pins are connected to the MCU pins PB10 (SCL), PB11 (SDA), PC6 (TX), PC7 (RX).
+The signal pins are connected to PB10 (SCL), PB11 (SDA), PC6 (TX), PC7 (RX).
+
+Port G is an alternative to Ports C and D. Either Port G can be implemented,
+or Ports C and D - but not both.
+
+
+### DSM Port
+
+The DSM Port is a dedicated port for connecting a Spektrum DSM satellite.
+
+The connector type is 3-pin JST-ZH, with the following pinout:
+
+| Pin1 | Pin2 | Pin3 |
+| ---- | ---- | ---- |
+| 3.3V | GND  | RX   |
+
+The signal pin is connected to the MCU pin PA9.
+
+DSM Port is an alternative to Port B. Either Port B can
+be implemented, or DSM Port - but not both.
 
 
 ## MCU Resource Allocation
@@ -206,8 +210,8 @@ The signal pins are connected to the MCU pins PB10 (SCL), PB11 (SDA), PC6 (TX), 
 | UART2 Rx      | PA3    | RX2    | T5Ch4 | T9Ch2 | A3 | ESC Telem, RPM, CPPM, ADC, LED strip⁵ |
 | UART3 Tx      | PC10   | TX3    | TX4 |
 | UART3 Rx      | PC11   | RX3    | RX4 |
-| UART4 Tx      | PA0    | TX4    | T5Ch1 | A0 || Dedicated receiver port |
-| UART4 Rx      | PA1    | RX4    | T5Ch2 | A1 || Dedicated reciever port |
+| UART4 Tx      | PA0    | TX4    | T5Ch1 | A0 |
+| UART4 Rx      | PA1    | RX4    | T5Ch2 | A1 |
 | UART5 Tx      | PC12   | TX5    |
 | UART5 Rx      | PD2    | RX5    |
 | UART6 Tx      | PC6    | TX6    | T8Ch1⁹ ||| Optional: UART, LED strip, CC, GPS |
@@ -254,7 +258,7 @@ The signal pins are connected to the MCU pins PB10 (SCL), PB11 (SDA), PC6 (TX), 
 
 ¹ The optional motors and servos should have solder pads on the PCB.
 
-² PC10/PC11 can be configured as UART3 or UART4, or a combination of RX3/TX4, allowing S.BUS and S.Port on the same socket. This is ideal for a dedicated receiver socket.
+² PC10/PC11 can be configured as UART3 or UART4, or a combination of RX3/TX4, allowing S.BUS and S.Port on the same socket.
 
 ³ A dual colour LED is preferred.
 
