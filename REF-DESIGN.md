@@ -236,11 +236,11 @@ either DSM or Port D - or both.
 | MISO          | PB14   | MISO2  |||| Flash SPI MISO |
 | MOSI          | PB15   | MOSI2  |||| Flash SPI MOSI |
 |               |        |
-| ADC1          | PC0    | A10 |||| Vx voltage sensor⁷ |
-| ADC2          | PC1    | A11 |||| 5V voltage sensor⁷ |
-| ADC3          | PC4    | A14 |||| Optional: Gyro 3.3V sensor⁷ |
-| ADC4          | PC2    | A12 |||| Optional: Vx current sensor⁸ |
-| ADC5          | PC3    | A13 |||| Optional: 5V current sensor⁸ |
+| ADC1          | PC0    | A10 |||| Optional: Vbat voltage sensor⁷ |
+| ADC2          | PC1    | A11 |||| Vx voltage sensor⁷ |
+| ADC3          | PC2    | A12 |||| 5V voltage sensor⁷ |
+| ADC4          | PC3    | A13 |||| Optional: Vx current sensor⁸ |
+| ADC5          | PC4    | A14 |||| Optional: 5V current sensor⁸ |
 |               |        |
 | LED STRIP     | PA8    | T1Ch1⁹ |||| Optional: Dedicated LED strip |
 |               |        |
