@@ -3,7 +3,7 @@
 
 Please read the page [Rotorflight FC Design Requirements](https://github.com/rotorflight/rotorflight/wiki/Rotorflight-FC-Design-Requirements) first. It is explaining the generic requirements for all Rotorflight designs.
 
-__For an FC to be fully supported by Rotorflight-2 (RF2), it _must_ use one of the designs on this page.__
+__For an FC to be fully supported by Rotorflight-2, it _must_ follow one of the reference designs.__
 
 RF2 will offer more features and easier configurability for designs that are fully compatible.
 
@@ -21,16 +21,17 @@ The following design is for the STM32F722RET (64 pins LQFP) chip.
 
 The design F7A has a few variants, depending on the chosen port combination.
 
-| Variant   | Port A | Port B | Port C | Port D | Port E | Port F | Port G | DSM |
-| --------- | ------ | ------ | ------ | ------ | ------ | ------ | ------ | --- |
-| F7A1      |  Rx    |  ✔     |  ✔     |  ✔     |  ✔     |        |        | ✔   |
-| F7A2      |  Rx    |  ✔     |        |        |  ✔     |  ✔     |  ✔     | ✔   |
-| F7A3      |        |  ✔     |        |        |  ✔     |  Rx    |  ✔     | ✔   |
+| Variant   | Servos | Motors | TELE  | SBUS | DSM | Port A | Port B | Port C | Port D | Port E | Port F | Port G |
+| --------- | ------ | ------ | ----- | ---- | --- | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+| F7A1      |  ✔     |  ✔     |   ✔   |  ✔   |  ✓  |  ✔ ᴿˣ  |  ✓     |  ✓     |  ✓     |  ✓     |        |        |
+| F7A2      |  ✔     |  ✔     |   ✔   |  ✔   |  ✓  |  ✔ ᴿˣ  |        |        |  ✓     |  ✓     |  ✓     |  ✔     |
+| F7A3      |  ✔     |  ✔     |   ✔   |  ✔   |  ✓  |        |  ✓     |  ✓     |  ✓     |  ✓     |  ✔ ᴿˣ  |        |
+| F7A4      |  ✔     |  ✔     |   ✔   |  ✔   |  ✓  |        |        |        |  ✓     |  ✓     |  ✔ ᴿˣ  |  ✔     |
 
 Legend:
-
-Rx = Mandatory Port for a Receiver
-✔  = Optional Expansion Port
+  ✔ = Mandatory Port
+  ✓ = Optional Port
+  ᴿˣ = Primary port for a serial receiver
 
 
 ## Ports
@@ -56,20 +57,20 @@ All pin headers in these blocks have a common GND and a common VX (BEC power).
 | TAIL     | GND  | VX   | PWM  | PB3     |
 |          |      |      |      |         |
 | ESC      | GND  | VX   | SIG  | PB6     |
-| TELEM    | GND  | VX   | SIG  | PA3     |
-| RX/RPM   | GND  | VX   | SIG  | PA2     |
+| TELE     | GND  | VX   | SIG  | PA3     |
+| SBUS     | GND  | VX   | SIG  | PA2     |
 
 The ESC pin headers are designed to accommodate all variations of traditional and drone ESCs.
 The following combinations are possible:
 
-| Type                  | ESC Header     | TELEM Header  | RX/RPM Header | Example ESC                     |
+| Type                  | ESC Header     | TELE Header   | SBUS Header   | Example ESC                     |
 | --------------------- | -------------- | ------------- | ------------- | ------------------------------- |
 | Large heli ESC        | PWM + BEC      | Tele + BEC    | RPM + BEC     | Hobbywing Platinum V4 120A      |
-| Small heli ESC        | PWM + BEC      | RPM + BEC     | Receiver⁶     | Hobbywing Platinum V3 50A       |
+| Small heli ESC        | PWM + BEC      | RPM + BEC     | S.BUS⁶        | Hobbywing Platinum V3 50A       |
 | BLHeli32 ESC          | DShot          | Telemetry     | BEC           | IFlight BLITZ E80               |
-| BLHeli-S ESC          | DShot          | BEC           | Receiver⁶     | Holybro 20A                     |
+| BLHeli-S ESC          | DShot          | BEC           | S.BUS⁶        | Holybro 20A                     |
 
-A one-wire receiver can be connected to the RX/RPM header, if the ESC Telemetry feature is not in use.
+A one-wire receiver can be connected to the SBUS header, if the ESC Telemetry feature is not in use.
 The receiver must be high voltage capable, e.g. up to 8.4V.
 
 
@@ -99,9 +100,9 @@ The connector type is 4-pin JST-GH, with the following pinout:
 | ---- | ---- | ---- | ---- |
 | GND  | 5V   | RX   | TX   |
 
-The signal pins are connected to PA9 (TX) and PA10 (RX).
+The signal pins are connected to PC6 (TX) and PC7 (RX).
 
-Port B can be also used for Camera Control or LED Strip.
+Port B can be also used for Camera Control, or for LED Strip.
 
 
 ### Expansion Port C
@@ -127,9 +128,9 @@ The connector type is 4-pin JST-GH, with the following pinout:
 | ---- | ---- | ----- | ----- |
 | GND  | 5V   | RX    | TX    |
 
-The signal pins are connected to PC6 (TX) and PC7 (RX).
+The signal pins are connected to PA9 (TX) and PA10 (RX).
 
-Port D can be also used for Camera Control, or for LED Strip.
+Port D can be also used for Camera Control or LED Strip.
 
 
 ### Expansion Port E
@@ -184,12 +185,12 @@ The connector type is 3-pin JST-ZH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3 |
 | ---- | ---- | ---- |
-| 3.3V | GND  | RX   |
+| 3.3V | GND  | SIG  |
 
-The signal pin is connected to the MCU pin PA9.
+The signal pin is connected to the MCU pin PA9 (which is a UART TX !)
 
-DSM Port is an alternative to Port B. Either Port B can
-be implemented, or DSM Port - but not both.
+The DSM Port is sharing the TX pin with Port D. It is possible to implement
+either DSM or Port D - or both.
 
 
 ## MCU Resource Allocation
