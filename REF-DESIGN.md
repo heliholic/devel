@@ -82,7 +82,7 @@ The connector type is 4-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3 | Pin4 |
 | ---- | ---- | ---- | ---- |
-| GND  | 5V   | RX   | TX   |
+| TX   | RX   | 5V   | GND  |
 
 The signal pins are connected to PA0 (TX) and PA1 (RX).
 
@@ -98,7 +98,7 @@ The connector type is 4-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3 | Pin4 |
 | ---- | ---- | ---- | ---- |
-| GND  | 5V   | RX   | TX   |
+| TX   | RX   | 5V   | GND  |
 
 The signal pins are connected to PC6 (TX) and PC7 (RX).
 
@@ -111,9 +111,10 @@ Port C is a UART port or an I2C port.
 
 The connector type is 4-pin JST-GH, with the following pinout:
 
-| Pin1 | Pin2 | Pin3     | Pin4     |
-| ---- | ---- | -------- | -------- |
-| GND  | 5V   | RX/SDA   | TX/SCL   |
+| Pin1   | Pin2   | Pin3 | Pin4 |
+| ------ | ------ | ---- | ---- |
+| TX/SCL | RX/SDA | 5V   | GND  |
+
 
 The signal pins are connected to PB10 (TX) and PB11 (RX).
 
@@ -124,9 +125,9 @@ Port D is primarily a UART port.
 
 The connector type is 4-pin JST-GH, with the following pinout:
 
-| Pin1 | Pin2 | Pin3  | Pin4  |
-| ---- | ---- | ----- | ----- |
-| GND  | 5V   | RX    | TX    |
+| Pin1 | Pin2 | Pin3 | Pin4 |
+| ---- | ---- | ---- | ---- |
+| TX   | RX   | 5V   | GND  |
 
 The signal pins are connected to PA9 (TX) and PA10 (RX).
 
@@ -139,9 +140,9 @@ Port E is a UART port.
 
 The connector type is 4-pin JST-GH, with the following pinout:
 
-| Pin1 | Pin2 | Pin3  | Pin4  |
-| ---- | ---- | ----- | ----- |
-| GND  | 5V   | RX    | TX    |
+| Pin1 | Pin2 | Pin3 | Pin4 |
+| ---- | ---- | ---- | ---- |
+| TX   | RX   | 5V   | GND  |
 
 The signal pins are connected to PC12 (TX) and PD2 (RX).
 
@@ -152,9 +153,9 @@ Port F is a UART port.
 
 The connector type is 4-pin JST-GH, with the following pinout:
 
-| Pin1 | Pin2 | Pin3  | Pin4  |
-| ---- | ---- | ----- | ----- |
-| GND  | 5V   | RX    | TX    |
+| Pin1 | Pin2 | Pin3 | Pin4 |
+| ---- | ---- | ---- | ---- |
+| TX   | RX   | 5V   | GND  |
 
 The signal pins are connected to PC10 (TX) and PC11 (RX).
 
@@ -167,7 +168,7 @@ The connector type is 6-pin JST-GH, with the following pinout:
 
 | Pin1 | Pin2 | Pin3 | Pin4 | Pin5 | Pin6 |
 | ---- | ---- | ---- | ---- | ---- | ---- |
-| GND  | SDA  | SCL  | TX   | RX   | 5V   |
+| 5V   | TX   | RX   | SCL  | SDA  | GND  |
 
 This socket is Pixhawk GPS compatible.
 
