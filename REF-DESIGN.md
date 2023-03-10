@@ -170,7 +170,7 @@ The connector type is 6-pin JST-GH, with the following pinout:
 
 This socket is Pixhawk GPS compatible.
 
-The signal pins are connected to PB10 (SCL), PB11 (SDA), PC6 (TX), PC7 (RX).
+The signal pins are connected to PC6 (TX), PC7 (RX), PB10 (SCL), PB11 (SDA).
 
 Port G is an alternative to Ports B and C. Either Port G can be implemented,
 or Ports B and C - but not both.
@@ -204,24 +204,24 @@ either DSM Port, or Port D - or both.
 | Motor1        | PB6    | T4Ch1  |||| Main motor |
 | Motor2        | PB7    | T4Ch2  |||| Optional: Second motor¹ |
 |               |        |
-| UART1 Tx      | PA9    | TX1    | T1Ch2⁹ ||| Optional: UART, LED strip, CC |
-| UART1 Rx      | PA10   | RX1    | T1Ch3⁹ ||| Optional: UART, LED strip, CC |
+| UART1 Tx      | PA9    | TX1    | T1Ch2⁹ ||| LED strip, CC |
+| UART1 Rx      | PA10   | RX1    | T1Ch3⁹ ||| LED strip, CC |
 | UART2 Tx      | PA2    | TX2    | T5Ch3 | T9Ch1 | A2 | ESC Telem, RPM, CPPM, ADC, LED strip⁵ |
 | UART2 Rx      | PA3    | RX2    | T5Ch4 | T9Ch2 | A3 | ESC Telem, RPM, CPPM, ADC, LED strip⁵ |
-| UART3 Tx      | PC10   | TX3    | TX4 |
-| UART3 Rx      | PC11   | RX3    | RX4 |
+| UART3 Tx      | PC10   | TX3    | TX4² |
+| UART3 Rx      | PC11   | RX3    | RX4² |
 | UART4 Tx      | PA0    | TX4    | T5Ch1 | A0 |
 | UART4 Rx      | PA1    | RX4    | T5Ch2 | A1 |
 | UART5 Tx      | PC12   | TX5    |
 | UART5 Rx      | PD2    | RX5    |
-| UART6 Tx      | PC6    | TX6    | T8Ch1⁹ ||| Optional: UART, LED strip, CC, GPS |
-| UART6 Rx      | PC7    | RX6    | T8Ch2⁹ ||| Optional: UART, LED strip, CC, GPS |
+| UART6 Tx      | PC6    | TX6    | T8Ch1⁹ ||| LED strip, CC, GPS |
+| UART6 Rx      | PC7    | RX6    | T8Ch2⁹ ||| LED strip, CC, GPS |
 |               |        |
-| SCL1          | PB8    | SCL1   |||| Internal baro |
-| SDA1          | PB9    | SDA1   |||| Internal baro |
+| SCL1          | PB8    | SCL1   |||| Internal barometer |
+| SDA1          | PB9    | SDA1   |||| Internal barometer |
 |               |        |
-| SCL2          | PB10   | SCL2   | TX3 | T2Ch3 || Optional: External compass, UART3, PWM |
-| SDA2          | PB11   | SDA2   | RX3 | T2Ch4 || Optional: External compass, UART3, PWM |
+| SCL2          | PB10   | SCL2   | TX3 | T2Ch3 || Optional: External I2C compass, UART3, PWM |
+| SDA2          | PB11   | SDA2   | RX3 | T2Ch4 || Optional: External I2C compass, UART3, PWM |
 |               |        |
 | NSS           | PA4    | NSS1   |||| Gyro SPI NSS |
 | SCK           | PA5    | SCK1   |||| Gyro SPI SCK |
@@ -268,7 +268,7 @@ either DSM Port, or Port D - or both.
 
 ⁶ A receiver can be connected if ESC telemetry is not used. PA2 and PA3 also support CPPM receivers.
 
-⁷ A voltage divider and a filter cap is needed on each ADC input. The cutoff frequency for the input filter should be ~ 100Hz.
+⁷ A voltage divider and a filter cap is needed on each ADC input. The cutoff frequency for the input filter should be ~ 25Hz.
 
 ⁸ A high side current sensor is preferred, like the INA139. Low side ground shunts should be avoided.
 
