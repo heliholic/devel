@@ -1,6 +1,4 @@
 
-## THIS PAGE IS WORK-IN-PROGRESS
-
 Please read the page [Rotorflight FC Design Requirements](https://github.com/rotorflight/rotorflight/wiki/Rotorflight-FC-Design-Requirements) first. It is explaining the generic requirements for all Rotorflight designs.
 
 __For an FC to be fully supported by Rotorflight-2, it _must_ follow one of the reference designs.__
@@ -174,8 +172,8 @@ This socket is Pixhawk GPS compatible.
 
 The signal pins are connected to PB10 (SCL), PB11 (SDA), PC6 (TX), PC7 (RX).
 
-Port G is an alternative to Ports C and D. Either Port G can be implemented,
-or Ports C and D - but not both.
+Port G is an alternative to Ports B and C. Either Port G can be implemented,
+or Ports B and C - but not both.
 
 
 ### DSM Port
