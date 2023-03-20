@@ -147,19 +147,17 @@ void servoInit(void)
     for (index = 0; index < servoCount; index++)
     {
         int rate = servoParams(index)->rate;
-        int max = servoParams(index)->max;
 
         for (int jndex = 0; jndex < servoCount; jndex++) {
             if (timer[index]->tim == timer[jndex]->tim) {
-                if (servoParams(jndex)->rate < rate)
-                    rate = servoParams(jndex)->rate;
-                if (servoParams(jndex)->max > max)
-                    max = servoParams(jndex)->max;
+                int maxrate = MIN(servoParams(jndex)->rate, 1000000 / (servoParams(jndex)->max + 10));
+                rate = MIN(rate, maxrate);
             }
         }
 
-        rate = MAX(rate, SERVO_RATE_MIN);
-        rate = MIN(rate, 1000000 / (max + 10)); // At least 10us low
+        rate = constrain(rate, SERVO_RATE_MIN, SERVO_RATE_MAX);
+
+        servoParamsMutable(index)->rate = rate;
 
         pwmOutConfig(&servoChannel[index], timer[index], PWM_TIMER_1MHZ, PWM_TIMER_1MHZ / rate, 0, 0);
     }
