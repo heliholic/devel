@@ -60,7 +60,6 @@ typedef struct {
     float pidSum;
     float setPoint;
     float gyroRate;
-    float prevError;
     float axisError;
 } pidAxisData_t;
 
@@ -108,11 +107,12 @@ typedef struct pid_s {
     pidAxisCoef_t coef[PID_ITEM_COUNT];
     pidAxisData_t data[PID_AXIS_COUNT];
 
-    pt1Filter_t gyrorFilter[PID_AXIS_COUNT];
-    pt1Filter_t errorFilter[PID_AXIS_COUNT];
-    pt1Filter_t dtermFilter[PID_AXIS_COUNT];
-    pt1Filter_t ftermFilter[PID_AXIS_COUNT];
+    filter_t gyrorFilter[PID_AXIS_COUNT];
+    filter_t errorFilter[PID_AXIS_COUNT];
+    filter_t ftermFilter[PID_AXIS_COUNT];
+
     pt1Filter_t relaxFilter[PID_AXIS_COUNT];
+    difFilter_t dtermFilter[PID_AXIS_COUNT];
 
 } pid_t;
 
