@@ -156,7 +156,7 @@ void rpmFilterInit(const rpmFilterConfig_t *config)
     for (int bank = 0; bank < activeBankCount; bank++) {
         rpmFilterBank_t *filt = &filterBank[bank];
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInit(&filt->notch[axis], filt->minHz, gyro.filterLooptime, filt->Q, FILTER_NOTCH, 1);
+            biquadFilterInit(&filt->notch[axis], filt->minHz, gyro.filterRateHz, filt->Q, BIQUAD_NOTCH);
         }
     }
 }
@@ -189,7 +189,7 @@ void rpmFilterUpdate()
         biquadFilter_t *Y = &filt->notch[2];
 
         // Update the filter coefficients
-        biquadFilterUpdate(R, freq, loopTime, filt->Q, FILTER_NOTCH, 1);
+        biquadFilterUpdate(R, freq, loopTime, filt->Q, BIQUAD_NOTCH);
 
         // Transfer the filter coefficients from Roll axis filter into Pitch and Yaw
         P->b0 = Y->b0 = R->b0;
