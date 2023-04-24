@@ -1741,13 +1741,16 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->pid_mode);
         sbufWriteU8(dst, currentPidProfile->error_decay);
         sbufWriteU8(dst, currentPidProfile->error_rotation);
-        sbufWriteU16(dst, currentPidProfile->error_limit[0]);
-        sbufWriteU16(dst, currentPidProfile->error_limit[1]);
-        sbufWriteU16(dst, currentPidProfile->error_limit[2]);
+        sbufWriteU8(dst, currentPidProfile->error_limit[0]);
+        sbufWriteU8(dst, currentPidProfile->error_limit[1]);
+        sbufWriteU8(dst, currentPidProfile->error_limit[2]);
+        sbufWriteU8(dst, currentPidProfile->gyro_cutoff[0]);
+        sbufWriteU8(dst, currentPidProfile->gyro_cutoff[1]);
+        sbufWriteU8(dst, currentPidProfile->gyro_cutoff[2]);
+        sbufWriteU8(dst, currentPidProfile->dterm_cutoff[0]);
+        sbufWriteU8(dst, currentPidProfile->dterm_cutoff[1]);
+        sbufWriteU8(dst, currentPidProfile->dterm_cutoff[2]);
         sbufWriteU8(dst, currentPidProfile->iterm_relax_type);
-        sbufWriteU8(dst, currentPidProfile->iterm_relax_level[0]);
-        sbufWriteU8(dst, currentPidProfile->iterm_relax_level[1]);
-        sbufWriteU8(dst, currentPidProfile->iterm_relax_level[2]);
         sbufWriteU8(dst, currentPidProfile->iterm_relax_cutoff[0]);
         sbufWriteU8(dst, currentPidProfile->iterm_relax_cutoff[1]);
         sbufWriteU8(dst, currentPidProfile->iterm_relax_cutoff[2]);
@@ -2461,16 +2464,19 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #endif
 
     case MSP_SET_PID_PROFILE:
-        currentPidProfile->pid_mode = sbufReadU8(src);
+        sbufReadU8(src); // PID mode can't be changed
         currentPidProfile->error_decay = sbufReadU8(src);
         currentPidProfile->error_rotation = sbufReadU8(src);
-        currentPidProfile->error_limit[0] = sbufReadU16(src);
-        currentPidProfile->error_limit[1] = sbufReadU16(src);
-        currentPidProfile->error_limit[2] = sbufReadU16(src);
+        currentPidProfile->error_limit[0] = sbufReadU8(src);
+        currentPidProfile->error_limit[1] = sbufReadU8(src);
+        currentPidProfile->error_limit[2] = sbufReadU8(src);
+        currentPidProfile->gyro_cutoff[0] = sbufReadU8(src);
+        currentPidProfile->gyro_cutoff[1] = sbufReadU8(src);
+        currentPidProfile->gyro_cutoff[2] = sbufReadU8(src);
+        currentPidProfile->dterm_cutoff[0] = sbufReadU8(src);
+        currentPidProfile->dterm_cutoff[1] = sbufReadU8(src);
+        currentPidProfile->dterm_cutoff[2] = sbufReadU8(src);
         currentPidProfile->iterm_relax_type = sbufReadU8(src);
-        currentPidProfile->iterm_relax_level[0] = sbufReadU8(src);
-        currentPidProfile->iterm_relax_level[1] = sbufReadU8(src);
-        currentPidProfile->iterm_relax_level[2] = sbufReadU8(src);
         currentPidProfile->iterm_relax_cutoff[0] = sbufReadU8(src);
         currentPidProfile->iterm_relax_cutoff[1] = sbufReadU8(src);
         currentPidProfile->iterm_relax_cutoff[2] = sbufReadU8(src);
