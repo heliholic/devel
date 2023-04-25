@@ -82,7 +82,7 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
     .gov_autorotation_min_entry_time = 50,
     .gov_pwr_filter = 20,
     .gov_rpm_filter = 20,
-    .gov_tta_filter = 250,
+    .gov_tta_filter = 0,
 );
 
 
@@ -144,7 +144,9 @@ typedef struct {
     float           D;
     float           F;
     float           pidSum;
-    float           pidError;
+
+    // Differentiator with bandwidth limiter
+    difFilter_t     differentiator;
 
     // PID Gains
     float           K;
@@ -411,11 +413,8 @@ static void govUpdateData(void)
     // Update PIDF terms
     gov.P = gov.K * gov.Kp * newError;
     gov.C = gov.K * gov.Ki * newError * pidGetDT();
-    gov.D = gov.K * gov.Kd * (newError - gov.pidError) / pidGetDT();
+    gov.D = gov.K * gov.Kd * difFilterApply(&gov.differentiator, newError);
     gov.F = gov.K * gov.Kf * totalFF;
-
-    // Update error term
-    gov.pidError = newError;
 }
 
 
@@ -1011,12 +1010,15 @@ void governorInit(const pidProfile_t *pidProfile)
         gov.zeroThrottleTimeout  = governorConfig()->gov_zero_throttle_timeout * 100;
         gov.lostHeadspeedTimeout = governorConfig()->gov_lost_headspeed_timeout * 100;
 
-        const float maxFreq = pidGetPidFrequency() / 4;
+        const float diff_cutoff = governorConfig()->gov_rpm_filter ?
+            constrainf(governorConfig()->gov_rpm_filter, 1, 50) : 20;
 
-        lowpassFilterInit(&gov.motorVoltageFilter, LPF_BESSEL, constrainf(governorConfig()->gov_pwr_filter, 1, maxFreq), gyro.targetRateHz, 0);
-        lowpassFilterInit(&gov.motorCurrentFilter, LPF_BESSEL, constrainf(governorConfig()->gov_pwr_filter, 1, maxFreq), gyro.targetRateHz, 0);
-        lowpassFilterInit(&gov.motorRPMFilter, LPF_BESSEL, constrainf(governorConfig()->gov_rpm_filter, 1, maxFreq), gyro.targetRateHz, 0);
-        lowpassFilterInit(&gov.TTAFilter, LPF_PT1, constrainf(governorConfig()->gov_tta_filter, 1, maxFreq), gyro.targetRateHz, 0);
+        difFilterInit(&gov.differentiator, diff_cutoff, gyro.targetRateHz);
+
+        lowpassFilterInit(&gov.motorVoltageFilter, LPF_BESSEL, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.motorCurrentFilter, LPF_BESSEL, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.motorRPMFilter, LPF_BESSEL, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.TTAFilter, LPF_BESSEL, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
 
         governorInitProfile(pidProfile);
     }
