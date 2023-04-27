@@ -72,15 +72,17 @@ typedef struct {
 
 typedef struct {
 
-    float collectiveDeflectionLPF;
+    filter_t collFilter;
 
-    float collectiveImpulseFilterGain;
-    float pitchCollectiveFFGain;
-    float pitchCollectiveImpulseFFGain;
+    float collectiveLP;
+    float collectiveHP;
 
     float yawCyclicFFGain;
     float yawCollectiveFFGain;
-    float yawCollectiveImpulseFFGain;
+    float yawCollectiveHFGain;
+
+    float pitchCollectiveFFGain;
+
 } pidPrecomp_t;
 
 typedef struct pid_s {
