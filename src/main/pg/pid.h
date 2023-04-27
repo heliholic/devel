@@ -143,11 +143,10 @@ typedef struct pidProfile_s {
 
     uint16_t            yaw_cyclic_ff_gain;
     uint16_t            yaw_collective_ff_gain;
-    uint16_t            yaw_collective_ff_impulse_gain;
-    uint8_t             yaw_collective_ff_impulse_freq;
+    uint16_t            yaw_collective_hf_gain;
+    uint8_t             yaw_collective_ff_cutoff;
 
     uint16_t            pitch_collective_ff_gain;
-    uint16_t            pitch_collective_ff_impulse_gain;
 
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
