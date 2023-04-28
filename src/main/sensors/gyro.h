@@ -89,8 +89,8 @@ typedef struct gyro_s {
 
     gyroDev_t *rawSensorDev;           // pointer to the sensor providing the raw data for DEBUG_GYRO_RAW
 
-    // gyro decimation filter
-    filter_t decimationFilter[XYZ_AXIS_COUNT];
+    // gyro decimation filter stack
+    biquadFilter_t decimator[XYZ_AXIS_COUNT][2];
 
     // gyro lowpass filters
     filter_t lowpassFilter[XYZ_AXIS_COUNT];
