@@ -120,6 +120,14 @@ static void gyroInitLowpassFilter(filter_t *lowpassFilter, int type, float cutof
     }
 }
 
+static void gyroInitDecimationFilter(float cutoff, float sampleRate)
+{
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        biquadFilterInit(&gyro.decimator[axis][0], BUTTER_4A_C * cutoff, sampleRate, BUTTER_4A_Q, BIQUAD_LPF);
+        biquadFilterInit(&gyro.decimator[axis][1], BUTTER_4B_C * cutoff, sampleRate, BUTTER_4B_Q, BIQUAD_LPF);
+    }
+}
+
 void gyroInitFilters(void)
 {
 #ifdef USE_DYN_LPF
@@ -133,12 +141,9 @@ void gyroInitFilters(void)
     }
 #endif
 
-    gyroInitLowpassFilter(
-        gyro.decimationFilter,
-        LPF_BESSEL,
+    gyroInitDecimationFilter(
         gyroConfig()->gyro_decimation_hz,
-        gyro.sampleRateHz,
-        0
+        gyro.sampleRateHz
     );
 
     gyroInitLowpassFilter(
