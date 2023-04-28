@@ -19,14 +19,6 @@
 
 #include <stdbool.h>
 
-#define BUTTER_Q    0.707106781f     /* 2nd order Butterworth: 1/sqrt(2) */
-#define BESSEL_Q    0.577350269f     /* 2nd order Bessel: 1/sqrt(3) */
-#define DAMPED_Q    0.5f             /* 2nd order Critically damped: 1/sqrt(4) */
-
-#define BUTTER_C    1.0f
-#define BESSEL_C    1.272019649f
-#define DAMPED_C    1.553773974f
-
 enum {
     LPF_NONE = 0,
     LPF_ORDER_1,

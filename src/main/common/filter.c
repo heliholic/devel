@@ -26,6 +26,17 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
+#define BUTTER_Q    0.707106781f     /* 2nd order Butterworth: 1/sqrt(2) */
+#define BESSEL_Q    0.577350269f     /* 2nd order Bessel: 1/sqrt(3) */
+#define DAMPED_Q    0.5f             /* 2nd order Critically damped: 1/sqrt(4) */
+
+#define BUTTER4A_Q  1.306562965f     /* 4nd order Butterworth first section */
+#define BUTTER4B_Q  0.541196100f     /* 4nd order Butterworth second section */
+
+#define BUTTER_C    1.0f
+#define BESSEL_C    1.272019649f
+#define DAMPED_C    1.553773974f
+
 
 // NIL filter
 
