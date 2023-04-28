@@ -377,9 +377,9 @@ FAST_CODE void gyroUpdate(void)
 #endif
     }
 
-    gyro.gyroADCd[X] = filterApply(&gyro.decimationFilter[X], gyro.gyroADC[X]);
-    gyro.gyroADCd[Y] = filterApply(&gyro.decimationFilter[Y], gyro.gyroADC[Y]);
-    gyro.gyroADCd[Z] = filterApply(&gyro.decimationFilter[Z], gyro.gyroADC[Z]);
+    gyro.gyroADCd[X] = filterStackApply(gyro.decimator[X], gyro.gyroADC[X], 2);
+    gyro.gyroADCd[Y] = filterStackApply(gyro.decimator[Y], gyro.gyroADC[Y], 2);
+    gyro.gyroADCd[Z] = filterStackApply(gyro.decimator[Z], gyro.gyroADC[Z], 2);
 }
 
 #define GYRO_FILTER_FUNCTION_NAME filterGyro

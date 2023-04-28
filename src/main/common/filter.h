@@ -19,13 +19,27 @@
 
 #include <stdbool.h>
 
-#define BUTTER_Q    0.707106781f     /* 2nd order Butterworth: 1/sqrt(2) */
-#define BESSEL_Q    0.577350269f     /* 2nd order Bessel: 1/sqrt(3) */
-#define DAMPED_Q    0.5f             /* 2nd order Critically damped: 1/sqrt(4) */
 
-#define BUTTER_C    1.0f
-#define BESSEL_C    1.272019649f
-#define DAMPED_C    1.553773974f
+#define BUTTER_Q        0.707106781f     /* 2nd order Butterworth: 1/sqrt(2) */
+#define BESSEL_Q        0.577350269f     /* 2nd order Bessel: 1/sqrt(3) */
+#define DAMPED_Q        0.5f             /* 2nd order Critically damped: 1/sqrt(4) */
+
+#define BUTTER_C        1.0f
+#define BESSEL_C        1.272019649f
+#define DAMPED_C        1.553773974f
+
+#define BUTTER_4A_Q     0.541196100f     /* 4nd order Butterworth 1st section */
+#define BUTTER_4B_Q     1.306562965f     /* 4nd order Butterworth 2nd section */
+
+#define BUTTER_4A_C     1.0f
+#define BUTTER_4B_C     1.0f
+
+#define BESSEL_4A_Q     0.805538282f
+#define BESSEL_4B_Q     0.521934582f
+
+#define BESSEL_4A_C     1.603357516f
+#define BESSEL_4B_C     1.430171560f
+
 
 enum {
     LPF_NONE = 0,
@@ -213,6 +227,8 @@ void biquadFilterUpdate(biquadFilter_t *filter, float cutoff, float sampleRate, 
 float biquadFilterApply(biquadFilter_t *filter, float input);
 float biquadFilterApplyDF1(biquadFilter_t *filter, float input);
 float biquadFilterApplyDF2(biquadFilter_t *filter, float input);
+
+float filterStackApply(biquadFilter_t *filter, float input, int count);
 
 void lowpassFilterInit(filter_t *filter, uint8_t type, float cutoff, float sampleRate, uint32_t flags);
 

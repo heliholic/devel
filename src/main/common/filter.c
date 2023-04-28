@@ -421,6 +421,22 @@ FAST_CODE float biquadFilterApplyDF2(biquadFilter_t *filter, float input)
     return output;
 }
 
+FAST_CODE float filterStackApply(biquadFilter_t *filter, float input, int count)
+{
+    for (int i = 0; i < count; i++) {
+        const float output = filter->b0 * input + filter->x1;
+
+        filter->x1 = filter->b1 * input - filter->a1 * output + filter->x2;
+        filter->x2 = filter->b2 * input - filter->a2 * output;
+
+        filter++;
+
+        input = output;
+    }
+
+    return input;
+}
+
 
 // Generic Low-Pass Filter (LPF)
 
