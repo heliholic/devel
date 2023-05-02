@@ -60,11 +60,10 @@ typedef struct {
     float       gpsAlt;
     float       gpsAltOffset;
 
-    float       varioAltPrev;
+    difFilter_t varioFilter;
 
     filter_t    gpsFilter;
     filter_t    baroFilter;
-    filter_t    varioFilter;
 
     filter_t    gpsOffsetFilter;
     filter_t    baroOffsetFilter;
@@ -97,12 +96,7 @@ int16_t getEstimatedVario(void)
 
 static float calculateVario(float altitude)
 {
-    float vario = (altitude - alt.varioAltPrev) * pidGetPidFrequency();
-    vario = filterApply(&alt.varioFilter, vario);
-
-    alt.varioAltPrev = altitude;
-
-    return vario;
+    return difFilterApply(&alt.varioFilter, altitude);
 }
 
 void positionUpdate(void)
@@ -175,10 +169,11 @@ void INIT_CODE positionInit(void)
 {
     alt.source = positionConfig()->alt_source;
 
-    lowpassFilterInit(&alt.gpsFilter, LPF_PT2, positionConfig()->gps_alt_lpf / 100.0f, pidGetPidFrequency(), 0);
-    lowpassFilterInit(&alt.baroFilter, LPF_PT2, positionConfig()->baro_alt_lpf / 100.0f, pidGetPidFrequency(), 0);
-    lowpassFilterInit(&alt.varioFilter, LPF_PT1, positionConfig()->vario_lpf / 100.0f, pidGetPidFrequency(), 0);
+    difFilterInit(&alt.varioFilter, positionConfig()->vario_lpf / 100.0f, pidGetPidFrequency());
 
-    lowpassFilterInit(&alt.gpsOffsetFilter, LPF_PT2, positionConfig()->gps_offset_lpf / 1000.0f, pidGetPidFrequency(), 0);
-    lowpassFilterInit(&alt.baroOffsetFilter, LPF_PT2, positionConfig()->baro_offset_lpf / 1000.0f, pidGetPidFrequency(), 0);
+    lowpassFilterInit(&alt.gpsFilter, LPF_PT2, positionConfig()->gps_alt_lpf / 100.0f, pidGetPidFrequency(), LPF_EWMA);
+    lowpassFilterInit(&alt.baroFilter, LPF_PT2, positionConfig()->baro_alt_lpf / 100.0f, pidGetPidFrequency(), LPF_EWMA);
+
+    lowpassFilterInit(&alt.gpsOffsetFilter, LPF_PT2, positionConfig()->gps_offset_lpf / 1000.0f, pidGetPidFrequency(), LPF_EWMA);
+    lowpassFilterInit(&alt.baroOffsetFilter, LPF_PT2, positionConfig()->baro_offset_lpf / 1000.0f, pidGetPidFrequency(), LPF_EWMA);
 }
