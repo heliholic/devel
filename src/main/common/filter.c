@@ -171,6 +171,161 @@ FAST_CODE float pt3FilterApply(pt3Filter_t *filter, float input)
 }
 
 
+// EWMA1 Low Pass filter
+
+float ewma1FilterWeight(float cutoff, float sampleRate)
+{
+    float omega = tan_approx(M_PIf * cutoff / sampleRate);
+    float weight = (1.0f / omega + 1.0f) / 2.0f;
+
+    return weight;
+}
+
+void ewma1FilterInit(ewma1Filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->y1 = 0;
+    filter->N = 0;
+    filter->W = ewma1FilterWeight(cutoff, sampleRate);
+}
+
+void ewma1FilterInitWeight(ewma1Filter_t *filter, float weight)
+{
+    filter->y1 = 0;
+    filter->N = 0;
+    filter->W = weight;
+}
+
+void ewma1FilterUpdate(ewma1Filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->W = ewma1FilterWeight(cutoff, sampleRate);
+    filter->N = MIN(filter->N, filter->W);
+}
+
+void ewma1FilterUpdateWeight(ewma1Filter_t *filter, float weight)
+{
+    filter->W = weight;
+    filter->N = MIN(filter->N, filter->W);
+}
+
+FAST_CODE float ewma1FilterApply(ewma1Filter_t *filter, float input)
+{
+    uint32_t count = filter->N + 1;
+    float weight = filter->W;
+
+    if (count < weight)
+        weight = filter->N = count;
+
+    filter->y1 += (input - filter->y1) / weight;
+
+    return filter->y1;
+}
+
+
+// EWMA2 Low Pass filter
+
+float ewma2FilterWeight(float cutoff, float sampleRate)
+{
+    // order=2: 1 / sqrt( (2^(1 / order) - 1)) = 1.553773974
+    return ewma1FilterWeight(cutoff * 1.553773974f, sampleRate);
+}
+
+void ewma2FilterInit(ewma2Filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->y1 = 0;
+    filter->y2 = 0;
+    filter->N = 0;
+    filter->W = ewma2FilterWeight(cutoff, sampleRate);
+}
+
+void ewma2FilterInitWeight(ewma2Filter_t *filter, float weight)
+{
+    filter->y1 = 0;
+    filter->y2 = 0;
+    filter->N = 0;
+    filter->W = weight;
+}
+
+void ewma2FilterUpdate(ewma2Filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->W = ewma2FilterWeight(cutoff, sampleRate);
+    filter->N = MIN(filter->N, filter->W);
+}
+
+void ewma2FilterUpdateWeight(ewma2Filter_t *filter, float weight)
+{
+    filter->W = weight;
+    filter->N = MIN(filter->N, filter->W);
+}
+
+FAST_CODE float ewma2FilterApply(ewma2Filter_t *filter, float input)
+{
+    uint32_t count = filter->N + 1;
+    float weight = filter->W;
+
+    if (count < weight)
+        weight = filter->N = count;
+
+    filter->y2 += (input      - filter->y2) / weight;
+    filter->y1 += (filter->y2 - filter->y1) / weight;
+
+    return filter->y1;
+}
+
+
+// EWMA3 Low Pass filter
+
+float ewma3FilterWeight(float cutoff, float sampleRate)
+{
+    // order=3: 1 / sqrt( (2^(1 / order) - 1)) = 1.961459177
+    return ewma1FilterWeight(cutoff * 1.961459177f, sampleRate);
+}
+
+void ewma3FilterInit(ewma3Filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->y1 = 0;
+    filter->y2 = 0;
+    filter->y3 = 0;
+    filter->N = 0;
+    filter->W = ewma3FilterWeight(cutoff, sampleRate);
+}
+
+void ewma3FilterInitWeight(ewma3Filter_t *filter, float weight)
+{
+    filter->y1 = 0;
+    filter->y2 = 0;
+    filter->y3 = 0;
+    filter->N = 0;
+    filter->W = weight;
+}
+
+void ewma3FilterUpdate(ewma3Filter_t *filter, float cutoff, float sampleRate)
+{
+    filter->W = ewma3FilterWeight(cutoff, sampleRate);
+    filter->N = MIN(filter->N, filter->W);
+}
+
+void ewma3FilterUpdateWeight(ewma3Filter_t *filter, float weight)
+{
+    filter->W = weight;
+    filter->N = MIN(filter->N, filter->W);
+}
+
+FAST_CODE float ewma3FilterApply(ewma3Filter_t *filter, float input)
+{
+    uint32_t count = filter->N + 1;
+    float weight = filter->W;
+
+    if (count < weight)
+        weight = filter->N = count;
+
+    filter->y3 += (input      - filter->y3) / weight;
+    filter->y2 += (filter->y3 - filter->y2) / weight;
+    filter->y1 += (filter->y2 - filter->y1) / weight;
+
+    return filter->y1;
+}
+
+
 /*
  * Differentiator with bandwidth limit
  *
@@ -471,21 +626,39 @@ void lowpassFilterInit(filter_t *filter, uint8_t type, float cutoff, float sampl
 
     switch (type) {
         case LPF_PT1:
-            filter->init   = (filterInitFn)pt1FilterInit;
-            filter->apply  = (filterApplyFn)pt1FilterApply;
-            filter->update = (filterUpdateFn)pt1FilterUpdate;
+            if (flags & LPF_EWMA) {
+                filter->init   = (filterInitFn)ewma1FilterInit;
+                filter->apply  = (filterApplyFn)ewma1FilterApply;
+                filter->update = (filterUpdateFn)ewma1FilterUpdate;
+            } else {
+                filter->init   = (filterInitFn)pt1FilterInit;
+                filter->apply  = (filterApplyFn)pt1FilterApply;
+                filter->update = (filterUpdateFn)pt1FilterUpdate;
+            }
             break;
 
         case LPF_PT2:
-            filter->init   = (filterInitFn)pt2FilterInit;
-            filter->apply  = (filterApplyFn)pt2FilterApply;
-            filter->update = (filterUpdateFn)pt2FilterUpdate;
+            if (flags & LPF_EWMA) {
+                filter->init   = (filterInitFn)ewma2FilterInit;
+                filter->apply  = (filterApplyFn)ewma2FilterApply;
+                filter->update = (filterUpdateFn)ewma2FilterUpdate;
+            } else {
+                filter->init   = (filterInitFn)pt2FilterInit;
+                filter->apply  = (filterApplyFn)pt2FilterApply;
+                filter->update = (filterUpdateFn)pt2FilterUpdate;
+            }
             break;
 
         case LPF_PT3:
-            filter->init   = (filterInitFn)pt3FilterInit;
-            filter->apply  = (filterApplyFn)pt3FilterApply;
-            filter->update = (filterUpdateFn)pt3FilterUpdate;
+            if (flags & LPF_EWMA) {
+                filter->init   = (filterInitFn)ewma3FilterInit;
+                filter->apply  = (filterApplyFn)ewma3FilterApply;
+                filter->update = (filterUpdateFn)ewma3FilterUpdate;
+            } else {
+                filter->init   = (filterInitFn)pt3FilterInit;
+                filter->apply  = (filterApplyFn)pt3FilterApply;
+                filter->update = (filterUpdateFn)pt3FilterUpdate;
+            }
             break;
 
         case LPF_1ST_ORDER:

@@ -86,6 +86,27 @@ typedef struct {
 
 typedef struct {
     float y1;
+    float W;
+    uint32_t N;
+} ewma1Filter_t;
+
+typedef struct {
+    float y1;
+    float y2;
+    float W;
+    uint32_t N;
+} ewma2Filter_t;
+
+typedef struct {
+    float y1;
+    float y2;
+    float y3;
+    float W;
+    uint32_t N;
+} ewma3Filter_t;
+
+typedef struct {
+    float y1;
     float x1;
     float a;
     float b;
@@ -124,6 +145,9 @@ typedef union {
     pt1Filter_t     pt1;
     pt2Filter_t     pt2;
     pt3Filter_t     pt3;
+    ewma1Filter_t   ew1;
+    ewma2Filter_t   ew2;
+    ewma3Filter_t   ew3;
     order1Filter_t  fos;
     biquadFilter_t  sos;
 } filterData_t;
@@ -143,6 +167,7 @@ typedef struct filter_s {
 
 enum {
     LPF_UPDATE  = BIT(0),
+    LPF_EWMA    = BIT(1),
 };
 
 
@@ -195,6 +220,27 @@ void pt3FilterInitGain(pt3Filter_t *filter, float gain);
 void pt3FilterUpdateGain(pt3Filter_t *filter, float gain);
 float pt3FilterGain(float cutoff, float sampleRate);
 float pt3FilterApply(pt3Filter_t *filter, float input);
+
+void ewma1FilterInit(ewma1Filter_t *filter, float cutoff, float sampleRate);
+void ewma1FilterUpdate(ewma1Filter_t *filter, float cutoff, float sampleRate);
+void ewma1FilterInitWeight(ewma1Filter_t *filter, float weight);
+void ewma1FilterUpdateWeight(ewma1Filter_t *filter, float weight);
+float ewma1FilterWeight(float cutoff, float sampleRate);
+float ewma1FilterApply(ewma1Filter_t *filter, float input);
+
+void ewma2FilterInit(ewma2Filter_t *filter, float cutoff, float sampleRate);
+void ewma2FilterUpdate(ewma2Filter_t *filter, float cutoff, float sampleRate);
+void ewma2FilterInitWeight(ewma2Filter_t *filter, float weight);
+void ewma2FilterUpdateWeight(ewma2Filter_t *filter, float weight);
+float ewma2FilterWeight(float cutoff, float sampleRate);
+float ewma2FilterApply(ewma2Filter_t *filter, float input);
+
+void ewma3FilterInit(ewma3Filter_t *filter, float cutoff, float sampleRate);
+void ewma3FilterUpdate(ewma3Filter_t *filter, float cutoff, float sampleRate);
+void ewma3FilterInitWeight(ewma3Filter_t *filter, float weight);
+void ewma3FilterUpdateWeight(ewma3Filter_t *filter, float weight);
+float ewma3FilterWeight(float cutoff, float sampleRate);
+float ewma3FilterApply(ewma3Filter_t *filter, float input);
 
 void difFilterInit(difFilter_t *filter, float cutoff, float sampleRate);
 void difFilterUpdate(difFilter_t *filter, float cutoff, float sampleRate);
