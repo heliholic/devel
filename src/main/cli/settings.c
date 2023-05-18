@@ -1581,11 +1581,11 @@ const clivalue_t valueTable[] = {
 #endif
 
 #ifdef USE_RPM_FILTER
-    { "gyro_rpm_filter_bank_motor_index", VAR_UINT8  | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_motor_index) },
-    { "gyro_rpm_filter_bank_gear_ratio",  VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_gear_ratio) },
-    { "gyro_rpm_filter_bank_notch_q",     VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_notch_q) },
-    { "gyro_rpm_filter_bank_min_hz",      VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_min_hz) },
-    { "gyro_rpm_filter_bank_max_hz",      VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_max_hz) },
+    { "gyro_rpm_filter_bank_rpm_source", VAR_UINT8  | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_rpm_source) },
+    { "gyro_rpm_filter_bank_rpm_ratio",  VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_rpm_ratio) },
+    { "gyro_rpm_filter_bank_rpm_min",    VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_rpm_min) },
+    { "gyro_rpm_filter_bank_notch_q",    VAR_UINT8  | MASTER_VALUE | MODE_ARRAY, .config.array.length = RPM_FILTER_BANK_COUNT, PG_RPM_FILTER_CONFIG, offsetof(rpmFilterConfig_t, filter_bank_notch_q) },
+    { "gyro_rpm_filter_debug_bank",      VAR_UINT8 |  MASTER_VALUE, .config.minmax = { 0, RPM_FILTER_BANK_COUNT-1 }, PG_GYRO_CONFIG, offsetof(gyroConfig_t, rpmFilterDebugBank) },
 #endif
 
 #ifdef USE_RX_FLYSKY
