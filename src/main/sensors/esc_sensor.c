@@ -65,9 +65,9 @@ PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
 
 
 enum {
-    DEBUG_ESC_MOTOR_INDEX = 0,
-    DEBUG_ESC_NUM_TIMEOUTS = 1,
-    DEBUG_ESC_NUM_CRC_ERRORS = 2,
+    DEBUG_ESC_NUM_TIMEOUTS = 0,
+    DEBUG_ESC_NUM_CRC_ERRORS = 1,
+    DEBUG_ESC_NUM_SYNC_ERRORS = 2,
     DEBUG_ESC_DATA_AGE = 3,
     DEBUG_ESC_RPM = 4,
     DEBUG_ESC_TEMP = 5,
@@ -85,6 +85,7 @@ static bool combinedDataNeedsUpdate = true;
 
 static uint32_t totalTimeoutCount = 0;
 static uint32_t totalCrcErrorCount = 0;
+static uint32_t totalSyncErrorCount = 0;
 
 static uint8_t buffer[TELEMETRY_BUFFER_SIZE] = { 0, };
 
@@ -286,8 +287,6 @@ static void setTelemetryReqeust(timeMs_t currentTimeMs)
 
     escTriggerState = ESC_TRIGGER_PENDING;
     escTriggerTimestamp = currentTimeMs;
-
-    DEBUG_SET(DEBUG_ESC_SENSOR, DEBUG_ESC_MOTOR_INDEX, currentEsc + 1);
 }
 
 static uint8_t decodeTelemetryFrame(void)
@@ -300,17 +299,30 @@ static uint8_t decodeTelemetryFrame(void)
     uint16_t tlmsum = buffer[ESC_FRAME_SIZE - 1];
 
     if (chksum == tlmsum) {
+        uint16_t temp = buffer[0];
+        uint16_t volt = buffer[1] << 8 | buffer[2];
+        uint16_t curr = buffer[3] << 8 | buffer[4];
+        uint16_t capa = buffer[5] << 8 | buffer[6];
+        uint16_t erpm = buffer[7] << 8 | buffer[8];
+
         escSensorData[currentEsc].dataAge = 0;
-        escSensorData[currentEsc].temperature = buffer[0];
-        escSensorData[currentEsc].voltage = buffer[1] << 8 | buffer[2];
-        escSensorData[currentEsc].current = buffer[3] << 8 | buffer[4];
-        escSensorData[currentEsc].consumption = buffer[5] << 8 | buffer[6];
-        escSensorData[currentEsc].rpm = buffer[7] << 8 | buffer[8];
+        escSensorData[currentEsc].temperature = temp;
+        escSensorData[currentEsc].voltage = volt;
+        escSensorData[currentEsc].current = curr;
+        escSensorData[currentEsc].consumption = capa;
+        escSensorData[currentEsc].rpm = erpm;
 
         combinedDataNeedsUpdate = true;
 
-        DEBUG_SET(DEBUG_ESC_SENSOR_RPM, currentEsc, escSensorData[currentEsc].rpm);
-        DEBUG_SET(DEBUG_ESC_SENSOR_TMP, currentEsc, escSensorData[currentEsc].temperature);
+        if (currentEsc == debugAxis) {
+            DEBUG(ESC_SENSOR, DEBUG_ESC_RPM, erpm);
+            DEBUG(ESC_SENSOR, DEBUG_ESC_TEMP, temp);
+            DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, volt);
+            DEBUG(ESC_SENSOR, DEBUG_ESC_CURRENT, curr);
+
+            DEBUG(ESC_SENSOR_RPM, currentEsc, erpm);
+            DEBUG(ESC_SENSOR_TMP, currentEsc, temp);
+        }
 
         return ESC_FRAME_COMPLETE;
     }
@@ -440,6 +452,14 @@ static void frameSyncError(void)
     bufferPos = 0;
     syncCount = 0;
 
+    DEBUG_SET(DEBUG_ESC_SENSOR, DEBUG_ESC_NUM_SYNC_ERRORS, ++totalSyncErrorCount);
+}
+
+static void frameTimeoutError(void)
+{
+    bufferPos = 0;
+    syncCount = 0;
+
     DEBUG_SET(DEBUG_ESC_SENSOR, DEBUG_ESC_NUM_TIMEOUTS, ++totalTimeoutCount);
 }
 
@@ -478,6 +498,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
     // Increment data age counter if no updates in 250ms
     if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
         increaseDataAge();
+        frameTimeoutError();
         dataUpdateUs = currentTimeUs;
     }
 
@@ -485,7 +506,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
     while (serialRxBytesWaiting(escSensorPort)) {
         if (processHW4TelemetryStream(serialRead(escSensorPort))) {
             if (buffer[4] < 4 && buffer[6] < 4 && buffer[8] < 4 &&
-                buffer[11] < 0xF && buffer[13] < 0xF && buffer[15] < 0xF && buffer[17] < 0xF) {
+                buffer[11] < 0x10 && buffer[13] < 0x10 && buffer[15] < 0x10 && buffer[17] < 0x10) {
 
                 uint32_t cnt = buffer[1] << 16 | buffer[2] << 8 | buffer[3];
                 uint16_t thr = buffer[4] << 8 | buffer[5];
@@ -509,7 +530,6 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                     escSensorData[0].current = 0.0f;
                 }
 
-                DEBUG(ESC_SENSOR, DEBUG_ESC_MOTOR_INDEX, cnt);
                 DEBUG(ESC_SENSOR, DEBUG_ESC_RPM, lrintf(rpm));
                 DEBUG(ESC_SENSOR, DEBUG_ESC_TEMP, lrintf(tempFET));
                 DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, lrintf(voltage * 100));
@@ -518,6 +538,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR_RPM, 0, rpm);
                 DEBUG(ESC_SENSOR_RPM, 1, thr);
                 DEBUG(ESC_SENSOR_RPM, 2, pwm);
+                DEBUG(ESC_SENSOR_RPM, 3, cnt);
 
                 DEBUG(ESC_SENSOR_TMP, 0, lrintf(tempFET * 10));
                 DEBUG(ESC_SENSOR_TMP, 1, lrintf(tempBEC * 10));
@@ -618,6 +639,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
     // Increment data age counter if no updates in 250ms
     if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
         increaseDataAge();
+        frameTimeoutError();
         dataUpdateUs = currentTimeUs;
     }
 
