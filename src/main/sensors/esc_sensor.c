@@ -155,7 +155,8 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
             }
         }
         else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4 ||
-                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK) {
+                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK ||
+                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
             if (motorNumber == 0)
                 return &escSensorData[0];
         }
@@ -191,6 +192,12 @@ bool escSensorInit(void)
     }
     else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK) {
         portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_EVEN | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
+        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
+    }
+    else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
+        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_EVEN | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
+
+        // Initialize serial port with no callback. We will just process the buffer.
         escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
     }
 
@@ -692,6 +699,100 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
 }
 
 
+/*
+ * OMP Hobby telemetry
+ *
+ * Byte 0:          Start Flag 0xdd
+ * Byte 1-2:        Message Type 0x0120
+ * Byte 3-4:        Battery voltage (100mV steps)
+ * Byte 5-6:        Battery current (100mA steps)
+ * Byte 7:          Throttle Percent
+ * Byte 8-9:        RPM (10rpm steps)
+ * Byte 10:         Temperature
+ * Byte 11:         Unused / Zero
+ * Byte 12:         PWM Throttle Percent
+ * Byte 13:         Unused / Zero
+ * Byte 14:         ESC State Code
+ * Byte 15-16:      Used Capacity mAh
+ * Byte 17-19:      Unused / Zeros
+ *
+ */
+
+static bool processOMPTelemetryStream(uint8_t dataByte)
+{
+    buffer[readBytes++] = dataByte;
+
+    if (readBytes == 1) {
+        if (dataByte != 0xDD)
+            frameSyncError();
+        else
+            syncCount++;
+    }
+    else if (readBytes > 18) {
+        if (dataByte != 0)
+            frameSyncError();
+    }
+
+    if (readBytes == 20) {
+        readBytes = 0;
+        if (syncCount > 4)
+            return true;
+    }
+
+    return false;
+}
+
+static void ompSensorProcess(timeUs_t currentTimeUs)
+{
+    // Increment data age counter if no updates in 250ms
+    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
+        increaseDataAge();
+        frameTimeoutError();
+        dataUpdateUs = currentTimeUs;
+    }
+
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort)) {
+        if (processOMPTelemetryStream(serialRead(escSensorPort))) {
+            // We understand frames that have these fixed values
+            if (buffer[1] == 0x01 && buffer[2] == 0x20 && buffer[11] == 0 && buffer[13] == 0 && buffer[17] == 0) {
+                uint16_t rpm = buffer[8] << 8 | buffer[9];
+                uint16_t pwm = buffer[11];
+                uint16_t temp = buffer[10];
+                uint16_t voltage = buffer[3] << 8 | buffer[4];
+                uint16_t current = buffer[5] << 8 | buffer[6];
+                uint16_t capacity = buffer[15] << 8 | buffer[16];
+
+                escSensorData[0].dataAge = 0;
+                escSensorData[0].temperature = temp;
+                escSensorData[0].voltage = voltage * 10;
+                escSensorData[0].current = current * 10;
+                escSensorData[0].rpm = rpm / 10;
+                escSensorData[0].consumption = capacity;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_RPM, rpm);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_TEMP, temp);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_CURRENT, current);
+
+                DEBUG(ESC_SENSOR_RPM, 0, rpm);
+                DEBUG(ESC_SENSOR_RPM, 2, pwm);
+
+                DEBUG(ESC_SENSOR_TMP, 0, temp * 10);
+
+                dataUpdateUs = currentTimeUs;
+            }
+            else {
+                DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_CRC_ERRORS, ++totalCrcErrorCount);
+            }
+        }
+    }
+
+    // Log the data age to see how old the data gets
+    DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorData[0].dataAge);
+}
+
+
 void escSensorProcess(timeUs_t currentTimeUs)
 {
     if (escSensorPort && motorIsEnabled()) {
@@ -704,6 +805,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
                 break;
             case ESC_SENSOR_PROTO_KONTRONIK:
                 kontronikSensorProcess(currentTimeUs);
+                break;
+            case ESC_SENSOR_PROTO_OMPHOBBY:
+                ompSensorProcess(currentTimeUs);
                 break;
         }
     }
