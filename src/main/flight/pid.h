@@ -90,6 +90,8 @@ typedef struct pid_s {
     float freq;
 
     uint8_t pidMode;
+    uint8_t dtermMode;
+    uint8_t dtermChoice;
 
     uint8_t itermRelaxType;
     uint8_t itermRelaxLevel[PID_AXIS_COUNT];
