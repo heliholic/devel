@@ -116,7 +116,9 @@ uint16_t getEscSensorRPM(uint8_t motorNumber)
 
 static void combinedDataUpdate(void)
 {
-    if (combinedDataNeedsUpdate && getMotorCount() > 0) {
+    const int motorCount = getMotorCount();
+
+    if (combinedDataNeedsUpdate && motorCount > 0) {
         combinedEscSensorData.dataAge = 0;
         combinedEscSensorData.temperature = 0;
         combinedEscSensorData.voltage = 0;
@@ -124,7 +126,7 @@ static void combinedDataUpdate(void)
         combinedEscSensorData.consumption = 0;
         combinedEscSensorData.rpm = 0;
 
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < motorCount; i++) {
             combinedEscSensorData.dataAge = MAX(combinedEscSensorData.dataAge, escSensorData[i].dataAge);
             combinedEscSensorData.temperature = MAX(combinedEscSensorData.temperature, escSensorData[i].temperature);
             combinedEscSensorData.voltage += escSensorData[i].voltage;
@@ -133,8 +135,8 @@ static void combinedDataUpdate(void)
             combinedEscSensorData.rpm += escSensorData[i].rpm;
         }
 
-        combinedEscSensorData.voltage = combinedEscSensorData.voltage / getMotorCount();
-        combinedEscSensorData.rpm = combinedEscSensorData.rpm / getMotorCount();
+        combinedEscSensorData.voltage = combinedEscSensorData.voltage / motorCount;
+        combinedEscSensorData.rpm = combinedEscSensorData.rpm / motorCount;
 
         combinedDataNeedsUpdate = false;
 
@@ -157,7 +159,7 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
         else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4 ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
-            if (motorNumber == 0)
+            if (motorNumber == 0 || motorNumber == ESC_SENSOR_COMBINED)
                 return &escSensorData[0];
         }
     }
