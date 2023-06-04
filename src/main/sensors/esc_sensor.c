@@ -197,7 +197,7 @@ bool escSensorInit(void)
         escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
     }
     else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
-        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_EVEN | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
+        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
 
         // Initialize serial port with no callback. We will just process the buffer.
         escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
