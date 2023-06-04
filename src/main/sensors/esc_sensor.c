@@ -65,14 +65,35 @@ PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
 
 
 enum {
-    DEBUG_ESC_NUM_TIMEOUTS = 0,
-    DEBUG_ESC_NUM_CRC_ERRORS = 1,
-    DEBUG_ESC_NUM_SYNC_ERRORS = 2,
-    DEBUG_ESC_DATA_AGE = 3,
-    DEBUG_ESC_RPM = 4,
-    DEBUG_ESC_TEMP = 5,
-    DEBUG_ESC_VOLTAGE = 6,
-    DEBUG_ESC_CURRENT = 7,
+    DEBUG_ESC_FRAME_COUNT = 0,
+    DEBUG_ESC_SYNC_ERRORS,
+    DEBUG_ESC_CRC_ERRORS,
+    DEBUG_ESC_TIMEOUTS,
+    DEBUG_ESC_RPM,
+    DEBUG_ESC_TEMP,
+    DEBUG_ESC_VOLTAGE,
+    DEBUG_ESC_CURRENT,
+};
+
+enum {
+    DEBUG_FRAME_BYTE_COUNT = 0,
+    DEBUG_FRAME_FRAME_COUNT,
+    DEBUG_FRAME_SYNC_COUNT,
+    DEBUG_FRAME_SYNC_ERRORS,
+    DEBUG_FRAME_CRC_ERRORS,
+    DEBUG_FRAME_TIMEOUTS,
+    DEBUG_FRAME_DATA_AGE,
+};
+
+enum {
+    DEBUG_DATA_FRAME_COUNT = 0,
+    DEBUG_DATA_RPM,
+    DEBUG_DATA_PWM,
+    DEBUG_DATA_TEMP,
+    DEBUG_DATA_VOLTAGE,
+    DEBUG_DATA_CURRENT,
+    DEBUG_DATA_CAPACITY,
+    DEBUG_DATA_EXTRA,
 };
 
 #define TELEMETRY_BUFFER_SIZE    40
@@ -83,6 +104,8 @@ static escSensorData_t escSensorData[MAX_SUPPORTED_MOTORS];
 static escSensorData_t escSensorDataCombined;
 static bool combinedNeedsUpdate = true;
 
+static uint32_t totalByteCount = 0;
+static uint32_t totalFrameCount = 0;
 static uint32_t totalTimeoutCount = 0;
 static uint32_t totalCrcErrorCount = 0;
 static uint32_t totalSyncErrorCount = 0;
@@ -140,7 +163,7 @@ static void combinedDataUpdate(void)
 
         combinedNeedsUpdate = false;
 
-        DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorDataCombined.dataAge);
+        DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorDataCombined.dataAge);
     }
 }
 
@@ -333,12 +356,20 @@ static uint8_t decodeTelemetryFrame(void)
             DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, volt);
             DEBUG(ESC_SENSOR, DEBUG_ESC_CURRENT, curr);
 
-            DEBUG(ESC_SENSOR_RPM, currentEsc, erpm);
-            DEBUG(ESC_SENSOR_TMP, currentEsc, temp);
+            DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, erpm);
+            DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, temp);
+            DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, volt);
+            DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, curr);
+            DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, capa);
         }
 
         return ESC_FRAME_COMPLETE;
     }
+
+    totalCrcErrorCount++;
+
+    DEBUG(ESC_SENSOR, DEBUG_ESC_CRC_ERRORS, totalCrcErrorCount);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_CRC_ERRORS, totalCrcErrorCount);
 
     return ESC_FRAME_FAILED;
 }
@@ -366,7 +397,6 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
                         increaseDataAge();
                         selectNextMotor();
                         setTelemetryReqeust(currentTimeMs);
-                        DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_CRC_ERRORS, ++totalCrcErrorCount);
                         break;
                     case ESC_FRAME_PENDING:
                         break;
@@ -376,7 +406,11 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
                 increaseDataAge();
                 selectNextMotor();
                 setTelemetryReqeust(currentTimeMs);
-                DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_TIMEOUTS, ++totalTimeoutCount);
+
+                totalTimeoutCount++;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_TIMEOUTS, totalTimeoutCount);
+                DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_TIMEOUTS, totalTimeoutCount);
             }
             break;
     }
@@ -465,7 +499,10 @@ static void frameSyncError(void)
     readBytes = 0;
     syncCount = 0;
 
-    DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_SYNC_ERRORS, ++totalSyncErrorCount);
+    totalSyncErrorCount++;
+
+    DEBUG(ESC_SENSOR, DEBUG_ESC_SYNC_ERRORS, totalSyncErrorCount);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_SYNC_ERRORS, totalSyncErrorCount);
 }
 
 static void frameTimeoutError(void)
@@ -473,7 +510,10 @@ static void frameTimeoutError(void)
     readBytes = 0;
     syncCount = 0;
 
-    DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_TIMEOUTS, ++totalTimeoutCount);
+    totalTimeoutCount++;
+
+    DEBUG(ESC_SENSOR, DEBUG_ESC_TIMEOUTS, totalTimeoutCount);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_TIMEOUTS, totalTimeoutCount);
 }
 
 static bool processHW4TelemetryStream(uint8_t dataByte)
@@ -521,7 +561,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
             if (buffer[4] < 4 && buffer[6] < 4 && buffer[8] < 4 &&
                 buffer[11] < 0x10 && buffer[13] < 0x10 && buffer[15] < 0x10 && buffer[17] < 0x10) {
 
-                uint32_t cnt = buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+                //uint32_t cnt = buffer[1] << 16 | buffer[2] << 8 | buffer[3];
                 uint16_t thr = buffer[4] << 8 | buffer[5];
                 uint16_t pwm = buffer[6] << 8 | buffer[7];
                 uint32_t rpm = buffer[8] << 16 | buffer[9] << 8 | buffer[10];
@@ -543,29 +583,31 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                     escSensorData[0].current = 0.0f;
                 }
 
-                DEBUG(ESC_SENSOR, DEBUG_ESC_RPM, lrintf(rpm));
-                DEBUG(ESC_SENSOR, DEBUG_ESC_TEMP, lrintf(tempFET));
+                DEBUG(ESC_SENSOR, DEBUG_ESC_RPM, rpm);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_TEMP, lrintf(tempFET * 10));
                 DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, lrintf(voltage * 100));
                 DEBUG(ESC_SENSOR, DEBUG_ESC_CURRENT, lrintf(current * 100));
 
-                DEBUG(ESC_SENSOR_RPM, 0, rpm);
-                DEBUG(ESC_SENSOR_RPM, 1, thr);
-                DEBUG(ESC_SENSOR_RPM, 2, pwm);
-                DEBUG(ESC_SENSOR_RPM, 3, cnt);
-
-                DEBUG(ESC_SENSOR_TMP, 0, lrintf(tempFET * 10));
-                DEBUG(ESC_SENSOR_TMP, 1, lrintf(tempBEC * 10));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, pwm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, lrintf(tempFET * 10));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, lrintf(voltage * 100));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, lrintf(current * 100));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, lrintf(tempBEC * 10));
 
                 dataUpdateUs = currentTimeUs;
             }
             else {
-                DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_CRC_ERRORS, ++totalCrcErrorCount);
+                totalCrcErrorCount++;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_CRC_ERRORS, totalCrcErrorCount);
+                DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_CRC_ERRORS, totalCrcErrorCount);
             }
         }
     }
 
     // Log the data age to see how old the data gets
-    DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorData[0].dataAge);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
 
     // Calculate consumption using the last valid current reading
     totalConsumption += cmp32(currentTimeUs, consumptionUpdateUs) * escSensorData[0].current * 10.0f;
@@ -573,6 +615,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
     // Convert mAus to mAh
     escSensorData[0].consumption = lrintf(totalConsumption / 3600e6f);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
 }
 
 
@@ -682,22 +725,27 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, voltage);
                 DEBUG(ESC_SENSOR, DEBUG_ESC_CURRENT, current);
 
-                DEBUG(ESC_SENSOR_RPM, 0, rpm);
-                DEBUG(ESC_SENSOR_RPM, 2, pwm);
-
-                DEBUG(ESC_SENSOR_TMP, 0, tempFET * 10);
-                DEBUG(ESC_SENSOR_TMP, 1, tempBEC * 10);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, pwm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tempFET);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, capacity);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tempBEC);
 
                 dataUpdateUs = currentTimeUs;
             }
             else {
-                DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_CRC_ERRORS, ++totalCrcErrorCount);
+                totalCrcErrorCount++;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_CRC_ERRORS, totalCrcErrorCount);
+                DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_CRC_ERRORS, totalCrcErrorCount);
             }
         }
     }
 
     // Log the data age to see how old the data gets
-    DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorData[0].dataAge);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
 }
 
 
@@ -777,21 +825,26 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR, DEBUG_ESC_VOLTAGE, voltage);
                 DEBUG(ESC_SENSOR, DEBUG_ESC_CURRENT, current);
 
-                DEBUG(ESC_SENSOR_RPM, 0, rpm);
-                DEBUG(ESC_SENSOR_RPM, 2, pwm);
-
-                DEBUG(ESC_SENSOR_TMP, 0, temp * 10);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, pwm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, temp);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, capacity);
 
                 dataUpdateUs = currentTimeUs;
             }
             else {
-                DEBUG(ESC_SENSOR, DEBUG_ESC_NUM_CRC_ERRORS, ++totalCrcErrorCount);
+                totalCrcErrorCount++;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_CRC_ERRORS, totalCrcErrorCount);
+                DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_CRC_ERRORS, totalCrcErrorCount);
             }
         }
     }
 
     // Log the data age to see how old the data gets
-    DEBUG(ESC_SENSOR, DEBUG_ESC_DATA_AGE, escSensorData[0].dataAge);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
 }
 
 
