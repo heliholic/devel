@@ -798,6 +798,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
                 uint16_t voltage = buffer[3] << 8 | buffer[4];
                 uint16_t current = buffer[5] << 8 | buffer[6];
                 uint16_t capacity = buffer[15] << 8 | buffer[16];
+                uint16_t status = buffer[14];
 
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = temp;
@@ -817,6 +818,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, capacity);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, status);
 
                 dataUpdateUs = currentTimeUs;
 
