@@ -82,18 +82,19 @@ enum {
     DEBUG_FRAME_SYNC_ERRORS,
     DEBUG_FRAME_CRC_ERRORS,
     DEBUG_FRAME_TIMEOUTS,
+    DEBUG_FRAME_BUFFER,
     DEBUG_FRAME_DATA_AGE,
 };
 
 enum {
-    DEBUG_DATA_FRAME_COUNT = 0,
-    DEBUG_DATA_RPM,
+    DEBUG_DATA_RPM = 0,
     DEBUG_DATA_PWM,
     DEBUG_DATA_TEMP,
     DEBUG_DATA_VOLTAGE,
     DEBUG_DATA_CURRENT,
     DEBUG_DATA_CAPACITY,
     DEBUG_DATA_EXTRA,
+    DEBUG_DATA_FRAME_COUNT,
 };
 
 #define TELEMETRY_BUFFER_SIZE    40
@@ -606,16 +607,18 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Log the data age to see how old the data gets
-    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
-
     // Calculate consumption using the last valid current reading
     totalConsumption += cmp32(currentTimeUs, consumptionUpdateUs) * escSensorData[0].current * 10.0f;
     consumptionUpdateUs = currentTimeUs;
 
     // Convert mAus to mAh
     escSensorData[0].consumption = lrintf(totalConsumption / 3600e6f);
+
+    // Debug logs
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_BUFFER, readBytes);
+
 }
 
 
@@ -744,8 +747,9 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Log the data age to see how old the data gets
+    // Debug logs
     DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_BUFFER, readBytes);
 }
 
 
@@ -775,15 +779,18 @@ static bool processOMPTelemetryStream(uint8_t dataByte)
     if (readBytes == 1) {
         if (dataByte != 0xDD)
             frameSyncError();
+    }
+    else if (readBytes == 2) {
+        if (dataByte != 0x01)
+            frameSyncError();
+    }
+    else if (readBytes == 3) {
+        if (dataByte != 0x20)
+            frameSyncError();
         else
             syncCount++;
     }
-    else if (readBytes > 18) {
-        if (dataByte != 0)
-            frameSyncError();
-    }
-
-    if (readBytes == 20) {
+    else if (readBytes == 20) {
         readBytes = 0;
         if (syncCount > 4)
             return true;
@@ -805,7 +812,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
     while (serialRxBytesWaiting(escSensorPort)) {
         if (processOMPTelemetryStream(serialRead(escSensorPort))) {
             // We understand frames that have these fixed values
-            if (buffer[1] == 0x01 && buffer[2] == 0x20 && buffer[11] == 0 && buffer[13] == 0 && buffer[17] == 0) {
+            if (buffer[11] == 0 && buffer[13] == 0 && buffer[17] == 0 && buffer[18] == 0 && buffer[19] == 0) {
                 uint16_t rpm = buffer[8] << 8 | buffer[9];
                 uint16_t pwm = buffer[11];
                 uint16_t temp = buffer[10];
@@ -843,8 +850,9 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Log the data age to see how old the data gets
+    // Debug logs
     DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_DATA_AGE, escSensorData[0].dataAge);
+    DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_BUFFER, readBytes);
 }
 
 
