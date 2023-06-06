@@ -527,7 +527,7 @@ static bool processHW4TelemetryStream(uint8_t dataByte)
     }
     else if (readBytes == 19) {
         readBytes = 0;
-        if (syncCount > 3)
+        //if (syncCount > 3) TODO fixme
             return true;
     }
 
