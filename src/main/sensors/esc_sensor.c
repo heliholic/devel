@@ -116,7 +116,6 @@ static volatile uint8_t bufferSize = 0;
 static volatile uint8_t bufferPos = 0;
 
 static uint8_t  readBytes = 0;
-static uint8_t  skipBytes = 0;
 static uint32_t syncCount = 0;
 
 
@@ -505,23 +504,23 @@ static bool processHW4TelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
 
-    if (skipBytes > 0) {
-        skipBytes--;
-        return false;
-    }
-
     buffer[readBytes++] = dataByte;
 
     if (readBytes == 1) {
-        if (dataByte == 0x9B)
-            syncCount++;
-        else
-            frameSyncError();
-    }
-    else if (readBytes == 2) {
         if (dataByte == 0x9B) {
+            syncCount++;
+        }
+        else if (dataByte == 0xB9) {
             readBytes = 0;
-            skipBytes = 11;
+            syncCount += 3;
+        }
+        else {
+            frameSyncError();
+        }
+    }
+    else if (readBytes == 12) {
+        if (buffer[1] == 0x9B) {
+            readBytes = 0;
         }
     }
     else if (readBytes == 19) {
