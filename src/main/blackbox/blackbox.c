@@ -1495,6 +1495,17 @@ void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data)
     case FLIGHT_LOG_EVENT_SYNC_BEEP:
         blackboxWriteUnsignedVB(data->syncBeep.time);
         break;
+    case FLIGHT_LOG_EVENT_STRING:
+        length = strlen(data->string.buffer);
+        blackboxWrite(length);
+        for (int i = 0; i < length; i++)
+            blackboxWrite(data->string.buffer[i]);
+        break;
+    case FLIGHT_LOG_EVENT_DATA:
+        blackboxWrite(data->data.length);
+        for (int i = 0; i < data->data.length; i++)
+            blackboxWrite(data->data.buffer[i]);
+        break;
     case FLIGHT_LOG_EVENT_FLIGHTMODE:
         blackboxWriteUnsignedVB(data->flightMode.flags);
         blackboxWriteUnsignedVB(data->flightMode.lastFlags);
@@ -1523,17 +1534,6 @@ void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data)
     case FLIGHT_LOG_EVENT_LOGGING_RESUME:
         blackboxWriteUnsignedVB(data->loggingResume.logIteration);
         blackboxWriteUnsignedVB(data->loggingResume.currentTime);
-        break;
-    case FLIGHT_LOG_EVENT_STRING:
-        length = strlen(data->string.buffer);
-        blackboxWrite(length);
-        for (int i = 0; i < length; i++)
-            blackboxWrite(data->string.buffer[i]);
-        break;
-    case FLIGHT_LOG_EVENT_DATA:
-        blackboxWrite(data->data.length);
-        for (int i = 0; i < data->data.length; i++)
-            blackboxWrite(data->data.buffer[i]);
         break;
     case FLIGHT_LOG_EVENT_LOG_END:
         blackboxWriteString("End of log");

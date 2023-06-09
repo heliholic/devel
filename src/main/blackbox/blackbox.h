@@ -41,6 +41,8 @@ typedef enum BlackboxMode {
 
 typedef enum FlightLogEvent {
     FLIGHT_LOG_EVENT_SYNC_BEEP = 0,
+    FLIGHT_LOG_EVENT_STRING = 1,
+    FLIGHT_LOG_EVENT_DATA = 2,
     FLIGHT_LOG_EVENT_AUTOTUNE_CYCLE_START = 10,   // UNUSED
     FLIGHT_LOG_EVENT_AUTOTUNE_CYCLE_RESULT = 11,  // UNUSED
     FLIGHT_LOG_EVENT_AUTOTUNE_TARGETS = 12,       // UNUSED
@@ -51,8 +53,6 @@ typedef enum FlightLogEvent {
     FLIGHT_LOG_EVENT_GOVSTATE = 50,   // Add new event type for main motor governor state.
     FLIGHT_LOG_EVENT_RESCUE_STATE = 51,
     FLIGHT_LOG_EVENT_AIRBORNE_STATE = 52,
-    FLIGHT_LOG_EVENT_STRING = 250,
-    FLIGHT_LOG_EVENT_DATA = 251,
     FLIGHT_LOG_EVENT_LOG_END = 255
 } FlightLogEvent;
 
