@@ -25,9 +25,14 @@
 
 #include "build/debug.h"
 
+#include "blackbox/blackbox.h"
+#include "blackbox/blackbox_fielddefs.h"
+
 #include "common/time.h"
 
+#include "config/config.h"
 #include "config/feature.h"
+
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 #include "pg/motor.h"
@@ -42,13 +47,12 @@
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
 
-#include "esc_sensor.h"
-
-#include "config/config.h"
-
 #include "flight/mixer.h"
 
 #include "io/serial.h"
+
+#include "esc_sensor.h"
+
 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 0);
@@ -742,6 +746,31 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
 }
 
 
+/*
+ * Raw Telemetry Data collector
+ */
+
+static void collectSensorProcess(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort) && readBytes < 16) {
+        totalByteCount++;
+        buffer[readBytes++] = serialRead(escSensorPort);
+    }
+
+    if (readBytes > 0) {
+        flightLogEvent_data_t eventData;
+        eventData.buffer = buffer;
+        eventData.length = readBytes;
+        blackboxLogEvent(FLIGHT_LOG_EVENT_DATA, (flightLogEventData_t *)&eventData);
+        readBytes = 0;
+        totalFrameCount++;
+    }
+}
+
+
 void escSensorProcess(timeUs_t currentTimeUs)
 {
     if (escSensorPort && motorIsEnabled()) {
@@ -754,6 +783,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
                 break;
             case ESC_SENSOR_PROTO_KONTRONIK:
                 kontronikSensorProcess(currentTimeUs);
+                break;
+            case ESC_SENSOR_PROTO_COLLECT:
+                collectSensorProcess(currentTimeUs);
                 break;
         }
 
