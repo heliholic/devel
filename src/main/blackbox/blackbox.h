@@ -51,6 +51,8 @@ typedef enum FlightLogEvent {
     FLIGHT_LOG_EVENT_GOVSTATE = 50,   // Add new event type for main motor governor state.
     FLIGHT_LOG_EVENT_RESCUE_STATE = 51,
     FLIGHT_LOG_EVENT_AIRBORNE_STATE = 52,
+    FLIGHT_LOG_EVENT_STRING = 250,
+    FLIGHT_LOG_EVENT_DATA = 251,
     FLIGHT_LOG_EVENT_LOG_END = 255
 } FlightLogEvent;
 

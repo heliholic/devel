@@ -1479,6 +1479,8 @@ static bool blackboxWriteSysinfo(void)
  */
 void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data)
 {
+    uint8_t length;
+
     // Only allow events to be logged after headers have been written
     if (!(blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED)) {
         return;
@@ -1521,6 +1523,17 @@ void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data)
     case FLIGHT_LOG_EVENT_LOGGING_RESUME:
         blackboxWriteUnsignedVB(data->loggingResume.logIteration);
         blackboxWriteUnsignedVB(data->loggingResume.currentTime);
+        break;
+    case FLIGHT_LOG_EVENT_STRING:
+        length = strlen(data->string.buffer);
+        blackboxWrite(length);
+        for (int i = 0; i < length; i++)
+            blackboxWrite(data->string.buffer[i]);
+        break;
+    case FLIGHT_LOG_EVENT_DATA:
+        blackboxWrite(data->data.length);
+        for (int i = 0; i < data->data.length; i++)
+            blackboxWrite(data->data.buffer[i]);
         break;
     case FLIGHT_LOG_EVENT_LOG_END:
         blackboxWriteString("End of log");
