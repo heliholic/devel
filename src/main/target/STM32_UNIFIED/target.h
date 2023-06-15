@@ -438,3 +438,7 @@
 #define USE_RANGEFINDER_HCSR04
 #define USE_RANGEFINDER_TF
 #endif
+
+#define USE_DEBUG_PIN
+#define DEBUG_PIN_COUNT         1
+

@@ -33,6 +33,7 @@
 
 #include "build/build_config.h"
 #include "build/debug.h"
+#include "build/debug_pin.h"
 #include "build/version.h"
 
 #include "cli/cli.h"
@@ -347,6 +348,9 @@ static void mspRebootFn(serialPort_t *serialPort)
     UNUSED(serialPort);
 
     motorShutdown();
+    servoShutdown();
+
+    dbgPinSet(0, 0);
 
     switch (rebootMode) {
     case MSP_REBOOT_FIRMWARE:

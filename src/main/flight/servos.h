@@ -66,6 +66,7 @@ PG_DECLARE(servoConfig_t, servoConfig);
 
 void servoInit(void);
 void servoUpdate(void);
+void servoShutdown(void);
 
 void validateAndFixServoConfig(void);
 

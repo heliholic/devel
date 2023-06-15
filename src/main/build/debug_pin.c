@@ -35,11 +35,14 @@ typedef struct dbgPinState_s {
 
 dbgPinState_t dbgPinStates[DEBUG_PIN_COUNT] = { 0 };
 
+#if 0
 extern dbgPin_t dbgPins[DEBUG_PIN_COUNT];
-// Define this in the target definition as (and set DEBUG_PIN_COUNT to the correct value):
-// dbgPin_t dbgPins[DEBUG_PIN_COUNT] = {
-//     { .tag = IO_TAG(<pin>) },
-// };
+#else
+static dbgPin_t dbgPins[DEBUG_PIN_COUNT] = {
+    { .tag = IO_TAG(PA2) },
+};
+#endif
+
 #endif
 
 void dbgPinInit(void)
@@ -102,3 +105,28 @@ void dbgPinLo(int index)
     UNUSED(index);
 #endif
 }
+
+void dbgPinSet(int index, int value)
+{
+#ifdef USE_DEBUG_PIN
+    if ((unsigned)index >= ARRAYLEN(dbgPins)) {
+        return;
+    }
+
+    dbgPinState_t *dbgPinState = &dbgPinStates[index];
+
+    if (dbgPinState->gpio) {
+#if defined(STM32F7) || defined(STM32H7)
+        dbgPinState->gpio->BSRR =
+#else
+        dbgPinState->gpio->BSRRL =
+#endif
+            (value) ?
+                dbgPinState->setBSRR:
+                dbgPinState->resetBSRR;
+    }
+#else
+    UNUSED(index);
+#endif
+}
+

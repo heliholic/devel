@@ -26,12 +26,14 @@
 #ifdef USE_SERVOS
 
 #include "build/build_config.h"
+#include "build/debug_pin.h"
 
 #include "common/maths.h"
 
 #include "config/config.h"
 #include "config/config_reset.h"
 
+#include "drivers/time.h"
 #include "drivers/pwm_output.h"
 
 #include "sensors/gyro.h"
@@ -166,6 +168,25 @@ void servoInit(void)
         servoParamsMutable(index)->rate = rate[index];
         pwmOutConfig(&servoChannel[index], timer[index], PWM_TIMER_1MHZ, PWM_TIMER_1MHZ / rate[index], 0, 0);
     }
+
+    dbgPinSet(0, 0);
+}
+
+void servoShutdown(void)
+{
+    const ioTag_t *ioTags = servoConfig()->ioTags;
+
+    for (int index = 0; index < MAX_SUPPORTED_SERVOS && ioTags[index]; index++)
+    {
+        if (servoChannel[index].ccr) {
+            *servoChannel[index].ccr = 0;
+            servoChannel[index].ccr = 0;
+        }
+    }
+
+    delay(50);
+
+    dbgPinSet(0, 1);
 }
 
 static inline void servoWrite(uint8_t index, uint16_t value)
