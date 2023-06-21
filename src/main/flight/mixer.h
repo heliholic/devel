@@ -131,6 +131,9 @@ typedef struct
     uint16_t  swash_pitch_limit; // Maximum main rotor blade pitch
     int8_t    swash_trim[3];    // Swashplate leveling trim
 
+    int16_t   swash_crosstalk;  // Crosstalk correction
+    uint8_t   swash_crosstalk_cutoff;
+
     uint8_t   coll_rpm_correction;  // Collective correction vs. headspeed
 
 } mixerConfig_t;
