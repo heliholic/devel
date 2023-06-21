@@ -25,6 +25,7 @@
 #include "platform.h"
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
@@ -60,6 +61,8 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .swash_type = SWASH_TYPE_NONE,
     .swash_ring = 100,
     .swash_phase = 0,
+    .swash_crosstalk_gain = 0,
+    .swash_crosstalk_cutoff = 25,
     .swash_pitch_limit = 0,
     .swash_trim = { 0, 0, 0 },
     .coll_rpm_correction = 0,
@@ -100,6 +103,10 @@ typedef struct {
 
     float           phaseSin;
     float           phaseCos;
+
+    float           crossTalk;
+    difFilter_t     rollDeriv;
+    difFilter_t     pitchDeriv;
 
 } mixerData_t;
 
@@ -273,6 +280,26 @@ static void mixerUpdateCyclic(void)
             mixer.input[MIXER_IN_STABILIZED_ROLL]  /= cyclic;
             mixer.input[MIXER_IN_STABILIZED_PITCH] /= cyclic;
         }
+    }
+
+    // Swash crosstalk correction
+    if (mixer.crossTalk != 0) {
+        const float SP = mixer.input[MIXER_IN_STABILIZED_PITCH];
+        const float SR = mixer.input[MIXER_IN_STABILIZED_ROLL];
+        const float DP = difFilterApply(&mixer.pitchDeriv, SP);
+        const float DR = difFilterApply(&mixer.rollDeriv, SR);
+        const float CR = DP * mixer.crossTalk;
+        const float CP = DR * mixer.crossTalk;
+
+        mixer.input[MIXER_IN_STABILIZED_ROLL]  += CR;
+        mixer.input[MIXER_IN_STABILIZED_PITCH] -= CP;
+
+        DEBUG(CROSSTALK, 0, SP * 1000);
+        DEBUG(CROSSTALK, 1, DP * 1000);
+        DEBUG(CROSSTALK, 2, CP * 1000);
+        DEBUG(CROSSTALK, 3, SR * 1000);
+        DEBUG(CROSSTALK, 4, DR * 1000);
+        DEBUG(CROSSTALK, 5, CR * 1000);
     }
 
     // Swash phasing
@@ -563,6 +590,11 @@ void INIT_CODE mixerInitConfig(void)
 
     for (int i = 0; i < 3; i++)
         mixer.swashTrim[i] = mixerConfig()->swash_trim[i] / 1000.0f;
+
+    mixer.crossTalk = mixerConfig()->swash_crosstalk_gain / 10000.0f;
+
+    difFilterInit(&mixer.rollDeriv, mixerConfig()->swash_crosstalk_cutoff, pidGetPidFrequency());
+    difFilterInit(&mixer.pitchDeriv, mixerConfig()->swash_crosstalk_cutoff, pidGetPidFrequency());
 }
 
 #define setMapping(IN,OUT)      (mixer.mapping[(OUT)] = BIT((IN)))
