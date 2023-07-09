@@ -162,9 +162,13 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
         pid.errorLimit[i] = pidProfile->error_limit[i];
 
     // Error decay speeds
-    pid.errorDecayGround = 1.0f - ((pidProfile->error_decay_ground) ? (10 * pid.dT / pidProfile->error_decay_ground) : 0);
-    pid.errorDecayCyclic = 1.0f - ((pidProfile->error_decay_cyclic) ? (10 * pid.dT / pidProfile->error_decay_cyclic) : 0);
-    pid.errorDecayYaw    = 1.0f - ((pidProfile->error_decay_yaw) ? (10 * pid.dT / pidProfile->error_decay_yaw) : 0);
+    pid.errorDecayGround = (pidProfile->error_decay_ground) ? (10 * pid.dT / pidProfile->error_decay_ground) : 0;
+    pid.errorDecayCyclic = (pidProfile->error_decay_cyclic) ? (10 * pid.dT / pidProfile->error_decay_cyclic) : 0;
+    pid.errorDecayYaw    = (pidProfile->error_decay_yaw)    ? (10 * pid.dT / pidProfile->error_decay_yaw) : 0;
+
+    // Error decay linear speed limits
+    pid.errorDecayCyclicLimit = (pidProfile->error_decay_cyclic_limit) ? (pid.dT / pidProfile->error_decay_cyclic_limit) : 1e6;
+    pid.errorDecayYawLimit    = (pidProfile->error_decay_yaw_limit) ? (pid.dT / pidProfile->error_decay_yaw_limit) : 1e6;
 
     // Error Rotation enable
     pid.errorRotation = pidProfile->error_rotation;

@@ -125,6 +125,8 @@ typedef struct pidProfile_s {
     uint8_t             error_decay_ground;
     uint8_t             error_decay_cyclic;
     uint8_t             error_decay_yaw;
+    uint8_t             error_decay_cyclic_limit;
+    uint8_t             error_decay_yaw_limit;
 
     uint8_t             error_rotation;
 
