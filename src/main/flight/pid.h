@@ -31,7 +31,9 @@
 
 #define FILTER_PROCESS_DENOM_DEFAULT 0
 
-#define PID_GAIN_MAX                2500
+#define PID_GAIN_MAX                1000
+
+#if 0
 
 #define ROLL_P_TERM_SCALE           (0.0033333333f / 500)
 #define ROLL_I_TERM_SCALE           (0.0500000000f / 500)
@@ -48,9 +50,49 @@
 #define YAW_D_TERM_SCALE            (0.0005000000f / 500)
 #define YAW_F_TERM_SCALE            (0.0125000000f / 500)
 
+// ORIGINAL GAINS in decimal format
+
+#define ROLL_P_TERM_SCALE           0.00000666666f
+#define ROLL_I_TERM_SCALE           0.0001f
+#define ROLL_D_TERM_SCALE           0.1e-6f
+#define ROLL_F_TERM_SCALE           0.000025f
+
+#define PITCH_P_TERM_SCALE          0.00000666666f
+#define PITCH_I_TERM_SCALE          0.0001f
+#define PITCH_D_TERM_SCALE          0.1e-6f
+#define PITCH_F_TERM_SCALE          0.000025f
+
+#define YAW_P_TERM_SCALE            0.00006666666f
+#define YAW_I_TERM_SCALE            0.0005f
+#define YAW_D_TERM_SCALE            1.0e-6f
+#define YAW_F_TERM_SCALE            0.000025f
+
 #define PID_ROLL_DEFAULT            { .P = 50, .I = 100, .D = 0, .F = 100, }
 #define PID_PITCH_DEFAULT           { .P = 50, .I = 100, .D = 0, .F = 100, }
 #define PID_YAW_DEFAULT             { .P = 50, .I =  50, .D = 0, .F =   0, }
+
+#else
+
+#define ROLL_P_TERM_SCALE           0.00000666666f
+#define ROLL_I_TERM_SCALE           0.0002f
+#define ROLL_D_TERM_SCALE           0.1e-6f
+#define ROLL_F_TERM_SCALE           0.000025f
+
+#define PITCH_P_TERM_SCALE          0.00000666666f
+#define PITCH_I_TERM_SCALE          0.0002f
+#define PITCH_D_TERM_SCALE          1.0e-6f
+#define PITCH_F_TERM_SCALE          0.000025f
+
+#define YAW_P_TERM_SCALE            0.00006666666f
+#define YAW_I_TERM_SCALE            0.0005f
+#define YAW_D_TERM_SCALE            1.0e-6f
+#define YAW_F_TERM_SCALE            0.000025f
+
+#define PID_ROLL_DEFAULT            { .P = 100, .I = 100, .D = 0, .F = 100, }
+#define PID_PITCH_DEFAULT           { .P = 100, .I = 100, .D = 0, .F = 100, }
+#define PID_YAW_DEFAULT             { .P = 100, .I = 100, .D = 0, .F =   0, }
+
+#endif
 
 typedef struct {
     float P;
