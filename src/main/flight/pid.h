@@ -60,11 +60,13 @@
 
 #define ROLL_P_TERM_SCALE           0.00000666666f
 #define ROLL_I_TERM_SCALE           0.0001f
+#define ROLL_O_TERM_SCALE           0.0001f
 #define ROLL_D_TERM_SCALE           0.1e-6f
 #define ROLL_F_TERM_SCALE           0.000025f
 
 #define PITCH_P_TERM_SCALE          0.00000666666f
 #define PITCH_I_TERM_SCALE          0.0001f
+#define PITCH_O_TERM_SCALE          0.0001f
 #define PITCH_D_TERM_SCALE          0.1e-6f
 #define PITCH_F_TERM_SCALE          0.000025f
 
@@ -81,11 +83,13 @@
 
 #define ROLL_P_TERM_SCALE           0.000005f
 #define ROLL_I_TERM_SCALE           0.0002f
+#define ROLL_O_TERM_SCALE           0.0002f
 #define ROLL_D_TERM_SCALE           0.1e-6f
 #define ROLL_F_TERM_SCALE           0.000025f
 
 #define PITCH_P_TERM_SCALE          0.000005f
 #define PITCH_I_TERM_SCALE          0.0002f
+#define PITCH_O_TERM_SCALE          0.0002f
 #define PITCH_D_TERM_SCALE          1.0e-6f
 #define PITCH_F_TERM_SCALE          0.000025f
 
@@ -105,10 +109,12 @@ typedef struct {
     float I;
     float D;
     float F;
+    float O;
     float pidSum;
     float setPoint;
     float gyroRate;
     float axisError;
+    float offset;
 } pidAxisData_t;
 
 typedef struct {
@@ -116,6 +122,7 @@ typedef struct {
     float Ki;
     float Kd;
     float Kf;
+    float Ko;
 } pidAxisCoef_t;
 
 typedef struct {
@@ -147,9 +154,14 @@ typedef struct pid_s {
 
     uint8_t errorRotation;
 
-    float errorDecayYaw;
-    float errorDecayCyclic;
-    float errorDecayGround;
+    float errorDecayRateGround;
+
+    float errorDecayRateCyclic;
+    float errorDecayLimitCyclic;
+    float errorDecayRateOffset;
+    float errorDecayLimitOffset;
+    float errorDecayRateYaw;
+    float errorDecayLimitYaw;
 
     float errorLimit[PID_AXIS_COUNT];
 
