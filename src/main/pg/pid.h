@@ -41,7 +41,8 @@ typedef enum {
     PID_ITEM_COUNT
 } pidIndex_e;
 
-#define PID_AXIS_COUNT 3
+#define PID_AXIS_COUNT      3
+#define CYCLIC_AXIS_COUNT   2
 
 enum {
     ITERM_RELAX_OFF,
@@ -54,6 +55,7 @@ typedef struct {
     uint16_t I;
     uint16_t D;
     uint16_t F;
+    uint16_t O;
 } pidf_t;
 
 typedef struct {
@@ -122,9 +124,14 @@ typedef struct pidProfile_s {
     uint8_t             dterm_mode;
     uint8_t             dterm_mode_yaw;
 
-    uint8_t             error_decay_ground;
-    uint8_t             error_decay_cyclic;
-    uint8_t             error_decay_yaw;
+    uint8_t             error_decay_time_ground;
+
+    uint8_t             error_decay_time_cyclic;
+    uint8_t             error_decay_limit_cyclic;
+    uint8_t             error_decay_time_offset;
+    uint8_t             error_decay_limit_offset;
+    uint8_t             error_decay_time_yaw;
+    uint8_t             error_decay_limit_yaw;
 
     uint8_t             error_rotation;
 
@@ -132,6 +139,7 @@ typedef struct pidProfile_s {
     uint8_t             iterm_relax_level[PID_AXIS_COUNT];
     uint8_t             iterm_relax_cutoff[PID_AXIS_COUNT];
 
+    uint8_t             offset_limit[CYCLIC_AXIS_COUNT];
     uint8_t             error_limit[PID_AXIS_COUNT];
 
     uint8_t             error_cutoff[PID_AXIS_COUNT];
