@@ -52,6 +52,7 @@ enum {
 typedef struct {
     uint16_t P;
     uint16_t I;
+    uint16_t J;
     uint16_t D;
     uint16_t F;
 } pidf_t;
@@ -122,9 +123,16 @@ typedef struct pidProfile_s {
     uint8_t             dterm_mode;
     uint8_t             dterm_mode_yaw;
 
-    uint8_t             error_decay_ground;
-    uint8_t             error_decay_cyclic;
-    uint8_t             error_decay_yaw;
+    uint8_t             error_decay_time_ground;
+
+    uint8_t             error_decay_time_cyclic;
+    uint8_t             error_decay_limit_cyclic;
+
+    uint8_t             error_decay_time_ffi;
+    uint8_t             error_decay_limit_ffi;
+
+    uint8_t             error_decay_time_yaw;
+    uint8_t             error_decay_limit_yaw;
 
     uint8_t             error_rotation;
 

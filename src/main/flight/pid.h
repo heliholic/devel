@@ -105,10 +105,12 @@ typedef struct {
     float I;
     float D;
     float F;
+    float J;
     float pidSum;
     float setPoint;
     float gyroRate;
     float axisError;
+    float ffError;
 } pidAxisData_t;
 
 typedef struct {
@@ -116,6 +118,7 @@ typedef struct {
     float Ki;
     float Kd;
     float Kf;
+    float Kj;
 } pidAxisCoef_t;
 
 typedef struct {
@@ -147,9 +150,16 @@ typedef struct pid_s {
 
     uint8_t errorRotation;
 
-    float errorDecayYaw;
-    float errorDecayCyclic;
-    float errorDecayGround;
+    float errorDecayRateGround;
+
+    float errorDecayRateCyclic;
+    float errorDecayLimitCyclic;
+
+    float errorDecayRateFFI;
+    float errorDecayLimitFFI;
+
+    float errorDecayRateYaw;
+    float errorDecayLimitYaw;
 
     float errorLimit[PID_AXIS_COUNT];
 
