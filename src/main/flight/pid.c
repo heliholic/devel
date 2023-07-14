@@ -218,6 +218,12 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch precomp
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
 
+    // Pitch derivative filter
+    difFilterInit(&pid.precomp.pitchDFilter, pidProfile->roll_pitch_crosstalk_cutoff, pid.freq);
+
+    // Pitch-to-Roll derivative precomp gain
+    pid.precomp.rollPitchFFDGain = pidProfile->roll_pitch_crosstalk_gain / 500.0f;
+
     // Initialise sub-profiles
     governorInitProfile(pidProfile);
 #ifdef USE_ACC
@@ -398,6 +404,21 @@ static void pidApplyPrecomp(void)
 
     DEBUG(PITCH_PRECOMP, 0, collectiveDeflection * 1000);
     DEBUG(PITCH_PRECOMP, 1, pitchPrecomp * 1000);
+
+
+  //// Pitch-to-Roll crosstalk precomp
+
+    // Deriative filter
+    const float pitchD = difFilterApply(&pid.precomp.pitchDFilter, pid.data[FD_PITCH].setPoint);
+    const float rollPrecomp = pitchD * pid.precomp.rollPitchFFDGain;
+
+    // Add to ROLL feedforward
+    pid.data[FD_ROLL].F += rollPrecomp;
+    pid.data[FD_ROLL].pidSum += rollPrecomp;
+
+    DEBUG(PITCH_PRECOMP, 2, pitchD * 1000);
+    DEBUG(PITCH_PRECOMP, 3, rollPrecomp * 1000);
+
 }
 
 
