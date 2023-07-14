@@ -206,6 +206,12 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch precomp
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
 
+    // Pitch derivative filter
+    difFilterInit(&pid.precomp.pitchDFilter, pidProfile->roll_pitch_crosstalk_cutoff, pid.freq);
+
+    // Pitch-to-Roll derivative precomp gain
+    pid.precomp.rollPitchFFDGain = pidProfile->roll_pitch_crosstalk_gain * ROLL_D_TERM_SCALE;
+
     // Initialise sub-profiles
     governorInitProfile(pidProfile);
 #ifdef USE_ACC
@@ -344,7 +350,7 @@ static void pidApplyPrecomp(void)
     const float collectiveLF = pt1FilterApply(&pid.precomp.collFilter, collectiveDeflection);
     const float collectiveHF = collectiveDeflection - collectiveLF;
 
-  //// Yaw Precomp
+  //// Collective-to-Yaw Precomp
 
     // Collective components
     const float yawCollectiveFF = fabsf(collectiveDeflection) * pid.precomp.yawCollectiveFFGain;
@@ -369,7 +375,8 @@ static void pidApplyPrecomp(void)
     DEBUG(YAW_PRECOMP, 6, yawCyclicFF * 1000);
     DEBUG(YAW_PRECOMP, 7, yawPrecomp * 1000);
 
-  //// Pitch precomp
+
+  //// Collective-to-Pitch precomp
 
     // Collective component
     const float pitchPrecomp = collectiveDeflection * pid.precomp.pitchCollectiveFFGain;
@@ -380,6 +387,21 @@ static void pidApplyPrecomp(void)
 
     DEBUG(PITCH_PRECOMP, 0, collectiveDeflection * 1000);
     DEBUG(PITCH_PRECOMP, 1, pitchPrecomp * 1000);
+
+
+  //// Pitch-to-Roll crosstalk precomp
+
+    // Derivative filter
+    const float pitchDeriv = difFilterApply(&pid.precomp.pitchDFilter, pid.data[FD_PITCH].setPoint);
+    const float rollPrecomp = pitchDeriv * pid.precomp.rollPitchFFDGain;
+
+    // Add to ROLL feedforward
+    pid.data[FD_ROLL].F += rollPrecomp;
+    pid.data[FD_ROLL].pidSum += rollPrecomp;
+
+    DEBUG(PITCH_PRECOMP, 2, pitchDeriv);
+    DEBUG(PITCH_PRECOMP, 3, rollPrecomp * 1000);
+
 }
 
 /** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
