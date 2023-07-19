@@ -820,6 +820,15 @@ static void pidApplyCyclicMode3(uint8_t axis)
       limitf(pid.data[axis].axisOffset * pid.errorDecayRateOffset, pid.errorDecayLimitOffset):
       pid.data[axis].axisOffset * pid.errorDecayRateGround;
 
+    // Debug information
+    DEBUG_AXIS(HS_OFFSET, axis, 0, errorRate * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 1, itermErrorRate * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 2, pid.data[axis].axisError * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 3, pid.data[axis].axisOffset * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 4, pid.data[axis].O * 1000);
+    DEBUG_AXIS(HS_OFFSET, axis, 5, offDelta * 1000000);
+    DEBUG_AXIS(HS_OFFSET, axis, 6, offMod * 1000);
+
 
   //// F-term
 
