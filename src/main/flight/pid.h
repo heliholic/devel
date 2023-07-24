@@ -86,7 +86,9 @@ typedef struct {
     float yawCollectiveDynamicGain;
 
     float pitchCollectiveFFGain;
-    float rollPitchFFDGain;
+
+    uint8_t rollPitchCrosstalkMode;
+    float rollPitchCrosstalkGain;
 
 } pidPrecomp_t;
 

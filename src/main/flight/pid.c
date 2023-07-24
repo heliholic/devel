@@ -223,8 +223,9 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch derivative filter
     difFilterInit(&pid.precomp.pitchDFilter, pidProfile->roll_pitch_crosstalk_cutoff, pid.freq);
 
-    // Pitch-to-Roll derivative precomp gain
-    pid.precomp.rollPitchFFDGain = pidProfile->roll_pitch_crosstalk_gain * ROLL_D_TERM_SCALE;
+    // Pitch-to-Roll derivative precomp
+    pid.precomp.rollPitchCrosstalkMode = pidProfile->roll_pitch_crosstalk_mode;
+    pid.precomp.rollPitchCrosstalkGain = pidProfile->roll_pitch_crosstalk_gain * ROLL_D_TERM_SCALE;
 
     // Initialise sub-profiles
     governorInitProfile(pidProfile);
@@ -426,8 +427,9 @@ static void pidApplyPrecomp(void)
   //// Pitch-to-Roll crosstalk precomp
 
     // Derivative filter
-    const float pitchDeriv = difFilterApply(&pid.precomp.pitchDFilter, pid.data[FD_PITCH].setPoint);
-    const float rollPrecomp = pitchDeriv * pid.precomp.rollPitchFFDGain;
+    const float pitchRate = pid.precomp.rollPitchCrosstalkMode ? pid.data[FD_PITCH].setPoint : pid.data[FD_PITCH].gyroRate;
+    const float pitchDeriv = difFilterApply(&pid.precomp.pitchDFilter, pitchRate);
+    const float rollPrecomp = pitchDeriv * pid.precomp.rollPitchCrosstalkGain;
 
     // Add to ROLL feedforward
     pid.data[FD_ROLL].F += rollPrecomp;
