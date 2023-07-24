@@ -319,7 +319,7 @@ static float applyItermRelax(int axis, float itermError, float gyroRate, float s
 }
 
 
-static inline float pidApplySetpoint(uint8_t axis)
+static float pidApplySetpoint(uint8_t axis)
 {
     // Rate setpoint
     float setpoint = getSetpoint(axis);
@@ -347,7 +347,21 @@ static inline float pidApplySetpoint(uint8_t axis)
     return setpoint;
 }
 
-static inline void pidApplyCollective(void)
+static float pidApplyGyroRate(uint8_t axis)
+{
+    // Get gyro rate
+    float gyroRate = gyro.gyroADCf[axis];
+
+    // Bandwidth limiter
+    gyroRate = filterApply(&pid.gyrorFilter[axis], gyroRate);
+
+    // Save current rate
+    pid.data[axis].gyroRate = gyroRate;
+
+    return gyroRate;
+}
+
+static void pidApplyCollective(void)
 {
     float collective = getSetpoint(FD_COLL);
 
@@ -472,8 +486,8 @@ static void pidApplyCyclicMode1(uint8_t axis)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = setpoint - gyroRate;
@@ -543,8 +557,8 @@ static void pidApplyYawMode1(void)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = setpoint - gyroRate;
@@ -627,8 +641,8 @@ static void pidApplyCyclicMode2(uint8_t axis)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = setpoint - gyroRate;
@@ -691,8 +705,8 @@ static void pidApplyYawMode2(void)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = setpoint - gyroRate;
@@ -768,8 +782,8 @@ static void pidApplyCyclicMode3(uint8_t axis)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = setpoint - gyroRate;
@@ -857,8 +871,8 @@ static void pidApplyYawMode3(void)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = setpoint - gyroRate;
@@ -938,8 +952,8 @@ static void pidApplyCyclicMode9(uint8_t axis)
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = filterApply(&pid.errorFilter[axis], setpoint - gyroRate);
@@ -1002,8 +1016,8 @@ static void pidApplyYawMode9()
     // Rate setpoint
     const float setpoint = pidApplySetpoint(axis);
 
-    // Get filtered gyro rate
-    const float gyroRate = filterApply(&pid.gyrorFilter[axis], gyro.gyroADCf[axis]);
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
 
     // Calculate error rate
     const float errorRate = filterApply(&pid.errorFilter[axis], setpoint - gyroRate);
