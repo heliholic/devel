@@ -119,6 +119,7 @@ typedef enum {
     DEBUG_YAW_PRECOMP,
     DEBUG_RESCUE,
     DEBUG_RESCUE_ALTHOLD,
+    DEBUG_ERROR_DECAY,
     DEBUG_HS_OFFSET,
     DEBUG_COUNT
 } debugType_e;

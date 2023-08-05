@@ -57,6 +57,7 @@ typedef struct {
     float I;
     float D;
     float F;
+    float B;
     float O;
     float pidSum;
     float setPoint;
@@ -70,6 +71,7 @@ typedef struct {
     float Ki;
     float Kd;
     float Kf;
+    float Kb;
     float Ko;
 } pidAxisCoef_t;
 
@@ -109,6 +111,7 @@ typedef struct pid_s {
     float errorDecayRateGround;
 
     float errorDecayRateCyclic;
+    float errorDecayRateCyclicMul;
     float errorDecayLimitCyclic;
     float errorDecayRateOffset;
     float errorDecayLimitOffset;
@@ -132,7 +135,9 @@ typedef struct pid_s {
     filter_t errorFilter[PID_AXIS_COUNT];
 
     pt1Filter_t relaxFilter[PID_AXIS_COUNT];
+
     difFilter_t dtermFilter[PID_AXIS_COUNT];
+    difFilter_t btermFilter[PID_AXIS_COUNT];
 
     difFilter_t pitchDFilter;
 

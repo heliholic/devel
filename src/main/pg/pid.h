@@ -126,7 +126,7 @@ typedef struct pidProfile_s {
 
     uint8_t             error_decay_time_ground;
 
-    uint8_t             error_decay_time_cyclic;
+    uint8_t             error_decay_time_cyclic[2];
     uint8_t             error_decay_limit_cyclic;
     uint8_t             error_decay_time_offset;
     uint8_t             error_decay_limit_offset;
@@ -144,6 +144,7 @@ typedef struct pidProfile_s {
 
     uint8_t             error_cutoff[PID_AXIS_COUNT];
     uint8_t             dterm_cutoff[PID_AXIS_COUNT];
+    uint8_t             bterm_cutoff[PID_AXIS_COUNT];
     uint8_t             gyro_cutoff[PID_AXIS_COUNT];
 
     uint8_t             gyro_filter_type;
