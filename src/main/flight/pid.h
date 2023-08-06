@@ -37,16 +37,19 @@
 #define ROLL_I_TERM_SCALE           0.0002f
 #define ROLL_D_TERM_SCALE           0.1e-6f
 #define ROLL_F_TERM_SCALE           0.000025f
+#define ROLL_B_TERM_SCALE           0.1e-6f
 
 #define PITCH_P_TERM_SCALE          0.00000666666f
 #define PITCH_I_TERM_SCALE          0.0002f
 #define PITCH_D_TERM_SCALE          1.0e-6f
 #define PITCH_F_TERM_SCALE          0.000025f
+#define PITCH_B_TERM_SCALE          0.1e-6f
 
 #define YAW_P_TERM_SCALE            0.00006666666f
 #define YAW_I_TERM_SCALE            0.0005f
 #define YAW_D_TERM_SCALE            1.0e-6f
 #define YAW_F_TERM_SCALE            0.000025f
+#define YAW_B_TERM_SCALE            1.0e-6f
 
 #define CYCLIC_CROSSTALK_SCALE      0.25e-6f
 
@@ -59,10 +62,13 @@ typedef struct {
     float I;
     float D;
     float F;
+    float B;
+    float O;
     float pidSum;
     float setPoint;
     float gyroRate;
     float axisError;
+    float axisOffset;
 } pidAxisData_t;
 
 typedef struct {
@@ -70,6 +76,8 @@ typedef struct {
     float Ki;
     float Kd;
     float Kf;
+    float Kb;
+    float Ko;
 } pidAxisCoef_t;
 
 typedef struct {
@@ -110,6 +118,7 @@ typedef struct pid_s {
     float errorDecayRateYaw;
     float errorDecayLimitYaw;
 
+    float offsetLimit[XY_AXIS_COUNT];
     float errorLimit[PID_AXIS_COUNT];
 
     float yawCWStopGain;
@@ -126,7 +135,9 @@ typedef struct pid_s {
     filter_t errorFilter[PID_AXIS_COUNT];
 
     pt1Filter_t relaxFilter[PID_AXIS_COUNT];
+
     difFilter_t dtermFilter[PID_AXIS_COUNT];
+    difFilter_t btermFilter[PID_AXIS_COUNT];
 
     difFilter_t crossTalkFilter;
 
