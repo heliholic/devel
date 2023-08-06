@@ -223,6 +223,13 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch precomp
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
 
+    // Pitch-to-Roll derivative feedback
+    pid.cyclicCrosstalkMode = pidProfile->cyclic_crosstalk_mode;
+    pid.cyclicCrosstalkGain = pidProfile->cyclic_crosstalk_gain * ROLL_D_TERM_SCALE;
+
+    // Pitch derivative filter
+    difFilterInit(&pid.crossTalkFilter, pidProfile->cyclic_crosstalk_cutoff, pid.freq);
+
     // Initialise sub-profiles
     governorInitProfile(pidProfile);
 #ifdef USE_ACC
@@ -419,6 +426,20 @@ static void pidApplyPrecomp(void)
 
     DEBUG(PITCH_PRECOMP, 0, collectiveDeflection * 1000);
     DEBUG(PITCH_PRECOMP, 1, pitchPrecomp * 1000);
+}
+
+static void pidApplyCyclicCrosstalk(void)
+{
+    // Derivative filter
+    const float pitchRate = pid.cyclicCrosstalkMode ? pid.data[FD_PITCH].setPoint : pid.data[FD_PITCH].gyroRate;
+    const float pitchDeriv = difFilterApply(&pid.crossTalkFilter, pitchRate);
+    const float rollComp = pitchDeriv * pid.cyclicCrosstalkGain;
+
+    // Add to ROLL
+    pid.data[FD_ROLL].pidSum += rollComp;
+
+    DEBUG(PITCH_PRECOMP, 2, pitchDeriv);
+    DEBUG(PITCH_PRECOMP, 3, rollComp * 1000);
 }
 
 
@@ -1183,6 +1204,7 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
         case 3:
             pidApplyCyclicMode3(PID_ROLL, pidProfile);
             pidApplyCyclicMode3(PID_PITCH, pidProfile);
+            pidApplyCyclicCrosstalk();
             pidApplyYawMode3();
             break;
         case 2:
