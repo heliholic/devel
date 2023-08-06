@@ -107,6 +107,9 @@ typedef struct pid_s {
 
     uint8_t errorRotation;
 
+    uint8_t cyclicCrosstalkMode;
+    float cyclicCrosstalkGain;
+
     float errorDecayRateGround;
     float errorDecayRateCyclic;
     float errorDecayLimitCyclic;
@@ -133,6 +136,8 @@ typedef struct pid_s {
 
     difFilter_t dtermFilter[PID_AXIS_COUNT];
     difFilter_t btermFilter[PID_AXIS_COUNT];
+
+    difFilter_t crossTalkFilter;
 
 } pid_t;
 
