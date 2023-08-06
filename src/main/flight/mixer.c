@@ -55,6 +55,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_GENERIC_MIXER_CON
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .main_rotor_dir = DIR_CW,
+    .tail_center_trim = 0,
     .tail_rotor_mode = TAIL_MODE_VARIABLE,
     .tail_motor_idle = 0,
     .swash_type = SWASH_TYPE_NONE,
@@ -87,6 +88,7 @@ typedef struct {
     int16_t         override[MIXER_INPUT_COUNT];
     uint16_t        saturation[MIXER_INPUT_COUNT];
 
+    float           tailCenterTrim;
     float           tailMotorIdle;
     int8_t          tailMotorDirection;
 
@@ -357,6 +359,7 @@ static void mixerUpdateSwash(void)
         const float T0 = mixer.swashTrim[0];
         const float T1 = mixer.swashTrim[1];
         const float T2 = mixer.swashTrim[2];
+        const float TC = mixer.tailCenterTrim;
 
         switch (mixerConfig()->swash_type) {
             case SWASH_TYPE_120:
@@ -397,9 +400,9 @@ static void mixerUpdateSwash(void)
         setMotorOutput(0, ST);
 
         if (mixerMotorizedTail())
-            setMotorOutput(1, SY);
+            setMotorOutput(1, SY + TC);
         else
-            setServoOutput(3, SY);
+            setServoOutput(3, SY + TC);
     }
 }
 
@@ -518,6 +521,7 @@ void INIT_CODE validateAndFixMixerConfig(void)
 
 void INIT_CODE mixerInitConfig(void)
 {
+    mixer.tailCenterTrim = mixerConfig()->tail_center_trim / 120.0f;  // 120 => 24°
     mixer.tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
 
     if (mixerConfig()->swash_phase) {
