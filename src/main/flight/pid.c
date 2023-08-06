@@ -101,6 +101,8 @@ void INIT_CODE pidResetAxisError(int axis)
 {
     pid.data[axis].I = 0;
     pid.data[axis].axisError = 0;
+    pid.data[axis].O = 0;
+    pid.data[axis].axisOffset = 0;
 }
 
 void INIT_CODE pidResetAxisErrors(void)
@@ -108,6 +110,8 @@ void INIT_CODE pidResetAxisErrors(void)
     for (int axis = 0; axis < 3; axis++) {
         pid.data[axis].I = 0;
         pid.data[axis].axisError = 0;
+        pid.data[axis].O = 0;
+        pid.data[axis].axisOffset = 0;
     }
 }
 
@@ -138,33 +142,42 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pid.coef[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].I;
     pid.coef[PID_ROLL].Kd = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].D;
     pid.coef[PID_ROLL].Kf = ROLL_F_TERM_SCALE * pidProfile->pid[PID_ROLL].F;
+    pid.coef[PID_ROLL].Kb = ROLL_D_TERM_SCALE * pidProfile->pid[PID_ROLL].B;
+    pid.coef[PID_ROLL].Ko = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].O;
 
     // Pitch axis
     pid.coef[PID_PITCH].Kp = PITCH_P_TERM_SCALE * pidProfile->pid[PID_PITCH].P;
     pid.coef[PID_PITCH].Ki = PITCH_I_TERM_SCALE * pidProfile->pid[PID_PITCH].I;
     pid.coef[PID_PITCH].Kd = PITCH_D_TERM_SCALE * pidProfile->pid[PID_PITCH].D;
     pid.coef[PID_PITCH].Kf = PITCH_F_TERM_SCALE * pidProfile->pid[PID_PITCH].F;
+    pid.coef[PID_PITCH].Kb = PITCH_D_TERM_SCALE * pidProfile->pid[PID_PITCH].B;
+    pid.coef[PID_PITCH].Ko = PITCH_I_TERM_SCALE * pidProfile->pid[PID_PITCH].O;
 
     // Yaw axis
     pid.coef[PID_YAW].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_YAW].P;
     pid.coef[PID_YAW].Ki = YAW_I_TERM_SCALE * pidProfile->pid[PID_YAW].I;
     pid.coef[PID_YAW].Kd = YAW_D_TERM_SCALE * pidProfile->pid[PID_YAW].D;
     pid.coef[PID_YAW].Kf = YAW_F_TERM_SCALE * pidProfile->pid[PID_YAW].F;
+    pid.coef[PID_YAW].Kb = YAW_D_TERM_SCALE * pidProfile->pid[PID_YAW].B;
 
     // Yaw alt. axis
     pid.coef[PID_WAY].Kp = YAW_P_TERM_SCALE * pidProfile->pid[PID_WAY].P;
     pid.coef[PID_WAY].Ki = YAW_I_TERM_SCALE * pidProfile->pid[PID_WAY].I;
     pid.coef[PID_WAY].Kd = YAW_D_TERM_SCALE * pidProfile->pid[PID_WAY].D;
     pid.coef[PID_WAY].Kf = YAW_F_TERM_SCALE * pidProfile->pid[PID_WAY].F;
+    pid.coef[PID_WAY].Kb = YAW_D_TERM_SCALE * pidProfile->pid[PID_WAY].B;
 
     // Accumulated error limit
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
         pid.errorLimit[i] = pidProfile->error_limit[i];
+    for (int i = 0; i < XY_AXIS_COUNT; i++)
+        pid.offsetLimit[i] = pidProfile->offset_limit[i];
 
     // Error decay speeds
-    pid.errorDecayGround = 1.0f - ((pidProfile->error_decay_ground) ? (10 * pid.dT / pidProfile->error_decay_ground) : 0);
-    pid.errorDecayCyclic = 1.0f - ((pidProfile->error_decay_cyclic) ? (10 * pid.dT / pidProfile->error_decay_cyclic) : 0);
-    pid.errorDecayYaw    = 1.0f - ((pidProfile->error_decay_yaw) ? (10 * pid.dT / pidProfile->error_decay_yaw) : 0);
+    pid.errorDecayRateGround = (pidProfile->error_decay_time_ground) ? (10 * pid.dT / pidProfile->error_decay_time_ground) : 0;
+    pid.errorDecayRateCyclic = (pidProfile->error_decay_time_cyclic) ? (10 * pid.dT / pidProfile->error_decay_time_cyclic) : 0;
+    pid.errorDecayRateYaw    = (pidProfile->error_decay_time_yaw)    ? (10 * pid.dT / pidProfile->error_decay_time_yaw) : 0;
+    pid.errorDecayLimitYaw   = (pidProfile->error_decay_limit_yaw)   ? (pid.dT * pidProfile->error_decay_limit_yaw) : 1e6;
 
     // Error Rotation enable
     pid.errorRotation = pidProfile->error_rotation;
@@ -174,6 +187,7 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
         lowpassFilterInit(&pid.gyrorFilter[i], pidProfile->gyro_filter_type, pidProfile->gyro_cutoff[i], pid.freq, 0);
         lowpassFilterInit(&pid.errorFilter[i], LPF_ORDER1, pidProfile->error_cutoff[i], pid.freq, 0);
         difFilterInit(&pid.dtermFilter[i], pidProfile->dterm_cutoff[i], pid.freq);
+        difFilterInit(&pid.btermFilter[i], pidProfile->bterm_cutoff[i], pid.freq);
     }
 
     // Error relax
@@ -254,19 +268,25 @@ void INIT_CODE pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileI
 static inline void rotateAxisError(void)
 {
     if (pid.errorRotation) {
-        const float x = pid.data[PID_ROLL].axisError;
-        const float y = pid.data[PID_PITCH].axisError;
         const float r = gyro.gyroADCf[Z] * RAD * pid.dT;
 
         const float t = r * r / 2;
         const float C = t * (1 - t / 6);
         const float S = r * (1 - t / 3);
 
+        const float x = pid.data[PID_ROLL].axisError;
+        const float y = pid.data[PID_PITCH].axisError;
+
         pid.data[PID_ROLL].axisError  -= x * C - y * S;
         pid.data[PID_PITCH].axisError -= y * C + x * S;
+
+        const float fx = pid.data[PID_ROLL].axisOffset;
+        const float fy = pid.data[PID_PITCH].axisOffset;
+
+        pid.data[PID_ROLL].axisOffset  -= fx * C - fy * S;
+        pid.data[PID_PITCH].axisOffset -= fy * C + fx * S;
     }
 }
-
 
 static float applyItermRelax(int axis, float itermError, float gyroRate, float setpoint)
 {
@@ -397,6 +417,7 @@ static void pidApplyPrecomp(void)
     DEBUG(PITCH_PRECOMP, 1, pitchPrecomp * 1000);
 }
 
+
 /** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
  **
  ** MODE 0 - PASSTHROUGH
@@ -492,7 +513,7 @@ static void pidApplyCyclicMode1(uint8_t axis)
 
     // Apply I-term error decay
     if (!isAirborne())
-        pid.data[axis].axisError *= pid.errorDecayGround;
+        pid.data[axis].axisError -= pid.data[axis].axisError * pid.errorDecayRateGround;
 
 
   //// F-term
@@ -566,7 +587,7 @@ static void pidApplyYawMode1(void)
 
     // Apply I-term error decay
     if (!isSpooledUp())
-        pid.data[axis].axisError *= pid.errorDecayGround;
+        pid.data[axis].axisError -= pid.data[axis].axisError * pid.errorDecayRateGround;
 
 
   //// F-term
@@ -637,8 +658,10 @@ static void pidApplyCyclicMode2(uint8_t axis)
     pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis]);
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
-    // Apply I-term error decay
-    pid.data[axis].axisError *= isAirborne() ? pid.errorDecayCyclic : pid.errorDecayGround;
+    // Apply error decay
+    pid.data[axis].axisError -= isAirborne() ?
+      pid.data[axis].axisError * pid.errorDecayRateCyclic:
+      pid.data[axis].axisError * pid.errorDecayRateGround;
 
 
   //// F-term
@@ -702,8 +725,10 @@ static void pidApplyYawMode2(void)
     pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis]);
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
-    // Apply I-term error decay
-    pid.data[axis].axisError *= isSpooledUp() ? pid.errorDecayYaw : pid.errorDecayGround;
+    // Apply error decay
+    pid.data[axis].axisError -= isSpooledUp() ?
+      pid.data[axis].axisError * pid.errorDecayRateYaw:
+      pid.data[axis].axisError * pid.errorDecayRateGround;
 
 
   //// F-term
@@ -716,6 +741,243 @@ static void pidApplyYawMode2(void)
 
     // Calculate PID sum
     pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D + pid.data[axis].F;
+}
+
+
+/** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
+ **
+ ** MODE 3 - Test mode for New Features
+ **
+ **   - High Speed Offset
+ **   - Cyclic Crosstalk
+ **   - FF Derivative
+ **
+ **   gyroFilter => Kp => P-term
+ **   gyroFilter => difFilter => Kd => D-term
+ **   gyroFilter => Relax => Ki => I-term
+ **
+ **   setPoint => Kf => F-term
+ **   setPoint => difFilter => Kb => B-term
+ **
+ ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
+
+static float linearf(float x, const uint8_t * table, int count)
+{
+  /* Max x in range 0..1 to piecewise linear table of size count */
+  const int index = constrain(x * count, 0, count - 1);
+
+  const int a = table[index + 0];
+  const int b = table[index + 1];
+
+  const float dy = b - a;
+  const float dx = x * count - index;
+  const float y = a + dx * dy;
+
+  return y;
+}
+
+static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
+{
+    // Rate setpoint
+    const float setpoint = pidApplySetpoint(axis);
+
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
+
+
+  //// P-term (gyro only)
+
+    // Calculate P-component
+    pid.data[axis].P = pid.coef[axis].Kp * -gyroRate;
+
+
+  //// D-term (gyo only)
+
+    // Calculate D-term with bandwidth limit
+    const float dTerm = difFilterApply(&pid.dtermFilter[axis], gyroRate);
+
+    // Calculate D-component
+    pid.data[axis].D = pid.coef[axis].Kd * -dTerm;
+
+
+  //// I-term
+
+    // Calculate error rate
+    const float errorRate = setpoint - gyroRate;
+
+    // Apply error relax
+    const float itermErrorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
+
+    // Saturation
+    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * itermErrorRate > 0);
+
+    // I-term change
+    const float itermDelta = saturation ? 0 : itermErrorRate * pid.dT;
+
+    // Calculate I-component
+    pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis]);
+    pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
+
+    // Apply error decay
+    float decayTime, decayRate, decayLimit, errorDecay;
+
+    if (true /*isAirborne()*/) {
+      decayTime = linearf(fabsf(pid.collective), pidProfile->error_decay_time_curve_cyclic, 10);
+      decayRate = (decayTime > 0) ? 10 / decayTime : 0;
+      decayLimit = linearf(fabsf(pid.collective), pidProfile->error_decay_limit_curve_cyclic, 10);
+      errorDecay = limitf(pid.data[axis].axisError * decayRate, decayLimit);
+    }
+    else {
+      decayTime = 0;
+      decayLimit = 0;
+      decayRate = pid.errorDecayRateGround / pid.dT;
+      errorDecay = pid.data[axis].axisError * decayRate;
+    }
+
+    pid.data[axis].axisError -= errorDecay * pid.dT;
+
+    DEBUG_AXIS(ERROR_DECAY, axis, 0, decayRate * 1000);
+    DEBUG_AXIS(ERROR_DECAY, axis, 1, decayLimit);
+    DEBUG_AXIS(ERROR_DECAY, axis, 2, errorDecay * 1000);
+    DEBUG_AXIS(ERROR_DECAY, axis, 3, pid.data[axis].axisError * 100);
+
+
+  //// Offset term
+
+    // Offset change modulated by collective
+    const float offMod = copysignf(POWER2(pid.collective), pid.collective);
+    const float offDelta = saturation ? 0 : errorRate * pid.dT * offMod;
+
+    // Calculate Offset component
+    pid.data[axis].axisOffset = limitf(pid.data[axis].axisOffset + offDelta, pid.offsetLimit[axis]);
+    pid.data[axis].O = pid.coef[axis].Ko * pid.data[axis].axisOffset * pid.collective;
+
+    DEBUG_AXIS(HS_OFFSET, axis, 0, errorRate * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 1, itermErrorRate * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 2, pid.data[axis].axisError * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 3, pid.data[axis].axisOffset * 10);
+    DEBUG_AXIS(HS_OFFSET, axis, 4, pid.data[axis].O * 1000);
+    DEBUG_AXIS(HS_OFFSET, axis, 5, offDelta * 1000000);
+    DEBUG_AXIS(HS_OFFSET, axis, 6, offMod * 1000);
+
+    // Apply error decay
+    if (true /*isSpooledUp()*/) {
+      decayTime = linearf(fabsf(pid.collective), pidProfile->error_decay_time_curve_offset, 10);
+      decayRate = (decayTime > 0) ? 10 / decayTime : 0;
+      decayLimit = linearf(fabsf(pid.collective), pidProfile->error_decay_limit_curve_offset, 10);
+      errorDecay = limitf(pid.data[axis].axisOffset * decayRate, decayLimit);
+    }
+    else {
+      decayTime = 0;
+      decayLimit = 0;
+      decayRate = pid.errorDecayRateGround / pid.dT;
+      errorDecay = pid.data[axis].axisOffset * decayRate;
+    }
+
+    pid.data[axis].axisOffset -= errorDecay * pid.dT;
+
+    DEBUG_AXIS(ERROR_DECAY, axis, 4, decayRate * 1000);
+    DEBUG_AXIS(ERROR_DECAY, axis, 5, decayLimit);
+    DEBUG_AXIS(ERROR_DECAY, axis, 6, errorDecay * 1000);
+    DEBUG_AXIS(ERROR_DECAY, axis, 7, pid.data[axis].axisOffset * 100);
+
+
+  //// F-term
+
+    // Calculate feedforward component
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
+
+
+  //// B-term (FF Derivative)
+
+    // Calculate B-term with bandwidth limit
+    const float bTerm = difFilterApply(&pid.btermFilter[axis], setpoint);
+
+    // Calculate B-component
+    pid.data[axis].B = pid.coef[axis].Kb * bTerm;
+
+
+  //// PID Sum
+
+    // Calculate sum of all terms
+    pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D +
+                            pid.data[axis].F + pid.data[axis].B + pid.data[axis].O;
+}
+
+
+static void pidApplyYawMode3(void)
+{
+    const uint8_t axis = FD_YAW;
+
+    // Rate setpoint
+    const float setpoint = pidApplySetpoint(axis);
+
+    // Get gyro rate
+    const float gyroRate = pidApplyGyroRate(axis);
+
+    // Calculate error rate
+    const float errorRate = setpoint - gyroRate;
+
+    // Select stop gain
+    const float stopGain = transition(errorRate, -10, 10, pid.yawCCWStopGain, pid.yawCWStopGain);
+
+
+  //// P-term
+
+    // Calculate P-component
+    pid.data[axis].P = pid.coef[axis].Kp * errorRate * stopGain;
+
+
+  //// D-term
+
+    // Calculate D-term with bandwidth limit
+    const float dTerm = difFilterApply(&pid.dtermFilter[axis], gyroRate);
+
+    // Calculate D-component
+    pid.data[axis].D = pid.coef[axis].Kd * -dTerm;
+
+
+  //// I-term
+
+    // Apply error relax
+    const float itermErrorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
+
+    // Saturation
+    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * itermErrorRate > 0);
+
+    // I-term change
+    const float itermDelta = saturation ? 0 : itermErrorRate * pid.dT;
+
+    // Calculate I-component
+    pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis]);
+    pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
+
+    // Apply error decay
+    pid.data[axis].axisError -= (true /*isSpooledUp()*/) ?
+      limitf(pid.data[axis].axisError * pid.errorDecayRateYaw, pid.errorDecayLimitYaw):
+      pid.data[axis].axisError * pid.errorDecayRateGround;
+
+
+  //// F-term
+
+    // Calculate feedforward component
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
+
+
+  //// B-term (FF Derivative)
+
+    // Calculate B-term with bandwidth limit
+    const float bTerm = difFilterApply(&pid.btermFilter[axis], setpoint);
+
+    // Calculate B-component
+    pid.data[axis].B = pid.coef[axis].Kb * bTerm;
+
+
+  //// PID Sum
+
+    // Calculate sum of all terms
+    pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D +
+                            pid.data[axis].F + pid.data[axis].B;
 }
 
 
@@ -778,8 +1040,10 @@ static void pidApplyCyclicMode9(uint8_t axis)
     pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis]);
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
-    // Apply I-term error decay
-    pid.data[axis].axisError *= isAirborne() ? pid.errorDecayCyclic : pid.errorDecayGround;
+    // Apply error decay
+    pid.data[axis].axisError -= isAirborne() ?
+      pid.data[axis].axisError * pid.errorDecayRateCyclic:
+      pid.data[axis].axisError * pid.errorDecayRateGround;
 
 
   //// F-term
@@ -868,8 +1132,10 @@ static void pidApplyYawMode9()
         pid.data[axis].I += Ki * itermDelta;
     }
 
-    // Apply I-term error decay
-    pid.data[axis].axisError *= isSpooledUp() ? pid.errorDecayYaw : pid.errorDecayGround;
+    // Apply error decay
+    pid.data[axis].axisError -= isSpooledUp() ?
+      limitf(pid.data[axis].axisError * pid.errorDecayRateYaw, pid.errorDecayLimitYaw):
+      pid.data[axis].axisError * pid.errorDecayRateGround;
 
 
   //// F-term
@@ -905,6 +1171,11 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
             pidApplyCyclicMode9(PID_ROLL);
             pidApplyCyclicMode9(PID_PITCH);
             pidApplyYawMode9();
+            break;
+        case 3:
+            pidApplyCyclicMode3(PID_ROLL, pidProfile);
+            pidApplyCyclicMode3(PID_PITCH, pidProfile);
+            pidApplyYawMode3();
             break;
         case 2:
             pidApplyCyclicMode2(PID_ROLL);
