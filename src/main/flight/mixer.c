@@ -136,19 +136,19 @@ static inline void mixerUpdateHistory(void)
 
 /** Interface functions **/
 
+float mixerGetInput(uint8_t i)
+{
+    return mixer.input[i];
+}
+
 float mixerGetOutput(uint8_t i)
 {
     return mixer.output[i];
 }
 
-float mixerGetServoOutput(uint8_t i)
+float getCyclicDeflection(void)
 {
-    return mixer.output[MIXER_SERVO_OFFSET + i];
-}
-
-float mixerGetMotorOutput(uint8_t i)
-{
-    return mixer.output[MIXER_MOTOR_OFFSET + i];
+    return mixer.cyclicTotal;
 }
 
 bool mixerSaturated(uint8_t index)
@@ -178,26 +178,6 @@ int16_t mixerGetOverride(uint8_t i)
 int16_t mixerSetOverride(uint8_t i, int16_t value)
 {
     return mixer.override[i] = value;
-}
-
-float getCyclicDeflection(void)
-{
-    return mixer.cyclicTotal;
-}
-
-float getCollectiveDeflection(void)
-{
-    return mixer.input[MIXER_IN_STABILIZED_COLLECTIVE];
-}
-
-float getYawDeflection(void)
-{
-    return mixer.input[MIXER_IN_STABILIZED_YAW];
-}
-
-float mixerGetInput(uint8_t i)
-{
-    return mixer.input[i];
 }
 
 
