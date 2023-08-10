@@ -37,7 +37,6 @@ typedef enum {
     PID_ROLL,
     PID_PITCH,
     PID_YAW,
-    PID_WAY,
     PID_ITEM_COUNT
 } pidIndex_e;
 
@@ -154,7 +153,6 @@ typedef struct pidProfile_s {
 
     uint8_t             gyro_filter_type;
 
-    uint8_t             yaw_d_select;
     uint8_t             yaw_cw_stop_gain;
     uint8_t             yaw_ccw_stop_gain;
 
