@@ -1471,7 +1471,6 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, mixerConfig()->main_rotor_dir);
         sbufWriteU8(dst, mixerConfig()->tail_rotor_mode);
         sbufWriteU8(dst, mixerConfig()->tail_motor_idle);
-        sbufWriteU8(dst, mixerConfig()->tail_center_trim);
         sbufWriteU8(dst, mixerConfig()->swash_type);
         sbufWriteU8(dst, mixerConfig()->swash_ring);
         sbufWriteU16(dst, mixerConfig()->swash_phase);
@@ -1751,8 +1750,6 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->error_decay_time_ground);
         sbufWriteU8(dst, currentPidProfile->error_decay_time_cyclic);
         sbufWriteU8(dst, currentPidProfile->error_decay_time_yaw);
-        sbufWriteU8(dst, currentPidProfile->error_decay_limit_cyclic);
-        sbufWriteU8(dst, currentPidProfile->error_decay_limit_yaw);
         sbufWriteU8(dst, currentPidProfile->error_rotation);
         sbufWriteU8(dst, currentPidProfile->error_limit[0]);
         sbufWriteU8(dst, currentPidProfile->error_limit[1]);
@@ -2479,8 +2476,6 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         currentPidProfile->error_decay_time_ground = sbufReadU8(src);
         currentPidProfile->error_decay_time_cyclic = sbufReadU8(src);
         currentPidProfile->error_decay_time_yaw = sbufReadU8(src);
-        currentPidProfile->error_decay_limit_cyclic = sbufReadU8(src);
-        currentPidProfile->error_decay_limit_yaw = sbufReadU8(src);
         currentPidProfile->error_rotation = sbufReadU8(src);
         currentPidProfile->error_limit[0] = sbufReadU8(src);
         currentPidProfile->error_limit[1] = sbufReadU8(src);
@@ -2905,7 +2900,6 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         mixerConfigMutable()->main_rotor_dir = sbufReadU8(src);
         mixerConfigMutable()->tail_rotor_mode = sbufReadU8(src);
         mixerConfigMutable()->tail_motor_idle = sbufReadU8(src);
-        mixerConfigMutable()->tail_center_trim = sbufReadU8(src);
         mixerConfigMutable()->swash_type = sbufReadU8(src);
         mixerConfigMutable()->swash_ring = sbufReadU8(src);
         mixerConfigMutable()->swash_phase = sbufReadU16(src);
