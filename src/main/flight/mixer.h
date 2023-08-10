@@ -171,14 +171,14 @@ float mixerGetInputHistory(uint8_t i, uint16_t delay);
 
 float mixerGetOutput(uint8_t i);
 
+float getCyclicDeflection(void);
+
 bool mixerSaturated(uint8_t index);
 void mixerSaturateInput(uint8_t index);
 void mixerSaturateOutput(uint8_t index);
 
 int16_t mixerGetOverride(uint8_t i);
 int16_t mixerSetOverride(uint8_t i, int16_t value);
-
-float getCyclicDeflection(void);
 
 
 /* Inline functions */
