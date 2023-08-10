@@ -63,6 +63,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .swash_phase = 0,
     .swash_pitch_limit = 0,
     .swash_trim = { 0, 0, 0 },
+    .cyclic_servo_speed = 50,
     .coll_rpm_correction = 0,
 );
 
@@ -83,6 +84,7 @@ typedef struct {
 
     float           input[MIXER_INPUT_COUNT];
     float           output[MIXER_OUTPUT_COUNT];
+    float           cyclic[MIXER_OUTPUT_COUNT];
 
     uint32_t        mapping[MIXER_OUTPUT_COUNT];
     int16_t         override[MIXER_INPUT_COUNT];
@@ -93,6 +95,8 @@ typedef struct {
     int8_t          tailMotorDirection;
 
     float           swashTrim[3];
+
+    uint32_t        cyclicMapping;
 
     float           cyclicLimit;
     float           cyclicTotal;
@@ -287,6 +291,13 @@ static void mixerUpdateCyclic(void)
 
     // Total cyclic deflection
     mixer.cyclicTotal = sqrtf(sq(SP) + sq(SR));
+}
+
+static void mixerLimitCyclicSpeed(void)
+{
+
+
+
 }
 
 static void mixerUpdateCollective(void)
@@ -511,6 +522,9 @@ void mixerUpdate(void)
 
     // Evaluate rule-based mixer
     mixerUpdateRules();
+
+    // Evaluate cyclic speed limits
+    mixerLimitCyclicSpeed();
 }
 
 void INIT_CODE validateAndFixMixerConfig(void)
@@ -561,6 +575,8 @@ void INIT_CODE mixerInitConfig(void)
     for (int i = 0; i < 3; i++)
         mixer.swashTrim[i] = mixerConfig()->swash_trim[i] / 1000.0f;
 
+    mixer.cyclicSpeedLimit = pidGetDT() / (mixerConfig()->cyclic_servo_speed / 10000.0f + 1e-6);
+
     mixer.tailCenterTrim = mixerConfig()->tail_center_trim / 120.0f;  // 120 => 24°
     mixer.tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
 }
@@ -568,11 +584,21 @@ void INIT_CODE mixerInitConfig(void)
 static void INIT_CODE setMapping(uint8_t in, uint8_t out)
 {
     mixer.mapping[out] = BIT(in);
+
+    if (in == MIXER_IN_STABILIZED_ROLL || in == MIXER_IN_STABILIZED_PITCH ||
+        in == MIXER_IN_RC_COMMAND_ROLL || in == MIXER_IN_RC_COMMAND_PITCH) {
+        mixer.cyclicMapping |= BIT(out);
+    }
 }
 
 static void INIT_CODE addMapping(uint8_t in, uint8_t out)
 {
     mixer.mapping[out] |= BIT(in);
+
+    if (in == MIXER_IN_STABILIZED_ROLL || in == MIXER_IN_STABILIZED_PITCH ||
+        in == MIXER_IN_RC_COMMAND_ROLL || in == MIXER_IN_RC_COMMAND_PITCH) {
+        mixer.cyclicMapping |= BIT(out);
+    }
 }
 
 #define addServoMapping(IN,S)   addMapping(MIXER_SERVO_OFFSET + (S), (IN))

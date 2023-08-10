@@ -132,6 +132,8 @@ typedef struct
     uint16_t  swash_pitch_limit; // Maximum main rotor blade pitch
     int8_t    swash_trim[3];    // Swashplate leveling trim
 
+    uint8_t   cyclic_servo_speed; // Cyclic servo speed in 0.1ms/50deg steps
+
     uint8_t   coll_rpm_correction;  // Collective correction vs. headspeed
 
 } mixerConfig_t;
