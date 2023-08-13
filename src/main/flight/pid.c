@@ -229,19 +229,18 @@ void INIT_CODE pidCopyProfile(uint8_t dstPidProfileIndex, uint8_t srcPidProfileI
 /*
  * 2D Rotation matrix
  *
- *        | cos(r)   -sin r |
- *    R = |                 |
- *        | sin(r)    cos r |
+ *        | cos(r)   -sin(r) |
+ *    R = |                  |
+ *        | sin(r)    cos(r) |
  *
  *
- *                3     5     7     9
- *               x     x     x     x
- * sin(x) = x - --- + --- - --- + --- - ...
+ *               x³    x⁵    x⁷    x⁹
+ * sin(x) = x - ――― + ――― - ――― + ――― - …
  *               3!    5!    7!    9!
  *
- *                2     4     6     8
- *               x     x     x     x
- * cos(x) = 1 - --- + --- - --- + --- - ...
+ *
+ *               x²    x⁴    x⁶    x⁸
+ * cos(x) = 1 - ――― + ――― - ――― + ――― - …
  *               2!    4!    6!    8!
  *
  *
