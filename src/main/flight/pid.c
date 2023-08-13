@@ -866,7 +866,7 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
 
     // Offset change modulated by collective
     const float offMod = copysignf(POWER2(pid.collective), pid.collective);
-    const float offDelta = saturation ? 0 : errorRate * pid.dT * offMod;
+    const float offDelta = saturation ? 0 : itermErrorRate * pid.dT * offMod;
 
     // Calculate Offset component
     pid.data[axis].axisOffset = limitf(pid.data[axis].axisOffset + offDelta, pid.offsetLimit[axis]);
