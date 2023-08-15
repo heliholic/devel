@@ -546,6 +546,14 @@ void INIT_CODE validateAndFixMixerConfig(void)
             rule->weight  = 0;
         }
     }
+
+    if (mixerConfig()->swash_pitch_limit > 0) {
+        const uint16_t min_cyclic = 500;  // = 6°
+        uint16_t limit = mixerConfig()->swash_pitch_limit;
+        limit = MAX(limit, ABS(mixerInputs(MIXER_IN_STABILIZED_COLLECTIVE)->max) + min_cyclic);
+        limit = MAX(limit, ABS(mixerInputs(MIXER_IN_STABILIZED_COLLECTIVE)->min) + min_cyclic);
+        mixerConfigMutable()->swash_pitch_limit = limit;
+    }
 }
 
 void INIT_CODE mixerInitConfig(void)
