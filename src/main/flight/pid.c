@@ -217,7 +217,7 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
 
     // Pitch-to-Roll derivative feedback
     pid.cyclicCrosstalkMode = pidProfile->cyclic_crosstalk_mode;
-    pid.cyclicCrosstalkGain = pidProfile->cyclic_crosstalk_gain * CYCLIC_CROSSTALK_SCALE;
+    pid.cyclicCrosstalkGain = pidProfile->cyclic_crosstalk_gain * -CYCLIC_CROSSTALK_SCALE * mixerRotationSign();
 
     // Pitch derivative filter
     difFilterInit(&pid.crossTalkFilter, pidProfile->cyclic_crosstalk_cutoff, pid.freq);
