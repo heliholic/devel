@@ -110,4 +110,5 @@ const char * const debugModeNames[DEBUG_COUNT] = {
     DEBUG_NAME(RESCUE_ALTHOLD),
     DEBUG_NAME(ERROR_DECAY),
     DEBUG_NAME(HS_OFFSET),
+    DEBUG_NAME(HS_BLEED),
 };

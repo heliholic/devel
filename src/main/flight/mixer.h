@@ -197,6 +197,16 @@ static inline float mixerGetMotorOutput(uint8_t index)
     return mixerGetOutput(MIXER_MOTOR_OFFSET + index);
 }
 
+static inline float getPitchDeflection(void)
+{
+    return mixerGetInput(MIXER_IN_STABILIZED_PITCH);
+}
+
+static inline float getRollDeflection(void)
+{
+    return mixerGetInput(MIXER_IN_STABILIZED_ROLL);
+}
+
 static inline float getYawDeflection(void)
 {
     return mixerGetInput(MIXER_IN_STABILIZED_YAW);
