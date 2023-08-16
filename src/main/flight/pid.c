@@ -433,6 +433,60 @@ static void pidApplyCyclicCrosstalk(void)
     DEBUG(PITCH_PRECOMP, 3, rollComp * 1000);
 }
 
+static float linearf(float x, const uint8_t * table, int points)
+{
+    /* Number of bins */
+    const int bins = points - 1;
+
+    /* Max x in range 0..1 to piecewise linear table of size count */
+    const int index = constrain(x * bins, 0, bins - 1);
+
+    const int a = table[index + 0];
+    const int b = table[index + 1];
+
+    const float dy = b - a;
+    const float dx = x * bins - index;
+    const float y = a + dx * dy;
+
+    return y;
+}
+
+static void pidApplyOffsetBleed(const pidProfile_t * pidProfile)
+{
+    // Actual collective
+    const float collective = getCollectiveDeflection();
+
+    // Actual pitch and roll
+    const float Ax = getPitchDeflection();
+    const float Ay = getRollDeflection();
+
+    // Offset vector
+    const float Bx = pid.data[PID_PITCH].axisOffset;
+    const float By = pid.data[PID_ROLL ].axisOffset;
+
+    // Vector lengths
+    const float Al = sqrtf(Ax*Ax + Ay*Ay);
+    const float Bl = sqrtf(Bx*Bx + By*By);
+
+    // Projection cos(angle)
+    const float proj = (Ax * Bx + Ay * By) / (Al * Bl);
+
+    // Bleed variables
+    float bleedTime = linearf(Al, pidProfile->error_bleed_time_curve_offset, DECAY_CURVE_POINTS);
+    float bleedRate = (bleedTime > 0) ? 10 / bleedTime : 0;
+    float bleedLimit = linearf(Al, pidProfile->error_bleed_limit_curve_offset, DECAY_CURVE_POINTS);
+
+    // Offset bleed amount
+    float bleedP = limitf(proj * Bx * bleedRate, bleedLimit) * pid.dT;
+    float bleedR = limitf(proj * By * bleedRate, bleedLimit) * pid.dT;
+
+    // Bleed from axisOffset to axisError
+    pid.data[PID_PITCH].axisOffset -= bleedP;
+    pid.data[PID_ROLL].axisOffset  -= bleedR;
+    pid.data[PID_PITCH].axisError  += bleedP * (pid.coef[PID_PITCH].Ko / pid.coef[PID_PITCH].Ki) * collective;
+    pid.data[PID_ROLL].axisError   += bleedR * (pid.coef[PID_ROLL ].Ko / pid.coef[PID_ROLL ].Ki) * collective;
+}
+
 
 /** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **
  **
@@ -777,24 +831,6 @@ static void pidApplyYawMode2(void)
  **
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
 
-static float linearf(float x, const uint8_t * table, int points)
-{
-  /* Number of bins */
-  const int bins = points - 1;
-
-  /* Max x in range 0..1 to piecewise linear table of size count */
-  const int index = constrain(x * bins, 0, bins - 1);
-
-  const int a = table[index + 0];
-  const int b = table[index + 1];
-
-  const float dy = b - a;
-  const float dx = x * bins - index;
-  const float y = a + dx * dy;
-
-  return y;
-}
-
 static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
 {
     // Rate setpoint
@@ -837,13 +873,17 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
     pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis]);
     pid.data[axis].I = pid.coef[axis].Ki * pid.data[axis].axisError;
 
+    // Get actual collective from the mixer
+    const float collective = getCollectiveDeflection();
+    const float collectiveAbs = fabsf(collective);
+
     // Apply error decay
     float decayTime, decayRate, decayLimit, errorDecay;
 
     if (true /*isAirborne()*/) {
-      decayTime = linearf(fabsf(pid.collective), pidProfile->error_decay_time_curve_cyclic, DECAY_CURVE_POINTS);
+      decayTime = linearf(collectiveAbs, pidProfile->error_decay_time_curve_cyclic, DECAY_CURVE_POINTS);
       decayRate = (decayTime > 0) ? 10 / decayTime : 0;
-      decayLimit = linearf(fabsf(pid.collective), pidProfile->error_decay_limit_curve_cyclic, DECAY_CURVE_POINTS);
+      decayLimit = linearf(collectiveAbs, pidProfile->error_decay_limit_curve_cyclic, DECAY_CURVE_POINTS);
       errorDecay = limitf(pid.data[axis].axisError * decayRate, decayLimit);
     }
     else {
@@ -864,12 +904,12 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
   //// Offset term
 
     // Offset change modulated by collective
-    const float offMod = copysignf(POWER2(pid.collective), pid.collective);
+    const float offMod = copysignf(POWER2(collective), collective);
     const float offDelta = saturation ? 0 : itermErrorRate * pid.dT * offMod;
 
     // Calculate Offset component
     pid.data[axis].axisOffset = limitf(pid.data[axis].axisOffset + offDelta, pid.offsetLimit[axis]);
-    pid.data[axis].O = pid.coef[axis].Ko * pid.data[axis].axisOffset * pid.collective;
+    pid.data[axis].O = pid.coef[axis].Ko * pid.data[axis].axisOffset * collective;
 
     DEBUG_AXIS(HS_OFFSET, axis, 0, errorRate * 10);
     DEBUG_AXIS(HS_OFFSET, axis, 1, itermErrorRate * 10);
@@ -879,11 +919,11 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
     DEBUG_AXIS(HS_OFFSET, axis, 5, offDelta * 1000000);
     DEBUG_AXIS(HS_OFFSET, axis, 6, offMod * 1000);
 
-    // Apply error decay
+    // Apply offset decay
     if (true /*isSpooledUp()*/) {
-      decayTime = linearf(fabsf(pid.collective), pidProfile->error_decay_time_curve_offset, DECAY_CURVE_POINTS);
+      decayTime = linearf(collectiveAbs, pidProfile->error_decay_time_curve_offset, DECAY_CURVE_POINTS);
       decayRate = (decayTime > 0) ? 10 / decayTime : 0;
-      decayLimit = linearf(fabsf(pid.collective), pidProfile->error_decay_limit_curve_offset, DECAY_CURVE_POINTS);
+      decayLimit = linearf(collectiveAbs, pidProfile->error_decay_limit_curve_offset, DECAY_CURVE_POINTS);
       errorDecay = limitf(pid.data[axis].axisOffset * decayRate, decayLimit);
     }
     else {
@@ -1019,6 +1059,7 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
         case 3:
             pidApplyCyclicMode3(PID_ROLL, pidProfile);
             pidApplyCyclicMode3(PID_PITCH, pidProfile);
+            pidApplyOffsetBleed(pidProfile);
             pidApplyCyclicCrosstalk();
             pidApplyYawMode3();
             break;

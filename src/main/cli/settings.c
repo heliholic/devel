@@ -1070,6 +1070,8 @@ const clivalue_t valueTable[] = {
     { "error_decay_limit_curve_cyclic",  VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_decay_limit_curve_cyclic) },
     { "error_decay_time_curve_offset",   VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_decay_time_curve_offset) },
     { "error_decay_limit_curve_offset",  VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_decay_limit_curve_offset) },
+    { "error_bleed_time_curve_offset",   VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_bleed_time_curve_offset) },
+    { "error_bleed_limit_curve_offset",  VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_bleed_limit_curve_offset) },
 
     { "iterm_relax_type",           VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ITERM_RELAX_TYPE }, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_relax_type) },
     { "iterm_relax_level",          VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 3, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_relax_level) },
