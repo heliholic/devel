@@ -874,7 +874,7 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
     const float itermErrorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
 
     // Saturation
-    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * itermErrorRate > 0);
+    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].axisError * itermErrorRate > 0);
 
     // I-term change
     const float itermDelta = saturation ? 0 : itermErrorRate * pid.dT;
@@ -913,9 +913,12 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
 
   //// Offset term
 
+    // Offset saturation
+    const bool offSaturation = (pidAxisSaturated(axis) && pid.data[axis].axisOffset * itermErrorRate * collective > 0);
+
     // Offset change modulated by collective
     const float offMod = copysignf(POWER2(collective), collective);
-    const float offDelta = saturation ? 0 : itermErrorRate * pid.dT * offMod;
+    const float offDelta = offSaturation ? 0 : itermErrorRate * pid.dT * offMod;
 
     // Calculate Offset component
     pid.data[axis].axisOffset = limitf(pid.data[axis].axisOffset + offDelta, pid.offsetLimit[axis]);
@@ -1013,7 +1016,7 @@ static void pidApplyYawMode3(void)
     const float itermErrorRate = applyItermRelax(axis, errorRate, gyroRate, setpoint);
 
     // Saturation
-    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].I * itermErrorRate > 0);
+    const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].axisError * itermErrorRate > 0);
 
     // I-term change
     const float itermDelta = saturation ? 0 : itermErrorRate * pid.dT;
