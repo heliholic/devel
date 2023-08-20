@@ -917,7 +917,7 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
     const bool offSaturation = (pidAxisSaturated(axis) && pid.data[axis].axisOffset * itermErrorRate * collective > 0);
 
     // Offset change modulated by collective
-    const float offMod = copysignf(POWER2(collective), collective);
+    const float offMod = linearf(collectiveAbs, pidProfile->offset_charge_curve, DECAY_CURVE_POINTS) / 100.0f;
     const float offDelta = offSaturation ? 0 : itermErrorRate * pid.dT * offMod;
 
     // Calculate Offset component

@@ -1073,6 +1073,8 @@ const clivalue_t valueTable[] = {
     { "error_bleed_time_curve_offset",   VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_bleed_time_curve_offset) },
     { "error_bleed_limit_curve_offset",  VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, error_bleed_limit_curve_offset) },
 
+    { "offset_charge_curve",        VAR_UINT8 | PROFILE_VALUE | MODE_ARRAY, .config.array.length = DECAY_CURVE_POINTS, PG_PID_PROFILE, offsetof(pidProfile_t, offset_charge_curve) },
+
     { "iterm_relax_type",           VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ITERM_RELAX_TYPE }, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_relax_type) },
     { "iterm_relax_level",          VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 3, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_relax_level) },
     { "iterm_relax_cutoff",         VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 3, PG_PID_PROFILE, offsetof(pidProfile_t, iterm_relax_cutoff) },

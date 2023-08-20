@@ -139,6 +139,8 @@ typedef struct pidProfile_s {
     uint8_t             error_bleed_time_curve_offset[DECAY_CURVE_POINTS];
     uint8_t             error_bleed_limit_curve_offset[DECAY_CURVE_POINTS];
 
+    uint8_t             offset_charge_curve[DECAY_CURVE_POINTS];
+
     uint8_t             error_rotation;
 
     uint8_t             iterm_relax_type;
