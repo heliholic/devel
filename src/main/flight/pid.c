@@ -453,29 +453,32 @@ static float linearf(float x, const uint8_t * table, int points)
 
 static void pidApplyOffsetBleed(const pidProfile_t * pidProfile)
 {
-    // Actual collective and cyclic
+    // Actual collective
     const float collective = getCollectiveDeflection();
-    const float cyclic = getCyclicDeflection();
-
-    // Actual pitch and roll
-    const float Ax = getPitchDeflection();
-    const float Ay = getRollDeflection();
 
     // Offset vector
     const float Bx = pid.data[PID_PITCH].axisOffset;
     const float By = pid.data[PID_ROLL ].axisOffset;
 
+    // Cyclic vector
+    const float Ax = pid.data[PID_PITCH].setPoint;
+    const float Ay = pid.data[PID_ROLL].setPoint;
+
+    // Cyclic norm
+    const float A2 = Ax * Ax + Ay * Ay;
+    const float An = sqrtf(A2) / 300.0f;
+
     // Projection dot-product
-    const float Dp = (Ax * Bx + Ay * By) / (Ax * Ax + Ay * Ay);
+    const float Dp = (Ax * Bx + Ay * By) / A2;
 
     // Projection components
     const float Px = Ax * Dp;
     const float Py = Ay * Dp;
 
     // Bleed variables
-    float bleedTime = linearf(cyclic, pidProfile->error_bleed_time_curve_offset, DECAY_CURVE_POINTS);
+    float bleedTime = linearf(An, pidProfile->error_bleed_time_curve_offset, DECAY_CURVE_POINTS);
     float bleedRate = (bleedTime > 0) ? 10 / bleedTime : 0;
-    float bleedLimit = linearf(cyclic, pidProfile->error_bleed_limit_curve_offset, DECAY_CURVE_POINTS);
+    float bleedLimit = linearf(An, pidProfile->error_bleed_limit_curve_offset, DECAY_CURVE_POINTS);
 
     // Offset bleed amount
     float bleedP = limitf(Px * bleedRate, bleedLimit) * pid.dT;
