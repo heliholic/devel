@@ -468,8 +468,8 @@ static void pidApplyOffsetBleed(const pidProfile_t * pidProfile)
     const float A2 = Ax * Ax + Ay * Ay;
     const float An = sqrtf(A2) / 300.0f;
 
-    // Projection dot-product
-    const float Dp = (Ax * Bx + Ay * By) / A2;
+    // Projection dot-product (>1 for stability)
+    const float Dp = (A2 > 1) ? (Ax * Bx + Ay * By) / A2 : 0;
 
     // Projection components
     const float Px = Ax * Dp;
