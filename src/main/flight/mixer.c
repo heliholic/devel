@@ -328,7 +328,7 @@ static void mixerUpdateMotorizedTail(void)
         const float yaw = mixer.input[MIXER_IN_STABILIZED_YAW] * mixerRotationSign();
 
         // Thrust linearization
-        float throttle = sqrtf(fmaxf(yaw,0));
+        float throttle = yaw; //sqrtf(fmaxf(yaw,0));
 
         // Apply minimum throttle
         throttle = fmaxf(throttle, mixer.tailMotorIdle);
@@ -349,7 +349,7 @@ static void mixerUpdateMotorizedTail(void)
         const float yaw = mixer.input[MIXER_IN_STABILIZED_YAW] * mixerRotationSign();
 
         // Thrust linearization
-        float throttle = copysignf(sqrtf(fabsf(yaw)),yaw);
+        float throttle = yaw; //copysignf(sqrtf(fabsf(yaw)),yaw);
 
         // Apply minimum throttle
         if (throttle > -mixer.tailMotorIdle && throttle < mixer.tailMotorIdle)
