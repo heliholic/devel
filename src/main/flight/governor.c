@@ -470,7 +470,7 @@ static void governorUpdatePassthrough(void)
             //  -- If NO throttle, move to ZERO_THROTTLE
             //  -- If throttle <20%, move to AUTO or SPOOLING_UP
             case GS_ACTIVE:
-                govMain = gov.throttleInput * gov.TTAMull;
+                govMain = slewLimit(govPrev, gov.throttleInput, gov.throttleTrackingRate) * gov.TTAMull;
                 if (gov.throttleInputLow)
                     govChangeState(GS_ZERO_THROTTLE);
                 else if (govMain < GOV_THROTTLE_IDLE_LIMIT) {
