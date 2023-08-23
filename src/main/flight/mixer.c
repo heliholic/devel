@@ -305,7 +305,7 @@ static void mixerUpdateCollective(void)
 {
     if (mixerConfig()->coll_rpm_correction) {
         // Headspeed fluctuation ratio
-        const float ratio = constrainf(getHeadSpeedRatio(), 0.90f, 1.25f);
+        const float ratio = constrainf(getHeadSpeedRatio(), 0.975f, 1.2f);
 
         // Lift increases with RPM^2
         const float coll = mixer.input[MIXER_IN_STABILIZED_COLLECTIVE] / (ratio * ratio);
