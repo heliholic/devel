@@ -216,7 +216,6 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
 
     // Pitch-to-Roll derivative feedback
-    pid.cyclicCrosstalkMode = pidProfile->cyclic_crosstalk_mode;
     pid.cyclicCrosstalkGain = pidProfile->cyclic_crosstalk_gain * mixerRotationSign() * -CYCLIC_CROSSTALK_SCALE;
 
     // Pitch derivative filter
@@ -421,9 +420,8 @@ static void pidApplyPrecomp(void)
 
 static void pidApplyCyclicCrosstalk(void)
 {
-    // Derivative filter
-    const float pitchRate = pid.cyclicCrosstalkMode ? pid.data[FD_PITCH].setPoint : pid.data[FD_PITCH].gyroRate;
-    const float pitchDeriv = difFilterApply(&pid.crossTalkFilter, pitchRate);
+    // Setpoint derivative filter
+    const float pitchDeriv = difFilterApply(&pid.crossTalkFilter, pid.data[FD_PITCH].setPoint);
     const float rollComp = pitchDeriv * pid.cyclicCrosstalkGain;
 
     // Add to ROLL

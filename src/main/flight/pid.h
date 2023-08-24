@@ -108,9 +108,6 @@ typedef struct pid_s {
 
     uint8_t errorRotation;
 
-    uint8_t cyclicCrosstalkMode;
-    float cyclicCrosstalkGain;
-
     float errorDecayRateGround;
     float errorDecayRateCyclic;
     float errorDecayLimitCyclic;
@@ -122,6 +119,8 @@ typedef struct pid_s {
 
     float yawCWStopGain;
     float yawCCWStopGain;
+
+    float cyclicCrosstalkGain;
 
     float collective;
 
