@@ -478,7 +478,7 @@ static void pidApplyOffsetBleed(const pidProfile_t * pidProfile)
     const float Py = Ay * Dp;
 
     // Bleed variables
-    float bleedTime = table_lookup(Cx, pidProfile->offset_bleed_time_curve, LOOKUP_CURVE_POINTS);
+    float bleedTime = table_lookup(Cx, pidProfile->offset_bleed_rate_curve, LOOKUP_CURVE_POINTS);
     float bleedRate = (bleedTime > 0) ? 10 / bleedTime : 0;
     float bleedLimit = table_lookup(Cx, pidProfile->offset_bleed_limit_curve, LOOKUP_CURVE_POINTS);
 
