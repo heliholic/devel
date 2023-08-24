@@ -75,7 +75,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .yaw_collective_dynamic_gain = 0,
         .yaw_collective_dynamic_decay = 25,
         .pitch_collective_ff_gain = 0,
-        .cyclic_crosstalk_mode = 0,
         .cyclic_crosstalk_gain = 0,
         .cyclic_crosstalk_cutoff = 20,
         .angle.level_strength = 40,
