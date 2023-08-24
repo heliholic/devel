@@ -492,10 +492,6 @@ const char * const lookupTableDtermMode[] = {
     "GYRO", "ERROR",
 };
 
-const char * const lookupTableGyroSetpoint[] = {
-    "GYRO", "SETPOINT",
-};
-
 #define LOOKUP_TABLE_ENTRY(name) { name, ARRAYLEN(name) }
 
 const lookupTableEntry_t lookupTables[] = {
@@ -607,7 +603,6 @@ const lookupTableEntry_t lookupTables[] = {
     LOOKUP_TABLE_ENTRY(lookupTableSwashType),
     LOOKUP_TABLE_ENTRY(lookupTableCrsfFmReuse),
     LOOKUP_TABLE_ENTRY(lookupTableDtermMode),
-    LOOKUP_TABLE_ENTRY(lookupTableGyroSetpoint),
 };
 
 #undef LOOKUP_TABLE_ENTRY
@@ -1049,7 +1044,6 @@ const clivalue_t valueTable[] = {
 
     { "pitch_collective_ff_gain",   VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_collective_ff_gain) },
 
-    { "cyclic_crosstalk_mode",      VAR_UINT8 | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GYRO_SETPOINT }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_crosstalk_mode) },
     { "cyclic_crosstalk_gain",      VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_crosstalk_gain) },
     { "cyclic_crosstalk_cutoff",    VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_crosstalk_cutoff) },
 
