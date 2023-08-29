@@ -1785,6 +1785,10 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         /* Acro trainer */
         sbufWriteU8(dst, currentPidProfile->trainer.gain);
         sbufWriteU8(dst, currentPidProfile->trainer.angle_limit);
+        /* Cyclic crosstalk */
+        sbufWriteU8(dst, currentPidProfile->cyclic_crosstalk_gain);
+        sbufWriteU8(dst, currentPidProfile->cyclic_crosstalk_cutoff);
+
         break;
 
     case MSP_RESCUE_PROFILE:
@@ -2518,6 +2522,9 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         /* Acro trainer */
         currentPidProfile->trainer.gain = sbufReadU8(src);
         currentPidProfile->trainer.angle_limit = sbufReadU8(src);
+        /* Cyclic crosstalk */
+        currentPidProfile->cyclic_crosstalk_gain = sbufReadU8(src);
+        currentPidProfile->cyclic_crosstalk_cutoff = sbufReadU8(src);
         /* Load new values */
         pidInitProfile(currentPidProfile);
         break;
