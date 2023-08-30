@@ -368,8 +368,8 @@ static void pidApplyCollective(void)
 
 static void pidApplyPrecomp(void)
 {
-    // Yaw precompensation direction
-    const int rotSign = mixerRotationSign();
+    // Yaw precompensation direction and ratio
+    const float masterGain = mixerRotationSign() * getSpoolUpRatio();
 
     // Get actual control deflections (from previous cycle)
     const float cyclicDeflection = getCyclicDeflection();
@@ -389,7 +389,7 @@ static void pidApplyPrecomp(void)
     float yawCyclicFF = fabsf(cyclicDeflection) * pid.precomp.yawCyclicFFGain;
 
     // Calculate total precompensation
-    float yawPrecomp = (yawCollectiveFF + yawCollectiveHF + yawCyclicFF) * rotSign;
+    float yawPrecomp = (yawCollectiveFF + yawCollectiveHF + yawCyclicFF) * masterGain;
 
     // Add to YAW feedforward
     pid.data[FD_YAW].F += yawPrecomp;
