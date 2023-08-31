@@ -108,6 +108,15 @@ typedef enum {
     ADJUSTMENT_GOV_CYCLIC_FF            = 54,
     ADJUSTMENT_GOV_COLLECTIVE_FF        = 55,
 
+    // Boost gains
+    ADJUSTMENT_PITCH_B_GAIN             = 56,
+    ADJUSTMENT_ROLL_B_GAIN              = 57,
+    ADJUSTMENT_YAW_B_GAIN               = 58,
+
+    // Offset gains
+    ADJUSTMENT_PITCH_O_GAIN             = 59,
+    ADJUSTMENT_ROLL_O_GAIN              = 60,
+
     ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunction_e;
 
