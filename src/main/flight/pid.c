@@ -221,6 +221,9 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Pitch derivative filter
     difFilterInit(&pid.crossTalkFilter, pidProfile->cyclic_crosstalk_cutoff, pid.freq);
 
+    // Antigravity gain 190 => 20% collective
+    pid.antigravityGain = pidProfile->antigravity_gain * 2;
+
     // Initialise sub-profiles
     governorInitProfile(pidProfile);
 #ifdef USE_ACC
@@ -359,6 +362,9 @@ static float pidApplyGyroRate(uint8_t axis)
 static void pidApplyCollective(void)
 {
     float collective = getSetpoint(FD_COLL);
+
+    // Antigravity
+    collective += getCosTiltAngle() * pid.antigravityGain;
 
     // Apply rescue (override)
     collective = rescueApply(FD_COLL, collective);

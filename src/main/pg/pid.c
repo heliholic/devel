@@ -84,6 +84,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .pitch_collective_ff_gain = 0,
         .cyclic_crosstalk_gain = 0,
         .cyclic_crosstalk_cutoff = 20,
+        .antigravity_gain = 0,
         .angle.level_strength = 40,
         .angle.level_limit = 55,
         .horizon.level_strength = 40,

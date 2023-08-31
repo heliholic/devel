@@ -170,6 +170,8 @@ typedef struct pidProfile_s {
     uint8_t             cyclic_crosstalk_gain;
     uint8_t             cyclic_crosstalk_cutoff;
 
+    uint8_t             antigravity_gain;
+
     pidAngleMode_t      angle;
     pidHorizonMode_t    horizon;
     pidTrainerMode_t    trainer;

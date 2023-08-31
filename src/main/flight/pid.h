@@ -122,6 +122,8 @@ typedef struct pid_s {
 
     float cyclicCrosstalkGain;
 
+    float antigravityGain;
+
     float collective;
 
     pidPrecomp_t precomp;
