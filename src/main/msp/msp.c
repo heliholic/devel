@@ -1830,6 +1830,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->governor.yaw_ff_weight);
         sbufWriteU8(dst, currentPidProfile->governor.cyclic_ff_weight);
         sbufWriteU8(dst, currentPidProfile->governor.collective_ff_weight);
+        sbufWriteU8(dst, currentPidProfile->governor.max_throttle);
         break;
 
     case MSP_SENSOR_CONFIG:
@@ -2581,6 +2582,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         currentPidProfile->governor.yaw_ff_weight = sbufReadU8(src);
         currentPidProfile->governor.cyclic_ff_weight = sbufReadU8(src);
         currentPidProfile->governor.collective_ff_weight = sbufReadU8(src);
+        currentPidProfile->governor.max_throttle = sbufReadU8(src);
         /* Load new values */
         governorInitProfile(currentPidProfile);
         break;
