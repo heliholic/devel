@@ -85,6 +85,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .cyclic_cross_coupling_gain = 0,
         .cyclic_cross_coupling_ratio = 0,
         .cyclic_cross_coupling_cutoff = 15,
+        .antigravity_gain = 0,
         .angle.level_strength = 40,
         .angle.level_limit = 55,
         .horizon.level_strength = 40,
