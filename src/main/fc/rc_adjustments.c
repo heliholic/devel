@@ -151,6 +151,8 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 
     ADJ_CONFIG(PITCH_O_GAIN,            PROF,  0, PID_GAIN_MAX),
     ADJ_CONFIG(ROLL_O_GAIN,             PROF,  0, PID_GAIN_MAX),
+
+    ADJ_CONFIG(ANTIGRAVITY_GAIN,        PROF,  0, 250),
 };
 
 
@@ -343,6 +345,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
         case ADJUSTMENT_ROLL_O_GAIN:
             value = currentPidProfile->pid[PID_ROLL].O;
             break;
+        case ADJUSTMENT_ANTIGRAVITY_GAIN:
+            value = currentPidProfile->antigravity_gain;
+            break;
     }
 
     return value;
@@ -534,6 +539,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
             break;
         case ADJUSTMENT_ROLL_O_GAIN:
             currentPidProfile->pid[PID_ROLL].O = value;
+            break;
+        case ADJUSTMENT_ANTIGRAVITY_GAIN:
+            currentPidProfile->antigravity_gain = value;
             break;
     }
 }

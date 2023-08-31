@@ -117,6 +117,9 @@ typedef enum {
     ADJUSTMENT_PITCH_O_GAIN             = 59,
     ADJUSTMENT_ROLL_O_GAIN              = 60,
 
+    // Antigravity
+    ADJUSTMENT_ANTIGRAVITY_GAIN         = 61,
+
     ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunction_e;
 
