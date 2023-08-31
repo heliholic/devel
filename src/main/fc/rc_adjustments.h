@@ -122,6 +122,9 @@ typedef enum {
     ADJUSTMENT_CROSS_COUPLING_RATIO     = 62,
     ADJUSTMENT_CROSS_COUPLING_CUTOFF    = 63,
 
+    // Antigravity
+    ADJUSTMENT_ANTIGRAVITY_GAIN         = 64,
+
     ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunction_e;
 

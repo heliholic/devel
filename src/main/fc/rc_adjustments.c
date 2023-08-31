@@ -155,6 +155,8 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(CROSS_COUPLING_GAIN,     PROF,  0, 250),
     ADJ_CONFIG(CROSS_COUPLING_RATIO,    PROF,  0, 200),
     ADJ_CONFIG(CROSS_COUPLING_CUTOFF,   PROF,  1, 250),
+
+    ADJ_CONFIG(ANTIGRAVITY_GAIN,        PROF,  0, 250),
 };
 
 
@@ -356,6 +358,9 @@ static int getAdjustmentValue(uint8_t adjFunc)
         case ADJUSTMENT_CROSS_COUPLING_CUTOFF:
             value = currentPidProfile->cyclic_cross_coupling_cutoff;
             break;
+        case ADJUSTMENT_ANTIGRAVITY_GAIN:
+            value = currentPidProfile->antigravity_gain;
+            break;
     }
 
     return value;
@@ -556,6 +561,9 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
             break;
         case ADJUSTMENT_CROSS_COUPLING_CUTOFF:
             currentPidProfile->cyclic_cross_coupling_cutoff = value;
+            break;
+        case ADJUSTMENT_ANTIGRAVITY_GAIN:
+            currentPidProfile->antigravity_gain = value;
             break;
     }
 }
