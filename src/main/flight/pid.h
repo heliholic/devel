@@ -123,6 +123,8 @@ typedef struct pid_s {
 
     float cyclicCrossCouplingGain[XY_AXIS_COUNT];
 
+    float antigravityGain;
+
     float collective;
 
     pidPrecomp_t precomp;
