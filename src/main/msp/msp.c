@@ -1796,6 +1796,8 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->offset_limit[0]);
         sbufWriteU8(dst, currentPidProfile->offset_limit[1]);
         sbufWriteU8(dst, currentPidProfile->offset_limit[2]);
+        /* Antigravity */
+        sbufWriteU8(dst, currentPidProfile->antigravity_gain);
         break;
 
     case MSP_RESCUE_PROFILE:
@@ -2546,6 +2548,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             currentPidProfile->offset_limit[0] = sbufReadU8(src);
             currentPidProfile->offset_limit[1] = sbufReadU8(src);
             currentPidProfile->offset_limit[2] = sbufReadU8(src);
+        }
+        /* Antigravity */
+        if (sbufBytesRemaining(src) >= 1) {
+            currentPidProfile->antigravity_gain = sbufReadU8(src);
         }
         /* Load new values */
         pidInitProfile(currentPidProfile);
