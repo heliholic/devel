@@ -216,10 +216,10 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
 
     // Pitch-to-Roll derivative feedback
-    pid.cyclicCrosstalkGain = pidProfile->cyclic_crosstalk_gain * mixerRotationSign() * -CYCLIC_CROSSTALK_SCALE;
+    pid.cyclicCrossCouplingGain = pidProfile->cyclic_cross_coupling_gain * mixerRotationSign() * -CYCLIC_CROSS_COUPLING_SCALE;
 
     // Pitch derivative filter
-    difFilterInit(&pid.crossTalkFilter, pidProfile->cyclic_crosstalk_cutoff, pid.freq);
+    difFilterInit(&pid.crossCouplingFilter, pidProfile->cyclic_cross_coupling_cutoff, pid.freq);
 
     // Antigravity gain 190 => 20% collective
     pid.antigravityGain = pidProfile->antigravity_gain * 2;
@@ -424,11 +424,11 @@ static void pidApplyPrecomp(void)
     DEBUG(PITCH_PRECOMP, 1, pitchPrecomp * 1000);
 }
 
-static void pidApplyCyclicCrosstalk(void)
+static void pidApplyCyclicCrossCoupling(void)
 {
     // Setpoint derivative filter
-    const float pitchDeriv = difFilterApply(&pid.crossTalkFilter, pid.data[FD_PITCH].setPoint);
-    const float rollComp = pitchDeriv * pid.cyclicCrosstalkGain;
+    const float pitchDeriv = difFilterApply(&pid.crossCouplingFilter, pid.data[FD_PITCH].setPoint);
+    const float rollComp = pitchDeriv * pid.cyclicCrossCouplingGain;
 
     // Add to ROLL
     pid.data[FD_ROLL].pidSum += rollComp;
@@ -1100,13 +1100,13 @@ void pidController(const pidProfile_t *pidProfile, timeUs_t currentTimeUs)
             pidApplyCyclicMode3(PID_ROLL, pidProfile);
             pidApplyCyclicMode3(PID_PITCH, pidProfile);
             pidApplyOffsetBleed(pidProfile);
-            pidApplyCyclicCrosstalk();
+            pidApplyCyclicCrossCoupling();
             pidApplyYawMode3();
             break;
         case 2:
             pidApplyCyclicMode2(PID_ROLL);
             pidApplyCyclicMode2(PID_PITCH);
-            pidApplyCyclicCrosstalk();
+            pidApplyCyclicCrossCoupling();
             pidApplyYawMode2();
             break;
         case 1:

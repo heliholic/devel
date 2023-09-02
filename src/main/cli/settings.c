@@ -1046,8 +1046,8 @@ const clivalue_t valueTable[] = {
 
     { "pitch_collective_ff_gain",   VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, pitch_collective_ff_gain) },
 
-    { "cyclic_crosstalk_gain",      VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_crosstalk_gain) },
-    { "cyclic_crosstalk_cutoff",    VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_crosstalk_cutoff) },
+    { "cyclic_cross_coupling_gain",      VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_cross_coupling_gain) },
+    { "cyclic_cross_coupling_cutoff",    VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, cyclic_cross_coupling_cutoff) },
 
     { "antigravity_gain",           VAR_UINT8 | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, antigravity_gain) },
 

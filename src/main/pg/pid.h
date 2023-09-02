@@ -167,8 +167,8 @@ typedef struct pidProfile_s {
 
     uint8_t             pitch_collective_ff_gain;
 
-    uint8_t             cyclic_crosstalk_gain;
-    uint8_t             cyclic_crosstalk_cutoff;
+    uint8_t             cyclic_cross_coupling_gain;
+    uint8_t             cyclic_cross_coupling_cutoff;
 
     uint8_t             antigravity_gain;
 
