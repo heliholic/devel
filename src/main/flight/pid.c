@@ -492,8 +492,12 @@ static void pidApplyOffsetBleed(const pidProfile_t * pidProfile)
     // Bleed from axisOffset to axisError
     pid.data[PID_PITCH].axisOffset -= bleedP;
     pid.data[PID_ROLL].axisOffset  -= bleedR;
-    pid.data[PID_PITCH].axisError  += bleedP * (pid.coef[PID_PITCH].Ko / pid.coef[PID_PITCH].Ki) * collective;
-    pid.data[PID_ROLL].axisError   += bleedR * (pid.coef[PID_ROLL ].Ko / pid.coef[PID_ROLL ].Ki) * collective;
+
+    if (pid.coef[PID_PITCH].Ko > 0 && pid.coef[PID_PITCH].Ki > 0)
+      pid.data[PID_PITCH].axisError += bleedP * (pid.coef[PID_PITCH].Ko / pid.coef[PID_PITCH].Ki) * collective;
+
+    if (pid.coef[PID_ROLL ].Ko > 0 && pid.coef[PID_ROLL ].Ki > 0)
+      pid.data[PID_ROLL].axisError += bleedR * (pid.coef[PID_ROLL ].Ko / pid.coef[PID_ROLL ].Ki) * collective;
 
     DEBUG(HS_BLEED, 0, pid.data[PID_PITCH].axisOffset * 10);
     DEBUG(HS_BLEED, 1, pid.data[PID_ROLL].axisOffset * 10);
