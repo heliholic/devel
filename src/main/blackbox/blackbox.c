@@ -235,6 +235,11 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"axisB",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(BOOST)},
     {"axisB",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(BOOST)},
 
+    /* HSI Offset terms */
+    {"axisO",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(HSI)},
+    {"axisO",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(HSI)},
+    {"axisO",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(HSI)},
+
     /* Attitude Euler angles in 0.1deg steps */
     {"attitude",    0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(ATTITUDE)},
     {"attitude",    1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG2_3S32),  CONDITION(ATTITUDE)},
@@ -360,6 +365,7 @@ typedef struct blackboxMainState_s {
     int32_t axisPID_D[XYZ_AXIS_COUNT];
     int32_t axisPID_F[XYZ_AXIS_COUNT];
     int32_t axisPID_B[XYZ_AXIS_COUNT];
+    int32_t axisPID_O[XYZ_AXIS_COUNT];
 
     int16_t attitude[XYZ_AXIS_COUNT];
     int16_t gyroRAW[XYZ_AXIS_COUNT];
@@ -511,6 +517,11 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
             (currentPidProfile->pid[PID_PITCH].B > 0 ||
              currentPidProfile->pid[PID_ROLL].B > 0 ||
              currentPidProfile->pid[PID_YAW].B > 0);
+
+    case CONDITION(HSI):
+        return isFieldEnabled(FIELD_SELECT(PID)) &&
+            (currentPidProfile->pid[PID_PITCH].O > 0 ||
+             currentPidProfile->pid[PID_ROLL].O > 0);
 
     case CONDITION(ATTITUDE):
         return isFieldEnabled(FIELD_SELECT(ATTITUDE));
@@ -682,6 +693,9 @@ static void writeIntraframe(void)
     if (testBlackboxCondition(CONDITION(BOOST))) {
         blackboxWriteSignedVBArray(blackboxCurrent->axisPID_B, XYZ_AXIS_COUNT);
     }
+    if (testBlackboxCondition(CONDITION(HSI))) {
+        blackboxWriteSignedVBArray(blackboxCurrent->axisPID_O, XYZ_AXIS_COUNT);
+    }
 
     if (testBlackboxCondition(CONDITION(ATTITUDE))) {
         blackboxWriteSigned16VBArray(blackboxCurrent->attitude, XYZ_AXIS_COUNT);
@@ -829,6 +843,11 @@ static void writeInterframe(void)
 
     if (testBlackboxCondition(CONDITION(BOOST))) {
         CALC_DELTAS(deltas, blackboxCurrent->axisPID_B, blackboxPrev->axisPID_B, XYZ_AXIS_COUNT);
+        blackboxWriteTag2_3S32(deltas);
+    }
+
+    if (testBlackboxCondition(CONDITION(HSI))) {
+        CALC_DELTAS(deltas, blackboxCurrent->axisPID_O, blackboxPrev->axisPID_O, XYZ_AXIS_COUNT);
         blackboxWriteTag2_3S32(deltas);
     }
 
@@ -1132,6 +1151,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_D[i] = lrintf(pidData[i].D * 1000);
         blackboxCurrent->axisPID_F[i] = lrintf(pidData[i].F * 1000);
         blackboxCurrent->axisPID_B[i] = lrintf(pidData[i].B * 1000);
+        blackboxCurrent->axisPID_O[i] = lrintf(pidData[i].O * 1000);
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
