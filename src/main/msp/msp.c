@@ -2901,8 +2901,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
-        blackboxEraseAll();
-
+        blackboxErase();
         break;
 #endif
 
