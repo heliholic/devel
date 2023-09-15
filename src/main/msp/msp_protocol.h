@@ -108,9 +108,12 @@
 #define MSP_SET_ARMING_CONFIG                62
 #define MSP_RX_MAP                           64
 #define MSP_SET_RX_MAP                       65
-#define MSP_RX_CHANNELS                      66
+#define MSP_RX_RANGE                         66
+#define MSP_SET_RX_RANGE                     67
 
 #define MSP_REBOOT                           68
+
+#define MSP_RX_CHANNELS                      69
 
 #define MSP_DATAFLASH_SUMMARY                70
 #define MSP_DATAFLASH_READ                   71
