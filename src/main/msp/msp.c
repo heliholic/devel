@@ -1559,6 +1559,13 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteData(dst, rxConfig()->rcmap, RX_MAPPABLE_CHANNEL_COUNT);
         break;
 
+    case MSP_RX_RANGE:
+        for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+            sbufWriteU16(dst, rxChannelRangeConfigs(i)->min);
+            sbufWriteU16(dst, rxChannelRangeConfigs(i)->max);
+        }
+        break;
+
     case MSP_RX_CHANNELS:
         for (int i = 0; i < rxRuntimeState.channelCount; i++) {
             sbufWriteU16(dst, rxChannel[i]);
@@ -3047,6 +3054,13 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
     case MSP_SET_RX_MAP:
         for (int i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
             rxConfigMutable()->rcmap[i] = sbufReadU8(src);
+        }
+        break;
+
+    case MSP_SET_RX_RANGE:
+        for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+            rxChannelRangeConfigsMutable(i)->min = sbufReadU16(src);
+            rxChannelRangeConfigsMutable(i)->max = sbufReadU16(src);
         }
         break;
 
