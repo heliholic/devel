@@ -1259,6 +1259,12 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         }
         break;
 
+    case MSP_RC_COMMAND:
+        for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+            sbufWriteU16(dst, rcCommand[i]);
+        }
+        break;
+
     case MSP_ATTITUDE:
         sbufWriteU16(dst, attitude.values.roll);
         sbufWriteU16(dst, attitude.values.pitch);
