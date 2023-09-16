@@ -468,15 +468,15 @@ static bool canUpdateVTX(void)
 bool areSticksActive(uint8_t stickPercentLimit)
 {
     for (int axis = FD_ROLL; axis <= FD_YAW; axis ++) {
-        const uint8_t deadband = axis == FD_YAW ? rcControlsConfig()->yaw_deadband : rcControlsConfig()->deadband;
+        const uint8_t deadband = axis == FD_YAW ? rcControlsConfig()->rc_yaw_deadband : rcControlsConfig()->rc_deadband;
         uint8_t stickPercent = 0;
         if ((rcData[axis] >= PWM_RANGE_MAX) || (rcData[axis] <= PWM_RANGE_MIN)) {
             stickPercent = 100;
         } else {
-            if (rcData[axis] > (rxConfig()->midrc + deadband)) {
-                stickPercent = ((rcData[axis] - rxConfig()->midrc - deadband) * 100) / (PWM_RANGE_MAX - rxConfig()->midrc - deadband);
-            } else if (rcData[axis] < (rxConfig()->midrc - deadband)) {
-                stickPercent = ((rxConfig()->midrc - deadband - rcData[axis]) * 100) / (rxConfig()->midrc - deadband - PWM_RANGE_MIN);
+            if (rcData[axis] > (rcControlsConfig()->rc_center + deadband)) {
+                stickPercent = ((rcData[axis] - rcControlsConfig()->rc_center - deadband) * 100) / (PWM_RANGE_MAX - rcControlsConfig()->rc_center - deadband);
+            } else if (rcData[axis] < (rcControlsConfig()->rc_center - deadband)) {
+                stickPercent = ((rcControlsConfig()->rc_center - deadband - rcData[axis]) * 100) / (rcControlsConfig()->rc_center - deadband - PWM_RANGE_MIN);
             }
         }
         if (stickPercent >= stickPercentLimit) {
@@ -489,15 +489,9 @@ bool areSticksActive(uint8_t stickPercentLimit)
 
 
 // calculate the throttle stick percent - integer math is good enough here.
-int8_t calculateThrottlePercent(void)
+uint8_t calculateThrottlePercent(void)
 {
-    int channelData = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX);
-    return constrain(((channelData - rxConfig()->mincheck) * 100) / (PWM_RANGE_MAX - rxConfig()->mincheck), 0, 100);
-}
-
-uint8_t calculateThrottlePercentAbs(void)
-{
-    return ABS(calculateThrottlePercent());
+    return constrain(scaleRange(rcData[THROTTLE], rcControlsConfig()->rc_min_throttle, rcControlsConfig()->rc_max_throttle, 0, 100), 0, 100);
 }
 
 
