@@ -158,6 +158,7 @@
 #define MSP_ANALOG                           110
 #define MSP_RC_TUNING                        111
 #define MSP_PID_TUNING                       112
+#define MSP_RC_COMMAND                       113
 
 #define MSP_BOXNAMES                         116
 
