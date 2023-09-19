@@ -59,8 +59,8 @@ bool pidLoopReady(void);
 void taskFiltering(timeUs_t currentTimeUs);
 void taskMainPidLoop(timeUs_t currentTimeUs);
 
-int8_t calculateThrottlePercent(void);
-uint8_t calculateThrottlePercentAbs(void);
+uint8_t calculateThrottlePercent(void);
+
 bool areSticksActive(uint8_t stickPercentLimit);
 timeUs_t getLastDisarmTimeUs(void);
 bool isTryingToArm();

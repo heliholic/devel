@@ -177,26 +177,33 @@ void updateRcCommands(void)
 
     setpointUpdateTiming(averageRxRefreshRate * currentMult);
 
-    // rcData => rcCommand => rcDeflection
+    // rcData => rcDeflection => rcCommand
     for (int axis = 0; axis < 4; axis++) {
-        data = rcData[axis] - rxConfig()->midrc;
-        data = fapplyDeadband(data, rcDeadband[axis]);
+        // Center point
+        data = rcData[axis] - rcControlsConfig()->rc_center;
 
-        // RC yaw rate and gyro yaw rate have opposite sign
+        // RC yaw rate and gyro yaw rate have opposite signs
         if (axis == FD_YAW)
             data = -data;
 
+        // Apply deadband
+        data = fapplyDeadband(data, rcDeadband[axis]);
+
+        // Deflection range is -1..1
+        rcDeflection[axis] = limitf(data / (rcControlsConfig()->rc_scale - rcDeadband[axis]), 1.0f);
+
         // rcCommand range is -500..500
-        rcCommand[axis] = constrainf(data, -500, 500);
-        rcDeflection[axis] = rcCommand[axis] / 500;
+        rcCommand[axis] = rcDeflection[axis] * 500;
 
         DEBUG(RC_COMMAND, axis, rcCommand[axis]);
     }
 
-    // throttle range is 0..1000
-    data = scaleRangef(rcData[THROTTLE], rxConfig()->mincheck, rxConfig()->maxcheck, 0, 1000);
-    rcCommand[THROTTLE] = constrainf(data, 0, 1000);
-    rcDeflection[THROTTLE] = rcCommand[THROTTLE] / 1000;
+    // Throttle deflection range is 0..1
+    data = scaleRangef(rcData[THROTTLE], rcControlsConfig()->rc_min_throttle, rcControlsConfig()->rc_max_throttle, 0, 1);
+    rcDeflection[THROTTLE] = constrainf(data, 0, 1);
+
+    // Throttle command range is 0..1000
+    rcCommand[THROTTLE] = rcDeflection[THROTTLE] * 1000;
 
     DEBUG(RC_COMMAND, THROTTLE, rcCommand[THROTTLE]);
 }

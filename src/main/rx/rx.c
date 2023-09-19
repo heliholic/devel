@@ -70,7 +70,6 @@
 #include "rx/ghst.h"
 #include "rx/rx_spi.h"
 #include "rx/targetcustomserial.h"
-#include "rx/msp_override.h"
 
 
 const char rcChannelLetters[] = "AERCT12345678";
@@ -107,7 +106,6 @@ static timeUs_t needRxSignalBefore = 0;
 static timeUs_t suspendRxSignalUntil = 0;
 static uint8_t  skipRxSamples = 0;
 
-float rxChannel[MAX_SUPPORTED_RC_CHANNEL_COUNT];        // received RC channels from the Rx
 float rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];            // last received raw value, as it comes
 float rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];           // scaled, modified, checked and constrained values
 
@@ -125,33 +123,14 @@ uint32_t validRxSignalTimeout[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeState_t rxRuntimeState;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);
-void pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfig_t *rxChannelRangeConfigs)
-{
-    // set default calibration to full range and 1:1 mapping
-    for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
-        rxChannelRangeConfigs[i].min = PWM_RANGE_MIN;
-        rxChannelRangeConfigs[i].max = PWM_RANGE_MAX;
-    }
-}
-
 PG_REGISTER_ARRAY_WITH_RESET_FN(rxFailsafeChannelConfig_t, MAX_SUPPORTED_RC_CHANNEL_COUNT, rxFailsafeChannelConfigs, PG_RX_FAILSAFE_CHANNEL_CONFIG, 0);
 void pgResetFn_rxFailsafeChannelConfigs(rxFailsafeChannelConfig_t *rxFailsafeChannelConfigs)
 {
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
         rxFailsafeChannelConfigs[i].mode = (i < NON_AUX_CHANNEL_COUNT) ? RX_FAILSAFE_MODE_AUTO : RX_FAILSAFE_MODE_HOLD;
         rxFailsafeChannelConfigs[i].step = (i == THROTTLE)
-            ? CHANNEL_VALUE_TO_RXFAIL_STEP(RX_MIN_USEC)
-            : CHANNEL_VALUE_TO_RXFAIL_STEP(RX_MID_USEC);
-    }
-}
-
-void resetAllRxChannelRangeConfigurations(rxChannelRangeConfig_t *rxChannelRangeConfig) {
-    // set default calibration to full range and 1:1 mapping
-    for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
-        rxChannelRangeConfig->min = PWM_RANGE_MIN;
-        rxChannelRangeConfig->max = PWM_RANGE_MAX;
-        rxChannelRangeConfig++;
+            ? CHANNEL_VALUE_TO_RXFAIL_STEP(RX_PWM_PULSE_MIN)
+            : CHANNEL_VALUE_TO_RXFAIL_STEP(RX_PWM_PULSE_MID);
     }
 }
 
@@ -179,8 +158,8 @@ static bool nullProcessFrame(const rxRuntimeState_t *rxRuntimeState)
 
 STATIC_UNIT_TESTED bool isPulseValid(uint16_t pulseDuration)
 {
-    return  pulseDuration >= rxConfig()->rx_min_usec &&
-            pulseDuration <= rxConfig()->rx_max_usec;
+    return  pulseDuration >= rxConfig()->rx_pwm_pulse_min &&
+            pulseDuration <= rxConfig()->rx_pwm_pulse_max;
 }
 
 #ifdef USE_SERIAL_RX
@@ -285,11 +264,11 @@ void rxInit(void)
     rcSampleIndex = 0;
 
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
-        rcData[i] = rxConfig()->midrc;
+        rcData[i] = rcControlsConfig()->rc_center;
         validRxSignalTimeout[i] = millis() + MAX_INVALID_PULSE_TIME_MS;
     }
 
-    rcData[THROTTLE] = rxConfig()->rx_min_usec;
+    rcData[THROTTLE] = rcControlsConfig()->rc_min_throttle - 50;
 
     // Initialize ARM switch to OFF position when arming via switch is defined
     // TODO - move to rc_mode.c
@@ -366,7 +345,7 @@ void rxInit(void)
     // Setup source frame RSSI filtering to take averaged values every FRAME_ERR_RESAMPLE_US
     pt1FilterInit(&frameErrFilter, GET_FRAME_ERR_LPF_FREQUENCY(rxConfig()->rssi_src_frame_lpf_period), 1e6f / FRAME_ERR_RESAMPLE_US);
 
-    rxChannelCount = MIN(rxConfig()->max_aux_channel + NON_AUX_CHANNEL_COUNT, rxRuntimeState.channelCount);
+    rxChannelCount = rxRuntimeState.channelCount;
 }
 
 bool rxIsReceivingSignal(void)
@@ -582,9 +561,9 @@ static uint16_t getRxfailValue(uint8_t channel)
         case PITCH:
         case YAW:
         case COLLECTIVE:
-            return rxConfig()->midrc;
+            return rcControlsConfig()->rc_center;
         case THROTTLE:
-            return rxConfig()->rx_min_usec;
+            return rcControlsConfig()->rc_min_throttle - 50;
         }
 
     FALLTHROUGH;
@@ -601,43 +580,15 @@ static uint16_t getRxfailValue(uint8_t channel)
     }
 }
 
-STATIC_UNIT_TESTED float applyRxChannelRangeConfiguraton(float sample, const rxChannelRangeConfig_t *range)
-{
-    // Avoid corruption of channel with a value of PPM_RCVR_TIMEOUT
-    if (sample == PPM_RCVR_TIMEOUT) {
-        return PPM_RCVR_TIMEOUT;
-    }
-
-    sample = scaleRangef(sample, range->min, range->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
-    // out of range channel values are now constrained after the validity check in detectAndApplySignalLossBehaviour()
-    return sample;
-}
-
-static void readRxChannelsApplyRanges(void)
+static void readRxChannels(void)
 {
     for (int channel = 0; channel < rxChannelCount; channel++) {
 
         const uint8_t rawChannel = channel < RX_MAPPABLE_CHANNEL_COUNT ? rxConfig()->rcmap[channel] : channel;
-
-        // sample the channel
-        float sample;
-#if defined(USE_RX_MSP_OVERRIDE)
-        if (rxConfig()->msp_override_channels_mask) {
-            sample = rxMspOverrideReadRawRc(&rxRuntimeState, rxConfig(), rawChannel);
-        } else
-#endif
-        {
-            sample = rxRuntimeState.rcReadRawFn(&rxRuntimeState, rawChannel);
-        }
-
-        rxChannel[rawChannel] = sample;
-
-        // apply the rx calibration
-        if (channel < NON_AUX_CHANNEL_COUNT) {
-            sample = applyRxChannelRangeConfiguraton(sample, rxChannelRangeConfigs(channel));
-        }
+        float sample = rxRuntimeState.rcReadRawFn(&rxRuntimeState, rawChannel);
 
         rcRaw[channel] = sample;
+
         if (channel < 8) {
             DEBUG(RC_RAW, channel, lrintf(sample));
         }
@@ -669,7 +620,7 @@ void detectAndApplySignalLossBehaviour(void)
                     if (channel == THROTTLE ) {
                         sample = failsafeConfig()->failsafe_throttle; // stage 2 failsafe throttle value
                     } else {
-                        sample = rxConfig()->midrc;
+                        sample = rcControlsConfig()->rc_center;
                     }
                 }
             } else {
@@ -748,7 +699,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         return true;
     }
 
-    readRxChannelsApplyRanges();            // returns rcRaw
+    readRxChannels();                       // returns rcRaw
     detectAndApplySignalLossBehaviour();    // returns rcData
 
     rcSampleIndex++;

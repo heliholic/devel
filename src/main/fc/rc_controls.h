@@ -63,6 +63,9 @@ typedef enum {
     CENTERED
 } rollPitchStatus_e;
 
+#define STICK_COMMAND_MIN 1100
+#define STICK_COMMAND_MAX 1900
+
 #define ROL_LO    (1 << 0)
 #define ROL_HI    (2 << 0)
 #define ROL_CE    (3 << 0)
@@ -77,14 +80,6 @@ typedef enum {
 #define COL_CE    (3 << 6)
 #define COL_MASK  (3 << 6)
 
-
-typedef struct rcControlsConfig_s {
-    uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
-    uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
-    uint8_t movement_threshold[4];
-} rcControlsConfig_t;
-
-PG_DECLARE(rcControlsConfig_t, rcControlsConfig);
 
 typedef struct armingConfig_s {
     uint8_t gyro_cal_on_first_arm;          // allow disarm/arm on throttle down + roll left/right

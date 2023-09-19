@@ -1522,11 +1522,12 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
         sbufWriteU8(dst, rxConfig()->serialrx_inverted);
         sbufWriteU8(dst, rxConfig()->halfDuplex);
-        sbufWriteU16(dst, rxConfig()->maxcheck);
-        sbufWriteU16(dst, rxConfig()->midrc);
-        sbufWriteU16(dst, rxConfig()->mincheck);
-        sbufWriteU16(dst, rxConfig()->rx_min_usec);
-        sbufWriteU16(dst, rxConfig()->rx_max_usec);
+        sbufWriteU16(dst, rxConfig()->rx_pwm_pulse_min);
+        sbufWriteU16(dst, rxConfig()->rx_pwm_pulse_max);
+        sbufWriteU16(dst, rcControlsConfig()->rc_center);
+        sbufWriteU16(dst, rcControlsConfig()->rc_scale);
+        sbufWriteU16(dst, rcControlsConfig()->rc_min_throttle);
+        sbufWriteU16(dst, rcControlsConfig()->rc_max_throttle);
 #ifdef USE_RX_SPI
         sbufWriteU8(dst, rxSpiConfig()->rx_spi_protocol);
         sbufWriteU32(dst, rxSpiConfig()->rx_spi_id);
@@ -1567,7 +1568,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 
     case MSP_RX_CHANNELS:
         for (int i = 0; i < rxRuntimeState.channelCount; i++) {
-            sbufWriteU16(dst, rxChannel[i]);
+            sbufWriteU16(dst, rcRaw[i]);
         }
         break;
 
@@ -3002,11 +3003,12 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         rxConfigMutable()->serialrx_provider = sbufReadU8(src);
         rxConfigMutable()->serialrx_inverted = sbufReadU8(src);
         rxConfigMutable()->halfDuplex = sbufReadU8(src);
-        rxConfigMutable()->maxcheck = sbufReadU16(src);
-        rxConfigMutable()->midrc = sbufReadU16(src);
-        rxConfigMutable()->mincheck = sbufReadU16(src);
-        rxConfigMutable()->rx_min_usec = sbufReadU16(src);
-        rxConfigMutable()->rx_max_usec = sbufReadU16(src);
+        rxConfigMutable()->rx_pwm_pulse_min = sbufReadU16(src);
+        rxConfigMutable()->rx_pwm_pulse_max = sbufReadU16(src);
+        rcControlsConfigMutable()->rc_center = sbufReadU16(src);
+        rcControlsConfigMutable()->rc_scale = sbufReadU16(src);
+        rcControlsConfigMutable()->rc_min_throttle = sbufReadU16(src);
+        rcControlsConfigMutable()->rc_max_throttle = sbufReadU16(src);
 #ifdef USE_RX_SPI
         rxSpiConfigMutable()->rx_spi_protocol = sbufReadU8(src);
         rxSpiConfigMutable()->rx_spi_id = sbufReadU32(src);

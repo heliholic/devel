@@ -360,7 +360,7 @@ static FAST_CODE_NOINLINE void dynNotchProcess(void)
                 }
             }
 
-            if(calculateThrottlePercentAbs() > DYN_NOTCH_OSD_MIN_THROTTLE) {
+            if(calculateThrottlePercent() > DYN_NOTCH_OSD_MIN_THROTTLE) {
                 for (int p = 0; p < dynNotch.count; p++) {
                     dynNotch.maxCenterFreq = MAX(dynNotch.maxCenterFreq, dynNotch.centerFreq[state.axis][p]);
                 }
