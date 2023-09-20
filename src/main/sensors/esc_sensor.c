@@ -183,6 +183,7 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
             }
         }
         else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4 ||
+                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW5 ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_ZTW ||
@@ -221,6 +222,10 @@ bool escSensorInit(void)
     else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4) {
         portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
         escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 19200, MODE_RX, options);
+    }
+    else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW5) {
+        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
+        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
     }
     else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK) {
         portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_EVEN | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
@@ -605,6 +610,127 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
     // Increment data age counter if no updates in 500ms
     if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
+        increaseDataAge();
+        frameTimeoutError();
+        dataUpdateUs = currentTimeUs;
+    }
+}
+
+
+/*
+ * Hobbywing V5 telemetry
+ *
+ * Byte 0-5:        Sync 0xFE 0x01 0x00 0x03 0x30 0x5C
+ * Byte 6:          Frame length (23)
+ * Byte 7-8:        Frame type 0x06 0x00
+ * Byte 9:          Throttle value
+ * Byte 10-11:      Unused
+ * Byte 12:         Fault code
+ * Byte 13-14:      RPM in 10rpm steps
+ * Byte 15-16:      Voltage in 0.1V
+ * Byte 17-18:      Current in 0.1A
+ * Byte 19:         ESC Temperature
+ * Byte 20:         BEC Temperature
+ * Byte 21:         Motor Temperature
+ * Byte 22:         BEC Voltage in 0.1V
+ * Byte 23:         BEC Current in 0.1A
+ * Byte 24-29:      Unused 0xFF
+ * Byte 30-31:      CRC16 MODBUS
+ *
+ */
+
+static bool processHW5TelemetryStream(uint8_t dataByte)
+{
+    totalByteCount++;
+
+    buffer[readBytes++] = dataByte;
+
+    if (readBytes == 1) {
+        if (dataByte != 0xFE)
+            frameSyncError();
+    }
+    else if (readBytes == 2) {
+        if (dataByte != 0x01)
+            frameSyncError();
+    }
+    else if (readBytes == 3) {
+        if (dataByte != 0x00)
+            frameSyncError();
+    }
+    else if (readBytes == 4) {
+        if (dataByte != 0x03)
+            frameSyncError();
+    }
+    else if (readBytes == 5) {
+        if (dataByte != 0x30)
+            frameSyncError();
+    }
+    else if (readBytes == 6) {
+        if (dataByte != 0x5C)
+            frameSyncError();
+    }
+    else if (readBytes == 7) {
+        if (dataByte != 0x17)
+            frameSyncError();
+        else
+            syncCount++;
+    }
+    else if (readBytes == 32) {
+        readBytes = 0;
+        if (syncCount > 3)
+            return true;
+    }
+
+    return false;
+}
+
+static void hw5SensorProcess(timeUs_t currentTimeUs)
+{
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort)) {
+        if (processHW5TelemetryStream(serialRead(escSensorPort))) {
+            uint16_t crc = buffer[31] << 8 | buffer[30];
+
+            if (crc16_modbus_update(0xffff, buffer, 30) == crc) {
+                uint32_t rpm = buffer[14] << 8 | buffer[13];
+                uint16_t voltage = buffer[16] << 8 | buffer[15];
+                uint16_t current = buffer[18] << 8 | buffer[17];
+                uint16_t tempFET = buffer[19];
+                uint16_t tempBEC = buffer[20];
+
+                escSensorData[0].dataAge = 0;
+                escSensorData[0].temperature = tempFET;
+                escSensorData[0].voltage = voltage;
+                escSensorData[0].current = current;
+                escSensorData[0].rpm = rpm / 10;
+                escSensorData[0].consumption = 0;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, tempFET * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, current);
+
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, 0);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tempFET);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, 0);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tempBEC);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+                dataUpdateUs = currentTimeUs;
+
+                totalFrameCount++;
+            }
+            else {
+                totalCrcErrorCount++;
+            }
+        }
+    }
+
+    // Increment data age counter if no updates in 250ms
+    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
         increaseDataAge();
         frameTimeoutError();
         dataUpdateUs = currentTimeUs;
@@ -1071,6 +1197,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
                 break;
             case ESC_SENSOR_PROTO_HW4:
                 hw4SensorProcess(currentTimeUs);
+                break;
+            case ESC_SENSOR_PROTO_HW5:
+                hw5SensorProcess(currentTimeUs);
                 break;
             case ESC_SENSOR_PROTO_KONTRONIK:
                 kontronikSensorProcess(currentTimeUs);
