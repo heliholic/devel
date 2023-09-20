@@ -751,20 +751,35 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
- * OMP Hobby telemetry
+ * OMP Hobby M4 Telemetry
+ *
+ *    - Serial protocol is 115200,8N1
+ *    - Frame length includes header and CRC
+ *    - Big-Endian fields
+ *    - Status Code bits:
+ *         0:  Short-circuit protection
+ *         1:  Motor connection error
+ *         2:  Throttle signal lost
+ *         3:  Throttle signal >0 on startup error
+ *         4:  Low voltage protection
+ *         5:  Temperature protection
+ *         6:  Startup protection
+ *         7:  Current protection
+ *         8:  Throttle signal error
+ *        12:  Battery voltage error
  *
  * Byte 0:          Start Flag 0xdd
- * Byte 1-2:        Message Type 0x0120
- * Byte 3-4:        Battery voltage (100mV steps)
- * Byte 5-6:        Battery current (100mA steps)
- * Byte 7:          Throttle Percent
- * Byte 8-9:        RPM (10rpm steps)
- * Byte 10:         Temperature
- * Byte 11:         Unused / Zero
- * Byte 12:         PWM Throttle Percent
- * Byte 13:         Unused / Zero
- * Byte 14:         ESC State Code
- * Byte 15-16:      Used Capacity mAh
+ * Byte 1:          Protocol version 0x01
+ * Byte 2:          Frame lenght (32 for v1)
+ * Byte 3-4:        Battery voltage in 0.1V
+ * Byte 5-6:        Battery current in 0.1V
+ * Byte 7:          Input Throttle in %
+ * Byte 8-9:        RPM in 10rpm steps
+ * Byte 10:         ESC Temperature
+ * Byte 11:         Motor Temperature
+ * Byte 12:         PWM Throttle in %
+ * Byte 13-14:      Status Code
+ * Byte 15-16:      Capacity mAh
  * Byte 17-31:      Unused / Zeros
  *
  */
@@ -783,7 +798,7 @@ static bool processOMPTelemetryStream(uint8_t dataByte)
     }
     else if (readBytes == 32) {
         readBytes = 0;
-        if (syncCount > 3)
+        if (syncCount > 2)
             return true;
     }
 
@@ -795,15 +810,15 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
     // check for any available bytes in the rx buffer
     while (serialRxBytesWaiting(escSensorPort)) {
         if (processOMPTelemetryStream(serialRead(escSensorPort))) {
-            // This is a telemetry frame
-            if (buffer[1] == 0x01 && buffer[2] == 0x20 && buffer[11] == 0 && buffer[13] == 0) {
+            // Make sure this is OMP M4 ESC
+            if (buffer[1] == 0x01 && buffer[2] == 0x20 && buffer[11] == 0 && buffer[18] == 0 && buffer[20] == 0) {
                 uint16_t rpm = buffer[8] << 8 | buffer[9];
-                uint16_t pwm = buffer[11];
+                uint16_t pwm = buffer[12];
                 uint16_t temp = buffer[10];
                 uint16_t voltage = buffer[3] << 8 | buffer[4];
                 uint16_t current = buffer[5] << 8 | buffer[6];
                 uint16_t capacity = buffer[15] << 8 | buffer[16];
-                uint16_t status = buffer[14];
+                uint16_t status = buffer[13] << 8 | buffer[14];
 
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = temp;
