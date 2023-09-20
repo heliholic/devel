@@ -186,6 +186,32 @@ static inline float scaleRangef(float src, float srcFrom, float srcTo, float dst
     return ((src - srcFrom) * dstRange) / srcRange + dstFrom;
 }
 
+static inline int scaleLimit(int src, int srcFrom, int srcTo, int dstFrom, int dstTo)
+{
+    if (src < srcFrom)
+        src = srcFrom;
+    else if (src > srcTo)
+        src = srcTo;
+
+    const int srcRange = srcTo - srcFrom;
+    const int dstRange = dstTo - dstFrom;
+
+    return ((src - srcFrom) * dstRange) / srcRange + dstFrom;
+}
+
+static inline float scaleLimitf(float src, float srcFrom, float srcTo, float dstFrom, float dstTo)
+{
+    if (src < srcFrom)
+        src = srcFrom;
+    else if (src > srcTo)
+        src = srcTo;
+
+    const float srcRange = srcTo - srcFrom;
+    const float dstRange = dstTo - dstFrom;
+
+    return ((src - srcFrom) * dstRange) / srcRange + dstFrom;
+}
+
 static inline float slewLimit(float current, float target, float rate)
 {
     if (rate > 0) {

@@ -491,8 +491,7 @@ bool areSticksActive(uint8_t stickPercentLimit)
 // calculate the throttle stick percent - integer math is good enough here.
 int8_t calculateThrottlePercent(void)
 {
-    int channelData = constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX);
-    return constrain(((channelData - rxConfig()->mincheck) * 100) / (PWM_RANGE_MAX - rxConfig()->mincheck), 0, 100);
+    return scaleLimit(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX, 0, 100);
 }
 
 uint8_t calculateThrottlePercentAbs(void)
