@@ -1234,10 +1234,10 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
- * Raw Telemetry Data Collector
+ * Raw Telemetry Data Recorder
  */
 
-static void collectSensorProcess(timeUs_t currentTimeUs)
+static void recordSensorProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
@@ -1280,8 +1280,8 @@ void escSensorProcess(timeUs_t currentTimeUs)
             case ESC_SENSOR_PROTO_SCORPION_UNC:
                 uncSensorProcess(currentTimeUs);
                 break;
-            case ESC_SENSOR_PROTO_COLLECT:
-                collectSensorProcess(currentTimeUs);
+            case ESC_SENSOR_PROTO_RECORD:
+                recordSensorProcess(currentTimeUs);
                 break;
         }
 
@@ -1332,8 +1332,8 @@ bool INIT_CODE escSensorInit(void)
         case ESC_SENSOR_PROTO_SCORPION_UNC:
             baudrate = 38400;
             break;
-        case ESC_SENSOR_PROTO_COLLECT:
-            baudrate = 115200;
+        case ESC_SENSOR_PROTO_RECORD:
+            baudrate = baudRates[portConfig->telemetry_baudrateIndex];
             break;
     }
 
