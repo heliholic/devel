@@ -1199,8 +1199,8 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
+    // Increment data age counter if no updates in 500ms
+    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
         increaseDataAge();
         frameTimeoutError();
         dataUpdateUs = currentTimeUs;
