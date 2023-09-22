@@ -605,6 +605,19 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
  *
  */
 
+static uint16_t calculateCRC16_MODBUS(const uint8_t *ptr, size_t len)
+{
+    uint16_t crc = ~0;
+
+    while (len--) {
+        crc ^= *ptr++;
+        for (int i = 0; i < 8; i++)
+            crc = (crc & 1) ? (crc >> 1) ^ 0xA001 : (crc >> 1);
+    }
+
+    return crc;
+}
+
 static bool processHW5TelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
@@ -657,7 +670,7 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
         if (processHW5TelemetryStream(serialRead(escSensorPort))) {
             uint16_t crc = buffer[31] << 8 | buffer[30];
 
-            if (crc16_modbus_update(0xffff, buffer, 30) == crc) {
+            if (calculateCRC16_MODBUS(buffer, 30) == crc) {
                 uint32_t rpm = buffer[14] << 8 | buffer[13];
                 uint16_t power = buffer[9];
                 uint16_t voltage = buffer[16] << 8 | buffer[15];
@@ -758,15 +771,14 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
  *
  */
 
-static uint32_t calculateCRC32(const uint8_t *buf, uint8_t length)
+static uint32_t calculateCRC32(const uint8_t *ptr, size_t len)
 {
     uint32_t crc = 0xFFFFFFFF;
 
-    for (int i = 0; i < length; i++) {
-        crc = crc ^ buf[i];
-        for (int j = 0; j < 8; j++) {
-            crc = (crc >> 1) ^ (0xEDB88320 & -(crc & 1));
-        }
+    while (len--) {
+        crc ^= *ptr++;
+        for (int i = 0; i < 8; i++)
+            crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : (crc >> 1);
     }
 
     return ~crc;
@@ -1123,6 +1135,19 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
  *
  */
 
+static uint16_t calculateCRC16_CCITT(const uint8_t *ptr, size_t len)
+{
+    uint16_t crc = 0;
+
+    while (len--) {
+        crc ^= *ptr++;
+        for (int i = 0; i < 8; i++)
+            crc = (crc & 1) ? (crc >> 1) ^ 0x8408 : (crc >> 1);
+    }
+
+    return crc;
+}
+
 static bool processUNCTelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
@@ -1159,7 +1184,7 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
         if (processUNCTelemetryStream(serialRead(escSensorPort))) {
             uint16_t crc = buffer[21] << 8 | buffer[20];
 
-            if (crc16_ccitt_update(0, buffer, 20) == crc) {
+            if (calculateCRC16_CCITT(buffer, 20) == crc) {
                 uint16_t rpm = buffer[18] << 8 | buffer[17];
                 uint16_t temp = buffer[14];
                 uint16_t power = buffer[15];
