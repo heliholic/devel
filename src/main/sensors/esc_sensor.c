@@ -372,6 +372,60 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
+ * Calculate temperature from a raw ADC reading with an NTC
+ *
+ * Let
+ *     Rᵣ = Reference R
+ *     Rₙ = NTC nominal R
+ *     Tₙ = NTC nominal temp (25°C)
+ *     Tₖ = 0°C in Kelvin = 273.15K
+ *     β  = NTC beta
+ *
+ * and
+ *
+ *     T₁ = Tₖ + Tₙ = 298.15K
+ *
+ * Then
+ *
+ *          x         Rᵣ
+ *  R = ―――――――――― ⋅ ――――
+ *       4096 - x     Rₙ
+ *
+ *
+ *             1
+ *  T = ――――――――――――――― - Tₖ
+ *       ln(R)/β + 1/T₁
+ *
+ *
+ * Simplify:
+ *
+ *            1
+ *  T = ―――――――――――――― - Tₖ
+ *        γ⋅ln(S) + δ
+ *
+ * Where
+ *          x
+ *  S = ――――――――――
+ *       4096 - x
+ *
+ *  γ = 1 / β
+ *
+ *  δ = γ⋅ln(Rᵣ/Rₙ) + 1/T₁
+ *
+ */
+
+static float calcTempNTC(uint16_t adc, float gamma, float delta)
+{
+    const float X = constrainf(adc, 1, 4095);
+    const float R = X / (4096 - X);
+    const float A = logf(R) * gamma + delta;
+    const float T = 1 / A - 273.15f;
+
+    return T;
+}
+
+
+/*
  * Hobbywing V4 telemetry
  *
  * Credit to:       https://github.com/dgatf/msrc/
@@ -408,28 +462,25 @@ static timeUs_t consumptionUpdateUs = 0;
 
 static float totalConsumption = 0.0f;
 
+/*
+ *  β  = 3950
+ *  Rᵣ = 10k
+ *  Rₙ = 47k
+ *  Tₙ = 25°C
+ *
+ *  γ = 1 / β = 0.0002531…
+ *
+ *  δ = γ⋅ln(Rᵣ/Rₙ) + 1/T₁ = γ⋅ln(10/47) + 1/298.15 = 0.002962…
+ */
+
+#define HW4_GAMMA   0.00025316455696f
+#define HW4_DELTA   0.00296226896087f
+
+#define calcTempHW(adc)  calcTempNTC(adc, HW4_GAMMA, HW4_DELTA)
+
 #define ESCHW4_V_REF            3.3f
 #define ESCHW4_DIFFAMP_SHUNT    0.00025f
 #define ESCHW4_ADC_RESOLUTION   4096
-#define ESCHW4_NTC_BETA         3950.0f
-#define ESCHW4_NTC_R1           10000.0f
-#define ESCHW4_NTC_R_REF        47000.0f
-
-static float calcTempHW(uint16_t tempRaw)
-{
-    float voltage = tempRaw * (ESCHW4_V_REF / ESCHW4_ADC_RESOLUTION);
-    float ntcR_Rref = (voltage / (ESCHW4_V_REF - voltage)) * (ESCHW4_NTC_R1 / ESCHW4_NTC_R_REF);
-
-    if (ntcR_Rref < 0.001f)
-        return 0;
-
-    float temperature = 1.0f / (logf(ntcR_Rref) / ESCHW4_NTC_BETA + 1.0f / 298.15f) - 273.15f;
-
-    if (temperature < 0)
-        return 0;
-
-    return temperature;
-}
 
 static float calcVoltHW(uint16_t voltRaw)
 {
