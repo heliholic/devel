@@ -58,7 +58,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 0);
 
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
-        .protocol = ESC_SENSOR_PROTO_KISS,
+        .protocol = ESC_SENSOR_PROTO_NONE,
         .halfDuplex = 0,
         .update_hz = ESC_SENSOR_TASK_FREQ_HZ,
         .current_offset = 0,
@@ -202,42 +202,6 @@ static FAST_CODE void escSensorDataReceive(uint16_t c, void *data)
     if (bufferPos < bufferSize) {
         bufferPtr[bufferPos++] = c;
     }
-}
-
-bool escSensorInit(void)
-{
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_ESC_SENSOR);
-
-    if (!portConfig) {
-        return false;
-    }
-
-    if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KISS) {
-        portOptions_e options = SERIAL_NOT_INVERTED  | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
-        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, escSensorDataReceive, NULL, 115200, MODE_RX, options);
-    }
-    else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4) {
-        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
-        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 19200, MODE_RX, options);
-    }
-    else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK) {
-        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_EVEN | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
-        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
-    }
-    else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
-        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
-        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
-    }
-    else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_COLLECT) {
-        portOptions_e options = SERIAL_STOPBITS_1 | SERIAL_PARITY_EVEN | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
-        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, NULL, NULL, 115200, MODE_RX, options);
-    }
-
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        escSensorData[i].dataAge = ESC_DATA_INVALID;
-    }
-
-    return (escSensorPort != NULL);
 }
 
 
@@ -877,6 +841,50 @@ void escSensorProcess(timeUs_t currentTimeUs)
         DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_TIMEOUTS, totalTimeoutCount);
         DEBUG(ESC_SENSOR_FRAME, DEBUG_FRAME_BUFFER, readBytes);
     }
+}
+
+bool INIT_CODE escSensorInit(void)
+{
+    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_ESC_SENSOR);
+    serialReceiveCallbackPtr callback = NULL;
+    portOptions_e options = 0;
+    uint32_t baudrate = 0;
+
+    if (!portConfig) {
+        return false;
+    }
+
+    options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
+
+    switch (escSensorConfig()->protocol) {
+        case ESC_SENSOR_PROTO_KISS:
+            callback = escSensorDataReceive;
+            baudrate = 115200;
+            break;
+        case ESC_SENSOR_PROTO_HW4:
+            baudrate = 19200;
+            break;
+        case ESC_SENSOR_PROTO_KONTRONIK:
+            baudrate = 115200;
+            options |= SERIAL_PARITY_EVEN;
+            break;
+        case ESC_SENSOR_PROTO_OMPHOBBY:
+            baudrate = 115200;
+            break;
+        case ESC_SENSOR_PROTO_COLLECT:
+            baudrate = 115200;
+            break;
+    }
+
+    if (baudrate) {
+        escSensorPort = openSerialPort(portConfig->identifier, FUNCTION_ESC_SENSOR, callback, NULL, baudrate, MODE_RX, options);
+    }
+
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escSensorData[i].dataAge = ESC_DATA_INVALID;
+    }
+
+    return (escSensorPort != NULL);
 }
 
 #endif
