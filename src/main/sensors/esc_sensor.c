@@ -184,7 +184,8 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
         }
         else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4 ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK ||
-                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
+                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY ||
+                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_ZTW) {
             if (motorNumber == 0 || motorNumber == ESC_SENSOR_COMBINED)
                 return &escSensorData[0];
         }
@@ -883,6 +884,118 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
+ * ZTW Telemetry
+ *
+ *    - Serial protocol is 115200,8N1
+ *    - Frame length includes header and CRC
+ *    - Big-Endian fields
+ *    - Checksum (unknown)
+ *    - Status Code bits:
+ *         0:  Short-circuit protection
+ *         1:  Motor connection error
+ *         2:  Throttle signal lost
+ *         3:  Throttle signal >0 on startup error
+ *         4:  Low voltage protection
+ *         5:  Temperature protection
+ *         6:  Startup protection
+ *         7:  Current protection
+ *         8:  Throttle signal error
+ *         9:  UART throttle error
+ *        10:  UART throttle lost
+ *        11:  CAN throttle lost
+ *        12:  Battery voltage error
+ *
+ * Byte 0:          Start Flag 0xdd
+ * Byte 1:          Protocol version 0x01
+ * Byte 2:          Frame lenght (32 for v1)
+ * Byte 3-4:        Battery voltage in 0.1V
+ * Byte 5-6:        Battery current in 0.1V
+ * Byte 7:          Input Throttle in %
+ * Byte 8-9:        RPM in 10rpm steps
+ * Byte 10:         ESC Temperature
+ * Byte 11:         Motor Temperature
+ * Byte 12:         PWM Throttle in %
+ * Byte 13-14:      Status Code
+ * Byte 15-16:      Capacity mAh
+ * Byte 17:         Serial Throttle input (unused)
+ * Byte 18:         CAN Throttle input (unused)
+ * Byte 19:         BEC Voltage
+ * Byte 20-29:      Unused
+ * Byte 30-31:      Checksum
+ *
+ */
+
+static bool processZTWTelemetryStream(uint8_t dataByte)
+{
+    totalByteCount++;
+
+    buffer[readBytes++] = dataByte;
+
+    if (readBytes == 1) {
+        if (dataByte != 0xDD)
+            frameSyncError();
+        else
+            syncCount++;
+    }
+    else if (readBytes == 32) {
+        readBytes = 0;
+        if (syncCount > 3)
+            return true;
+    }
+
+    return false;
+}
+
+static void ztwSensorProcess(timeUs_t currentTimeUs)
+{
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort)) {
+        if (processZTWTelemetryStream(serialRead(escSensorPort))) {
+            if (buffer[1] == 0x01 && buffer[2] == 0x20) {
+                uint16_t rpm = buffer[8] << 8 | buffer[9];
+                uint16_t temp = buffer[10];
+                uint16_t power = buffer[12];
+                uint16_t voltage = buffer[3] << 8 | buffer[4];
+                uint16_t current = buffer[5] << 8 | buffer[6];
+                uint16_t capacity = buffer[15] << 8 | buffer[16];
+                uint16_t status = buffer[13] << 8 | buffer[14];
+
+                escSensorData[0].dataAge = 0;
+                escSensorData[0].temperature = temp;
+                escSensorData[0].voltage = voltage * 10;
+                escSensorData[0].current = current * 10;
+                escSensorData[0].rpm = rpm / 10;
+                escSensorData[0].consumption = capacity;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, temp * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, voltage * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, current * 10);
+
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, power);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, temp);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, capacity);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, status);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+                dataUpdateUs = currentTimeUs;
+
+                totalFrameCount++;
+            }
+            else {
+                totalCrcErrorCount++;
+            }
+        }
+    }
+
+    checkFrameTimeout(currentTimeUs, 1000000);
+}
+
+
+/*
  * Raw Telemetry Data Recorder
  */
 
@@ -919,6 +1032,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
                 break;
             case ESC_SENSOR_PROTO_OMPHOBBY:
                 ompSensorProcess(currentTimeUs);
+                break;
+            case ESC_SENSOR_PROTO_ZTW:
+                ztwSensorProcess(currentTimeUs);
                 break;
             case ESC_SENSOR_PROTO_RECORD:
                 recordSensorProcess(currentTimeUs);
@@ -961,6 +1077,7 @@ bool INIT_CODE escSensorInit(void)
             options |= SERIAL_PARITY_EVEN;
             break;
         case ESC_SENSOR_PROTO_OMPHOBBY:
+        case ESC_SENSOR_PROTO_ZTW:
             baudrate = 115200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
