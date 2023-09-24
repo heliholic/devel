@@ -472,7 +472,7 @@ const char * const lookupTableErrorRelaxType[] = {
 
 #ifdef USE_ESC_SENSOR
 static const char * const lookupTableEscSensorProtocol[] = {
-    "OFF", "BLHELI32", "HOBBYWINGV4", "KONTRONIK", "OMPHOBBY", "ZTW", "RECORD",
+    "OFF", "BLHELI32", "HOBBYWINGV4", "SCORPION", "KONTRONIK", "OMPHOBBY", "ZTW", "RECORD",
 };
 #endif
 
