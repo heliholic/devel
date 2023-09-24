@@ -1260,6 +1260,140 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
+ * Advanced Power Drives UART Telemetry
+ *
+ *    - Serial protocol is 115200,8N1
+ *    - Little-Endian fields
+ *    - Fletcher16 checksum
+ *    - Status Flags:
+ *         0:  Motor started
+ *         1:  Motor saturation
+ *         2:  Over-temperature
+ *         3:  Over-voltage
+ *         4:  Under-voltage
+ *         5:  Startup error
+ *         6:  Unused
+ *         7:  Unused
+ *
+ * Byte 0-1:        Sync 0xFFFF
+ * Byte 2-3:        Voltage in 10mV steps
+ * Byte 4-5:        Temperature (raw ADC)
+ * Byte 6-7:        Current in 80mA steps
+ * Byte 8-9:        Unused
+ * Byte 10-13:      ERPM
+ * Byte 14-15:      Throttle in 0.1%
+ * Byte 16-17:      Motor Duty Cycle in 0.1%
+ * Byte 18:         Status flags
+ * Byte 19:         Unused
+ * Byte 20-21:      Checksum
+ *
+ * Temp sensor design:
+ *
+ *  β  = 3455
+ *  Rᵣ = 10k
+ *  Rₙ = 10k
+ *  Tₙ = 25°C
+ *
+ *  γ = 1 / β = 0.0002894…
+ *
+ *  δ = γ⋅ln(Rᵣ/Rₙ) + 1/T₁ = 1/298.15 = 0.0033540…
+ *
+ */
+
+#define APD_GAMMA  0.0002894356005f
+#define APD_DELTA  0.0033540164346f
+
+#define calcTempAPD(value)   calcTempNTC(value, APD_GAMMA, APD_DELTA)
+
+static uint16_t calculateFletcher16(const uint8_t *ptr, size_t len)
+{
+    uint16_t s0 = 0;
+    uint16_t s1 = 0;
+
+    while (len--) {
+        s0 = (s0 + *ptr++) % 255;
+        s1 = (s1 + s0) % 255;
+    }
+    return s1 << 8 | s0;
+}
+
+static bool processAPDTelemetryStream(uint8_t dataByte)
+{
+    totalByteCount++;
+
+    buffer[readBytes++] = dataByte;
+
+    if (readBytes == 1) {
+        if (dataByte != 0xFF)
+            frameSyncError();
+    }
+    else if (readBytes == 2) {
+        if (dataByte != 0xFF)
+            frameSyncError();
+        else
+            syncCount++;
+    }
+    else if (readBytes == 22) {
+        readBytes = 0;
+        if (syncCount > 2)
+            return true;
+    }
+
+    return false;
+}
+
+static void apdSensorProcess(timeUs_t currentTimeUs)
+{
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort)) {
+        if (processAPDTelemetryStream(serialRead(escSensorPort))) {
+            uint16_t crc = buffer[21] << 8 | buffer[20];
+
+            if (calculateFletcher16(buffer + 2, 18) == crc) {
+                uint16_t rpm = buffer[13] << 24 | buffer[12] << 16 | buffer[11] << 8 | buffer[10];
+                uint16_t tadc = buffer[3] << 8 | buffer[2];
+                uint16_t power = buffer[17] << 8 | buffer[16];
+                uint16_t voltage = buffer[1] << 8 | buffer[0];
+                uint16_t current = buffer[5] << 8 | buffer[4];
+                uint16_t status = buffer[18];
+
+                float temp = calcTempAPD(tadc);
+
+                escSensorData[0].dataAge = 0;
+                escSensorData[0].temperature = lrintf(temp);
+                escSensorData[0].voltage = voltage;
+                escSensorData[0].current = current * 8;
+                escSensorData[0].rpm = rpm / 100;
+                escSensorData[0].consumption = 0;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, lrintf(temp * 10));
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, current * 8);
+
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, power);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tadc);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, status);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+                dataUpdateUs = currentTimeUs;
+
+                totalFrameCount++;
+            }
+            else {
+                totalCrcErrorCount++;
+            }
+        }
+    }
+
+    checkFrameTimeout(currentTimeUs);
+}
+
+
+/*
  * Raw Telemetry Data Recorder
  */
 
@@ -1305,6 +1439,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
                 break;
             case ESC_SENSOR_PROTO_ZTW:
                 ztwSensorProcess(currentTimeUs);
+                break;
+            case ESC_SENSOR_PROTO_APD:
+                apdSensorProcess(currentTimeUs);
                 break;
             case ESC_SENSOR_PROTO_RECORD:
                 recordSensorProcess(currentTimeUs);
@@ -1352,6 +1489,7 @@ bool INIT_CODE escSensorInit(void)
         case ESC_SENSOR_PROTO_OMPHOBBY:
         case ESC_SENSOR_PROTO_ZTW:
         case ESC_SENSOR_PROTO_HW5:
+        case ESC_SENSOR_PROTO_APD:
             baudrate = 115200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
