@@ -183,6 +183,7 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
             }
         }
         else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4 ||
+                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_SCORPION ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY ||
                  escSensorConfig()->protocol == ESC_SENSOR_PROTO_ZTW) {
@@ -641,6 +642,134 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
 
 /*
+ * Scorpion Unsolicited Telemetry
+ *
+ *    - ESC must be set to "Unsolicited mode"
+ *    - Serial protocol is 38400,8N1
+ *    - Little-Endian fields
+ *    - CRC16-CCITT
+ *    - Error Code bits:
+ *         0:  N/A
+ *         1:  BEC voltage error
+ *         2:  Temperature error
+ *         3:  Consumption error
+ *         4:  Input voltage error
+ *         5:  Current error
+ *         6:  N/A
+ *         7:  Throttle error
+ *
+ * Byte 0:          Header Sync 0x55
+ * Byte 1:          Message format version (0x00)
+ * Byte 2:          Message Length incl. header and CRC (22)
+ * Byte 3:          Device ID
+ * Byte 4-6:        Timestamp ms
+ * Byte 7:          Input throttle in 0.5%
+ * Byte 8-9:        Current in 0.1A
+ * Byte 10-11:      Voltage in 0.1V
+ * Byte 12-13:      Consumption in mAh
+ * Byte 14:         Temperature in °C
+ * Byte 15:         Output Power in 0.5%
+ * Byte 16:         BEC voltage in 0.1V
+ * Byte 17-18:      RPM in 5rpm steps
+ * Byte 19:         Error code
+ * Byte 20-21:      CRC16 CCITT
+ *
+ */
+
+static uint16_t calculateCRC16_CCITT(const uint8_t *ptr, size_t len)
+{
+    uint16_t crc = 0;
+
+    while (len--) {
+        crc ^= *ptr++;
+        for (int i = 0; i < 8; i++)
+            crc = (crc & 1) ? (crc >> 1) ^ 0x8408 : (crc >> 1);
+    }
+
+    return crc;
+}
+
+static bool processUNCTelemetryStream(uint8_t dataByte)
+{
+    totalByteCount++;
+
+    buffer[readBytes++] = dataByte;
+
+    if (readBytes == 1) {
+        if (dataByte != 0x55)
+            frameSyncError();
+    }
+    else if (readBytes == 2) {
+        if (dataByte != 0x00)  // Proto v0
+            frameSyncError();
+    }
+    else if (readBytes == 3) {
+        if (dataByte != 22)  // Message v0 is 22 bytes
+            frameSyncError();
+        else
+            syncCount++;
+    }
+    else if (readBytes == 22) {
+        readBytes = 0;
+        if (syncCount > 2)
+            return true;
+    }
+
+    return false;
+}
+
+static void uncSensorProcess(timeUs_t currentTimeUs)
+{
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort)) {
+        if (processUNCTelemetryStream(serialRead(escSensorPort))) {
+            uint16_t crc = buffer[21] << 8 | buffer[20];
+
+            if (calculateCRC16_CCITT(buffer, 20) == crc) {
+                uint16_t rpm = buffer[18] << 8 | buffer[17];
+                uint16_t temp = buffer[14];
+                uint16_t power = buffer[15];
+                uint16_t voltage = buffer[11] << 8 | buffer[10];
+                uint16_t current = buffer[9] << 8 | buffer[8];
+                uint16_t capacity = buffer[13] << 8 | buffer[12];
+                uint16_t status = buffer[19];
+
+                escSensorData[0].dataAge = 0;
+                escSensorData[0].temperature = temp;
+                escSensorData[0].voltage = voltage * 10;
+                escSensorData[0].current = current * 10;
+                escSensorData[0].rpm = rpm / 20;
+                escSensorData[0].consumption = capacity;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm * 5);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, temp * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, voltage * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, current * 10);
+
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, power);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, temp);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, capacity);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, status);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+                dataUpdateUs = currentTimeUs;
+
+                totalFrameCount++;
+            }
+            else {
+                totalCrcErrorCount++;
+            }
+        }
+    }
+
+    checkFrameTimeout(currentTimeUs, 1000000);
+}
+
+
+/*
  * Kontronik Telemetry V4
  *
  *    - Serial protocol is 115200,8E1
@@ -1039,6 +1168,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
             case ESC_SENSOR_PROTO_HW4:
                 hw4SensorProcess(currentTimeUs);
                 break;
+            case ESC_SENSOR_PROTO_SCORPION:
+                uncSensorProcess(currentTimeUs);
+                break;
             case ESC_SENSOR_PROTO_KONTRONIK:
                 kontronikSensorProcess(currentTimeUs);
                 break;
@@ -1083,6 +1215,9 @@ bool INIT_CODE escSensorInit(void)
             break;
         case ESC_SENSOR_PROTO_HW4:
             baudrate = 19200;
+            break;
+        case ESC_SENSOR_PROTO_SCORPION:
+            baudrate = 38400;
             break;
         case ESC_SENSOR_PROTO_KONTRONIK:
             baudrate = 115200;
