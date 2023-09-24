@@ -618,40 +618,66 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
 
 /*
- * Kontronik telemetry
+ * Kontronik Telemetry V4
  *
- * See https://www.kontronik.com/fileadmin/kontronik-sobek/Public/Content/Images/Content/Downloads/Software/Kontronik_TelMe_V4.12_1.12_EN.pdf
+ *    - Serial protocol is 115200,8E1
+ *    - Little-Endian fields
+ *    - CRC32
+ *    - Error flags:
+ *         0:  Undervoltage on the battery
+ *         1:  Overvoltage on the battery
+ *         2:  Overcurrent error
+ *         3:  Overcurrent warning
+ *         4:  Temperature warning
+ *         5:  Temperature error
+ *         6:  BEC under-voltage error
+ *         7:  BEC over-voltage error
+ *         8:  BEC over-current error
+ *         9:  BEC temperature error
+ *         10: Switch-off by rudder movement
+ *         11: Capacity limit reached
+ *         12: Operational error
+ *         13: Operational warning
+ *         14: Self-test error
+ *         15: EEPROM error
+ *         16: Watchdog error
+ *         17: Programming is still permitted
+ *         18: Battery limit reached
+ *         19: Current limit reached
+ *         20: ESC temperature limit reached
+ *         21: BEC temperature limit reached
+ *         22: ESC current limit reached
+ *         23: Capacity limit reached
  *
  * Byte 0-3:        Sync 0x4B 0x4F 0x44 0x4C "KODL"
  * Byte 4-7:        RPM
- * Byte 8-9:        Battery voltage
- * Byte 10-11:      Battery current
- * Byte 12-13:      Motor current average
- * Byte 14-15:      Motor current peak
- * Byte 16-17:      Capacity
- * Byte 18-19:      BEC current
- * Byte 20-21:      BEC Voltage
- * Byte 22-23:      PWM in (us)
- * Byte 24:         Gas in
- * Byte 25:         PWM out
- * Byte 26:         FET temp
- * Byte 27:         BEC temp
- * Byte 28-31:      Error flags
+ * Byte 8-9:        Battery voltage in 10mV
+ * Byte 10-11:      Battery current in 0.1A
+ * Byte 12-13:      Motor current average in 0.1A
+ * Byte 14-15:      Motor current peak in 0.1A
+ * Byte 16-17:      Capacity in mAh
+ * Byte 18-19:      BEC current in mA
+ * Byte 20-21:      BEC Voltage n mV
+ * Byte 22-23:      PWM in us
+ * Byte 24:         Throttle % (-100..100)
+ * Byte 25:         Output throttle 0..100%
+ * Byte 26:         FET temperature -128..127°C
+ * Byte 27:         BEC temperature -128..127°C
+ * Byte 28-31:      Error Flags
  * Byte 32:         Operational condition
- * Byte 33:         Timing
- * Byte 34-37:      CRC
+ * Byte 33:         Timing 0..30
+ * Byte 34-37:      CRC32
  *
  */
 
-static uint32_t calculateCRC32(const uint8_t *buf, uint8_t length)
+static uint32_t calculateCRC32(const uint8_t *ptr, size_t len)
 {
     uint32_t crc = 0xFFFFFFFF;
 
-    for (int i = 0; i < length; i++) {
-        crc = crc ^ buf[i];
-        for (int j = 0; j < 8; j++) {
-            crc = (crc >> 1) ^ (0xEDB88320 & -(crc & 1));
-        }
+    while (len--) {
+        crc ^= *ptr++;
+        for (int i = 0; i < 8; i++)
+            crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : (crc >> 1);
     }
 
     return ~crc;
