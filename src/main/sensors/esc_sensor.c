@@ -621,6 +621,150 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
 
 /*
+ * Hobbywing V5 Telemetry
+ *
+ *    - Serial protocol 115200,8N1
+ *    - Little-Endian fields
+ *    - Frame length over data (23)
+ *    - CRC16-MODBUS (poly 0x8005, init 0xffff)
+ *    - Fault code bits:
+ *         0:  Motor locked protection
+ *         1:  Over-temp protection
+ *         2:  Input throttle error at startup
+ *         3:  Throttle signal lost
+ *         4:  Over-current error
+ *         5:  Low-voltage error
+ *         6:  Input-voltage error
+ *         7:  Motor connection error
+ *
+ * Byte 0-5:        Sync header 0xFE 0x01 0x00 0x03 0x30 0x5C
+ * Byte 6:          Data frame length (23)
+ * Byte 7-8:        Data type 0x06 0x00
+ * Byte 9:          Throttle value in %
+ * Byte 10-11:      Unknown
+ * Byte 12:         Fault code
+ * Byte 13-14:      RPM in 10rpm steps
+ * Byte 15-16:      Voltage in 0.1V
+ * Byte 17-18:      Current in 0.1A
+ * Byte 19:         ESC Temperature in °C
+ * Byte 20:         BEC Temperature in °C
+ * Byte 21:         Motor Temperature in °C
+ * Byte 22:         BEC Voltage in 0.1V
+ * Byte 23:         BEC Current in 0.1A
+ * Byte 24-29:      Unused 0xFF
+ * Byte 30-31:      CRC16 MODBUS
+ *
+ */
+
+static uint16_t calculateCRC16_MODBUS(const uint8_t *ptr, size_t len)
+{
+    uint16_t crc = ~0;
+
+    while (len--) {
+        crc ^= *ptr++;
+        for (int i = 0; i < 8; i++)
+            crc = (crc & 1) ? (crc >> 1) ^ 0xA001 : (crc >> 1);
+    }
+
+    return crc;
+}
+
+static bool processHW5TelemetryStream(uint8_t dataByte)
+{
+    totalByteCount++;
+
+    buffer[readBytes++] = dataByte;
+
+    if (readBytes == 1) {
+        if (dataByte != 0xFE)
+            frameSyncError();
+    }
+    else if (readBytes == 2) {
+        if (dataByte != 0x01)
+            frameSyncError();
+    }
+    else if (readBytes == 3) {
+        if (dataByte != 0x00)
+            frameSyncError();
+    }
+    else if (readBytes == 4) {
+        if (dataByte != 0x03)
+            frameSyncError();
+    }
+    else if (readBytes == 5) {
+        if (dataByte != 0x30)
+            frameSyncError();
+    }
+    else if (readBytes == 6) {
+        if (dataByte != 0x5C)
+            frameSyncError();
+    }
+    else if (readBytes == 7) {
+        if (dataByte != 0x17)
+            frameSyncError();
+        else
+            syncCount++;
+    }
+    else if (readBytes == 32) {
+        readBytes = 0;
+        if (syncCount > 2)
+            return true;
+    }
+
+    return false;
+}
+
+static void hw5SensorProcess(timeUs_t currentTimeUs)
+{
+    // check for any available bytes in the rx buffer
+    while (serialRxBytesWaiting(escSensorPort)) {
+        if (processHW5TelemetryStream(serialRead(escSensorPort))) {
+            uint16_t crc = buffer[31] << 8 | buffer[30];
+
+            if (calculateCRC16_MODBUS(buffer, 30) == crc) {
+                uint32_t rpm = buffer[14] << 8 | buffer[13];
+                uint16_t power = buffer[9];
+                uint16_t voltage = buffer[16] << 8 | buffer[15];
+                uint16_t current = buffer[18] << 8 | buffer[17];
+                uint16_t tempFET = buffer[19];
+                uint16_t tempBEC = buffer[20];
+
+                escSensorData[0].dataAge = 0;
+                escSensorData[0].temperature = tempFET;
+                escSensorData[0].voltage = voltage * 10;
+                escSensorData[0].current = current * 10;
+                escSensorData[0].rpm = rpm / 10;
+                escSensorData[0].consumption = 0;
+
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, tempFET * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, voltage * 10);
+                DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, current * 10);
+
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, power);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tempFET);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, 0);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tempBEC);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+                dataUpdateUs = currentTimeUs;
+
+                totalFrameCount++;
+            }
+            else {
+                totalCrcErrorCount++;
+            }
+        }
+    }
+
+    checkFrameTimeout(currentTimeUs);
+}
+
+
+/*
  * Scorpion Unsolicited Telemetry
  *
  *    - ESC must be set to "Unsolicited mode"
@@ -1147,6 +1291,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
             case ESC_SENSOR_PROTO_HW4:
                 hw4SensorProcess(currentTimeUs);
                 break;
+            case ESC_SENSOR_PROTO_HW5:
+                hw5SensorProcess(currentTimeUs);
+                break;
             case ESC_SENSOR_PROTO_SCORPION:
                 uncSensorProcess(currentTimeUs);
                 break;
@@ -1204,6 +1351,7 @@ bool INIT_CODE escSensorInit(void)
             break;
         case ESC_SENSOR_PROTO_OMPHOBBY:
         case ESC_SENSOR_PROTO_ZTW:
+        case ESC_SENSOR_PROTO_HW5:
             baudrate = 115200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
