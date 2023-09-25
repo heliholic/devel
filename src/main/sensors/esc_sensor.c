@@ -376,7 +376,7 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
- * Calculate temperature from a raw ADC reading with an NTC
+ * Calculate temperature from an NTC resistor divider ADC reading
  *
  * Let
  *     Rᵣ = Reference R
@@ -462,15 +462,13 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
  *
  */
 
-static timeUs_t consumptionUpdateUs = 0;
-
-static float totalConsumption = 0.0f;
-
 /*
+ * HW v4 Temp sensor design:
+ *
  *  β  = 3950
+ *  Tₙ = 25°C
  *  Rᵣ = 10k
  *  Rₙ = 47k
- *  Tₙ = 25°C
  *
  *  γ = 1 / β = 0.0002531…
  *
@@ -482,21 +480,20 @@ static float totalConsumption = 0.0f;
 
 #define calcTempHW(adc)  calcTempNTC(adc, HW4_GAMMA, HW4_DELTA)
 
-#define ESCHW4_V_REF            3.3f
-#define ESCHW4_DIFFAMP_SHUNT    0.00025f
-#define ESCHW4_ADC_RESOLUTION   4096
+#define HW4_V_REF            3.3f
+#define HW4_CURRENT_SHUNT    250e-6f
+#define HW4_ADC_RESOLUTION   4096
 
 static float calcVoltHW(uint16_t voltRaw)
 {
-    return voltRaw * (ESCHW4_V_REF / ESCHW4_ADC_RESOLUTION) *
-        (escSensorConfig()->hw4_voltage_gain / 10.0f);
+    return voltRaw * (HW4_V_REF / HW4_ADC_RESOLUTION) * (escSensorConfig()->hw4_voltage_gain / 10.0f);
 }
 
 static float calcCurrHW(uint16_t currentRaw)
 {
     if (currentRaw > escSensorConfig()->hw4_current_offset) {
         return (currentRaw - escSensorConfig()->hw4_current_offset) *
-            (ESCHW4_V_REF / (ESCHW4_ADC_RESOLUTION * ESCHW4_DIFFAMP_SHUNT * escSensorConfig()->hw4_current_gain / 10.0f));
+            (HW4_V_REF / (HW4_ADC_RESOLUTION * HW4_CURRENT_SHUNT * escSensorConfig()->hw4_current_gain / 10.0f));
     }
 
     return 0;
@@ -601,16 +598,6 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
             }
         }
     }
-
-    // Calculate consumption using the last valid current reading
-    totalConsumption += cmp32(currentTimeUs, consumptionUpdateUs) * escSensorData[0].current * 10.0f;
-    consumptionUpdateUs = currentTimeUs;
-
-    // Convert mAus to mAh
-    escSensorData[0].consumption = lrintf(totalConsumption / 3600e6f);
-
-    // Log consumption
-    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
 
     // Increment data age counter if no updates in 500ms
     if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
