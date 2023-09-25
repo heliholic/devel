@@ -1490,7 +1490,7 @@ bool INIT_CODE escSensorInit(void)
             baudrate = 115200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
-            baudrate = baudRates[portConfig->telemetry_baudrateIndex];
+            baudrate = 19200;
             break;
     }
 
