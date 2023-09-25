@@ -206,6 +206,48 @@ static FAST_CODE void escSensorDataReceive(uint16_t c, void *data)
 
 
 /*
+ * Common functions
+ */
+
+static void frameSyncError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalSyncErrorCount++;
+}
+
+static void frameTimeoutError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalTimeoutCount++;
+}
+
+static void increaseDataAge(uint8_t motor)
+{
+    if (escSensorData[motor].dataAge < ESC_DATA_INVALID) {
+        escSensorData[motor].dataAge++;
+        combinedNeedsUpdate = true;
+    }
+
+    DEBUG_AXIS(ESC_SENSOR_DATA, motor, DEBUG_DATA_AGE, escSensorData[motor].dataAge);
+}
+
+// Only for non-BLHeli32 protocols with single ESC support
+static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
+{
+    // Increment data age counter if no updates
+    if (cmp32(currentTimeUs, dataUpdateUs) > timeout) {
+        increaseDataAge(0);
+        frameTimeoutError();
+        dataUpdateUs = currentTimeUs;
+    }
+}
+
+
+/*
  * KISS ESC TELEMETRY PROTOCOL
  * ---------------------------
  *
@@ -246,16 +288,6 @@ void startEscDataRead(uint8_t *frameBuffer, uint8_t frameLength)
     bufferPos = 0;
     bufferPtr = frameBuffer;
     bufferSize = frameLength;
-}
-
-static void increaseDataAge(void)
-{
-    if (escSensorData[currentEsc].dataAge < ESC_DATA_INVALID) {
-        escSensorData[currentEsc].dataAge++;
-        combinedNeedsUpdate = true;
-    }
-
-    DEBUG_AXIS(ESC_SENSOR_DATA, currentEsc, DEBUG_DATA_AGE, escSensorData[currentEsc].dataAge);
 }
 
 static void selectNextMotor(void)
@@ -351,7 +383,7 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
                         setTelemetryReqeust(currentTimeMs);
                         break;
                     case ESC_FRAME_FAILED:
-                        increaseDataAge();
+                        increaseDataAge(currentEsc);
                         selectNextMotor();
                         setTelemetryReqeust(currentTimeMs);
                         break;
@@ -360,7 +392,7 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
                 }
             }
             else {
-                increaseDataAge();
+                increaseDataAge(currentEsc);
                 selectNextMotor();
                 setTelemetryReqeust(currentTimeMs);
 
@@ -498,22 +530,6 @@ static float calcCurrHW(uint16_t currentRaw)
     return 0;
 }
 
-static void frameSyncError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalSyncErrorCount++;
-}
-
-static void frameTimeoutError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalTimeoutCount++;
-}
-
 static bool processHW4TelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
@@ -608,12 +624,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
     // Log consumption
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
 
-    // Increment data age counter if no updates in 500ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs, 1000000);
 }
 
 
@@ -737,12 +748,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs, 1000000);
 }
 
 
@@ -832,12 +838,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs, 1000000);
 }
 
 
