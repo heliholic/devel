@@ -62,9 +62,9 @@ PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
         .halfDuplex = 0,
         .update_hz = ESC_SENSOR_TASK_FREQ_HZ,
         .current_offset = 0,
-        .hw4_current_offset = 15,
-        .hw4_current_gain = 100,
-        .hw4_voltage_gain = 110,
+        .hw4_current_offset = 0,
+        .hw4_current_gain = 0,
+        .hw4_voltage_gain = 0,
 );
 
 
@@ -493,15 +493,13 @@ static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
  *
  */
 
-static timeUs_t consumptionUpdateUs = 0;
-
-static float totalConsumption = 0.0f;
-
 /*
+ * HW v4 Temp sensor design:
+ *
  *  β  = 3950
+ *  Tₙ = 25°C
  *  Rᵣ = 10k
  *  Rₙ = 47k
- *  Tₙ = 25°C
  *
  *  γ = 1 / β = 0.0002531…
  *
@@ -513,27 +511,29 @@ static float totalConsumption = 0.0f;
 
 #define calcTempHW(adc)  calcTempNTC(adc, HW4_GAMMA, HW4_DELTA)
 
-#define ESCHW4_V_REF            3.3f
-#define ESCHW4_DIFFAMP_SHUNT    0.00025f
-#define ESCHW4_ADC_RESOLUTION   4096
+#define HW4_VOLTAGE_SCALE    0.0008056640625f
+#define HW4_CURRENT_SCALE    32.2265625f
 
-static float calcVoltHW(uint16_t voltRaw)
+static float hw4VoltageScale = 0;
+static float hw4CurrentScale = 0;
+static float hw4CurrentOffset = 0;
+
+static inline float calcVoltHW(uint16_t voltADC)
 {
-    return voltRaw * (ESCHW4_V_REF / ESCHW4_ADC_RESOLUTION) *
-        (escSensorConfig()->hw4_voltage_gain / 10.0f);
+    return voltADC * hw4VoltageScale;
 }
 
-static float calcCurrHW(uint16_t currentRaw)
+static inline float calcCurrHW(uint16_t currentADC)
 {
-    if (currentRaw > escSensorConfig()->hw4_current_offset) {
-        return (currentRaw - escSensorConfig()->hw4_current_offset) *
-            (ESCHW4_V_REF / (ESCHW4_ADC_RESOLUTION * ESCHW4_DIFFAMP_SHUNT * escSensorConfig()->hw4_current_gain / 10.0f));
-    }
-
-    return 0;
+    return (currentADC > hw4CurrentOffset) ?
+        (currentADC - hw4CurrentOffset) * hw4CurrentScale : 0;
 }
 
-static bool processHW4TelemetryStream(uint8_t dataByte)
+#define HW4_FRAME_NONE   0
+#define HW4_FRAME_INFO   1
+#define HW4_FRAME_DATA   2
+
+static uint8_t processHW4TelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
 
@@ -545,54 +545,52 @@ static bool processHW4TelemetryStream(uint8_t dataByte)
         }
         else if (dataByte == 0xB9) {
             readBytes = 0;
-            syncCount++;
         }
         else {
             frameSyncError();
         }
     }
-    else if (readBytes == 12) {
-        if (buffer[1] == 0x9B) {
+    else if (readBytes == 13) {
+        if (buffer[1] == 0x9B && buffer[4] == 0x01 && buffer[12] == 0xB9) {
             readBytes = 0;
+            if (syncCount > 2)
+                return HW4_FRAME_INFO;
         }
     }
     else if (readBytes == 19) {
         readBytes = 0;
-        return true;
+        if (syncCount > 2)
+            return HW4_FRAME_DATA;
     }
 
-    return false;
+    return HW4_FRAME_NONE;
 }
 
 static void hw4SensorProcess(timeUs_t currentTimeUs)
 {
     // check for any available bytes in the rx buffer
     while (serialRxBytesWaiting(escSensorPort)) {
-        if (processHW4TelemetryStream(serialRead(escSensorPort))) {
-            if (buffer[4] < 4 && buffer[6] < 4 && buffer[8] < 4 &&
-                buffer[11] < 0x10 && buffer[13] < 0x10 && buffer[15] < 0x10 && buffer[17] < 0x10) {
+        const uint8_t frameType = processHW4TelemetryStream(serialRead(escSensorPort));
+
+        if (frameType == HW4_FRAME_DATA) {
+            if (buffer[4] < 4 && buffer[6] < 4 && buffer[11] < 0x10 &&
+                buffer[13] < 0x10 && buffer[15] < 0x10 && buffer[17] < 0x10) {
 
                 //uint32_t cnt = buffer[1] << 16 | buffer[2] << 8 | buffer[3];
-                uint16_t thr = buffer[4] << 8 | buffer[5];
+                //uint16_t thr = buffer[4] << 8 | buffer[5];
                 uint16_t pwm = buffer[6] << 8 | buffer[7];
                 uint32_t rpm = buffer[8] << 16 | buffer[9] << 8 | buffer[10];
 
                 float voltage = calcVoltHW(buffer[11] << 8 | buffer[12]);
                 float current = calcCurrHW(buffer[13] << 8 | buffer[14]);
                 float tempFET = calcTempHW(buffer[15] << 8 | buffer[16]);
-                float tempBEC = calcTempHW(buffer[17] << 8 | buffer[18]);
+                float tempCAP = calcTempHW(buffer[17] << 8 | buffer[18]);
 
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = lrintf(tempFET);
                 escSensorData[0].voltage = lrintf(voltage * 100);
                 escSensorData[0].current = lrintf(current * 100);
                 escSensorData[0].rpm = rpm / 100;
-
-                // Hobbywing reports the last current reading when the motor stops.
-                // That's completely useless, so set it to zero.
-                if (rpm < 100 || thr < 50) {
-                    escSensorData[0].current = 0.0f;
-                }
 
                 DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm);
                 DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, lrintf(tempFET * 10));
@@ -604,7 +602,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, lrintf(tempFET * 10));
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, lrintf(voltage * 100));
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, lrintf(current * 100));
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, lrintf(tempBEC * 10));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, lrintf(tempCAP * 10));
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
 
                 dataUpdateUs = currentTimeUs;
@@ -615,17 +613,20 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                 totalCrcErrorCount++;
             }
         }
+        else if (frameType == HW4_FRAME_INFO) {
+            if (escSensorConfig()->hw4_voltage_gain)
+                hw4VoltageScale = HW4_VOLTAGE_SCALE * escSensorConfig()->hw4_voltage_gain;
+            else
+                hw4VoltageScale = 0.1f * buffer[5] / buffer[6];
+
+            if (escSensorConfig()->hw4_current_gain)
+                hw4CurrentScale = HW4_CURRENT_SCALE / escSensorConfig()->hw4_current_gain;
+            else
+                hw4CurrentScale = 0; // Replace with data from ESC if possible
+
+            hw4CurrentOffset = escSensorConfig()->hw4_current_offset;
+        }
     }
-
-    // Calculate consumption using the last valid current reading
-    totalConsumption += cmp32(currentTimeUs, consumptionUpdateUs) * escSensorData[0].current * 10.0f;
-    consumptionUpdateUs = currentTimeUs;
-
-    // Convert mAus to mAh
-    escSensorData[0].consumption = lrintf(totalConsumption / 3600e6f);
-
-    // Log consumption
-    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
 
     checkFrameTimeout(currentTimeUs, 1000000);
 }
