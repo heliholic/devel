@@ -475,6 +475,15 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
  *  δ = γ⋅ln(Rᵣ/Rₙ) + 1/T₁ = γ⋅ln(10/47) + 1/298.15 = 0.002962…
  */
 
+static uint8_t hw4ErpmParam  = 0;
+static uint8_t hw4VoltParamA = 0;
+static uint8_t hw4VoltParamB = 0;
+static uint8_t hw4CurrParamA = 0;
+static uint8_t hw4CurrParamB = 0;
+static uint8_t hw4CurrParamC = 0;
+static uint8_t hw4TempParamA = 0;
+static uint8_t hw4TempParamB = 0;
+
 #define HW4_GAMMA   0.00025316455696f
 #define HW4_DELTA   0.00296226896087f
 
@@ -515,42 +524,54 @@ static void frameTimeoutError(void)
     totalTimeoutCount++;
 }
 
-static bool processHW4TelemetryStream(uint8_t dataByte)
+static int processHW4TelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
 
     buffer[readBytes++] = dataByte;
 
     if (readBytes == 1) {
-        if (dataByte == 0x9B) {
-            syncCount++;
-        }
-        else if (dataByte == 0xB9) {
-            readBytes = 0;
-            syncCount++;
-        }
-        else {
+        if (dataByte != 0x9B) {
             frameSyncError();
         }
     }
-    else if (readBytes == 12) {
-        if (buffer[1] == 0x9B) {
-            readBytes = 0;
-        }
+    else if (readBytes == 13 && buffer[1] == 0x9B && buffer[4] == 0x01 && buffer[12] == 0xB9) {
+        syncCount++;
+        readBytes = 0;
+        return 1;
     }
     else if (readBytes == 19) {
+        syncCount++;
         readBytes = 0;
-        return true;
+        if (buffer[4] == 0 && buffer[5] == 0 && buffer[18] == 0xB9)
+            return 2;
+        else
+            return 3;
+    }
+    else if (readBytes > 20) {
+        frameSyncError();
     }
 
-    return false;
+    return 0;
 }
 
 static void hw4SensorProcess(timeUs_t currentTimeUs)
 {
     // check for any available bytes in the rx buffer
     while (serialRxBytesWaiting(escSensorPort)) {
-        if (processHW4TelemetryStream(serialRead(escSensorPort))) {
+        int frameType = processHW4TelemetryStream(serialRead(escSensorPort));
+
+        if (frameType == 1) {
+            hw4ErpmParam  = buffer[4];
+            hw4VoltParamA = buffer[5];
+            hw4VoltParamB = buffer[6];
+            hw4CurrParamA = buffer[7];
+            hw4CurrParamB = buffer[8];
+            hw4CurrParamC = buffer[9];
+            hw4TempParamA = buffer[10];
+            hw4TempParamB = buffer[11];
+        }
+        else if (frameType == 3) {
             if (buffer[4] < 4 && buffer[6] < 4 && buffer[8] < 4 &&
                 buffer[11] < 0x10 && buffer[13] < 0x10 && buffer[15] < 0x10 && buffer[17] < 0x10) {
 
