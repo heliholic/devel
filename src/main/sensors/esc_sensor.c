@@ -54,7 +54,6 @@
 #include "esc_sensor.h"
 
 
-
 PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 0);
 
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
@@ -139,7 +138,7 @@ bool isEscSensorActive(void)
 
 uint16_t getEscSensorRPM(uint8_t motorNumber)
 {
-    return escSensorData[motorNumber].rpm;
+    return (escSensorData[motorNumber].dataAge <= ESC_BATTERY_AGE_MAX) ? escSensorData[motorNumber].rpm : 0;
 }
 
 static void combinedDataUpdate(void)
@@ -147,24 +146,18 @@ static void combinedDataUpdate(void)
     const int motorCount = getMotorCount();
 
     if (combinedNeedsUpdate && motorCount > 0) {
-        escSensorDataCombined.dataAge = 0;
-        escSensorDataCombined.temperature = 0;
-        escSensorDataCombined.voltage = 0;
-        escSensorDataCombined.current = 0;
-        escSensorDataCombined.consumption = 0;
-        escSensorDataCombined.rpm = 0;
+        memset(&escSensorDataCombined, 0, sizeof(escSensorDataCombined));
 
         for (int i = 0; i < motorCount; i++) {
-            escSensorDataCombined.dataAge = MAX(escSensorDataCombined.dataAge, escSensorData[i].dataAge);
-            escSensorDataCombined.temperature = MAX(escSensorDataCombined.temperature, escSensorData[i].temperature);
-            escSensorDataCombined.voltage += escSensorData[i].voltage;
-            escSensorDataCombined.current += escSensorData[i].current;
-            escSensorDataCombined.consumption += escSensorData[i].consumption;
-            escSensorDataCombined.rpm += escSensorData[i].rpm;
+            if (escSensorData[i].dataAge < ESC_BATTERY_AGE_MAX) {
+                escSensorDataCombined.dataAge = MAX(escSensorDataCombined.dataAge, escSensorData[i].dataAge);
+                escSensorDataCombined.temperature = MAX(escSensorDataCombined.temperature, escSensorData[i].temperature);
+                escSensorDataCombined.rpm = MAX(escSensorDataCombined.rpm, escSensorData[i].rpm);
+                escSensorDataCombined.voltage = MAX(escSensorDataCombined.voltage, escSensorData[i].voltage);
+                escSensorDataCombined.current += escSensorData[i].current;
+                escSensorDataCombined.consumption += escSensorData[i].consumption;
+            }
         }
-
-        escSensorDataCombined.voltage = escSensorDataCombined.voltage / motorCount;
-        escSensorDataCombined.rpm = escSensorDataCombined.rpm / motorCount;
 
         combinedNeedsUpdate = false;
     }
@@ -172,8 +165,11 @@ static void combinedDataUpdate(void)
 
 escSensorData_t * getEscSensorData(uint8_t motorNumber)
 {
-    if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-        if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KISS) {
+    if (getMotorCount() > 0 && featureIsEnabled(FEATURE_ESC_SENSOR)) {
+        if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_NONE) {
+            return NULL;
+        }
+        else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KISS) {
             if (motorNumber < getMotorCount()) {
                 return &escSensorData[motorNumber];
             }
@@ -182,9 +178,7 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
                 return &escSensorDataCombined;
             }
         }
-        else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_HW4 ||
-                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_KONTRONIK ||
-                 escSensorConfig()->protocol == ESC_SENSOR_PROTO_OMPHOBBY) {
+        else {
             if (motorNumber == 0 || motorNumber == ESC_SENSOR_COMBINED)
                 return &escSensorData[0];
         }
@@ -201,6 +195,48 @@ static FAST_CODE void escSensorDataReceive(uint16_t c, void *data)
 
     if (bufferPos < bufferSize) {
         bufferPtr[bufferPos++] = c;
+    }
+}
+
+
+/*
+ * Common functions
+ */
+
+static void frameSyncError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalSyncErrorCount++;
+}
+
+static void frameTimeoutError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalTimeoutCount++;
+}
+
+static void increaseDataAge(uint8_t motor)
+{
+    if (escSensorData[motor].dataAge < ESC_DATA_INVALID) {
+        escSensorData[motor].dataAge++;
+        combinedNeedsUpdate = true;
+    }
+
+    DEBUG_AXIS(ESC_SENSOR_DATA, motor, DEBUG_DATA_AGE, escSensorData[motor].dataAge);
+}
+
+// Only for non-BLHeli32 protocols with single ESC support
+static void checkFrameTimeout(timeUs_t currentTimeUs)
+{
+    // Increment data age counter if no updates in 500ms
+    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
+        increaseDataAge(0);
+        frameTimeoutError();
+        dataUpdateUs = currentTimeUs;
     }
 }
 
@@ -246,16 +282,6 @@ void startEscDataRead(uint8_t *frameBuffer, uint8_t frameLength)
     bufferPos = 0;
     bufferPtr = frameBuffer;
     bufferSize = frameLength;
-}
-
-static void increaseDataAge(void)
-{
-    if (escSensorData[currentEsc].dataAge < ESC_DATA_INVALID) {
-        escSensorData[currentEsc].dataAge++;
-        combinedNeedsUpdate = true;
-    }
-
-    DEBUG_AXIS(ESC_SENSOR_DATA, currentEsc, DEBUG_DATA_AGE, escSensorData[currentEsc].dataAge);
 }
 
 static void selectNextMotor(void)
@@ -351,7 +377,7 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
                         setTelemetryReqeust(currentTimeMs);
                         break;
                     case ESC_FRAME_FAILED:
-                        increaseDataAge();
+                        increaseDataAge(currentEsc);
                         selectNextMotor();
                         setTelemetryReqeust(currentTimeMs);
                         break;
@@ -360,7 +386,7 @@ static void kissSensorProcess(timeUs_t currentTimeUs)
                 }
             }
             else {
-                increaseDataAge();
+                increaseDataAge(currentEsc);
                 selectNextMotor();
                 setTelemetryReqeust(currentTimeMs);
 
@@ -498,22 +524,6 @@ static float calcCurrHW(uint16_t currentRaw)
     return 0;
 }
 
-static void frameSyncError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalSyncErrorCount++;
-}
-
-static void frameTimeoutError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalTimeoutCount++;
-}
-
 static bool processHW4TelemetryStream(uint8_t dataByte)
 {
     totalByteCount++;
@@ -608,12 +618,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
     // Log consumption
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
 
-    // Increment data age counter if no updates in 500ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -737,12 +742,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -832,12 +832,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -934,6 +929,8 @@ bool INIT_CODE escSensorInit(void)
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         escSensorData[i].dataAge = ESC_DATA_INVALID;
     }
+
+    escSensorDataCombined.dataAge = ESC_DATA_INVALID;
 
     return (escSensorPort != NULL);
 }
