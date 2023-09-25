@@ -430,6 +430,37 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
 
 
 /*
+ * Framing functions for all protocols
+ */
+
+static void frameSyncError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalSyncErrorCount++;
+}
+
+static void frameTimeoutError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalTimeoutCount++;
+}
+
+static void checkFrameTimeout(timeUs_t currentTimeUs)
+{
+    // Increment data age counter if no updates in 1s
+    if (cmp32(currentTimeUs, dataUpdateUs) > 1000000) {
+        increaseDataAge();
+        frameTimeoutError();
+        dataUpdateUs = currentTimeUs;
+    }
+}
+
+
+/*
  * Hobbywing V4 telemetry
  *
  * Credit to:       https://github.com/dgatf/msrc/
@@ -497,22 +528,6 @@ static float calcCurrHW(uint16_t currentRaw)
     }
 
     return 0;
-}
-
-static void frameSyncError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalSyncErrorCount++;
-}
-
-static void frameTimeoutError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalTimeoutCount++;
 }
 
 static bool processHW4TelemetryStream(uint8_t dataByte)
@@ -599,12 +614,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 500ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -748,12 +758,7 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -903,12 +908,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -1013,12 +1013,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -1130,12 +1125,7 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -1263,12 +1253,7 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 500ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
@@ -1401,12 +1386,7 @@ static void apdSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 500ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs);
 }
 
 
