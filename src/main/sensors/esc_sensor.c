@@ -426,6 +426,37 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
 
 
 /*
+ * Framing functions for all protocols
+ */
+
+static void frameSyncError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalSyncErrorCount++;
+}
+
+static void frameTimeoutError(void)
+{
+    readBytes = 0;
+    syncCount = 0;
+
+    totalTimeoutCount++;
+}
+
+static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
+{
+    // Increment data age counter if no updates
+    if (cmp32(currentTimeUs, dataUpdateUs) > timeout) {
+        increaseDataAge();
+        frameTimeoutError();
+        dataUpdateUs = currentTimeUs;
+    }
+}
+
+
+/*
  * Hobbywing V4 telemetry
  *
  * Credit to:       https://github.com/dgatf/msrc/
@@ -496,22 +527,6 @@ static float calcCurrHW(uint16_t currentRaw)
     }
 
     return 0;
-}
-
-static void frameSyncError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalSyncErrorCount++;
-}
-
-static void frameTimeoutError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalTimeoutCount++;
 }
 
 static bool processHW4TelemetryStream(uint8_t dataByte)
@@ -608,12 +623,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
     // Log consumption
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, escSensorData[0].consumption);
 
-    // Increment data age counter if no updates in 500ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 500000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs, 1000000);
 }
 
 
@@ -737,12 +747,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs, 1000000);
 }
 
 
@@ -832,12 +837,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Increment data age counter if no updates in 250ms
-    if (cmp32(currentTimeUs, dataUpdateUs) > 250000) {
-        increaseDataAge();
-        frameTimeoutError();
-        dataUpdateUs = currentTimeUs;
-    }
+    checkFrameTimeout(currentTimeUs, 1000000);
 }
 
 
