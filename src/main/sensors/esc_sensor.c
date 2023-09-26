@@ -117,19 +117,12 @@ static uint32_t totalSyncErrorCount = 0;
 
 static uint8_t buffer[TELEMETRY_BUFFER_SIZE] = { 0, };
 
-static uint8_t *bufferPtr = NULL;
-
 static volatile uint8_t bufferSize = 0;
 static volatile uint8_t bufferPos = 0;
 
 static uint8_t  readBytes = 0;
 static uint32_t syncCount = 0;
 
-
-uint8_t getNumberEscBytesRead(void)
-{
-    return bufferPos;
-}
 
 bool isEscSensorActive(void)
 {
@@ -169,7 +162,7 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
         if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_NONE) {
             return NULL;
         }
-        else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_KISS) {
+        else if (escSensorConfig()->protocol == ESC_SENSOR_PROTO_BLHELI32) {
             if (motorNumber < getMotorCount()) {
                 return &escSensorData[motorNumber];
             }
@@ -185,17 +178,6 @@ escSensorData_t * getEscSensorData(uint8_t motorNumber)
     }
 
     return NULL;
-}
-
-static FAST_CODE void escSensorDataReceive(uint16_t c, void *data)
-{
-    UNUSED(data);
-
-    totalByteCount++;
-
-    if (bufferPos < bufferSize) {
-        bufferPtr[bufferPos++] = c;
-    }
 }
 
 
@@ -242,72 +224,76 @@ static void checkFrameTimeout(timeUs_t currentTimeUs)
 
 
 /*
- * KISS ESC TELEMETRY PROTOCOL
- * ---------------------------
+ * BLHeli32 / KISS Telemetry Protocol
  *
- * One packet is ten 8-bit bytes sent with 115200 bps.
+ *     - Serial protocol is 115200,8N1
+ *     - Big-Endian byte order
  *
  * Byte 0:      Temperature
- * Byte 1,2:    Voltage
- * Byte 3,4:    Current
- * Byte 5,6:    Consumption
- * Byte 7,8:    RPM
+ * Byte 1,2:    Voltage in 10mV
+ * Byte 3,4:    Current in 10mA
+ * Byte 5,6:    Consumption mAh
+ * Byte 7,8:    RPM in 100rpm steps
  * Byte 9:      CRC8
  *
  */
 
-#define KISS_ESC_BOOTTIME    5000            // 5 seconds
-#define KISS_REQ_TIMEOUT     100             // 100 ms (data transfer takes only 900us)
-#define ESC_FRAME_SIZE       10
+#define BLHELI32_BOOT_DELAY       5000            // 5 seconds
+#define BLHELI32_REQ_TIMEOUT      100             // 100 ms (data transfer takes only 900us)
+#define BLHELI32_FRAME_SIZE       10
 
 enum {
-    ESC_FRAME_PENDING = 0,
-    ESC_FRAME_COMPLETE = 1,
-    ESC_FRAME_FAILED = 2,
+    BLHELI32_FRAME_FAILED    = 0,
+    BLHELI32_FRAME_PENDING   = 1,
+    BLHELI32_FRAME_COMPLETE  = 2,
 };
 
 enum {
-    ESC_TRIGGER_STARTUP = 0,
-    ESC_TRIGGER_PENDING = 1,
+    DSHOT_TRIGGER_WAIT = 0,
+    DSHOT_TRIGGER_ACTIVE = 1,
 };
 
-static uint32_t escTriggerTimestamp;
-static uint8_t escTriggerState = ESC_TRIGGER_STARTUP;
+static uint32_t dshotTriggerTimestamp = 0;
+static uint8_t dshotTriggerState = DSHOT_TRIGGER_WAIT;
 
 static uint8_t currentEsc = 0;
 
 
-void startEscDataRead(uint8_t *frameBuffer, uint8_t frameLength)
+static FAST_CODE void blDataReceive(uint16_t c, void *data)
+{
+    UNUSED(data);
+
+    totalByteCount++;
+
+    if (bufferPos < bufferSize) {
+        buffer[bufferPos++] = c;
+    }
+}
+
+static void sendDShotTelemetryReqeust(timeMs_t currentTimeMs)
 {
     bufferPos = 0;
-    bufferPtr = frameBuffer;
-    bufferSize = frameLength;
-}
+    bufferSize = BLHELI32_FRAME_SIZE;
 
-static void selectNextMotor(void)
-{
-    if (++currentEsc >= getMotorCount())
-        currentEsc = 0;
-}
+    dshotTriggerTimestamp = currentTimeMs;
 
-static void setTelemetryReqeust(timeMs_t currentTimeMs)
-{
-    startEscDataRead(buffer, ESC_FRAME_SIZE);
     getMotorDmaOutput(currentEsc)->protocolControl.requestTelemetry = true;
-
-    escTriggerState = ESC_TRIGGER_PENDING;
-    escTriggerTimestamp = currentTimeMs;
 }
 
-static uint8_t decodeTelemetryFrame(void)
+static void blSelectNextEsc(void)
+{
+    currentEsc = (currentEsc + 1) % getMotorCount();
+}
+
+static uint8_t blDecodeTelemetryFrame(void)
 {
     // First, check the variables that can change in the interrupt
     if (bufferPos < bufferSize)
-        return ESC_FRAME_PENDING;
+        return BLHELI32_FRAME_PENDING;
 
     // Verify CRC8 checksum
-    uint16_t chksum = crc8_kiss_update(0, buffer, ESC_FRAME_SIZE - 1);
-    uint16_t tlmsum = buffer[ESC_FRAME_SIZE - 1];
+    uint16_t chksum = crc8_kiss_update(0, buffer, BLHELI32_FRAME_SIZE - 1);
+    uint16_t tlmsum = buffer[BLHELI32_FRAME_SIZE - 1];
 
     if (chksum == tlmsum) {
         uint16_t temp = buffer[0];
@@ -349,47 +335,45 @@ static uint8_t decodeTelemetryFrame(void)
             DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
         }
 
-        return ESC_FRAME_COMPLETE;
+        return BLHELI32_FRAME_COMPLETE;
     }
 
     totalCrcErrorCount++;
 
-    return ESC_FRAME_FAILED;
+    return BLHELI32_FRAME_FAILED;
 }
 
-static void kissSensorProcess(timeUs_t currentTimeUs)
+static void blSensorProcess(timeUs_t currentTimeUs)
 {
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
-    switch (escTriggerState) {
-        case ESC_TRIGGER_STARTUP:
-            if (currentTimeMs >= KISS_ESC_BOOTTIME) {
-                setTelemetryReqeust(currentTimeMs);
+    switch (dshotTriggerState) {
+        case DSHOT_TRIGGER_WAIT:
+            if (currentTimeMs >= BLHELI32_BOOT_DELAY) {
+                dshotTriggerState = DSHOT_TRIGGER_ACTIVE;
+                sendDShotTelemetryReqeust(currentTimeMs);
             }
             break;
 
-        case ESC_TRIGGER_PENDING:
-            if (currentTimeMs < escTriggerTimestamp + KISS_REQ_TIMEOUT) {
-                uint8_t state = decodeTelemetryFrame();
+        case DSHOT_TRIGGER_ACTIVE:
+            if (currentTimeMs < dshotTriggerTimestamp + BLHELI32_REQ_TIMEOUT) {
+                uint8_t state = blDecodeTelemetryFrame();
                 switch (state) {
-                    case ESC_FRAME_COMPLETE:
-                        selectNextMotor();
-                        setTelemetryReqeust(currentTimeMs);
+                    case BLHELI32_FRAME_PENDING:
                         break;
-                    case ESC_FRAME_FAILED:
+                    case BLHELI32_FRAME_FAILED:
                         increaseDataAge(currentEsc);
-                        selectNextMotor();
-                        setTelemetryReqeust(currentTimeMs);
-                        break;
-                    case ESC_FRAME_PENDING:
+                        FALLTHROUGH;
+                    case BLHELI32_FRAME_COMPLETE:
+                        blSelectNextEsc();
+                        sendDShotTelemetryReqeust(currentTimeMs);
                         break;
                 }
             }
             else {
                 increaseDataAge(currentEsc);
-                selectNextMotor();
-                setTelemetryReqeust(currentTimeMs);
-
+                blSelectNextEsc();
+                sendDShotTelemetryReqeust(currentTimeMs);
                 totalTimeoutCount++;
             }
             break;
@@ -862,8 +846,8 @@ void escSensorProcess(timeUs_t currentTimeUs)
 {
     if (escSensorPort && motorIsEnabled()) {
         switch (escSensorConfig()->protocol) {
-            case ESC_SENSOR_PROTO_KISS:
-                kissSensorProcess(currentTimeUs);
+            case ESC_SENSOR_PROTO_BLHELI32:
+                blSensorProcess(currentTimeUs);
                 break;
             case ESC_SENSOR_PROTO_HW4:
                 hw4SensorProcess(currentTimeUs);
@@ -903,8 +887,8 @@ bool INIT_CODE escSensorInit(void)
     options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED | (escSensorConfig()->halfDuplex ? SERIAL_BIDIR : 0);
 
     switch (escSensorConfig()->protocol) {
-        case ESC_SENSOR_PROTO_KISS:
-            callback = escSensorDataReceive;
+        case ESC_SENSOR_PROTO_BLHELI32:
+            callback = blDataReceive;
             baudrate = 115200;
             break;
         case ESC_SENSOR_PROTO_HW4:
