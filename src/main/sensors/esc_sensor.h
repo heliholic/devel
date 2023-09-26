@@ -30,7 +30,7 @@
 
 enum {
     ESC_SENSOR_PROTO_NONE = 0,
-    ESC_SENSOR_PROTO_KISS,
+    ESC_SENSOR_PROTO_BLHELI32,
     ESC_SENSOR_PROTO_HW4,
     ESC_SENSOR_PROTO_KONTRONIK,
     ESC_SENSOR_PROTO_OMPHOBBY,
@@ -74,4 +74,3 @@ escSensorData_t *getEscSensorData(uint8_t motorNumber);
 
 void startEscDataRead(uint8_t *frameBuffer, uint8_t frameLength);
 uint8_t getNumberEscBytesRead(void);
-
