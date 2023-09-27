@@ -761,6 +761,7 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
  *
  *    - ESC must be set to "Unsolicited mode"
  *    - Serial protocol is 38400,8N1
+ *    - Frame rate running:10Hz idle:1Hz
  *    - Little-Endian fields
  *    - CRC16-CCITT
  *    - Error Code bits:
@@ -826,8 +827,7 @@ static bool processUNCTelemetryStream(uint8_t dataByte)
     }
     else if (readBytes == 22) {
         readBytes = 0;
-        if (syncCount > 2)
-            return true;
+        return true;
     }
 
     return false;
@@ -880,7 +880,8 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    checkFrameTimeout(currentTimeUs, 1000000);
+    // Maximum frame spacing 1000ms
+    checkFrameTimeout(currentTimeUs, 1200000);
 }
 
 
