@@ -431,6 +431,7 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
  * Hobbywing V4 telemetry
  *
  *    - Serial protocol 19200,8N1
+ *    - Frame rate running:20Hz idle:2.5Hz
  *    - Big-Endian fields
  *
  * Data frame:
@@ -533,14 +534,13 @@ static uint8_t processHW4TelemetryStream(uint8_t dataByte)
     else if (readBytes == 13) {
         if (buffer[1] == 0x9B && buffer[4] == 0x01 && buffer[12] == 0xB9) {
             readBytes = 0;
-            if (syncCount > 2)
+            if (syncCount > 3)
                 return HW4_FRAME_INFO;
         }
     }
     else if (readBytes == 19) {
         readBytes = 0;
-        if (syncCount > 2)
-            return HW4_FRAME_DATA;
+        return HW4_FRAME_DATA;
     }
 
     return HW4_FRAME_NONE;
@@ -608,7 +608,8 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    checkFrameTimeout(currentTimeUs, 1000000);
+    // Maximum data frame spacing 400ms
+    checkFrameTimeout(currentTimeUs, 500000);
 }
 
 
