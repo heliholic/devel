@@ -1388,7 +1388,7 @@ static void apdSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    checkFrameTimeout(currentTimeUs, 1000000);
+    checkFrameTimeout(currentTimeUs, 500000);
 }
 
 
