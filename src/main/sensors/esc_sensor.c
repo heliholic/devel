@@ -193,14 +193,6 @@ static void frameSyncError(void)
     totalSyncErrorCount++;
 }
 
-static void frameTimeoutError(void)
-{
-    readBytes = 0;
-    syncCount = 0;
-
-    totalTimeoutCount++;
-}
-
 static void increaseDataAge(uint8_t motor)
 {
     if (escSensorData[motor].dataAge < ESC_DATA_INVALID) {
@@ -217,7 +209,7 @@ static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
     // Increment data age counter if no updates
     if (cmp32(currentTimeUs, dataUpdateUs) > timeout) {
         increaseDataAge(0);
-        frameTimeoutError();
+        totalTimeoutCount++;
         dataUpdateUs = currentTimeUs;
     }
 }
