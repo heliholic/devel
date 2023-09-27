@@ -1265,7 +1265,7 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    // Minimum frame spacing 50ms, sync after 3 frames
+    // Maximum frame spacing 50ms, sync after 3 frames
     checkFrameTimeout(currentTimeUs, 500000);
 }
 
