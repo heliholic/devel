@@ -888,9 +888,10 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
 
 
 /*
- * Kontronik Telemetry V4
+ * Kontronik Telemetry V4 (23.11.2018)
  *
  *    - Serial protocol is 115200,8E1
+ *    - Frame rate 100Hz
  *    - Little-Endian fields
  *    - CRC32
  *    - Error flags:
@@ -979,8 +980,7 @@ static bool processKontronikTelemetryStream(uint8_t dataByte)
     }
     else if (readBytes == 38) {
         readBytes = 0;
-        if (syncCount > 2)
-            return true;
+        return true;
     }
 
     return false;
@@ -1033,7 +1033,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    checkFrameTimeout(currentTimeUs, 1000000);
+    checkFrameTimeout(currentTimeUs, 500000);
 }
 
 
