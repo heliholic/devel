@@ -728,6 +728,12 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
                 uint16_t tempFET = buffer[19];
                 uint16_t tempBEC = buffer[20];
 
+                // When throttle changes to zero, the last current reading is
+                // repeated until the motor has totally stopped.
+                if (power == 0) {
+                    current = 0;
+                }
+
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = tempFET;
                 escSensorData[0].voltage = voltage * 10;
