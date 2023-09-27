@@ -616,6 +616,7 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
  * Hobbywing V5 Telemetry
  *
  *    - Serial protocol 115200,8N1
+ *    - Frame rate running:50Hz idle:2.5Hz
  *    - Little-Endian fields
  *    - Frame length over data (23)
  *    - CRC16-MODBUS (poly 0x8005, init 0xffff)
@@ -699,8 +700,7 @@ static bool processHW5TelemetryStream(uint8_t dataByte)
     }
     else if (readBytes == 32) {
         readBytes = 0;
-        if (syncCount > 2)
-            return true;
+        return true;
     }
 
     return false;
@@ -752,7 +752,8 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    checkFrameTimeout(currentTimeUs, 1000000);
+    // Maximum frame spacing 400ms
+    checkFrameTimeout(currentTimeUs, 500000);
 }
 
 
