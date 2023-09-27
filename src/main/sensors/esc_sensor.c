@@ -1148,6 +1148,7 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
  * ZTW Telemetry
  *
  *    - Serial protocol is 115200,8N1
+ *    - Frame rate 20Hz
  *    - Frame length includes header and CRC
  *    - Big-Endian fields
  *    - Checksum (unknown)
@@ -1252,7 +1253,8 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
         }
     }
 
-    checkFrameTimeout(currentTimeUs, 1000000);
+    // Minimum frame spacing 50ms, sync after 3 frames
+    checkFrameTimeout(currentTimeUs, 500000);
 }
 
 
