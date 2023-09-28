@@ -511,10 +511,10 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
  *  δ = γ⋅ln(Rᵣ/Rₙ) + 1/T₁ = γ⋅ln(10/47) + 1/298.15 = 0.002962…
  */
 
-#define HW4_GAMMA   0.00025316455696f
-#define HW4_DELTA   0.00296226896087f
+#define HW4_NTC_GAMMA   0.00025316455696f
+#define HW4_NTC_DELTA   0.00296226896087f
 
-#define calcTempHW(adc)  calcTempNTC(adc, HW4_GAMMA, HW4_DELTA)
+#define calcTempHW(adc)  calcTempNTC(adc, HW4_NTC_GAMMA, HW4_NTC_DELTA)
 
 #define HW4_VOLTAGE_SCALE    0.00008056640625f
 #define HW4_CURRENT_SCALE    32.2265625f
@@ -1360,10 +1360,10 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
  *
  */
 
-#define APD_GAMMA  0.0002894356005f
-#define APD_DELTA  0.0033540164346f
+#define APD_NTC_GAMMA  0.0002894356005f
+#define APD_NTC_DELTA  0.0033540164346f
 
-#define calcTempAPD(value)   calcTempNTC(value, APD_GAMMA, APD_DELTA)
+#define calcTempAPD(value)   calcTempNTC(value, APD_NTC_GAMMA, APD_NTC_DELTA)
 
 static uint16_t calculateFletcher16(const uint8_t *ptr, size_t len)
 {
