@@ -210,7 +210,7 @@ static void increaseDataAge(uint8_t motor)
 static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
 {
     // Increment data age counter if no updates
-    if (cmp32(currentTimeUs, dataUpdateUs) > timeout) {
+    if (cmpTimeUs(currentTimeUs, dataUpdateUs) > timeout) {
         increaseDataAge(0);
         totalTimeoutCount++;
         dataUpdateUs = currentTimeUs;
@@ -220,7 +220,7 @@ static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
 static void updateConsumption(timeUs_t currentTimeUs, float currentA)
 {
     // Convert Aµs to mAh
-    totalConsumption += cmp32(currentTimeUs, consumptionUpdateUs) * currentA * (1000.0f / 3600e6f);
+    totalConsumption += cmpTimeUs(currentTimeUs, consumptionUpdateUs) * currentA * (1000.0f / 3600e6f);
 
     // Save update time
     consumptionUpdateUs = currentTimeUs;
