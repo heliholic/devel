@@ -584,11 +584,15 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                 uint16_t thr = buffer[4] << 8 | buffer[5];
                 uint16_t pwm = buffer[6] << 8 | buffer[7];
                 uint32_t rpm = buffer[8] << 16 | buffer[9] << 8 | buffer[10];
+                uint16_t Vadc = buffer[11] << 8 | buffer[12];
+                uint16_t Iadc = buffer[13] << 8 | buffer[14];
+                uint16_t Tadc = buffer[15] << 8 | buffer[16];
+                //uint16_t Cadc = buffer[17] << 8 | buffer[18];
 
-                float voltage = calcVoltHW(buffer[11] << 8 | buffer[12]);
-                float current = calcCurrHW(buffer[13] << 8 | buffer[14]);
-                float tempFET = calcTempHW(buffer[15] << 8 | buffer[16]);
-                //float tempCAP = calcTempHW(buffer[17] << 8 | buffer[18]);
+                float voltage = calcVoltHW(Vadc);
+                float current = calcCurrHW(Iadc);
+                float tempFET = calcTempHW(Tadc);
+                //float tempCAP = calcTempHW(Cadc);
 
                 // When throttle changes to zero, the last current reading is
                 // repeated until the motor has totally stopped.
@@ -611,9 +615,9 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
 
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, pwm);
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, lrintf(tempFET * 10));
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, lrintf(voltage * 1000));
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, lrintf(current * 1000));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, Tadc);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, Vadc);
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, Iadc);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, thr);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
 
