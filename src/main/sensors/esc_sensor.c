@@ -516,7 +516,7 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
 
 #define calcTempHW(adc)  calcTempNTC(adc, HW4_GAMMA, HW4_DELTA)
 
-#define HW4_VOLTAGE_SCALE    0.0008056640625f
+#define HW4_VOLTAGE_SCALE    0.00008056640625f
 #define HW4_CURRENT_SCALE    32.2265625f
 
 static float hw4VoltageScale = 0;
@@ -612,8 +612,8 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, rpm);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, pwm);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, lrintf(tempFET * 10));
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, lrintf(voltage * 100));
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, lrintf(current * 100));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, lrintf(voltage * 1000));
+                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, lrintf(current * 1000));
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, thr);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
 
@@ -631,12 +631,16 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
             else
                 hw4VoltageScale = 0.1f * buffer[5] / buffer[6];
 
-            if (escSensorConfig()->hw4_current_gain)
+            if (escSensorConfig()->hw4_current_gain) {
                 hw4CurrentScale = HW4_CURRENT_SCALE / escSensorConfig()->hw4_current_gain;
-            else
-                hw4CurrentScale = 0; // Replace with data from ESC if possible
+                hw4CurrentOffset = escSensorConfig()->hw4_current_offset;
+            }
+            else {
+                // Replace with data from ESC if possible
+                hw4CurrentScale = 0;
+                hw4CurrentOffset = 0;
+            }
 
-            hw4CurrentOffset = escSensorConfig()->hw4_current_offset;
         }
     }
 
