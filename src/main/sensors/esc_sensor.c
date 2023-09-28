@@ -108,6 +108,10 @@ static escSensorData_t escSensorDataCombined;
 static bool combinedNeedsUpdate = true;
 
 static timeUs_t dataUpdateUs = 0;
+static timeUs_t consumptionUpdateUs = 0;
+
+static float consumptionDelta = 0.0f;
+static float totalConsumption = 0.0f;
 
 static uint32_t totalByteCount = 0;
 static uint32_t totalFrameCount = 0;
@@ -207,11 +211,31 @@ static void increaseDataAge(uint8_t motor)
 static void checkFrameTimeout(timeUs_t currentTimeUs, timeDelta_t timeout)
 {
     // Increment data age counter if no updates
-    if (cmp32(currentTimeUs, dataUpdateUs) > timeout) {
+    if (cmpTimeUs(currentTimeUs, dataUpdateUs) > timeout) {
         increaseDataAge(0);
         totalTimeoutCount++;
         dataUpdateUs = currentTimeUs;
     }
+}
+
+static void setConsumptionCurrent(float current)
+{
+    // Pre-convert Aµs to mAh
+    consumptionDelta = current * (1000.0f / 3600e6f);
+
+}
+
+static void updateConsumption(timeUs_t currentTimeUs)
+{
+    // Increment consumption
+    totalConsumption += cmpTimeUs(currentTimeUs, consumptionUpdateUs) * consumptionDelta;
+
+    // Save update time
+    consumptionUpdateUs = currentTimeUs;
+
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, totalConsumption);
+
+    escSensorData[0].consumption = totalConsumption;
 }
 
 
@@ -572,6 +596,8 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
                     current = 0;
                 }
 
+                setConsumptionCurrent(current);
+
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = lrintf(tempFET);
                 escSensorData[0].voltage = lrintf(voltage * 100);
@@ -613,6 +639,9 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
             hw4CurrentOffset = escSensorConfig()->hw4_current_offset;
         }
     }
+
+    // Update consumption on every cycle
+    updateConsumption(currentTimeUs);
 
     // Maximum data frame spacing 400ms
     checkFrameTimeout(currentTimeUs, 500000);
@@ -734,12 +763,13 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
                     current = 0;
                 }
 
+                setConsumptionCurrent(current * 0.1f);
+
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = tempFET;
                 escSensorData[0].voltage = voltage * 10;
                 escSensorData[0].current = current * 10;
                 escSensorData[0].rpm = rpm / 10;
-                escSensorData[0].consumption = 0;
 
                 DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm * 10);
                 DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, tempFET * 10);
@@ -751,7 +781,6 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tempFET);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, voltage);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, current);
-                DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CAPACITY, 0);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tempBEC);
                 DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
 
@@ -764,6 +793,9 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
             }
         }
     }
+
+    // Update consumption on every cycle
+    updateConsumption(currentTimeUs);
 
     // Maximum frame spacing 400ms
     checkFrameTimeout(currentTimeUs, 500000);
@@ -1370,12 +1402,13 @@ static void apdSensorProcess(timeUs_t currentTimeUs)
 
                 float temp = calcTempAPD(tadc);
 
+                setConsumptionCurrent(current * 0.08f);
+
                 escSensorData[0].dataAge = 0;
                 escSensorData[0].temperature = lrintf(temp);
                 escSensorData[0].voltage = voltage;
                 escSensorData[0].current = current * 8;
                 escSensorData[0].rpm = rpm / 100;
-                escSensorData[0].consumption = 0;
 
                 DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, rpm);
                 DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, lrintf(temp * 10));
@@ -1399,6 +1432,9 @@ static void apdSensorProcess(timeUs_t currentTimeUs)
             }
         }
     }
+
+    // Update consumption on every cycle
+    updateConsumption(currentTimeUs);
 
     checkFrameTimeout(currentTimeUs, 500000);
 }
