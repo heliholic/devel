@@ -630,21 +630,30 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
             }
         }
         else if (frameType == HW4_FRAME_INFO) {
-            if (escSensorConfig()->hw4_voltage_gain)
+            if (escSensorConfig()->hw4_voltage_gain) {
                 hw4VoltageScale = HW4_VOLTAGE_SCALE * escSensorConfig()->hw4_voltage_gain;
-            else
-                hw4VoltageScale = 0.1f * buffer[5] / buffer[6];
+            }
+            else {
+                if (buffer[5] && buffer[6])
+                    hw4VoltageScale = (float)buffer[5] / (float)buffer[6] / 10;
+                else
+                    hw4VoltageScale = 0;
+            }
 
             if (escSensorConfig()->hw4_current_gain) {
                 hw4CurrentScale = HW4_CURRENT_SCALE / escSensorConfig()->hw4_current_gain;
                 hw4CurrentOffset = escSensorConfig()->hw4_current_offset;
             }
             else {
-                // Replace with data from ESC if possible
-                hw4CurrentScale = 0;
-                hw4CurrentOffset = 0;
+                if (buffer[7] && buffer[8]) {
+                    hw4CurrentScale = (float)buffer[7] / (float)buffer[8];
+                    hw4CurrentOffset = (float)buffer[9] / hw4CurrentScale;
+                }
+                else {
+                    hw4CurrentScale = 0;
+                    hw4CurrentOffset = 0;
+                }
             }
-
         }
     }
 
