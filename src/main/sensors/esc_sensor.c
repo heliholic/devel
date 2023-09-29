@@ -482,25 +482,20 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
  * Byte 10-11:      Temperature constants
  * Byte 12:         Sync 0xB9
  *
- * Empirical gain values:
  *
- * Voltage Gain:
- *   3-6S  (LV):    gain = 110
- *   3-8S  (LVv2):  gain = 154
- *   5-12s (HV):    gain = 210
- *
- * Current Gain:
- *   60A:           gain = 60
- *   80A:           gain = 78
- *   100A:          gain = 90
- *   120A:          gain = 100
- *   130A:          gain = 113
- *   150A:          gain = 129
- *   160A:          gain = 137
- *   200A:          gain = 169
+ * Gain values reported by the ESCs:
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ * Model        V1  V2  I1   I2  I3     Vgain Igain Ioffset
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ * 60A          8   91   0    1   0      109      0      0
+ * 80A          8   91  33  150  90      109    146    409
+ * 120A         8   91  33  113 110      109    110    377
+ * HV130A       11  65  30  146   0      210    157      0
+ * HV200A       11  65  30  146  98      210    157    477
+ * FFHV160A     11  65  33   68 185      210     66    381
  *
  * Temp sensor design:
- *
+ * ―――――――――――――――――――
  *  β  = 3950
  *  Tₙ = 25°C
  *  Rᵣ = 10k
