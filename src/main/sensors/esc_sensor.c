@@ -245,12 +245,14 @@ static void updateConsumption(timeUs_t currentTimeUs)
  *     - Serial protocol is 115200,8N1
  *     - Big-Endian byte order
  *
- * Byte 0:      Temperature
- * Byte 1,2:    Voltage in 10mV
- * Byte 3,4:    Current in 10mA
- * Byte 5,6:    Consumption mAh
- * Byte 7,8:    RPM in 100rpm steps
- * Byte 9:      CRC8
+ * Data Frame Format
+ * ―――――――――――――――――――――――――――――――――――――――――――――――
+ *     0:       Temperature
+ *   1,2:       Voltage in 10mV
+ *   3,4:       Current in 10mA
+ *   5,6:       Consumption mAh
+ *   7,8:       RPM in 100rpm steps
+ *     9:       CRC8
  *
  */
 
@@ -458,29 +460,29 @@ static float calcTempNTC(uint16_t adc, float gamma, float delta)
  *    - Frame rate running:20Hz idle:2.5Hz
  *    - Big-Endian fields
  *
- * Data frame:
+ * Data Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *     0:       Sync 0x9B
+ *   1-3:       Packet counter
+ *   4-5:       Throttle %
+ *   6-7:       PWM duty cycle %
+ *  8-10:       RPM
+ * 11-12:       Voltage ADC
+ * 13-14:       Current ADC
+ * 15-16:       Temperature ADC (FET)
+ * 17-18:       Temperature ADC (CAP)
+ *    19:       Sync 0xB9 (present only in slow rate)
  *
- * Byte 0:          Sync 0x9B
- * Byte 1-3:        Packet counter
- * Byte 4-5:        Throttle
- * Byte 6-7:        PWM
- * Byte 8-10:       RPM
- * Byte 11-12:      Voltage
- * Byte 13-14:      Current
- * Byte 15-16:      Temperature (FETs)
- * Byte 17-18:      Temperature (CAP)
- * Byte 19:         Sync 0xB9 (present only in slow rate)
- *
- * Info frame:
- *
- * Byte 0:          Sync 0x9B
- * Byte 1:          Sync 0x9B
- * Byte 2,3:        Throttle steps (1000)
- * Byte 4:          RPM steps (1)
- * Byte 5-6:        Voltage constants
- * Byte 7-9:        Current constants
- * Byte 10-11:      Temperature constants
- * Byte 12:         Sync 0xB9
+ * Info Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *     0:       Sync 0x9B
+ *     1:       Sync 0x9B
+ *   2-3:       Throttle step
+ *     4:       RPM steps (always 1)
+ *   5-6:       Voltage constants
+ *   7-9:       Current constants
+ * 10-11:       Temperature constants
+ *    12:       Sync 0xB9
  *
  *
  * Gain values reported by the ESCs:
@@ -678,22 +680,24 @@ static void hw4SensorProcess(timeUs_t currentTimeUs)
  *         6:  Input-voltage error
  *         7:  Motor connection error
  *
- * Byte 0-5:        Sync header 0xFE 0x01 0x00 0x03 0x30 0x5C
- * Byte 6:          Data frame length (23)
- * Byte 7-8:        Data type 0x06 0x00
- * Byte 9:          Throttle value in %
- * Byte 10-11:      Unknown
- * Byte 12:         Fault code
- * Byte 13-14:      RPM in 10rpm steps
- * Byte 15-16:      Voltage in 0.1V
- * Byte 17-18:      Current in 0.1A
- * Byte 19:         ESC Temperature in °C
- * Byte 20:         BEC Temperature in °C
- * Byte 21:         Motor Temperature in °C
- * Byte 22:         BEC Voltage in 0.1V
- * Byte 23:         BEC Current in 0.1A
- * Byte 24-29:      Unused 0xFF
- * Byte 30-31:      CRC16 MODBUS
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *    0-5:      Sync header (0xFE 0x01 0x00 0x03 0x30 0x5C)
+ *      6:      Data frame length (23)
+ *    7-8:      Data type 0x06 0x00
+ *      9:      Throttle value in %
+ *  10-11:      Unknown
+ *     12:      Fault code
+ *  13-14:      RPM in 10rpm steps
+ *  15-16:      Voltage in 0.1V
+ *  17-18:      Current in 0.1A
+ *     19:      ESC Temperature in °C
+ *     20:      BEC Temperature in °C
+ *     21:      Motor Temperature in °C
+ *     22:      BEC Voltage in 0.1V
+ *     23:      BEC Current in 0.1A
+ *  24-29:      Unused 0xFF
+ *  30-31:      CRC16 MODBUS
  *
  */
 
@@ -832,21 +836,23 @@ static void hw5SensorProcess(timeUs_t currentTimeUs)
  *         6:  N/A
  *         7:  Throttle error
  *
- * Byte 0:          Header Sync 0x55
- * Byte 1:          Message format version (0x00)
- * Byte 2:          Message Length incl. header and CRC (22)
- * Byte 3:          Device ID
- * Byte 4-6:        Timestamp ms
- * Byte 7:          Input throttle in 0.5%
- * Byte 8-9:        Current in 0.1A
- * Byte 10-11:      Voltage in 0.1V
- * Byte 12-13:      Consumption in mAh
- * Byte 14:         Temperature in °C
- * Byte 15:         Output Power in 0.5%
- * Byte 16:         BEC voltage in 0.1V
- * Byte 17-18:      RPM in 5rpm steps
- * Byte 19:         Error code
- * Byte 20-21:      CRC16 CCITT
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *      0:      Header Sync (0x55)
+ *      1:      Message format version (0x00)
+ *      2:      Message Length incl. header and CRC (22)
+ *      3:      Device ID
+ *    4-6:      Timestamp ms
+ *      7:      Throttle in 0.5%
+ *    8-9:      Current in 0.1A
+ *  10-11:      Voltage in 0.1V
+ *  12-13:      Consumption in mAh
+ *     14:      Temperature in °C
+ *     15:      PWM duty cycle in 0.5%
+ *     16:      BEC voltage in 0.1V
+ *  17-18:      RPM in 5rpm steps
+ *     19:      Error code
+ *  20-21:      CRC16 CCITT
  *
  */
 
@@ -976,24 +982,26 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
  *         22: ESC current limit reached
  *         23: Capacity limit reached
  *
- * Byte 0-3:        Sync 0x4B 0x4F 0x44 0x4C "KODL"
- * Byte 4-7:        RPM
- * Byte 8-9:        Battery voltage in 10mV
- * Byte 10-11:      Battery current in 0.1A
- * Byte 12-13:      Motor current average in 0.1A
- * Byte 14-15:      Motor current peak in 0.1A
- * Byte 16-17:      Capacity in mAh
- * Byte 18-19:      BEC current in mA
- * Byte 20-21:      BEC Voltage n mV
- * Byte 22-23:      PWM in us
- * Byte 24:         Throttle % (-100..100)
- * Byte 25:         Output throttle 0..100%
- * Byte 26:         FET temperature -128..127°C
- * Byte 27:         BEC temperature -128..127°C
- * Byte 28-31:      Error Flags
- * Byte 32:         Operational condition
- * Byte 33:         Timing 0..30
- * Byte 34-37:      CRC32
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *    0-3:      Sync 0x4B 0x4F 0x44 0x4C "KODL"
+ *    4-7:      RPM
+ *    8-9:      Battery voltage in 10mV
+ *  10-11:      Battery current in 0.1A
+ *  12-13:      Motor current average in 0.1A
+ *  14-15:      Motor current peak in 0.1A
+ *  16-17:      Capacity in mAh
+ *  18-19:      BEC current in mA
+ *  20-21:      BEC Voltage n mV
+ *  22-23:      PWM in us
+ *     24:      Throttle % (-100..100)
+ *     25:      PWM duty cycle %
+ *     26:      FET temperature -128..127°C
+ *     27:      BEC temperature -128..127°C
+ *  28-31:      Error Flags
+ *     32:      Operational condition
+ *     33:      Timing 0..30
+ *  34-37:      CRC32
  *
  */
 
@@ -1112,19 +1120,21 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
  *         8:  Throttle signal error
  *        12:  Battery voltage error
  *
- * Byte 0:          Start Flag 0xdd
- * Byte 1:          Protocol version 0x01
- * Byte 2:          Frame lenght (32 for v1)
- * Byte 3-4:        Battery voltage in 0.1V
- * Byte 5-6:        Battery current in 0.1V
- * Byte 7:          Input Throttle in %
- * Byte 8-9:        RPM in 10rpm steps
- * Byte 10:         ESC Temperature
- * Byte 11:         Motor Temperature
- * Byte 12:         PWM Throttle in %
- * Byte 13-14:      Status Code
- * Byte 15-16:      Capacity mAh
- * Byte 17-31:      Unused / Zeros
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *      0:      Start Flag (0xdd)
+ *      1:      Protocol version (0x01)
+ *      2:      Frame lenght (32)
+ *    3-4:      Battery voltage in 0.1V
+ *    5-6:      Battery current in 0.1V
+ *      7:      Throttle %
+ *    8-9:      RPM in 10rpm steps
+ *     10:      ESC Temperature °C
+ *     11:      Motor Temperature °C
+ *     12:      PWM duty cycle %
+ *  13-14:      Status Code
+ *  15-16:      Capacity mAh
+ *  17-31:      Unused / Zeros
  *
  */
 
@@ -1223,23 +1233,25 @@ static void ompSensorProcess(timeUs_t currentTimeUs)
  *        11:  CAN throttle lost
  *        12:  Battery voltage error
  *
- * Byte 0:          Start Flag 0xdd
- * Byte 1:          Protocol version 0x01
- * Byte 2:          Frame lenght (32 for v1)
- * Byte 3-4:        Battery voltage in 0.1V
- * Byte 5-6:        Battery current in 0.1V
- * Byte 7:          Input Throttle in %
- * Byte 8-9:        RPM in 10rpm steps
- * Byte 10:         ESC Temperature
- * Byte 11:         Motor Temperature
- * Byte 12:         PWM Throttle in %
- * Byte 13-14:      Status Code
- * Byte 15-16:      Capacity mAh
- * Byte 17:         Serial Throttle input (unused)
- * Byte 18:         CAN Throttle input (unused)
- * Byte 19:         BEC Voltage
- * Byte 20-29:      Unused
- * Byte 30-31:      Checksum
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *      0:      Start Flag (0xdd)
+ *      1:      Protocol version (0x01)
+ *      2:      Frame lenght (32)
+ *    3-4:      Battery voltage in 0.1V
+ *    5-6:      Battery current in 0.1V
+ *      7:      Throttle %
+ *    8-9:      RPM in 10rpm steps
+ *     10:      ESC Temperature °C
+ *     11:      Motor Temperature °C
+ *     12:      PWM duty cycle %
+ *  13-14:      Status Code
+ *  15-16:      Capacity mAh
+ *     17:      Serial Throttle input (unused)
+ *     18:      CAN Throttle input (unused)
+ *     19:      BEC Voltage
+ *  20-29:      Unused
+ *  30-31:      Checksum
  *
  */
 
@@ -1330,20 +1342,22 @@ static void ztwSensorProcess(timeUs_t currentTimeUs)
  *         6:  Unused
  *         7:  Unused
  *
- * Byte 0-1:        Sync 0xFFFF
- * Byte 2-3:        Voltage in 10mV steps
- * Byte 4-5:        Temperature (raw ADC)
- * Byte 6-7:        Current in 80mA steps
- * Byte 8-9:        Unused
- * Byte 10-13:      ERPM
- * Byte 14-15:      Throttle in 0.1%
- * Byte 16-17:      Motor Duty Cycle in 0.1%
- * Byte 18:         Status flags
- * Byte 19:         Unused
- * Byte 20-21:      Checksum
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *    0-1:      Sync 0xFFFF
+ *    2-3:      Voltage in 10mV steps
+ *    4-5:      Temperature ADC
+ *    6-7:      Current in 80mA steps
+ *    8-9:      Unused
+ *  10-13:      ERPM
+ *  14-15:      Throttle in 0.1%
+ *  16-17:      PWM duty cycle in 0.1%
+ *     18:      Status flags
+ *     19:      Unused
+ *  20-21:      Checksum
  *
  * Temp sensor design:
- *
+ * ―――――――――――――――――――
  *  β  = 3455
  *  Rᵣ = 10k
  *  Rₙ = 10k
