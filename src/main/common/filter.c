@@ -56,14 +56,60 @@ void nilFilterInit(nilFilter_t *filter, float cutoff, float sampleRate)
 }
 
 
-// PT1 Low Pass filter
+/*
+ * PT1 Low Pass filter
+ *
+ * This is a first order low-pass filter, which is transformed
+ * from s-domain to z-domain with the backwards difference method.
+ *
+ *        1     z - 1
+ *   s ← ――― ⋅ ―――――――
+ *        T       z
+ *
+ * This is also known as rectangular integration.
+ *
+ * Let
+ *
+ *   Fs = Sampling frequency
+ *   Fc = Cutoff frequency
+ *
+ * And
+ *
+ *            Fc
+ *    ω = 2π⋅――――
+ *            Fs
+ *
+ *            1          ω           Fc
+ *    α = ――――――――― = ―――――――― = ――――――――――――
+ *         1/ω + 1     1 + ω      Fc + Fs/2π
+ *
+ * Then
+ *
+ *         Fs         ⎡         α²    ⎤
+ *   Fg = ―――― ⋅ acos ⎢1 - ―――――――――――⎥
+ *         2π         ⎣     2⋅(1 - α) ⎦
+ *
+ * the actual cutoff frequency for the given α.
+ *
+ * This could be corrected with frequency pre-warping, like it is
+ * done with the bilinear transform.
+ *
+ * HOWEVER
+ *
+ * It is not done here, because:
+ *
+ *   - PTx filters have poor performance when cutoff frequency Fc is higher than Fs/10
+ *   - Prewarping would limit the maximum cutoff to around 83% of Nyquist
+ *   - Nobody is using prewarping with PT filters
+ *
+ */
 
 float pt1FilterGain(float cutoff, float sampleRate)
 {
-    cutoff = limitCutoff(cutoff, sampleRate / 2);
+    cutoff = limitCutoff(cutoff, sampleRate);
 
-    float omega = tan_approx(M_PIf * cutoff / sampleRate);
-    float alpha = 2.0f / (1.0f / omega + 1.0f);
+    float omega = M_1_2PIf * sampleRate;
+    float alpha = cutoff / (cutoff + omega);
 
     return fminf(alpha, 1.0f);
 }
@@ -184,10 +230,10 @@ FAST_CODE float pt3FilterApply(pt3Filter_t *filter, float input)
 
 float ewma1FilterWeight(float cutoff, float sampleRate)
 {
-    cutoff = limitCutoff(cutoff, sampleRate / 2);
+    cutoff = limitCutoff(cutoff, sampleRate);
 
-    float omega = tan_approx(M_PIf * cutoff / sampleRate);
-    float weight = (1.0f / omega + 1.0f) / 2.0f;
+    float omega = M_1_2PIf * sampleRate;
+    float weight = (cutoff + omega) / cutoff;
 
     return fmaxf(weight, 1.0f);
 }
