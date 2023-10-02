@@ -386,7 +386,7 @@ void failsafeUpdateState(void)
                 break;
 
             case FAILSAFE_RX_LOSS_RECOVERED:
-                // Entering IDLE with the requirement that throttle first must be at min_check for failsafe_throttle_low_delay period.
+                // Entering IDLE with the requirement that throttle first must be at rc_min_throttle for failsafe_throttle_low_delay period.
                 // This is to prevent that JustDisarm is activated on the next iteration.
                 // Because that would have the effect of shutting down failsafe handling on intermittent connections.
                 failsafeState.throttleLowPeriod = millis() + failsafeConfig()->failsafe_throttle_low_delay * MILLIS_PER_TENTH_SECOND;

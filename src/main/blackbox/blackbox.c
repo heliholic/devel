@@ -1424,8 +1424,8 @@ static bool blackboxWriteSysinfo(void)
                                                                             currentPidProfile->pid[PID_YAW].I,
                                                                             currentPidProfile->pid[PID_YAW].D);
 
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_DEADBAND, "%d",               rcControlsConfig()->deadband);
-        BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_YAW_DEADBAND, "%d",           rcControlsConfig()->yaw_deadband);
+        BLACKBOX_PRINT_HEADER_LINE("deadband", "%d",                        rcControlsConfig()->rc_deadband);
+        BLACKBOX_PRINT_HEADER_LINE("yaw_deadband", "%d",                    rcControlsConfig()->rc_yaw_deadband);
 
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_GYRO_TO_USE, "%d",            gyroConfig()->gyro_to_use);
         BLACKBOX_PRINT_HEADER_LINE(PARAM_NAME_GYRO_HARDWARE_LPF, "%d",      gyroConfig()->gyro_hardware_lpf);

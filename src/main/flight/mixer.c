@@ -472,7 +472,7 @@ static void mixerUpdateInputs(void)
 
     // RC channels
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++)
-        mixerSetInput(MIXER_IN_RC_CHANNEL_ROLL + i, (rcData[i] - rxConfig()->midrc) / 500);
+        mixerSetInput(MIXER_IN_RC_CHANNEL_ROLL + i, (rcData[i] - rcControlsConfig()->rc_center) / 500);
 
     // Stabilised inputs
     mixerSetInput(MIXER_IN_STABILIZED_ROLL, pidGetOutput(PID_ROLL));
