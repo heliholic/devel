@@ -71,14 +71,6 @@
 static bool isUsingStickArming = false;
 static bool isUsingStickCommands = false;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 0);
-
-PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
-    .deadband = 0,
-    .yaw_deadband = 0,
-    .movement_threshold = { 70, 70, 70, 150 },
-);
-
 PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 1);
 
 PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
@@ -98,7 +90,7 @@ bool areSticksInApModePosition(uint16_t ap_mode)
 
 throttleStatus_e calculateThrottleStatus(void)
 {
-    return (rcData[THROTTLE] < rxConfig()->mincheck) ? THROTTLE_LOW : THROTTLE_HIGH;
+    return (rcData[THROTTLE] < rcControlsConfig()->rc_min_throttle) ? THROTTLE_LOW : THROTTLE_HIGH;
 }
 
 #define ARM_DELAY_MS        500
@@ -125,10 +117,10 @@ void processRcStickPositions()
     uint8_t stTmp = 0;
     for (int i = 0; i < 4; i++) {
         stTmp >>= 2;
-        if (rcData[i] > rxConfig()->mincheck) {
+        if (rcCommand[i] > STICK_COMMAND_MIN) {
             stTmp |= 0x80;  // check for MIN
         }
-        if (rcData[i] < rxConfig()->maxcheck) {
+        if (rcCommand[i] < STICK_COMMAND_MAX) {
             stTmp |= 0x40;  // check for MAX
         }
     }
