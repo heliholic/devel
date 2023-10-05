@@ -588,7 +588,7 @@ static void readRxChannels(void)
         const uint8_t rawChannel = channel < RX_MAPPABLE_CHANNEL_COUNT ? rxConfig()->rcmap[channel] : channel;
         float sample = rxRuntimeState.rcReadRawFn(&rxRuntimeState, rawChannel);
 
-        rcRawChannel[rawChannel] = sample;
+        rcRawChannel[rawChannel] = (rxSignalReceived) ? sample : 0;
         rcChannel[channel] = sample;
 
         if (rawChannel < 8) {
@@ -601,8 +601,9 @@ void detectAndApplySignalLossBehaviour(void)
 {
     const uint32_t currentTimeMs = millis();
     const bool failsafeAuxSwitch = IS_RC_MODE_ACTIVE(BOXFAILSAFE);
-    rxFlightChannelsValid = rxSignalReceived && !failsafeAuxSwitch;
+
     //  set rxFlightChannelsValid false when a packet is bad or we use a failsafe switch
+    rxFlightChannelsValid = rxSignalReceived && !failsafeAuxSwitch;
 
     for (int channel = 0; channel < rxChannelCount; channel++) {
 
