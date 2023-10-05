@@ -47,9 +47,13 @@
 #define PWM_SERVO_PULSE_MIN     375       // minimum PWM servo output pulse width allowed
 #define PWM_SERVO_PULSE_MAX     2250      // maximum PWM servo output pulse width allowed
 
-#define RXFAIL_STEP_TO_CHANNEL_VALUE(step) (PWM_PULSE_MIN + 25 * step)
-#define CHANNEL_VALUE_TO_RXFAIL_STEP(channelValue) ((constrain(channelValue, PWM_PULSE_MIN, PWM_PULSE_MAX) - PWM_PULSE_MIN) / 25)
-#define MAX_RXFAIL_RANGE_STEP ((PWM_PULSE_MAX - PWM_PULSE_MIN) / 25)
+#define RXFAIL_PULSE_MIN        875
+#define RXFAIL_PULSE_MAX        2150
+#define RXFAIL_RANGE_MAX        250
+
+#define RXFAIL_STEP_TO_CHANNEL_VALUE(step)          (RXFAIL_PULSE_MIN + 5 * (step))
+#define CHANNEL_VALUE_TO_RXFAIL_STEP(value)         (constrain(((value) - RXFAIL_PULSE_MIN) / 5, 0, RXFAIL_RANGE_MAX))
+
 
 typedef enum {
     RX_FRAME_PENDING = 0,

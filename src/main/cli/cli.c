@@ -1163,12 +1163,11 @@ static void cliRxFailsafe(const char *cmdName, char *cmdline)
                         return;
                     }
                     uint16_t value = atoi(ptr);
-                    value = CHANNEL_VALUE_TO_RXFAIL_STEP(value);
-                    if (value > MAX_RXFAIL_RANGE_STEP) {
+                    if (value < RXFAIL_PULSE_MIN || value > RXFAIL_PULSE_MAX) {
                         cliPrintErrorLinef(cmdName, "value out of range: %d", value);
                         return;
                     }
-
+                    value = CHANNEL_VALUE_TO_RXFAIL_STEP(value);
                     channelFailsafeConfig->step = value;
                 } else if (requireValue) {
                     cliShowInvalidArgumentCountError(cmdName);
