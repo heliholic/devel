@@ -106,9 +106,9 @@ static timeUs_t needRxSignalBefore = 0;
 static timeUs_t suspendRxSignalUntil = 0;
 static uint8_t  skipRxSamples = 0;
 
-float rcChannel[MAX_SUPPORTED_RC_CHANNEL_COUNT];          // last received channel value, as it comes
-float rcInput[MAX_SUPPORTED_RC_CHANNEL_COUNT];            // last received mapped value, as it comes
-float rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];             // actual value used (rc or failsafe)
+float rcRawChannel[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // last received "raw" channel value, as it comes
+float rcChannel[MAX_SUPPORTED_RC_CHANNEL_COUNT];          // last received mapped value
+float rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];             // actual value used (RC or Failsafe)
 
 uint32_t validRxSignalTimeout[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
@@ -572,7 +572,7 @@ static uint16_t getRxfailValue(uint8_t channel)
     case RX_FAILSAFE_MODE_INVALID:
     case RX_FAILSAFE_MODE_HOLD:
         if (failsafeAuxSwitch) {
-            return rcInput[channel]; // current values are allowed through on held channels with switch induced failsafe
+            return rcChannel[channel]; // current values are allowed through on held channels with switch induced failsafe
         } else {
             return rcData[channel]; // last good value
         }
@@ -588,11 +588,11 @@ static void readRxChannels(void)
         const uint8_t rawChannel = channel < RX_MAPPABLE_CHANNEL_COUNT ? rxConfig()->rcmap[channel] : channel;
         float sample = rxRuntimeState.rcReadRawFn(&rxRuntimeState, rawChannel);
 
-        rcChannel[rawChannel] = sample;
-        rcInput[channel] = sample;
+        rcRawChannel[rawChannel] = sample;
+        rcChannel[channel] = sample;
 
-        if (channel < 8) {
-            DEBUG(RC_RAW, channel, lrintf(sample));
+        if (rawChannel < 8) {
+            DEBUG(RC_RAW, rawChannel, lrintf(sample));
         }
     }
 }
@@ -605,9 +605,11 @@ void detectAndApplySignalLossBehaviour(void)
     //  set rxFlightChannelsValid false when a packet is bad or we use a failsafe switch
 
     for (int channel = 0; channel < rxChannelCount; channel++) {
-        float sample = rcInput[channel]; // sample has latest RC value, rcData has last 'accepted valid' value
-        const bool thisChannelValid = rxFlightChannelsValid && isPulseValid(sample);
+
+        float sample = rcChannel[channel];
+
         // if the whole packet is bad, consider all channels bad
+        const bool thisChannelValid = rxFlightChannelsValid && isPulseValid(sample);
 
         if (thisChannelValid) {
             //  reset the invalid pulse period timer for every good channel
@@ -701,7 +703,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         return true;
     }
 
-    readRxChannels();                       // returns rcInput
+    readRxChannels();                       // returns rcChannel
     detectAndApplySignalLossBehaviour();    // returns rcData
 
     rcSampleIndex++;

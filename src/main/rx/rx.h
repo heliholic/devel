@@ -92,8 +92,8 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
+extern float rcRawChannel[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 extern float rcChannel[MAX_SUPPORTED_RC_CHANNEL_COUNT];
-extern float rcInput[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 extern float rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 #define RSSI_SCALE_MIN 1

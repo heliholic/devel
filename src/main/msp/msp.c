@@ -1269,7 +1269,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 
     case MSP_RX_CHANNELS:
         for (int i = 0; i < rxRuntimeState.channelCount; i++) {
-            sbufWriteU16(dst, lrintf(rcChannel[i]));
+            sbufWriteU16(dst, lrintf(rcRawChannel[i]));
         }
         break;
 
