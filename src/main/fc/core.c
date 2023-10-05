@@ -468,30 +468,18 @@ static bool canUpdateVTX(void)
 bool areSticksActive(uint8_t stickPercentLimit)
 {
     for (int axis = FD_ROLL; axis <= FD_YAW; axis ++) {
-        const uint8_t deadband = axis == FD_YAW ? rcControlsConfig()->rc_yaw_deadband : rcControlsConfig()->rc_deadband;
-        uint8_t stickPercent = 0;
-        if ((rcData[axis] >= PWM_RANGE_MAX) || (rcData[axis] <= PWM_RANGE_MIN)) {
-            stickPercent = 100;
-        } else {
-            if (rcData[axis] > (rcControlsConfig()->rc_center + deadband)) {
-                stickPercent = ((rcData[axis] - rcControlsConfig()->rc_center - deadband) * 100) / (PWM_RANGE_MAX - rcControlsConfig()->rc_center - deadband);
-            } else if (rcData[axis] < (rcControlsConfig()->rc_center - deadband)) {
-                stickPercent = ((rcControlsConfig()->rc_center - deadband - rcData[axis]) * 100) / (rcControlsConfig()->rc_center - deadband - PWM_RANGE_MIN);
-            }
-        }
-        if (stickPercent >= stickPercentLimit) {
+        uint8_t stickPercent = fabsf(rcCommand[axis] / 5);
+        if (stickPercent >= stickPercentLimit)
             return true;
-        }
     }
     return false;
 }
 #endif
 
-
 // calculate the throttle stick percent - integer math is good enough here.
 uint8_t calculateThrottlePercent(void)
 {
-    return constrain(scaleRange(rcData[THROTTLE], rcControlsConfig()->rc_min_throttle, rcControlsConfig()->rc_max_throttle, 0, 100), 0, 100);
+    return rcCommand[THROTTLE] / 10;
 }
 
 
