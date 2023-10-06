@@ -34,6 +34,7 @@
 #include "platform.h"
 
 #ifdef USE_DYN_NOTCH_FILTER
+
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -152,8 +153,9 @@ static FAST_DATA_ZERO_INIT int     sdftStartBin;
 static FAST_DATA_ZERO_INIT int     sdftEndBin;
 
 
-void dynNotchInit(const dynNotchConfig_t *config, const float looprateHz)
+void dynNotchInit(const dynNotchConfig_t *config)
 {
+    const float looprateHz = gyro.filterRateHz;
     const float nyquistHz = looprateHz / 2.0f;
 
     // always initialise, since the dynamic notch could be activated at any time
