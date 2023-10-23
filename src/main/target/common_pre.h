@@ -357,7 +357,7 @@ extern uint8_t _dmaram_end__;
 #define USE_GYRO_DLPF_EXPERIMENTAL
 #define USE_OSD
 #define USE_OSD_OVER_MSP_DISPLAYPORT
-#define USE_MULTI_GYRO
+//#define USE_MULTI_GYRO
 #define USE_OSD_ADJUSTMENTS
 #define USE_SENSOR_NAMES
 #define USE_SERIALRX_JETIEXBUS
