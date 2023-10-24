@@ -73,9 +73,15 @@ uint16_t gyroSetSampleRate(gyroDev_t *gyro)
             accSampleRateHz = 800;
             break;
         case ICM_20649_SPI:
+#if defined(STM32F7) || defined(STM32H7)
             gyro->gyroRateKHz = GYRO_RATE_9_kHz;
             gyroSampleRateHz = 9000;
             accSampleRateHz = 1125;
+#else
+            gyro->gyroRateKHz = GYRO_RATE_1100_Hz;
+            gyroSampleRateHz = 1125;
+            accSampleRateHz = 1125;
+#endif
             break;
 #ifdef USE_ACCGYRO_LSM6DSO
         case LSM6DSO_SPI:
@@ -85,9 +91,15 @@ uint16_t gyroSetSampleRate(gyroDev_t *gyro)
             break;
 #endif
         default:
+#if defined(STM32F7) || defined(STM32H7)
             gyro->gyroRateKHz = GYRO_RATE_8_kHz;
             gyroSampleRateHz = 8000;
             accSampleRateHz = 1000;
+#else
+            gyro->gyroRateKHz = GYRO_RATE_1_kHz;
+            gyroSampleRateHz = 1000;
+            accSampleRateHz = 1000;
+#endif
             break;
     }
 
