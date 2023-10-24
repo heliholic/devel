@@ -700,6 +700,10 @@ static void subTaskFilterUpdate(timeUs_t currentTimeUs)
     dynLpfUpdate(currentTimeUs);
 #endif
 
+#ifdef USE_DYN_NOTCH_FILTER
+    dynNotchUpdate();
+#endif
+
 #ifdef USE_RPM_FILTER
     rpmFilterUpdate();
 #endif
