@@ -37,7 +37,9 @@
 #define USE_DSHOT_TELEMETRY
 #define USE_DSHOT_TELEMETRY_STATS
 #define USE_RPM_FILTER
+#if !defined(STM32F411xE)
 #define USE_DYN_NOTCH_FILTER
+#endif
 #define USE_ADC_INTERNAL
 #define USE_USB_CDC_HID
 #define USE_USB_MSC
