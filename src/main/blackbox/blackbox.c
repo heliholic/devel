@@ -1720,8 +1720,6 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
         blackboxCheckAndLogFlightMode();
         blackboxCheckAndLogSlowFrame();
 
-        loadMainState(currentTimeUs);
-
         if (blackboxShouldLogIFrame())
             writeIntraframe();
         else
@@ -1947,6 +1945,14 @@ void blackboxFlush(timeUs_t currentTimeUs)
 
     // Flush every iteration so that our runtime variance is minimized
     blackboxDeviceFlush();
+}
+
+void blackboxSnapshot(timeUs_t currentTimeUs)
+{
+    if ((blackboxState == BLACKBOX_STATE_RUNNING && blackboxShouldLogFastFrame()) ||
+        (blackboxState == BLACKBOX_STATE_PAUSED && blackboxShouldLogIFrame())) {
+        loadMainState(currentTimeUs);
+    }
 }
 
 /**

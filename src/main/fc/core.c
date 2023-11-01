@@ -710,7 +710,7 @@ static void subTaskFilterUpdate(timeUs_t currentTimeUs)
 #endif
 }
 
-static void subTaskBlackbox(timeUs_t currentTimeUs)
+static void subTaskBlackboxUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_BLACKBOX
     if (!cliMode && blackboxConfig()->device) {
@@ -721,7 +721,18 @@ static void subTaskBlackbox(timeUs_t currentTimeUs)
 #endif
 }
 
-static void subTaskFlush(timeUs_t currentTimeUs)
+static void subTaskBlackboxSnapshot(timeUs_t currentTimeUs)
+{
+#ifdef USE_BLACKBOX
+    if (!cliMode && blackboxConfig()->device) {
+        blackboxSnapshot(currentTimeUs);
+    }
+#else
+    UNUSED(currentTimeUs);
+#endif
+}
+
+static void subTaskBlackboxFlush(timeUs_t currentTimeUs)
 {
 #ifdef USE_BLACKBOX
     if (blackboxConfig()->device) {
@@ -779,8 +790,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         subTaskMixerUpdate(currentTimeUs);
         subTaskMotorsServosUpdate(currentTimeUs);
         subTaskFilterUpdate(currentTimeUs);
-        subTaskBlackbox(currentTimeUs);
-        subTaskFlush(currentTimeUs);
+        subTaskBlackboxSnapshot(currentTimeUs);
+        subTaskBlackboxUpdate(currentTimeUs);
+        subTaskBlackboxFlush(currentTimeUs);
     }
     else if (activePidLoopDenom == 2) {
         switch (pidUpdateCounter) {
@@ -788,13 +800,14 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 subTaskPosition(currentTimeUs);
                 subTaskSetpoint(currentTimeUs);
                 subTaskPidController(currentTimeUs);
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 1:
                 subTaskMixerUpdate(currentTimeUs);
                 subTaskMotorsServosUpdate(currentTimeUs);
                 subTaskFilterUpdate(currentTimeUs);
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
@@ -808,11 +821,12 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 break;
             case 1:
                 subTaskMotorsServosUpdate(currentTimeUs);
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 2:
                 subTaskFilterUpdate(currentTimeUs);
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
@@ -829,10 +843,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 break;
             case 2:
                 subTaskFilterUpdate(currentTimeUs);
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 3:
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
@@ -851,10 +866,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 subTaskFilterUpdate(currentTimeUs);
                 break;
             case 3:
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 4:
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
@@ -875,10 +891,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 subTaskFilterUpdate(currentTimeUs);
                 break;
             case 4:
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 5:
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
@@ -899,12 +916,13 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 break;
             case 4:
                 subTaskFilterUpdate(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
                 break;
             case 5:
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 6:
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
@@ -927,12 +945,13 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
                 break;
             case 5:
                 subTaskFilterUpdate(currentTimeUs);
+                subTaskBlackboxSnapshot(currentTimeUs);
                 break;
             case 6:
-                subTaskBlackbox(currentTimeUs);
+                subTaskBlackboxUpdate(currentTimeUs);
                 break;
             case 7:
-                subTaskFlush(currentTimeUs);
+                subTaskBlackboxFlush(currentTimeUs);
                 break;
         }
     }
