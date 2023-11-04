@@ -1,4 +1,6 @@
 
+CUSTOM_DEFAULTS_EXTENDED = yes
+
 ifneq ($(findstring STM32F411,$(TARGET)),)
 F411_TARGETS    += $(TARGET)
 FEATURES        += VCP SDCARD_SPI ONBOARDFLASH
@@ -7,7 +9,6 @@ endif
 ifneq ($(findstring STM32F405,$(TARGET)),)
 F405_TARGETS    += $(TARGET)
 FEATURES        += VCP SDCARD_SPI SDCARD_SDIO ONBOARDFLASH
-CUSTOM_DEFAULTS_EXTENDED = yes
 endif
 
 ifneq ($(findstring STM32F7X2,$(TARGET)),)
@@ -18,7 +19,6 @@ endif
 ifneq ($(findstring STM32F745,$(TARGET)),)
 F7X5XG_TARGETS  += $(TARGET)
 FEATURES        += VCP SDCARD_SPI SDCARD_SDIO ONBOARDFLASH
-CUSTOM_DEFAULTS_EXTENDED = yes
 endif
 
 ifneq ($(findstring STM32G47X,$(TARGET)),)
@@ -29,7 +29,6 @@ endif
 ifneq ($(findstring STM32H743,$(TARGET)),)
 H743xI_TARGETS  += $(TARGET)
 FEATURES        += VCP SDCARD_SPI SDCARD_SDIO ONBOARDFLASH
-CUSTOM_DEFAULTS_EXTENDED = yes
 endif
 
 TARGET_SRC = \
