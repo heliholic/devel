@@ -43,6 +43,8 @@
 #include "config/config_eeprom.h"
 #include "config/feature.h"
 
+#include "cli/cli.h"
+
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/bus.h"
@@ -376,19 +378,20 @@ void init(void)
 
     initEEPROM();
 
-    ensureEEPROMStructureIsValid();
+    if (!isEEPROMVersionValid() || !isEEPROMStructureValid() || !readEEPROM()) {
+        if (hasCustomDefaults())
+            resetConfigToCustomDefaults();
+        else
+            resetConfig();
+        writeUnmodifiedConfigToEEPROM();
+        systemResetHard();
+    }
 
-    bool readSuccess = readEEPROM();
+    systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
 #if defined(USE_BOARD_INFO)
     initBoardInformation();
 #endif
-
-    if (!readSuccess || !isEEPROMVersionValid() || strncasecmp(systemConfig()->boardIdentifier, TARGET_BOARD_IDENTIFIER, sizeof(TARGET_BOARD_IDENTIFIER))) {
-        resetEEPROM(false);
-    }
-
-    systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
 #ifdef USE_DEBUG_PIN
     dbgPinInit();
