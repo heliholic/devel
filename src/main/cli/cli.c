@@ -5038,7 +5038,10 @@ const cliResourceValue_t resourceTable[] = {
     DEFS( OWNER_ADC_BATT,      PG_ADC_CONFIG, adcConfig_t, vbat.ioTag ),
     DEFS( OWNER_ADC_RSSI,      PG_ADC_CONFIG, adcConfig_t, rssi.ioTag ),
     DEFS( OWNER_ADC_CURR,      PG_ADC_CONFIG, adcConfig_t, current.ioTag ),
-    DEFS( OWNER_ADC_EXT,       PG_ADC_CONFIG, adcConfig_t, external1.ioTag ),
+    DEFS( OWNER_ADC_EXT1,      PG_ADC_CONFIG, adcConfig_t, ext1.ioTag ),
+    DEFS( OWNER_ADC_EXT2,      PG_ADC_CONFIG, adcConfig_t, ext2.ioTag ),
+    DEFS( OWNER_ADC_EXT3,      PG_ADC_CONFIG, adcConfig_t, ext3.ioTag ),
+    DEFS( OWNER_ADC_EXT4,      PG_ADC_CONFIG, adcConfig_t, ext4.ioTag ),
 #endif
 #ifdef USE_BARO
     DEFS( OWNER_BARO_CS,       PG_BAROMETER_CONFIG, barometerConfig_t, baro_spi_csn ),
