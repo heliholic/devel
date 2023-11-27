@@ -62,7 +62,7 @@ static const void *cmsx_Power_onEnter(displayPort_t *pDisp)
     batteryConfig_vbatmaxcellvoltage = batteryConfig()->vbatmaxcellvoltage;
     batteryConfig_vbatwarningcellvoltage = batteryConfig()->vbatwarningcellvoltage;
 
-    voltageSensorADCConfig_vbatscale = voltageSensorADCConfig(0)->vbatscale;
+    voltageSensorADCConfig_vbatscale = voltageSensorADCConfig(VOLTAGE_SENSOR_ADC_BAT)->scale;
 
     currentSensorADCConfig_scale = currentSensorADCConfig()->scale;
     currentSensorADCConfig_offset = currentSensorADCConfig()->offset;
@@ -82,7 +82,7 @@ static const void *cmsx_Power_onExit(displayPort_t *pDisp, const OSD_Entry *self
     batteryConfigMutable()->vbatmaxcellvoltage = batteryConfig_vbatmaxcellvoltage;
     batteryConfigMutable()->vbatwarningcellvoltage = batteryConfig_vbatwarningcellvoltage;
 
-    voltageSensorADCConfigMutable(0)->vbatscale = voltageSensorADCConfig_vbatscale;
+    voltageSensorADCConfigMutable(VOLTAGE_SENSOR_ADC_BAT)->scale = voltageSensorADCConfig_vbatscale;
 
     currentSensorADCConfigMutable()->scale = currentSensorADCConfig_scale;
     currentSensorADCConfigMutable()->offset = currentSensorADCConfig_offset;
