@@ -62,7 +62,7 @@ static const void *cmsx_Power_onEnter(displayPort_t *pDisp)
     batteryConfig_vbatmaxcellvoltage = batteryConfig()->vbatmaxcellvoltage;
     batteryConfig_vbatwarningcellvoltage = batteryConfig()->vbatwarningcellvoltage;
 
-    voltageSensorADCConfig_vbatscale = voltageSensorADCConfig(0)->vbatscale;
+    voltageSensorADCConfig_vbatscale = voltageSensorADCConfig(VOLTAGE_SENSOR_ADC_BAT)->scale;
 
     currentSensorADCConfig_scale = currentSensorADCConfig()->scale;
     currentSensorADCConfig_offset = currentSensorADCConfig()->offset;
@@ -82,7 +82,7 @@ static const void *cmsx_Power_onExit(displayPort_t *pDisp, const OSD_Entry *self
     batteryConfigMutable()->vbatmaxcellvoltage = batteryConfig_vbatmaxcellvoltage;
     batteryConfigMutable()->vbatwarningcellvoltage = batteryConfig_vbatwarningcellvoltage;
 
-    voltageSensorADCConfigMutable(0)->vbatscale = voltageSensorADCConfig_vbatscale;
+    voltageSensorADCConfigMutable(VOLTAGE_SENSOR_ADC_BAT)->scale = voltageSensorADCConfig_vbatscale;
 
     currentSensorADCConfigMutable()->scale = currentSensorADCConfig_scale;
     currentSensorADCConfigMutable()->offset = currentSensorADCConfig_offset;
@@ -101,7 +101,7 @@ static const OSD_Entry cmsx_menuPowerEntries[] =
     { "VBAT CLMAX", OME_UINT16, NULL, &(OSD_UINT16_t) { &batteryConfig_vbatmaxcellvoltage, VBAT_CELL_VOTAGE_RANGE_MIN, VBAT_CELL_VOTAGE_RANGE_MAX, 1 } },
     { "VBAT CLWARN", OME_UINT16, NULL, &(OSD_UINT16_t) { &batteryConfig_vbatwarningcellvoltage, VBAT_CELL_VOTAGE_RANGE_MIN, VBAT_CELL_VOTAGE_RANGE_MAX, 1 } },
 
-    { "VBAT SCALE", OME_UINT8, NULL, &(OSD_UINT8_t){ &voltageSensorADCConfig_vbatscale, VBAT_SCALE_MIN, VBAT_SCALE_MAX, 1 } },
+    { "VBAT SCALE", OME_UINT8, NULL, &(OSD_UINT8_t){ &voltageSensorADCConfig_vbatscale, VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX, 1 } },
 
     { "IBAT SCALE", OME_INT16, NULL, &(OSD_INT16_t){ &currentSensorADCConfig_scale, -16000, 16000, 5 } },
     { "IBAT OFFSET", OME_INT16, NULL, &(OSD_INT16_t){ &currentSensorADCConfig_offset, -32000, 32000, 5 } },

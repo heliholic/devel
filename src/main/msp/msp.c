@@ -825,19 +825,16 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
 
     case MSP_VOLTAGE_METERS: {
         // write out id and voltage meter values, once for each meter we support
-        uint8_t count = supportedVoltageMeterCount;
+        uint8_t count = VOLTAGE_METER_ID_ADC_COUNT;
 #ifdef USE_ESC_SENSOR
-        count -= VOLTAGE_METER_ID_ESC_COUNT - getMotorCount();
+        count += 1 + getMotorCount();
 #endif
-
         for (int i = 0; i < count; i++) {
-
             voltageMeter_t meter;
             uint8_t id = (uint8_t)voltageMeterIds[i];
             voltageMeterRead(id, &meter);
-
             sbufWriteU8(dst, id);
-            sbufWriteU8(dst, (uint8_t)constrain((meter.displayFiltered + 5) / 10, 0, 255));
+            sbufWriteU16(dst, meter.filtered);
         }
         break;
     }
@@ -856,44 +853,36 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
 
             sbufWriteU8(dst, id);
             sbufWriteU16(dst, (uint16_t)constrain(meter.mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery
-            sbufWriteU16(dst, (uint16_t)constrain(meter.amperage * 10, 0, 0xFFFF)); // send amperage in 0.001 A steps (mA). Negative range is truncated to zero
+            sbufWriteU16(dst, (uint16_t)constrain(meter.amperage, 0, 0xFFFF)); // send amperage in 0.01 A steps
         }
         break;
     }
 
     case MSP_VOLTAGE_METER_CONFIG:
-        {
-            // by using a sensor type and a sub-frame length it's possible to configure any type of voltage meter,
-            // e.g. an i2c/spi/can sensor or any sensor not built directly into the FC such as ESC/RX/SPort/SBus that has
-            // different configuration requirements.
-            STATIC_ASSERT(VOLTAGE_SENSOR_ADC_VBAT == 0, VOLTAGE_SENSOR_ADC_VBAT_incorrect); // VOLTAGE_SENSOR_ADC_VBAT should be the first index
-            sbufWriteU8(dst, MAX_VOLTAGE_SENSOR_ADC); // voltage meters in payload
-            for (int i = VOLTAGE_SENSOR_ADC_VBAT; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
-                const uint8_t adcSensorSubframeLength = 1 + 1 + 1 + 1 + 1; // length of id, type, vbatscale, vbatresdivval, vbatresdivmultipler, in bytes
-                sbufWriteU8(dst, adcSensorSubframeLength); // ADC sensor sub-frame length
-
-                sbufWriteU8(dst, voltageMeterADCtoIDMap[i]); // id of the sensor
-                sbufWriteU8(dst, VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER); // indicate the type of sensor that the next part of the payload is for
-
-                sbufWriteU8(dst, voltageSensorADCConfig(i)->vbatscale);
-                sbufWriteU8(dst, voltageSensorADCConfig(i)->vbatresdivval);
-                sbufWriteU8(dst, voltageSensorADCConfig(i)->vbatresdivmultiplier);
-            }
-            // if we had any other voltage sensors, this is where we would output any needed configuration
+        // by using a sensor type and a sub-frame length it's possible to configure any type of voltage meter,
+        // e.g. an i2c/spi/can sensor or any sensor not built directly into the FC such as ESC/RX/SPort/SBus that has
+        // different configuration requirements.
+        sbufWriteU8(dst, MAX_VOLTAGE_SENSOR_ADC); // voltage meters in payload
+        for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
+            sbufWriteU8(dst, 5); // ADC sensor sub-frame length
+            sbufWriteU8(dst, voltageMeterADCtoIDMap[i]);
+            sbufWriteU8(dst, VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER);
+            sbufWriteU8(dst, voltageSensorADCConfig(i)->scale);
+            sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivval);
+            sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivmul);
         }
-
+        // if we had any other voltage sensors, this is where we would output any needed configuration
         break;
-    case MSP_CURRENT_METER_CONFIG: {
+
+    case MSP_CURRENT_METER_CONFIG:
         sbufWriteU8(dst, 1);
-        sbufWriteU8(dst, 1 + 1 + 2 + 2); // length of id, type, scale, offset, in bytes
-        sbufWriteU8(dst, CURRENT_METER_ID_BATTERY_1); // the id of the meter
-        sbufWriteU8(dst, CURRENT_SENSOR_ADC); // indicate the type of sensor that the next part of the payload is for
+        sbufWriteU8(dst, 6); // data size below
+        sbufWriteU8(dst, CURRENT_METER_ID_BATTERY); // the id of the meter
+        sbufWriteU8(dst, CURRENT_SENSOR_ADC);
         sbufWriteU16(dst, currentSensorADCConfig()->scale);
         sbufWriteU16(dst, currentSensorADCConfig()->offset);
-
         // if we had any other current sensors, this is where we would output any needed configuration
         break;
-    }
 
     case MSP_BATTERY_CONFIG:
         sbufWriteU8(dst, (batteryConfig()->vbatmincellvoltage + 5) / 10);
@@ -3288,9 +3277,9 @@ static mspResult_e mspCommonProcessInCommand(mspDescriptor_t srcDesc, int16_t cm
         }
 
         if (voltageSensorADCIndex < MAX_VOLTAGE_SENSOR_ADC) {
-            voltageSensorADCConfigMutable(voltageSensorADCIndex)->vbatscale = sbufReadU8(src);
-            voltageSensorADCConfigMutable(voltageSensorADCIndex)->vbatresdivval = sbufReadU8(src);
-            voltageSensorADCConfigMutable(voltageSensorADCIndex)->vbatresdivmultiplier = sbufReadU8(src);
+            voltageSensorADCConfigMutable(voltageSensorADCIndex)->scale = sbufReadU8(src);
+            voltageSensorADCConfigMutable(voltageSensorADCIndex)->resdivval = sbufReadU8(src);
+            voltageSensorADCConfigMutable(voltageSensorADCIndex)->resdivmul = sbufReadU8(src);
         } else {
             // if we had any other types of voltage sensor to configure, this is where we'd do it.
             sbufReadU8(src);
@@ -3302,9 +3291,8 @@ static mspResult_e mspCommonProcessInCommand(mspDescriptor_t srcDesc, int16_t cm
 
     case MSP_SET_CURRENT_METER_CONFIG: {
         int id = sbufReadU8(src);
-
         switch (id) {
-            case CURRENT_METER_ID_BATTERY_1:
+            case CURRENT_METER_ID_BATTERY:
                 currentSensorADCConfigMutable()->scale = sbufReadU16(src);
                 currentSensorADCConfigMutable()->offset = sbufReadU16(src);
                 break;

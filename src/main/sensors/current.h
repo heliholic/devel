@@ -29,6 +29,9 @@
 #define CURRENT_TASK_FREQ_HZ 50
 #endif
 
+#define CURRENT_METER_ID_ADC_COUNT 1
+#define CURRENT_METER_ID_ESC_COUNT 4
+
 typedef enum {
     CURRENT_METER_NONE = 0,
     CURRENT_METER_ADC,
