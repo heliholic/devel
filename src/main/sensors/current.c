@@ -47,24 +47,16 @@ const char * const currentMeterSourceNames[CURRENT_METER_COUNT] = {
 };
 
 const uint8_t currentMeterIds[] = {
-    CURRENT_METER_ID_BATTERY_1,
+    CURRENT_METER_ID_BATTERY,
 #ifdef USE_ESC_SENSOR
-    CURRENT_METER_ID_ESC_COMBINED_1,
-    CURRENT_METER_ID_ESC_MOTOR_1,
-    CURRENT_METER_ID_ESC_MOTOR_2,
-    CURRENT_METER_ID_ESC_MOTOR_3,
-    CURRENT_METER_ID_ESC_MOTOR_4,
-    CURRENT_METER_ID_ESC_MOTOR_5,
-    CURRENT_METER_ID_ESC_MOTOR_6,
-    CURRENT_METER_ID_ESC_MOTOR_7,
-    CURRENT_METER_ID_ESC_MOTOR_8,
-    CURRENT_METER_ID_ESC_MOTOR_9,
-    CURRENT_METER_ID_ESC_MOTOR_10,
-    CURRENT_METER_ID_ESC_MOTOR_11,
-    CURRENT_METER_ID_ESC_MOTOR_12,
+    CURRENT_METER_ID_ESC_COMBINED,
+    CURRENT_METER_ID_ESC_1,
+    CURRENT_METER_ID_ESC_2,
+    CURRENT_METER_ID_ESC_3,
+    CURRENT_METER_ID_ESC_4,
 #endif
 #ifdef USE_MSP_CURRENT_METER
-    CURRENT_METER_ID_MSP_1,
+    CURRENT_METER_ID_MSP,
 #endif
 };
 
@@ -255,20 +247,20 @@ void currentMeterMSPRead(currentMeter_t *meter)
 
 void currentMeterRead(currentMeterId_e id, currentMeter_t *meter)
 {
-    if (id == CURRENT_METER_ID_BATTERY_1) {
+    if (id == CURRENT_METER_ID_BATTERY) {
         currentMeterADCRead(meter);
     }
 #ifdef USE_MSP_CURRENT_METER
-    else if (id == CURRENT_METER_ID_MSP_1) {
+    else if (id == CURRENT_METER_ID_MSP) {
         currentMeterMSPRead(meter);
     }
 #endif
 #ifdef USE_ESC_SENSOR
-    else if (id == CURRENT_METER_ID_ESC_COMBINED_1) {
+    else if (id == CURRENT_METER_ID_ESC_COMBINED) {
         currentMeterESCReadCombined(meter);
     }
-    else if (id >= CURRENT_METER_ID_ESC_MOTOR_1 && id <= CURRENT_METER_ID_ESC_MOTOR_20 ) {
-        int motor = id - CURRENT_METER_ID_ESC_MOTOR_1;
+    else if (id >= CURRENT_METER_ID_ESC_1 && id <= CURRENT_METER_ID_ESC_4 ) {
+        int motor = id - CURRENT_METER_ID_ESC_1;
         currentMeterESCReadMotor(motor, meter);
     }
 #endif

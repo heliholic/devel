@@ -840,9 +840,21 @@ const clivalue_t valueTable[] = {
     { "ibat_update_hz",             VAR_UINT16 | MASTER_VALUE, .config.minmax = { 10, 1000 }, PG_BATTERY_CONFIG, offsetof(batteryConfig_t, ibatUpdateHz) },
 
 //  PG_VOLTAGE_SENSOR_ADC_CONFIG
-    { "vbat_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VBAT_SCALE_MIN, VBAT_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, offsetof(voltageSensorADCConfig_t, vbatscale) },
-    { "vbat_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VBAT_DIVIDER_MIN, VBAT_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, offsetof(voltageSensorADCConfig_t, vbatresdivval) },
-    { "vbat_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VBAT_MULTIPLIER_MIN, VBAT_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, offsetof(voltageSensorADCConfig_t, vbatresdivmultiplier) },
+    { "vbat_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, scale) },
+    { "vbat_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, resdivval) },
+    { "vbat_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, resdivmul) },
+
+    { "vbec_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, scale) },
+    { "vbec_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, resdivval) },
+    { "vbec_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, resdivmul) },
+
+    { "vbus_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, scale) },
+    { "vbus_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, resdivval) },
+    { "vbus_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, resdivmul) },
+
+    { "vext_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, scale) },
+    { "vext_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, resdivval) },
+    { "vext_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, resdivmul) },
 
 // PG_CURRENT_SENSOR_ADC_CONFIG
     { "ibata_scale",                VAR_INT16  | HARDWARE_VALUE, .config.minmax = { -16000, 16000 }, PG_CURRENT_SENSOR_ADC_CONFIG, offsetof(currentSensorADCConfig_t, scale) },

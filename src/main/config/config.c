@@ -354,10 +354,24 @@ static void validateAndFixConfig(void)
     adcConfigMutable()->vbat.enabled = (batteryConfig()->voltageMeterSource == VOLTAGE_METER_ADC);
     adcConfigMutable()->current.enabled = (batteryConfig()->currentMeterSource == CURRENT_METER_ADC);
 
-    // The FrSky D SPI RX sends RSSI_ADC_PIN (if configured) as A2
     adcConfigMutable()->rssi.enabled = featureIsEnabled(FEATURE_RSSI_ADC);
+
+    // Enabled if resource ADC_XXX defined
+    adcConfigMutable()->bec.enabled = true;
+    adcConfigMutable()->bus.enabled = true;
+    adcConfigMutable()->ext.enabled = true;
+
 #ifdef USE_RX_SPI
+    // The FrSky D SPI RX sends RSSI_ADC_PIN (if configured) as A2
     adcConfigMutable()->rssi.enabled |= (featureIsEnabled(FEATURE_RX_SPI) && rxSpiConfig()->rx_spi_protocol == RX_SPI_FRSKY_D);
+
+    // The FrSky D and X SPI RX sends EXT_ADC_PIN (if configured) as A1
+    adcConfigMutable()->ext.enabled |= (featureIsEnabled(FEATURE_RX_SPI) && (
+        rxSpiConfig()->rx_spi_protocol == RX_SPI_FRSKY_D ||
+        rxSpiConfig()->rx_spi_protocol == RX_SPI_FRSKY_X ||
+        rxSpiConfig()->rx_spi_protocol == RX_SPI_FRSKY_X_V2 ||
+        rxSpiConfig()->rx_spi_protocol == RX_SPI_FRSKY_X_LBT ||
+        rxSpiConfig()->rx_spi_protocol == RX_SPI_FRSKY_X_LBT_V2));
 #endif
 #endif // USE_ADC
 
