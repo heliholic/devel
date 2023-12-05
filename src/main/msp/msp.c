@@ -859,29 +859,30 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
     }
 
     case MSP_VOLTAGE_METER_CONFIG:
-        // by using a sensor type and a sub-frame length it's possible to configure any type of voltage meter,
-        // e.g. an i2c/spi/can sensor or any sensor not built directly into the FC such as ESC/RX/SPort/SBus that has
-        // different configuration requirements.
-        sbufWriteU8(dst, MAX_VOLTAGE_SENSOR_ADC); // voltage meters in payload
+        // Number of Voltage meters to follow
+        sbufWriteU8(dst, MAX_VOLTAGE_SENSOR_ADC);
+        // Voltage meters using ADC sensors
         for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
-            sbufWriteU8(dst, 5); // ADC sensor sub-frame length
-            sbufWriteU8(dst, voltageMeterADCtoIDMap[i]);
-            sbufWriteU8(dst, VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER);
+            sbufWriteU8(dst, 5);                                        // ADC sensor frame length
+            sbufWriteU8(dst, voltageMeterADCtoIDMap[i]);                // Meter id
+            sbufWriteU8(dst, VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER); // Meter type
             sbufWriteU8(dst, voltageSensorADCConfig(i)->scale);
             sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivval);
             sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivmul);
         }
-        // if we had any other voltage sensors, this is where we would output any needed configuration
+        // Other voltage meter types go here
         break;
 
     case MSP_CURRENT_METER_CONFIG:
+        // Number of Current meters to follow
         sbufWriteU8(dst, 1);
-        sbufWriteU8(dst, 6); // data size below
-        sbufWriteU8(dst, CURRENT_METER_ID_BATTERY); // the id of the meter
-        sbufWriteU8(dst, CURRENT_SENSOR_ADC);
+        // Current meters using ADC sensors
+        sbufWriteU8(dst, 6);                                            // ADC sensor frame length
+        sbufWriteU8(dst, CURRENT_METER_ID_BATTERY);                     // Meter id
+        sbufWriteU8(dst, CURRENT_SENSOR_ADC);                           // Meter type
         sbufWriteU16(dst, currentSensorADCConfig()->scale);
         sbufWriteU16(dst, currentSensorADCConfig()->offset);
-        // if we had any other current sensors, this is where we would output any needed configuration
+        // Other current meter types go here
         break;
 
     case MSP_BATTERY_CONFIG:

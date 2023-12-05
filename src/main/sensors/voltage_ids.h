@@ -20,10 +20,6 @@
 
 #pragma once
 
-//
-// fixed ids, voltage can be measured at many different places, these identifiers are the ones we support or would consider supporting.
-//
-
 typedef enum {
     VOLTAGE_METER_ID_NONE = 0,
 
@@ -32,11 +28,13 @@ typedef enum {
     VOLTAGE_METER_ID_BUS = 30,              // 30-39 for BUS / 5V meters
     VOLTAGE_METER_ID_EXT = 40,              // 40-49 for EXT meters
     VOLTAGE_METER_ID_MCU = 50,              // 50-59 for MCU / 3.3V meters
+
     VOLTAGE_METER_ID_ESC_COMBINED = 60,     // 60 for ESC combined
     VOLTAGE_METER_ID_ESC_1 = 61,            // 61-79 for ESC voltages
     VOLTAGE_METER_ID_ESC_2,
     VOLTAGE_METER_ID_ESC_3,
     VOLTAGE_METER_ID_ESC_4,
-    VOLTAGE_METER_ID_CELLS = 80,            // 80-119 for cell meters (40 cells)
+
+    VOLTAGE_METER_ID_CELLS = 100,            // 100-149 for battery cell meters
 
 } voltageMeterId_e;

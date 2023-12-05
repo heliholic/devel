@@ -93,19 +93,6 @@ void voltageMeterReset(voltageMeter_t *meter)
 #define VOLTAGE_RESDIVMULTIPLIER_DEFAULT 1
 #endif
 
-typedef struct voltageMeterADCState_s {
-    uint16_t voltageFiltered;         // battery voltage in 0.01V steps (filtered)
-    uint16_t voltageUnfiltered;       // battery voltage in 0.01V steps (unfiltered)
-    filter_t filter;
-} voltageMeterADCState_t;
-
-voltageMeterADCState_t voltageMeterADCStates[MAX_VOLTAGE_SENSOR_ADC];
-
-voltageMeterADCState_t *getVoltageMeterADC(uint8_t index)
-{
-    return &voltageMeterADCStates[index];
-}
-
 PG_REGISTER_ARRAY_WITH_RESET_FN(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig, PG_VOLTAGE_SENSOR_ADC_CONFIG, 0);
 
 void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
@@ -118,6 +105,16 @@ void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
         );
     }
 }
+
+
+typedef struct voltageMeterADCState_s {
+    uint16_t voltageFiltered;         // battery voltage in 0.01V steps (filtered)
+    uint16_t voltageUnfiltered;       // battery voltage in 0.01V steps (unfiltered)
+    filter_t filter;
+} voltageMeterADCState_t;
+
+voltageMeterADCState_t voltageMeterADCStates[MAX_VOLTAGE_SENSOR_ADC];
+
 
 // VOLTAGE_SENSOR_ADC_ to ADC_ map
 static const uint8_t voltageMeterAdcChannelMap[] = {
