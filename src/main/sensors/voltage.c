@@ -46,10 +46,6 @@
 
 #include "voltage.h"
 
-const char * const voltageMeterSourceNames[VOLTAGE_METER_COUNT] = {
-    "NONE", "ADC", "ESC"
-};
-
 const uint8_t voltageMeterIds[] = {
     VOLTAGE_METER_ID_BATTERY,
     VOLTAGE_METER_ID_BEC,
@@ -176,7 +172,7 @@ void voltageMeterADCInit(void)
         voltageMeterADCState_t *state = &voltageMeterADCStates[i];
         memset(state, 0, sizeof(voltageMeterADCState_t));
 
-        lowpassFilterInit(&state->filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatDisplayLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
+        lowpassFilterInit(&state->filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
     }
 }
 
@@ -205,7 +201,7 @@ void voltageMeterESCInit(void)
 {
 #ifdef USE_ESC_SENSOR
     memset(&voltageMeterESCState, 0, sizeof(voltageMeterESCState_t));
-    lowpassFilterInit(&voltageMeterESCState.filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatDisplayLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
+    lowpassFilterInit(&voltageMeterESCState.filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
 #endif
 }
 

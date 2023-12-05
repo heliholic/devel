@@ -42,10 +42,6 @@
 
 #include "current.h"
 
-const char * const currentMeterSourceNames[CURRENT_METER_COUNT] = {
-    "NONE", "ADC", "ESC", "MSP"
-};
-
 const uint8_t currentMeterIds[] = {
     CURRENT_METER_ID_BATTERY,
 #ifdef USE_ESC_SENSOR

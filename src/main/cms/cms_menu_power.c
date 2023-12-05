@@ -39,8 +39,8 @@
 
 #include "config/config.h"
 
-voltageMeterSource_e batteryConfig_voltageMeterSource;
-currentMeterSource_e batteryConfig_currentMeterSource;
+uint8_t batteryConfig_voltageMeterSource;
+uint8_t batteryConfig_currentMeterSource;
 
 uint16_t batteryConfig_vbatmincellvoltage;
 uint16_t batteryConfig_vbatmaxcellvoltage;
@@ -94,8 +94,8 @@ static const OSD_Entry cmsx_menuPowerEntries[] =
 {
     { "-- POWER --", OME_Label, NULL, NULL},
 
-    { "V METER", OME_TAB | REBOOT_REQUIRED, NULL, &(OSD_TAB_t){ &batteryConfig_voltageMeterSource, VOLTAGE_METER_COUNT - 1, voltageMeterSourceNames } },
-    { "I METER", OME_TAB | REBOOT_REQUIRED, NULL, &(OSD_TAB_t){ &batteryConfig_currentMeterSource, CURRENT_METER_COUNT - 1, currentMeterSourceNames } },
+    { "V METER", OME_TAB | REBOOT_REQUIRED, NULL, &(OSD_TAB_t){ &batteryConfig_voltageMeterSource, VOLTAGE_METER_COUNT - 1, batteryVoltageSourceNames } },
+    { "I METER", OME_TAB | REBOOT_REQUIRED, NULL, &(OSD_TAB_t){ &batteryConfig_currentMeterSource, CURRENT_METER_COUNT - 1, batteryCurrentSourceNames } },
 
     { "VBAT CLMIN", OME_UINT16, NULL, &(OSD_UINT16_t) { &batteryConfig_vbatmincellvoltage, VBAT_CELL_VOTAGE_RANGE_MIN, VBAT_CELL_VOTAGE_RANGE_MAX, 1 } },
     { "VBAT CLMAX", OME_UINT16, NULL, &(OSD_UINT16_t) { &batteryConfig_vbatmaxcellvoltage, VBAT_CELL_VOTAGE_RANGE_MIN, VBAT_CELL_VOTAGE_RANGE_MAX, 1 } },

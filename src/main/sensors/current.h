@@ -32,16 +32,6 @@
 #define CURRENT_METER_ID_ADC_COUNT 1
 #define CURRENT_METER_ID_ESC_COUNT 4
 
-typedef enum {
-    CURRENT_METER_NONE = 0,
-    CURRENT_METER_ADC,
-    CURRENT_METER_ESC,
-    CURRENT_METER_MSP,
-    CURRENT_METER_COUNT
-} currentMeterSource_e;
-
-extern const char * const currentMeterSourceNames[CURRENT_METER_COUNT];
-
 typedef struct currentMeter_s {
     int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
     int32_t amperageLatest;     // current read by current sensor in centiampere (1/100th A) (unfiltered)

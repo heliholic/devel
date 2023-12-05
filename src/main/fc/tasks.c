@@ -451,7 +451,7 @@ void tasksInit(void)
     const bool useBatteryCurrent = batteryConfig()->currentMeterSource != CURRENT_METER_NONE;
     setTaskEnabled(TASK_BATTERY_CURRENT, useBatteryCurrent);
 
-    const bool useBatteryAlerts = batteryConfig()->useVBatAlerts || batteryConfig()->useConsumptionAlerts || featureIsEnabled(FEATURE_OSD);
+    const bool useBatteryAlerts = batteryConfig()->useVoltageAlerts || batteryConfig()->useConsumptionAlerts || featureIsEnabled(FEATURE_OSD);
     setTaskEnabled(TASK_BATTERY_ALERTS, (useBatteryVoltage || useBatteryCurrent) && useBatteryAlerts);
 
 #ifdef USE_STACK_CHECK

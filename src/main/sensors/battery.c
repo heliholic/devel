@@ -49,6 +49,7 @@
 
 #include "sensors/battery.h"
 
+
 /**
  * terminology: meter vs sensors
  *
@@ -64,6 +65,14 @@
 
 #define VBAT_STABLE_MAX_DELTA 20
 #define LVC_AFFECT_TIME 10000000 //10 secs for the LVC to slowly kick in
+
+const char * const batteryVoltageSourceNames[VOLTAGE_METER_COUNT] = {
+    "NONE", "ADC", "ESC"
+};
+
+const char * const batteryCurrentSourceNames[CURRENT_METER_COUNT] = {
+    "NONE", "ADC", "ESC", "MSP"
+};
 
 // Battery monitoring stuff
 static uint8_t batteryCellCount; // Note: this can be 0 when no battery is detected or when the battery voltage sensor is missing or disabled.
@@ -88,37 +97,28 @@ static batteryState_e consumptionState;
 #define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_NONE
 #endif
 
+
 PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 3);
 
 PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
-    // voltage
+    .forceBatteryCellCount = 0,
+    .voltageMeterSource = DEFAULT_VOLTAGE_METER_SOURCE,
+    .currentMeterSource = DEFAULT_CURRENT_METER_SOURCE,
     .vbatmaxcellvoltage = VBAT_CELL_VOLTAGE_DEFAULT_MAX,
     .vbatmincellvoltage = VBAT_CELL_VOLTAGE_DEFAULT_MIN,
-    .vbatwarningcellvoltage = 350,
-    .vbatnotpresentcellvoltage = 300, //A cell below 3 will be ignored
-    .voltageMeterSource = DEFAULT_VOLTAGE_METER_SOURCE,
-    .lvcPercentage = 100, //Off by default at 100%
-
-    // current
-    .batteryCapacity = 0,
-    .currentMeterSource = DEFAULT_CURRENT_METER_SOURCE,
-
-    // cells
-    .forceBatteryCellCount = 0, //0 will be ignored
-
-    // warnings / alerts
-    .useVBatAlerts = true,
-    .useConsumptionAlerts = false,
-    .consumptionWarningPercentage = 10,
-    .vbathysteresis = 1, // 0.01V
-
     .vbatfullcellvoltage = 410,
-
-    .vbatDisplayLpfPeriod = 30,
-    .ibatLpfPeriod = 10,
+    .vbatwarningcellvoltage = 350,
+    .vbatnotpresentcellvoltage = 300,
+    .vbathysteresis = 1,
+    .lvcPercentage = 100, // Off by default at 100%
+    .batteryCapacity = 0,
+    .consumptionWarningPercentage = 10,
+    .useVoltageAlerts = true,
+    .useConsumptionAlerts = false,
     .vbatDurationForWarning = 0,
     .vbatDurationForCritical = 0,
-
+    .vbatLpfPeriod = 30,
+    .ibatLpfPeriod = 10,
     .vbatUpdateHz = VOLTAGE_TASK_FREQ_HZ,
     .ibatUpdateHz = CURRENT_TASK_FREQ_HZ,
 );
@@ -455,7 +455,7 @@ uint8_t calculateBatteryPercentageRemaining(void)
 void batteryUpdateAlarms(void)
 {
     // use the state to trigger beeper alerts
-    if (batteryConfig()->useVBatAlerts) {
+    if (batteryConfig()->useVoltageAlerts) {
         updateBatteryBeeperAlert();
     }
 }
