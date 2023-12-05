@@ -56,15 +56,13 @@
  * voltage and current sensors are used to collect data.
  * - e.g. voltage at an MCU ADC input pin, value from an ESC sensor.
  *   sensors require very specific configuration, such as resistor values.
+ *
  * voltage and current meters are used to process and expose data collected from sensors to the rest of the system.
  * - e.g. a meter exposes normalized, and often filtered, values from a sensor.
  *   meters require different or little configuration.
  *   meters also have different precision concerns, and may use different units to the sensors.
  *
  */
-
-#define VBAT_STABLE_MAX_DELTA 20
-#define LVC_AFFECT_TIME 10000000 //10 secs for the LVC to slowly kick in
 
 const char * const batteryVoltageSourceNames[VOLTAGE_METER_COUNT] = {
     "NONE", "ADC", "ESC"
@@ -81,7 +79,7 @@ static uint16_t batteryCriticalVoltage;
 static uint16_t batteryWarningHysteresisVoltage;
 static uint16_t batteryCriticalHysteresisVoltage;
 static lowVoltageCutoff_t lowVoltageCutoff;
-//
+
 static currentMeter_t currentMeter;
 static voltageMeter_t voltageMeter;
 
@@ -96,6 +94,9 @@ static batteryState_e consumptionState;
 #ifndef DEFAULT_VOLTAGE_METER_SOURCE
 #define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_NONE
 #endif
+
+#define VBAT_STABLE_MAX_DELTA       20
+#define LVC_AFFECT_TIME             10000000    // 10 secs for the LVC to slowly kick in
 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 3);
@@ -142,7 +143,6 @@ void batteryUpdateVoltage(timeUs_t currentTimeUs)
             break;
 
         default:
-        case VOLTAGE_METER_NONE:
             voltageMeterReset(&voltageMeter);
             break;
     }
@@ -179,16 +179,13 @@ static bool isVoltageStable(void)
 static bool isVoltageFromBat(void)
 {
     // We want to disable battery getting detected around USB voltage or 0V
-
-    return (voltageMeter.filtered >= batteryConfig()->vbatnotpresentcellvoltage  // Above ~0V
-        && voltageMeter.filtered <= batteryConfig()->vbatmaxcellvoltage)  // 1s max cell voltage check
-        || voltageMeter.filtered > batteryConfig()->vbatnotpresentcellvoltage * 2; // USB voltage - 2s or more check
+    return (voltageMeter.filtered >= batteryConfig()->vbatnotpresentcellvoltage         // Above ~0V
+            && voltageMeter.filtered <= batteryConfig()->vbatmaxcellvoltage)            // 1s max cell voltage check
+            || voltageMeter.filtered > batteryConfig()->vbatnotpresentcellvoltage * 2;  // USB voltage - 2s or more check
 }
 
 void batteryUpdatePresence(void)
 {
-
-
     if ((voltageState == BATTERY_NOT_PRESENT || voltageState == BATTERY_INIT) && isVoltageFromBat() && isVoltageStable()) {
         // Battery has just been connected - calculate cells, warning voltages and reset state
 
@@ -303,6 +300,7 @@ void batteryUpdateStates(timeUs_t currentTimeUs)
     batteryUpdateVoltageState();
     batteryUpdateConsumptionState();
     batteryUpdateLVC(currentTimeUs);
+
     batteryState = MAX(voltageState, consumptionState);
 }
 
@@ -356,6 +354,7 @@ void batteryInit(void)
     voltageMeterReset(&voltageMeter);
 
     voltageMeterGenericInit();
+
     switch (batteryConfig()->voltageMeterSource) {
         case VOLTAGE_METER_ESC:
 #ifdef USE_ESC_SENSOR
@@ -375,7 +374,9 @@ void batteryInit(void)
     // current
     //
     consumptionState = BATTERY_OK;
+
     currentMeterReset(&currentMeter);
+
     switch (batteryConfig()->currentMeterSource) {
         case CURRENT_METER_ADC:
             currentMeterADCInit();
@@ -422,6 +423,7 @@ void batteryUpdateCurrentMeter(timeUs_t currentTimeUs)
             }
 #endif
             break;
+
         case CURRENT_METER_MSP:
 #ifdef USE_MSP_CURRENT_METER
             currentMeterMSPRefresh(currentTimeUs);
