@@ -134,7 +134,7 @@ int32_t getAmperage(void);
 int32_t getAmperageLatest(void);
 int32_t getMAhDrawn(void);
 
-void batteryUpdateCurrentMeter(timeUs_t currentTimeUs);
+void batteryUpdateCurrent(timeUs_t currentTimeUs);
 
 const lowVoltageCutoff_t *getLowVoltageCutoff(void);
 

@@ -124,6 +124,7 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
     .ibatUpdateHz = CURRENT_TASK_FREQ_HZ,
 );
 
+
 void batteryUpdateVoltage(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -151,6 +152,46 @@ void batteryUpdateVoltage(timeUs_t currentTimeUs)
     DEBUG_SET(DEBUG_BATTERY, 1, voltageMeter.filtered);
 }
 
+void batteryUpdateCurrent(timeUs_t currentTimeUs)
+{
+    if (batteryCellCount == 0) {
+        currentMeterReset(&currentMeter);
+        return;
+    }
+
+    static uint32_t ibatLastServiced = 0;
+    const int32_t lastUpdateAt = cmp32(currentTimeUs, ibatLastServiced);
+    ibatLastServiced = currentTimeUs;
+
+    switch (batteryConfig()->currentMeterSource) {
+        case CURRENT_METER_ADC:
+            currentMeterADCRefresh(lastUpdateAt);
+            currentMeterADCRead(&currentMeter);
+            break;
+
+        case CURRENT_METER_ESC:
+#ifdef USE_ESC_SENSOR
+            if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
+                currentMeterESCRefresh(lastUpdateAt);
+                currentMeterESCReadCombined(&currentMeter);
+            }
+#endif
+            break;
+
+        case CURRENT_METER_MSP:
+#ifdef USE_MSP_CURRENT_METER
+            currentMeterMSPRefresh(currentTimeUs);
+            currentMeterMSPRead(&currentMeter);
+#endif
+            break;
+
+        default:
+        case CURRENT_METER_NONE:
+            currentMeterReset(&currentMeter);
+            break;
+    }
+}
+
 static void updateBatteryBeeperAlert(void)
 {
     switch (getBatteryState()) {
@@ -169,7 +210,14 @@ static void updateBatteryBeeperAlert(void)
     }
 }
 
-//TODO: make all of these independent of voltage filtering for display
+void batteryUpdateAlarms(void)
+{
+    // use the state to trigger beeper alerts
+    if (batteryConfig()->useVoltageAlerts) {
+        updateBatteryBeeperAlert();
+    }
+}
+
 
 static bool isVoltageStable(void)
 {
@@ -223,6 +271,7 @@ static void batteryUpdateVoltageState(void)
 {
     // alerts are currently used by beeper, osd and other subsystems
     static uint32_t lastVoltageChangeMs;
+
     switch (voltageState) {
         case BATTERY_OK:
             if (voltageMeter.filtered <= batteryWarningHysteresisVoltage) {
@@ -352,7 +401,6 @@ void batteryInit(void)
     lowVoltageCutoff.startTime = 0;
 
     voltageMeterReset(&voltageMeter);
-
     voltageMeterGenericInit();
 
     switch (batteryConfig()->voltageMeterSource) {
@@ -398,49 +446,10 @@ void batteryInit(void)
     }
 }
 
-void batteryUpdateCurrentMeter(timeUs_t currentTimeUs)
-{
-    if (batteryCellCount == 0) {
-        currentMeterReset(&currentMeter);
-        return;
-    }
-
-    static uint32_t ibatLastServiced = 0;
-    const int32_t lastUpdateAt = cmp32(currentTimeUs, ibatLastServiced);
-    ibatLastServiced = currentTimeUs;
-
-    switch (batteryConfig()->currentMeterSource) {
-        case CURRENT_METER_ADC:
-            currentMeterADCRefresh(lastUpdateAt);
-            currentMeterADCRead(&currentMeter);
-            break;
-
-        case CURRENT_METER_ESC:
-#ifdef USE_ESC_SENSOR
-            if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-                currentMeterESCRefresh(lastUpdateAt);
-                currentMeterESCReadCombined(&currentMeter);
-            }
-#endif
-            break;
-
-        case CURRENT_METER_MSP:
-#ifdef USE_MSP_CURRENT_METER
-            currentMeterMSPRefresh(currentTimeUs);
-            currentMeterMSPRead(&currentMeter);
-#endif
-            break;
-
-        default:
-        case CURRENT_METER_NONE:
-            currentMeterReset(&currentMeter);
-            break;
-    }
-}
-
 uint8_t calculateBatteryPercentageRemaining(void)
 {
     uint8_t batteryPercentage = 0;
+
     if (batteryCellCount > 0) {
         uint16_t batteryCapacity = batteryConfig()->batteryCapacity;
 
@@ -452,14 +461,6 @@ uint8_t calculateBatteryPercentageRemaining(void)
     }
 
     return batteryPercentage;
-}
-
-void batteryUpdateAlarms(void)
-{
-    // use the state to trigger beeper alerts
-    if (batteryConfig()->useVoltageAlerts) {
-        updateBatteryBeeperAlert();
-    }
 }
 
 bool isBatteryVoltageConfigured(void)
