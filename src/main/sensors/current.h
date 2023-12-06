@@ -32,22 +32,17 @@
 #define CURRENT_METER_ID_ADC_COUNT 1
 #define CURRENT_METER_ID_ESC_COUNT 4
 
-typedef struct currentMeter_s {
-    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
-    int32_t amperageLatest;     // current read by current sensor in centiampere (1/100th A) (unfiltered)
-    int32_t mAhDrawn;           // milliampere hours drawn from the battery since start
-} currentMeter_t;
 
-// WARNING - do not mix usage of CURRENT_SENSOR_* and CURRENT_METER_*, they are separate concerns.
+typedef struct currentMeter_s {
+    int32_t amperage;           // current in 1mA steps
+    int32_t amperageLatest;
+    int32_t mAhDrawn;           // mAh drawn from the battery since start
+} currentMeter_t;
 
 typedef struct currentMeterMAhDrawnState_s {
     int32_t mAhDrawn;           // milliampere hours drawn from the battery since start
     float mAhDrawnF;
 } currentMeterMAhDrawnState_t;
-
-//
-// Sensors
-//
 
 typedef enum {
     CURRENT_SENSOR_NONE = 0,
@@ -57,22 +52,19 @@ typedef enum {
 } currentSensor_e;
 
 
-//
-// ADC
-//
-
-typedef struct currentMeterADCState_s {
-    currentMeterMAhDrawnState_t mahDrawnState;
-    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
-    int32_t amperageLatest;     // current read by current sensor in centiampere (1/100th A) (unfiltered)
-} currentMeterADCState_t;
-
 typedef struct currentSensorADCConfig_s {
     int16_t scale;              // scale the current sensor output voltage to milliamps. Value in mV/10A
     int16_t offset;             // offset of the current sensor in mA
 } currentSensorADCConfig_t;
 
 PG_DECLARE(currentSensorADCConfig_t, currentSensorADCConfig);
+
+
+typedef struct currentMeterADCState_s {
+    currentMeterMAhDrawnState_t mahDrawnState;
+    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
+    int32_t amperageLatest;     // current read by current sensor in centiampere (1/100th A) (unfiltered)
+} currentMeterADCState_t;
 
 
 //
@@ -99,8 +91,6 @@ typedef struct currentMeterMSPState_s {
 // Current Meter API
 //
 
-void currentMeterReset(currentMeter_t *meter);
-
 void currentMeterADCInit(void);
 void currentMeterADCRefresh(int32_t lastUpdateAt);
 void currentMeterADCRead(currentMeter_t *meter);
@@ -115,9 +105,13 @@ void currentMeterMSPRefresh(timeUs_t currentTimeUs);
 void currentMeterMSPRead(currentMeter_t *meter);
 void currentMeterMSPSet(uint16_t amperage, uint16_t mAhDrawn);
 
+
 //
 // API for reading current meters by id.
 //
 extern const uint8_t supportedCurrentMeterCount;
 extern const uint8_t currentMeterIds[];
+
 void currentMeterRead(currentMeterId_e id, currentMeter_t *currentMeter);
+void currentMeterReset(currentMeter_t *meter);
+
