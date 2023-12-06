@@ -135,8 +135,6 @@ void voltageMeterADCRefresh(void)
     for (uint8_t i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageMeterAdcChannelMap); i++) {
         voltageMeterADCState_t *state = &voltageMeterADCStates[i];
 #ifdef USE_ADC
-        // store the battery voltage with some other recent battery voltage readings
-
         const voltageSensorADCConfig_t *config = voltageSensorADCConfig(i);
 
         uint8_t channel = voltageMeterAdcChannelMap[i];
@@ -149,7 +147,6 @@ void voltageMeterADCRefresh(void)
 
 #else
         UNUSED(voltageAdcToVoltage);
-
         state->voltageFiltered = 0;
         state->voltageUnfiltered = 0;
 #endif
@@ -166,13 +163,10 @@ void voltageMeterADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltageM
 
 void voltageMeterADCInit(void)
 {
-    for (uint8_t i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageMeterAdcChannelMap); i++) {
-        // store the battery voltage with some other recent battery voltage readings
+    memset(voltageMeterADCStates, 0, sizeof(voltageMeterADCStates));
 
-        voltageMeterADCState_t *state = &voltageMeterADCStates[i];
-        memset(state, 0, sizeof(voltageMeterADCState_t));
-
-        lowpassFilterInit(&state->filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
+    for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageMeterAdcChannelMap); i++) {
+        lowpassFilterInit(&voltageMeterADCStates[i].filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
     }
 }
 
