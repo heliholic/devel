@@ -122,8 +122,8 @@ void voltageSensorADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltage
 {
     voltageSensorState_t *state = &voltageADCSensors[adcChannel];
 
-    voltageMeter->filtered = state->filtered;
-    voltageMeter->unfiltered = state->unfiltered;
+    voltageMeter->filtered = state->filtered / 10;  // FIXME
+    voltageMeter->unfiltered = state->unfiltered / 10;
 }
 
 void voltageSensorADCInit(void)
