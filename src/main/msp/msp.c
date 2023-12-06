@@ -864,7 +864,7 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
         // Voltage meters using ADC sensors
         for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
             sbufWriteU8(dst, 5);                                        // ADC sensor frame length
-            sbufWriteU8(dst, voltageMeterADCtoIDMap[i]);                // Meter id
+            sbufWriteU8(dst, voltageSensorToMeterMap[i]);               // Meter id
             sbufWriteU8(dst, VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER); // Meter type
             sbufWriteU8(dst, voltageSensorADCConfig(i)->scale);
             sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivval);
@@ -3272,7 +3272,7 @@ static mspResult_e mspCommonProcessInCommand(mspDescriptor_t srcDesc, int16_t cm
         //
         int8_t voltageSensorADCIndex;
         for (voltageSensorADCIndex = 0; voltageSensorADCIndex < MAX_VOLTAGE_SENSOR_ADC; voltageSensorADCIndex++) {
-            if (id == voltageMeterADCtoIDMap[voltageSensorADCIndex]) {
+            if (id == voltageSensorToMeterMap[voltageSensorADCIndex]) {
                 break;
             }
         }

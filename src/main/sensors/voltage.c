@@ -1,21 +1,18 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "stdbool.h"
@@ -35,8 +32,6 @@
 
 #include "drivers/adc.h"
 
-#include "flight/pid.h"
-
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 
@@ -46,36 +41,8 @@
 
 #include "voltage.h"
 
-const uint8_t voltageMeterIds[] = {
-    VOLTAGE_METER_ID_BATTERY,
-    VOLTAGE_METER_ID_BEC,
-    VOLTAGE_METER_ID_BUS,
-    VOLTAGE_METER_ID_EXT,
-#ifdef USE_ESC_SENSOR
-    VOLTAGE_METER_ID_ESC_COMBINED,
-    VOLTAGE_METER_ID_ESC_1,
-    VOLTAGE_METER_ID_ESC_2,
-    VOLTAGE_METER_ID_ESC_3,
-    VOLTAGE_METER_ID_ESC_4,
-#endif
-};
 
-const uint8_t supportedVoltageMeterCount = ARRAYLEN(voltageMeterIds);
-
-
-//
-// ADC/ESC shared
-//
-
-void voltageMeterReset(voltageMeter_t *meter)
-{
-    meter->filtered = 0;
-    meter->unfiltered = 0;
-}
-
-//
-// ADC
-//
+/** Voltage ADC Sensors **/
 
 #ifndef VOLTAGE_SCALE_DEFAULT
 #define VOLTAGE_SCALE_DEFAULT 110
@@ -103,133 +70,123 @@ void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
 }
 
 
-typedef struct voltageMeterADCState_s {
-    uint16_t voltageFiltered;         // battery voltage in 0.01V steps (filtered)
-    uint16_t voltageUnfiltered;       // battery voltage in 0.01V steps (unfiltered)
-    filter_t filter;
-} voltageMeterADCState_t;
-
-voltageMeterADCState_t voltageMeterADCStates[MAX_VOLTAGE_SENSOR_ADC];
-
-
-// VOLTAGE_SENSOR_ADC_ to ADC_ map
-static const uint8_t voltageMeterAdcChannelMap[] = {
-    ADC_BATTERY,
-    ADC_VBEC,
-    ADC_VBUS,
-    ADC_VEXT,
+// Voltage sensor ID to ADC Channel map
+static const uint8_t voltageSensorAdcChannelMap[MAX_VOLTAGE_SENSOR_ADC] = {
+    [VOLTAGE_SENSOR_ADC_BAT] = ADC_BATTERY,
+    [VOLTAGE_SENSOR_ADC_BEC] = ADC_VBEC,
+    [VOLTAGE_SENSOR_ADC_BUS] = ADC_VBUS,
+    [VOLTAGE_SENSOR_ADC_EXT] = ADC_VEXT,
 };
 
-static uint16_t voltageAdcToVoltage(const uint32_t src, const voltageSensorADCConfig_t *config)
+typedef struct {
+    uint32_t filtered;
+    uint32_t unfiltered;
+    filter_t filter;
+} voltageSensorState_t;
+
+voltageSensorState_t voltageADCSensors[MAX_VOLTAGE_SENSOR_ADC];
+
+
+static uint32_t voltageSensorADCtoVoltage(int sensor, uint16_t adc)
 {
+    const voltageSensorADCConfig_t *config = voltageSensorADCConfig(sensor);
+
     const uint32_t divisor = constrain(config->resdivmul, VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX) *
                              constrain(config->resdivval, VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX);
     const uint32_t scale = config->scale * getVrefMv();
 
-    // calculate battery voltage based on ADC reading in 0.01V steps
-    return (src * scale) / (10 * 0xFFF * divisor);
+    // calculate battery voltage based on ADC reading in 1mV steps
+    return (adc * scale) / (0xfff * divisor);
 }
 
-void voltageMeterADCRefresh(void)
+void voltageSensorADCRefresh(void)
 {
-    for (uint8_t i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageMeterAdcChannelMap); i++) {
-        voltageMeterADCState_t *state = &voltageMeterADCStates[i];
+    for (uint8_t i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageSensorAdcChannelMap); i++) {
+        voltageSensorState_t *state = &voltageADCSensors[i];
 #ifdef USE_ADC
-        const voltageSensorADCConfig_t *config = voltageSensorADCConfig(i);
+        uint8_t channel = voltageSensorAdcChannelMap[i];
+        uint16_t sample = adcGetChannel(channel);
+        uint32_t voltage = voltageSensorADCtoVoltage(i, sample);
+        uint32_t filtered = filterApply(&state->filter, voltage);
 
-        uint8_t channel = voltageMeterAdcChannelMap[i];
-        uint16_t rawSample = adcGetChannel(channel);
-        uint16_t filteredDisplaySample = filterApply(&state->filter, rawSample);
-
-        // always calculate the latest voltage, see getLatestVoltage() which does the calculation on demand.
-        state->voltageFiltered = voltageAdcToVoltage(filteredDisplaySample, config);
-        state->voltageUnfiltered = voltageAdcToVoltage(rawSample, config);
-
+        state->filtered = filtered;
+        state->unfiltered = voltage;
 #else
-        UNUSED(voltageAdcToVoltage);
-        state->voltageFiltered = 0;
-        state->voltageUnfiltered = 0;
+        UNUSED(voltageSensorADCtoVoltage);
+        state->filtered = 0;
+        state->unfiltered = 0;
 #endif
     }
 }
 
-void voltageMeterADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltageMeter)
+void voltageSensorADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltageMeter)
 {
-    voltageMeterADCState_t *state = &voltageMeterADCStates[adcChannel];
+    voltageSensorState_t *state = &voltageADCSensors[adcChannel];
 
-    voltageMeter->filtered = state->voltageFiltered;
-    voltageMeter->unfiltered = state->voltageUnfiltered;
+    voltageMeter->filtered = state->filtered;
+    voltageMeter->unfiltered = state->unfiltered;
 }
 
-void voltageMeterADCInit(void)
+void voltageSensorADCInit(void)
 {
-    memset(voltageMeterADCStates, 0, sizeof(voltageMeterADCStates));
+    memset(voltageADCSensors, 0, sizeof(voltageADCSensors));
 
-    for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageMeterAdcChannelMap); i++) {
-        lowpassFilterInit(&voltageMeterADCStates[i].filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
+    for (unsigned i = 0; i < MAX_VOLTAGE_SENSOR_ADC && i < ARRAYLEN(voltageSensorAdcChannelMap); i++) {
+        lowpassFilterInit(&voltageADCSensors[i].filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
     }
 }
 
 
-//
-// ESC
-//
+/** Voltage ESC Sensors **/
 
 #ifdef USE_ESC_SENSOR
-typedef struct voltageMeterESCState_s {
-    uint16_t voltageFiltered;         // battery voltage in 0.01V steps (filtered)
-    uint16_t voltageUnfiltered;       // battery voltage in 0.01V steps (unfiltered)
-    filter_t filter;
-} voltageMeterESCState_t;
-
-static voltageMeterESCState_t voltageMeterESCState;
+static voltageSensorState_t voltageESCSensor;
 #endif
 
-
-
-void voltageMeterESCInit(void)
+void voltageMeterESCReadMotor(uint8_t motorNumber, voltageMeter_t *voltageMeter)
 {
 #ifdef USE_ESC_SENSOR
-    memset(&voltageMeterESCState, 0, sizeof(voltageMeterESCState_t));
-    lowpassFilterInit(&voltageMeterESCState.filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
+    const escSensorData_t *escData = getEscSensorData(motorNumber);
+    if (escData) {
+        const uint32_t voltage = (escData->dataAge <= ESC_BATTERY_AGE_MAX) ? escData->voltage : 0;
+        voltageMeter->unfiltered = voltage;
+        voltageMeter->filtered = voltage;
+    } else {
+        voltageMeterReset(voltageMeter);
+    }
+#else
+    UNUSED(motorNumber);
+    voltageMeterReset(voltageMeter);
+#endif
+}
+
+void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter)
+{
+#ifdef USE_ESC_SENSOR
+    voltageMeter->filtered = voltageESCSensor.filtered;
+    voltageMeter->unfiltered = voltageESCSensor.unfiltered;
+#else
+    voltageMeterReset(voltageMeter);
 #endif
 }
 
 void voltageMeterESCRefresh(void)
 {
 #ifdef USE_ESC_SENSOR
-    escSensorData_t *escData = getEscSensorData(ESC_SENSOR_COMBINED);
+    const escSensorData_t *escData = getEscSensorData(ESC_SENSOR_COMBINED);
     if (escData) {
-        voltageMeterESCState.voltageUnfiltered = escData->dataAge <= ESC_BATTERY_AGE_MAX ? escData->voltage : 0;
-        voltageMeterESCState.voltageFiltered = filterApply(&voltageMeterESCState.filter, voltageMeterESCState.voltageUnfiltered);
+        const uint32_t voltage = (escData->dataAge <= ESC_BATTERY_AGE_MAX) ? escData->voltage : 0;
+        voltageESCSensor.unfiltered = voltage;
+        voltageESCSensor.filtered = filterApply(&voltageESCSensor.filter, voltage);
     }
 #endif
 }
 
-void voltageMeterESCReadMotor(uint8_t motorNumber, voltageMeter_t *voltageMeter)
+void voltageMeterESCInit(void)
 {
-#ifndef USE_ESC_SENSOR
-    UNUSED(motorNumber);
-    voltageMeterReset(voltageMeter);
-#else
-    escSensorData_t *escData = getEscSensorData(motorNumber);
-    if (escData) {
-        voltageMeter->unfiltered = escData->dataAge <= ESC_BATTERY_AGE_MAX ? escData->voltage : 0;
-        voltageMeter->filtered = voltageMeter->unfiltered; // no filtering for ESC motors currently.
-    } else {
-        voltageMeterReset(voltageMeter);
-    }
-
-#endif
-}
-
-void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter)
-{
-#ifndef USE_ESC_SENSOR
-    voltageMeterReset(voltageMeter);
-#else
-    voltageMeter->filtered = voltageMeterESCState.voltageFiltered;
-    voltageMeter->unfiltered = voltageMeterESCState.voltageUnfiltered;
+#ifdef USE_ESC_SENSOR
+    memset(&voltageESCSensor, 0, sizeof(voltageESCSensor));
+    lowpassFilterInit(&voltageESCSensor.filter, LPF_BESSEL, GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod), batteryConfig()->vbatUpdateHz, 0);
 #endif
 }
 
@@ -240,8 +197,23 @@ void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter)
 // This API is used by MSP, for configuration/status.
 //
 
-// the order of these much match the indexes in voltageSensorADC_e
-const uint8_t voltageMeterADCtoIDMap[MAX_VOLTAGE_SENSOR_ADC] = {
+const uint8_t voltageMeterIds[] = {
+    VOLTAGE_METER_ID_BATTERY,
+    VOLTAGE_METER_ID_BEC,
+    VOLTAGE_METER_ID_BUS,
+    VOLTAGE_METER_ID_EXT,
+#ifdef USE_ESC_SENSOR
+    VOLTAGE_METER_ID_ESC_COMBINED,
+    VOLTAGE_METER_ID_ESC_1,
+    VOLTAGE_METER_ID_ESC_2,
+    VOLTAGE_METER_ID_ESC_3,
+    VOLTAGE_METER_ID_ESC_4,
+#endif
+};
+
+const uint8_t voltageMeterCount = ARRAYLEN(voltageMeterIds);
+
+const uint8_t voltageSensorToMeterMap[MAX_VOLTAGE_SENSOR_ADC] = {
     [VOLTAGE_SENSOR_ADC_BAT] = VOLTAGE_METER_ID_BATTERY,
     [VOLTAGE_SENSOR_ADC_BEC] = VOLTAGE_METER_ID_BEC,
     [VOLTAGE_SENSOR_ADC_BUS] = VOLTAGE_METER_ID_BUS,
@@ -251,16 +223,16 @@ const uint8_t voltageMeterADCtoIDMap[MAX_VOLTAGE_SENSOR_ADC] = {
 void voltageMeterRead(voltageMeterId_e id, voltageMeter_t *meter)
 {
     if (id == VOLTAGE_METER_ID_BATTERY) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_BAT, meter);
+        voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BAT, meter);
     } else
     if (id == VOLTAGE_METER_ID_BEC) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_BEC, meter);
+        voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BEC, meter);
     } else
     if (id == VOLTAGE_METER_ID_BUS) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_BUS, meter);
+        voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BUS, meter);
     } else
     if (id == VOLTAGE_METER_ID_EXT) {
-        voltageMeterADCRead(VOLTAGE_SENSOR_ADC_EXT, meter);
+        voltageSensorADCRead(VOLTAGE_SENSOR_ADC_EXT, meter);
     } else
 #ifdef USE_ESC_SENSOR
     if (id == VOLTAGE_METER_ID_ESC_COMBINED) {
@@ -274,4 +246,10 @@ void voltageMeterRead(voltageMeterId_e id, voltageMeter_t *meter)
     {
         voltageMeterReset(meter);
     }
+}
+
+void voltageMeterReset(voltageMeter_t *meter)
+{
+    meter->filtered = 0;
+    meter->unfiltered = 0;
 }

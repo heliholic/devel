@@ -412,8 +412,8 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
             break;
 #endif
         case VOLTAGE_METER_ADC:
-            voltageMeterADCRefresh();
-            voltageMeterADCRead(VOLTAGE_SENSOR_ADC_BAT, &voltageMeter);
+            voltageSensorADCRefresh();
+            voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BAT, &voltageMeter);
             break;
 
         default:
@@ -474,7 +474,7 @@ void batteryInit(void)
     voltageMeterReset(&voltageMeter);
     currentMeterReset(&currentMeter);
 
-    voltageMeterADCInit();
+    voltageSensorADCInit();
     currentMeterADCInit();
 
 #ifdef USE_ESC_SENSOR

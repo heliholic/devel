@@ -28,32 +28,16 @@
 #define VOLTAGE_TASK_FREQ_HZ 50
 #endif
 
-//
-// meters
-//
-
-// WARNING - do not mix usage of VOLTAGE_METER_* and VOLTAGE_SENSOR_*, they are separate concerns.
-
 typedef struct voltageMeter_s {
-    uint16_t filtered;          // voltage in 0.01V steps
-    uint16_t unfiltered;
-    bool lowVoltageCutoff;
+    uint32_t filtered;          // voltage in 1mV steps
+    uint32_t unfiltered;
 } voltageMeter_t;
-
-
-//
-// sensors
-//
 
 typedef enum {
     VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER = 0,
     VOLTAGE_SENSOR_TYPE_ESC
 } voltageSensorType_e;
 
-
-//
-// adc sensors
-//
 
 #define VOLTAGE_SCALE_MIN 0
 #define VOLTAGE_SCALE_MAX 255
@@ -76,7 +60,7 @@ typedef enum {
     VOLTAGE_SENSOR_ADC_BEC = 1,
     VOLTAGE_SENSOR_ADC_BUS = 2,
     VOLTAGE_SENSOR_ADC_EXT = 3,
-} voltageSensorADC_e; // see also voltageMeterADCtoIDMap
+} voltageSensorADC_e; // see also voltageSensorToMeterMap
 
 
 typedef struct voltageSensorADCConfig_s {
@@ -87,14 +71,14 @@ typedef struct voltageSensorADCConfig_s {
 
 PG_DECLARE_ARRAY(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig);
 
+
 //
 // Main API
 //
-void voltageMeterReset(voltageMeter_t *voltageMeter);
 
-void voltageMeterADCInit(void);
-void voltageMeterADCRefresh(void);
-void voltageMeterADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltageMeter);
+void voltageSensorADCInit(void);
+void voltageSensorADCRefresh(void);
+void voltageSensorADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltageMeter);
 
 void voltageMeterESCInit(void);
 void voltageMeterESCRefresh(void);
@@ -105,8 +89,10 @@ void voltageMeterESCReadMotor(uint8_t motor, voltageMeter_t *voltageMeter);
 //
 // API for reading/configuring current meters by id.
 //
-extern const uint8_t voltageMeterADCtoIDMap[MAX_VOLTAGE_SENSOR_ADC];
 
-extern const uint8_t supportedVoltageMeterCount;
+extern const uint8_t voltageSensorToMeterMap[MAX_VOLTAGE_SENSOR_ADC];
 extern const uint8_t voltageMeterIds[];
+extern const uint8_t voltageMeterCount;
+
 void voltageMeterRead(voltageMeterId_e id, voltageMeter_t *voltageMeter);
+void voltageMeterReset(voltageMeter_t *voltageMeter);
