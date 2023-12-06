@@ -38,6 +38,12 @@ typedef enum {
     VOLTAGE_SENSOR_TYPE_ESC
 } voltageSensorType_e;
 
+typedef enum {
+    VOLTAGE_SENSOR_ADC_BAT = 0,
+    VOLTAGE_SENSOR_ADC_BEC = 1,
+    VOLTAGE_SENSOR_ADC_BUS = 2,
+    VOLTAGE_SENSOR_ADC_EXT = 3,
+} voltageSensorADC_e;
 
 #define VOLTAGE_SCALE_MIN 0
 #define VOLTAGE_SCALE_MAX 255
@@ -51,17 +57,6 @@ typedef enum {
 #ifndef MAX_VOLTAGE_SENSOR_ADC
 #define MAX_VOLTAGE_SENSOR_ADC 4
 #endif
-
-#define VOLTAGE_METER_ID_ADC_COUNT 4
-#define VOLTAGE_METER_ID_ESC_COUNT 4
-
-typedef enum {
-    VOLTAGE_SENSOR_ADC_BAT = 0,
-    VOLTAGE_SENSOR_ADC_BEC = 1,
-    VOLTAGE_SENSOR_ADC_BUS = 2,
-    VOLTAGE_SENSOR_ADC_EXT = 3,
-} voltageSensorADC_e; // see also voltageSensorToMeterMap
-
 
 typedef struct voltageSensorADCConfig_s {
     uint8_t scale;                      // adjust this to match battery voltage to reported value
@@ -89,6 +84,9 @@ void voltageMeterESCReadMotor(uint8_t motor, voltageMeter_t *voltageMeter);
 //
 // API for reading/configuring current meters by id.
 //
+
+#define VOLTAGE_METER_ID_ADC_COUNT 4
+#define VOLTAGE_METER_ID_ESC_COUNT 4
 
 extern const uint8_t voltageSensorToMeterMap[MAX_VOLTAGE_SENSOR_ADC];
 extern const uint8_t voltageMeterIds[];

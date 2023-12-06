@@ -25,7 +25,6 @@
 
 #include "common/filter.h"
 #include "common/maths.h"
-#include "common/utils.h"
 
 #include "config/config.h"
 #include "config/config_reset.h"
@@ -35,9 +34,9 @@
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 
-#include "sensors/adcinternal.h"
 #include "sensors/battery.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/adcinternal.h"
 
 #include "voltage.h"
 
@@ -48,12 +47,12 @@
 #define VOLTAGE_SCALE_DEFAULT 110
 #endif
 
-#ifndef VOLTAGE_RESDIVVAL_DEFAULT
-#define VOLTAGE_RESDIVVAL_DEFAULT 10
+#ifndef VOLTAGE_DIVIDER_DEFAULT
+#define VOLTAGE_DIVIDER_DEFAULT 10
 #endif
 
-#ifndef VOLTAGE_RESDIVMULTIPLIER_DEFAULT
-#define VOLTAGE_RESDIVMULTIPLIER_DEFAULT 1
+#ifndef VOLTAGE_MULTIPLIER_DEFAULT
+#define VOLTAGE_MULTIPLIER_DEFAULT 1
 #endif
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig, PG_VOLTAGE_SENSOR_ADC_CONFIG, 0);
@@ -63,8 +62,8 @@ void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
     for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
         RESET_CONFIG(voltageSensorADCConfig_t, &instance[i],
             .scale = VOLTAGE_SCALE_DEFAULT,
-            .resdivval = VOLTAGE_RESDIVVAL_DEFAULT,
-            .resdivmul = VOLTAGE_RESDIVMULTIPLIER_DEFAULT,
+            .resdivval = VOLTAGE_DIVIDER_DEFAULT,
+            .resdivmul = VOLTAGE_MULTIPLIER_DEFAULT,
         );
     }
 }
