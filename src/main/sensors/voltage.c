@@ -176,10 +176,6 @@ void voltageMeterADCInit(void)
     }
 }
 
-void voltageMeterGenericInit(void)
-{
-
-}
 
 //
 // ESC

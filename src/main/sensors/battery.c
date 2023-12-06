@@ -471,15 +471,26 @@ void taskBatteryCurrentUpdate(timeUs_t currentTimeUs)
 
 void batteryInit(void)
 {
-    //
+    voltageMeterReset(&voltageMeter);
+    currentMeterReset(&currentMeter);
+
+    voltageMeterADCInit();
+    currentMeterADCInit();
+
+#ifdef USE_ESC_SENSOR
+    voltageMeterESCInit();
+    currentMeterESCInit();
+#endif
+
+#ifdef USE_MSP_CURRENT_METER
+    currentMeterMSPInit();
+#endif
+
     // presence
-    //
     batteryState = BATTERY_INIT;
     batteryCellCount = 0;
 
-    //
     // voltage
-    //
     voltageState = BATTERY_INIT;
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
@@ -489,49 +500,8 @@ void batteryInit(void)
     lowVoltageCutoff.percentage = 100;
     lowVoltageCutoff.startTime = 0;
 
-    voltageMeterReset(&voltageMeter);
-    voltageMeterGenericInit();
-
-    switch (batteryConfig()->voltageMeterSource) {
-        case VOLTAGE_METER_ESC:
-#ifdef USE_ESC_SENSOR
-            voltageMeterESCInit();
-#endif
-            break;
-
-        case VOLTAGE_METER_ADC:
-            voltageMeterADCInit();
-            break;
-
-        default:
-            break;
-    }
-
-    //
     // current
-    //
     consumptionState = BATTERY_OK;
 
-    currentMeterReset(&currentMeter);
-
-    switch (batteryConfig()->currentMeterSource) {
-        case CURRENT_METER_ADC:
-            currentMeterADCInit();
-            break;
-
-        case CURRENT_METER_ESC:
-#ifdef ESC_SENSOR
-            currentMeterESCInit();
-#endif
-            break;
-        case CURRENT_METER_MSP:
-#ifdef USE_MSP_CURRENT_METER
-            currentMeterMSPInit();
-#endif
-            break;
-
-        default:
-            break;
-    }
 }
 
