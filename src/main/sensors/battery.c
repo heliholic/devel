@@ -402,22 +402,25 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
+    voltageSensorADCRefresh();
+
+#ifdef USE_ESC_SENSOR
+    if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
+        voltageMeterESCRefresh();
+    }
+#endif
+
     switch (batteryConfig()->voltageMeterSource) {
 #ifdef USE_ESC_SENSOR
         case VOLTAGE_METER_ESC:
-            if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-                voltageMeterESCRefresh();
+            if (featureIsEnabled(FEATURE_ESC_SENSOR))
                 voltageMeterESCReadCombined(&voltageMeter);
-            }
+            else
+                voltageMeterReset(&voltageMeter);
             break;
 #endif
         case VOLTAGE_METER_ADC:
-            voltageSensorADCRefresh();
             voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BAT, &voltageMeter);
-            break;
-
-        default:
-            voltageMeterReset(&voltageMeter);
             break;
     }
 
@@ -430,25 +433,26 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
 
 void taskBatteryCurrentUpdate(timeUs_t currentTimeUs)
 {
-    if (batteryCellCount == 0) {
-        currentMeterReset(&currentMeter);
-        return;
-    }
-
     static uint32_t ibatLastServiced = 0;
     const int32_t lastUpdateAt = cmp32(currentTimeUs, ibatLastServiced);
     ibatLastServiced = currentTimeUs;
 
+    currentMeterADCRefresh(lastUpdateAt);
+
+#ifdef USE_ESC_SENSOR
+    if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
+        currentMeterESCRefresh(lastUpdateAt);
+    }
+#endif
+
     switch (batteryConfig()->currentMeterSource) {
         case CURRENT_METER_ADC:
-            currentMeterADCRefresh(lastUpdateAt);
             currentMeterADCRead(&currentMeter);
             break;
 
         case CURRENT_METER_ESC:
 #ifdef USE_ESC_SENSOR
             if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-                currentMeterESCRefresh(lastUpdateAt);
                 currentMeterESCReadCombined(&currentMeter);
             }
 #endif
@@ -459,11 +463,6 @@ void taskBatteryCurrentUpdate(timeUs_t currentTimeUs)
             currentMeterMSPRefresh(currentTimeUs);
             currentMeterMSPRead(&currentMeter);
 #endif
-            break;
-
-        default:
-        case CURRENT_METER_NONE:
-            currentMeterReset(&currentMeter);
             break;
     }
 }

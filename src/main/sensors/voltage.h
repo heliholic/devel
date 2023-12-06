@@ -28,23 +28,6 @@
 #define VOLTAGE_TASK_FREQ_HZ 50
 #endif
 
-typedef struct voltageMeter_s {
-    uint32_t filtered;          // voltage in 1mV steps
-    uint32_t unfiltered;
-} voltageMeter_t;
-
-typedef enum {
-    VOLTAGE_SENSOR_TYPE_ADC_RESISTOR_DIVIDER = 0,
-    VOLTAGE_SENSOR_TYPE_ESC
-} voltageSensorType_e;
-
-typedef enum {
-    VOLTAGE_SENSOR_ADC_BAT = 0,
-    VOLTAGE_SENSOR_ADC_BEC = 1,
-    VOLTAGE_SENSOR_ADC_BUS = 2,
-    VOLTAGE_SENSOR_ADC_EXT = 3,
-} voltageSensorADC_e;
-
 #define VOLTAGE_SCALE_MIN 0
 #define VOLTAGE_SCALE_MAX 255
 
@@ -58,6 +41,24 @@ typedef enum {
 #define MAX_VOLTAGE_SENSOR_ADC 4
 #endif
 
+
+typedef struct voltageMeter_s {
+    uint32_t filtered;          // voltage in 1mV steps
+    uint32_t unfiltered;
+} voltageMeter_t;
+
+typedef enum {
+    VOLTAGE_SENSOR_TYPE_ADC = 0,
+    VOLTAGE_SENSOR_TYPE_ESC
+} voltageSensorType_e;
+
+typedef enum {
+    VOLTAGE_SENSOR_ADC_BAT = 0,
+    VOLTAGE_SENSOR_ADC_BEC = 1,
+    VOLTAGE_SENSOR_ADC_BUS = 2,
+    VOLTAGE_SENSOR_ADC_EXT = 3,
+} voltageSensorADC_e;
+
 typedef struct voltageSensorADCConfig_s {
     uint8_t scale;                      // adjust this to match battery voltage to reported value
     uint8_t resdivval;                  // resistor divider R2 (default NAZE 10(K))
@@ -68,7 +69,7 @@ PG_DECLARE_ARRAY(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensor
 
 
 //
-// Main API
+// Voltage Sensor API
 //
 
 void voltageSensorADCInit(void);
@@ -82,7 +83,7 @@ void voltageMeterESCReadMotor(uint8_t motor, voltageMeter_t *voltageMeter);
 
 
 //
-// API for reading/configuring current meters by id.
+// Voltage Meter API
 //
 
 #define VOLTAGE_METER_ID_ADC_COUNT 4
