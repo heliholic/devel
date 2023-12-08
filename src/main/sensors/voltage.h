@@ -76,10 +76,10 @@ void voltageSensorADCInit(void);
 void voltageSensorADCRefresh(void);
 void voltageSensorADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltageMeter);
 
-void voltageMeterESCInit(void);
-void voltageMeterESCRefresh(void);
-void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter);
-void voltageMeterESCReadMotor(uint8_t motor, voltageMeter_t *voltageMeter);
+void voltageSensorESCInit(void);
+void voltageSensorESCRefresh(void);
+void voltageSensorESCReadCombined(voltageMeter_t *voltageMeter);
+void voltageSensorESCReadMotor(uint8_t motor, voltageMeter_t *voltageMeter);
 
 
 //

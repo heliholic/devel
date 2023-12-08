@@ -1,21 +1,18 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -33,25 +30,6 @@
 #define CURRENT_METER_ID_ESC_COUNT 4
 
 
-typedef struct currentMeter_s {
-    int32_t amperage;           // current in 1mA steps
-    int32_t amperageLatest;
-    int32_t mAhDrawn;           // mAh drawn from the battery since start
-} currentMeter_t;
-
-typedef struct currentMeterMAhDrawnState_s {
-    int32_t mAhDrawn;           // milliampere hours drawn from the battery since start
-    float mAhDrawnF;
-} currentMeterMAhDrawnState_t;
-
-typedef enum {
-    CURRENT_SENSOR_NONE = 0,
-    CURRENT_SENSOR_ADC,
-    CURRENT_SENSOR_ESC,
-    CURRENT_SENSOR_MSP
-} currentSensor_e;
-
-
 typedef struct currentSensorADCConfig_s {
     int16_t scale;              // scale the current sensor output voltage to milliamps. Value in mV/10A
     int16_t offset;             // offset of the current sensor in mA
@@ -60,55 +38,38 @@ typedef struct currentSensorADCConfig_s {
 PG_DECLARE(currentSensorADCConfig_t, currentSensorADCConfig);
 
 
-typedef struct currentMeterADCState_s {
-    currentMeterMAhDrawnState_t mahDrawnState;
-    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
-    int32_t amperageLatest;     // current read by current sensor in centiampere (1/100th A) (unfiltered)
-} currentMeterADCState_t;
+typedef enum {
+    CURRENT_SENSOR_NONE = 0,
+    CURRENT_SENSOR_ADC,
+    CURRENT_SENSOR_ESC,
+    CURRENT_SENSOR_MSP
+} currentSensor_e;
+
+typedef struct {
+    int32_t amperage;             // current in 1mA steps
+    int32_t amperageLatest;
+    int32_t mAhDrawn;             // mAh drawn from the battery since start
+} currentMeter_t;
 
 
 //
-// ESC
+// Current Sensor API
 //
 
-typedef struct currentMeterESCState_s {
-    int32_t mAhDrawn;           // milliampere hours drawn from the battery since start
-    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
-} currentMeterESCState_t;
+void currentSensorADCInit(void);
+void currentSensorADCRefresh(int32_t lastUpdateAt);
+void currentSensorADCRead(currentMeter_t *meter);
 
-
-//
-// MSP
-//
-
-typedef struct currentMeterMSPState_s {
-    int32_t mAhDrawn;           // milliampere hours drawn from the battery since start
-    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
-} currentMeterMSPState_t;
+void currentSensorESCInit(void);
+void currentSensorESCRefresh(int32_t lastUpdateAt);
+void currentSensorESCReadCombined(currentMeter_t *meter);
+void currentSensorESCReadMotor(uint8_t motorNumber, currentMeter_t *meter);
 
 
 //
 // Current Meter API
 //
 
-void currentMeterADCInit(void);
-void currentMeterADCRefresh(int32_t lastUpdateAt);
-void currentMeterADCRead(currentMeter_t *meter);
-
-void currentMeterESCInit(void);
-void currentMeterESCRefresh(int32_t lastUpdateAt);
-void currentMeterESCReadCombined(currentMeter_t *meter);
-void currentMeterESCReadMotor(uint8_t motorNumber, currentMeter_t *meter);
-
-void currentMeterMSPInit(void);
-void currentMeterMSPRefresh(timeUs_t currentTimeUs);
-void currentMeterMSPRead(currentMeter_t *meter);
-void currentMeterMSPSet(uint16_t amperage, uint16_t mAhDrawn);
-
-
-//
-// API for reading current meters by id.
-//
 extern const uint8_t supportedCurrentMeterCount;
 extern const uint8_t currentMeterIds[];
 

@@ -142,12 +142,12 @@ void voltageSensorADCInit(void)
 static voltageSensorState_t voltageESCSensor;
 #endif
 
-void voltageMeterESCReadMotor(uint8_t motorNumber, voltageMeter_t *voltageMeter)
+void voltageSensorESCReadMotor(uint8_t motorNumber, voltageMeter_t *voltageMeter)
 {
 #ifdef USE_ESC_SENSOR
     const escSensorData_t *escData = getEscSensorData(motorNumber);
-    if (escData) {
-        const uint32_t voltage = (escData->dataAge <= ESC_BATTERY_AGE_MAX) ? escData->voltage : 0;
+    if (escData && escData->dataAge <= ESC_BATTERY_AGE_MAX) {
+        const uint32_t voltage = escData->voltage;
         voltageMeter->unfiltered = voltage;
         voltageMeter->filtered = voltage;
     } else {
@@ -159,7 +159,7 @@ void voltageMeterESCReadMotor(uint8_t motorNumber, voltageMeter_t *voltageMeter)
 #endif
 }
 
-void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter)
+void voltageSensorESCReadCombined(voltageMeter_t *voltageMeter)
 {
 #ifdef USE_ESC_SENSOR
     voltageMeter->filtered = voltageESCSensor.filtered;
@@ -169,7 +169,7 @@ void voltageMeterESCReadCombined(voltageMeter_t *voltageMeter)
 #endif
 }
 
-void voltageMeterESCRefresh(void)
+void voltageSensorESCRefresh(void)
 {
 #ifdef USE_ESC_SENSOR
     const escSensorData_t *escData = getEscSensorData(ESC_SENSOR_COMBINED);
@@ -181,7 +181,7 @@ void voltageMeterESCRefresh(void)
 #endif
 }
 
-void voltageMeterESCInit(void)
+void voltageSensorESCInit(void)
 {
 #ifdef USE_ESC_SENSOR
     memset(&voltageESCSensor, 0, sizeof(voltageESCSensor));
@@ -235,11 +235,11 @@ void voltageMeterRead(voltageMeterId_e id, voltageMeter_t *meter)
     } else
 #ifdef USE_ESC_SENSOR
     if (id == VOLTAGE_METER_ID_ESC_COMBINED) {
-        voltageMeterESCReadCombined(meter);
+        voltageSensorESCReadCombined(meter);
     } else
     if (id >= VOLTAGE_METER_ID_ESC_1 && id <= VOLTAGE_METER_ID_ESC_4) {
         int motor = id - VOLTAGE_METER_ID_ESC_1;
-        voltageMeterESCReadMotor(motor, meter);
+        voltageSensorESCReadMotor(motor, meter);
     } else
 #endif
     {

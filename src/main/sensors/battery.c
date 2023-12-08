@@ -406,7 +406,7 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
 
 #ifdef USE_ESC_SENSOR
     if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-        voltageMeterESCRefresh();
+        voltageSensorESCRefresh();
     }
 #endif
 
@@ -414,7 +414,7 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
 #ifdef USE_ESC_SENSOR
         case VOLTAGE_METER_ESC:
             if (featureIsEnabled(FEATURE_ESC_SENSOR))
-                voltageMeterESCReadCombined(&voltageMeter);
+                voltageSensorESCReadCombined(&voltageMeter);
             else
                 voltageMeterReset(&voltageMeter);
             break;
@@ -437,31 +437,24 @@ void taskBatteryCurrentUpdate(timeUs_t currentTimeUs)
     const int32_t lastUpdateAt = cmp32(currentTimeUs, ibatLastServiced);
     ibatLastServiced = currentTimeUs;
 
-    currentMeterADCRefresh(lastUpdateAt);
+    currentSensorADCRefresh(lastUpdateAt);
 
 #ifdef USE_ESC_SENSOR
     if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-        currentMeterESCRefresh(lastUpdateAt);
+        currentSensorESCRefresh(lastUpdateAt);
     }
 #endif
 
     switch (batteryConfig()->currentMeterSource) {
         case CURRENT_METER_ADC:
-            currentMeterADCRead(&currentMeter);
+            currentSensorADCRead(&currentMeter);
             break;
 
         case CURRENT_METER_ESC:
 #ifdef USE_ESC_SENSOR
             if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
-                currentMeterESCReadCombined(&currentMeter);
+                currentSensorESCReadCombined(&currentMeter);
             }
-#endif
-            break;
-
-        case CURRENT_METER_MSP:
-#ifdef USE_MSP_CURRENT_METER
-            currentMeterMSPRefresh(currentTimeUs);
-            currentMeterMSPRead(&currentMeter);
 #endif
             break;
     }
@@ -474,15 +467,11 @@ void batteryInit(void)
     currentMeterReset(&currentMeter);
 
     voltageSensorADCInit();
-    currentMeterADCInit();
+    currentSensorADCInit();
 
 #ifdef USE_ESC_SENSOR
-    voltageMeterESCInit();
-    currentMeterESCInit();
-#endif
-
-#ifdef USE_MSP_CURRENT_METER
-    currentMeterMSPInit();
+    voltageSensorESCInit();
+    currentSensorESCInit();
 #endif
 
     // presence
@@ -501,6 +490,5 @@ void batteryInit(void)
 
     // current
     consumptionState = BATTERY_OK;
-
 }
 
