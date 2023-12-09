@@ -46,9 +46,9 @@ typedef enum {
 } currentSensor_e;
 
 typedef struct {
-    int32_t amperage;             // current in 1mA steps
-    int32_t amperageLatest;
-    int32_t mAhDrawn;             // mAh drawn from the battery since start
+    uint32_t filtered;             // current in 1mA steps
+    uint32_t unfiltered;
+    uint32_t mAhDrawn;             // mAh drawn from the battery since start
 } currentMeter_t;
 
 

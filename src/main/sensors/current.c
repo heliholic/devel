@@ -61,7 +61,7 @@ PG_RESET_TEMPLATE(currentSensorADCConfig_t, currentSensorADCConfig,
 typedef struct {
     int32_t unfiltered;
     int32_t filtered;
-    float consumption;
+    float mAhDrawn;
     filter_t filter;
 } currentSensorState_t;
 
@@ -96,12 +96,12 @@ void currentSensorADCRefresh(int32_t lastUpdateAt)
 
     state->unfiltered = current;
     state->filtered = filterApply(&state->filter, current);
-    state->consumption += current * lastUpdateAt / (1000.0f * 1000 * 3600);
+    state->mAhDrawn += current * lastUpdateAt / (1000.0f * 1000 * 3600);
 #else
     UNUSED(lastUpdateAt);
     state->filtered = 0;
     state->unfiltered = 0;
-    state->consumption = 0;
+    state->mAhDrawn = 0;
 #endif
 }
 
@@ -109,11 +109,11 @@ void currentSensorADCRead(currentMeter_t *meter)
 {
     currentSensorState_t * state = &currentSensorADCState;
 
-    meter->amperageLatest = state->unfiltered;
-    meter->amperage = state->filtered;
-    meter->mAhDrawn = state->consumption;
+    meter->unfiltered = state->unfiltered;
+    meter->filtered = state->filtered;
+    meter->mAhDrawn = state->mAhDrawn;
 
-    DEBUG_SET(DEBUG_CURRENT_SENSOR, 2, meter->amperageLatest);
+    DEBUG_SET(DEBUG_CURRENT_SENSOR, 2, meter->unfiltered);
     DEBUG_SET(DEBUG_CURRENT_SENSOR, 3, meter->mAhDrawn);
 }
 
@@ -143,7 +143,7 @@ void currentSensorESCRefresh(int32_t lastUpdateAt)
         const uint32_t current = escData->current + escSensorConfig()->current_offset;
         state->unfiltered = current;
         state->filtered = current;
-        state->consumption = escData->consumption + (escSensorConfig()->current_offset * millis() / 3600000.0f);
+        state->mAhDrawn = escData->consumption + (escSensorConfig()->current_offset * millis() / 3600000.0f);
     } else {
         state->unfiltered = 0;
         state->filtered = 0;
@@ -154,9 +154,9 @@ void currentSensorESCReadCombined(currentMeter_t *meter)
 {
     currentSensorState_t * state = &currentSensorESCState;
 
-    meter->amperageLatest = state->unfiltered;
-    meter->amperage = state->filtered;
-    meter->mAhDrawn = state->consumption;
+    meter->unfiltered = state->unfiltered;
+    meter->filtered = state->filtered;
+    meter->mAhDrawn = state->mAhDrawn;
 }
 
 void currentSensorESCReadMotor(uint8_t motorNumber, currentMeter_t *meter)
@@ -164,8 +164,8 @@ void currentSensorESCReadMotor(uint8_t motorNumber, currentMeter_t *meter)
     escSensorData_t *escData = getEscSensorData(motorNumber);
 
     if (escData && escData->dataAge <= ESC_BATTERY_AGE_MAX) {
-        meter->amperage = escData->current;
-        meter->amperageLatest = escData->current;
+        meter->filtered = escData->current;
+        meter->unfiltered = escData->current;
         meter->mAhDrawn = escData->consumption;
     } else {
         currentMeterReset(meter);
@@ -220,8 +220,8 @@ void currentMeterRead(currentMeterId_e id, currentMeter_t *meter)
 
 void currentMeterReset(currentMeter_t *meter)
 {
-    meter->amperage = 0;
-    meter->amperageLatest = 0;
+    meter->filtered = 0;
+    meter->unfiltered = 0;
     meter->mAhDrawn = 0;
 }
 

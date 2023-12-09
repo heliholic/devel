@@ -165,12 +165,12 @@ bool isAmperageConfigured(void)
 }
 
 int32_t getAmperage(void) {
-    return currentMeter.amperage;
+    return currentMeter.filtered;
 }
 
 int32_t getAmperageLatest(void)
 {
-    return currentMeter.amperageLatest;
+    return currentMeter.unfiltered;
 }
 
 int32_t getMAhDrawn(void)

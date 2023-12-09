@@ -42,10 +42,14 @@
 #endif
 
 
-typedef struct voltageMeter_s {
-    uint32_t filtered;          // voltage in 1mV steps
-    uint32_t unfiltered;
-} voltageMeter_t;
+typedef struct voltageSensorADCConfig_s {
+    uint8_t scale;                      // adjust this to match battery voltage to reported value
+    uint8_t resdivval;                  // resistor divider R2 (default NAZE 10(K))
+    uint8_t resdivmul;                  // multiplier for scale (e.g. 2.5:1 ratio with multiplier of 4 can use '100' instead of '25' in ratio) to get better precision
+} voltageSensorADCConfig_t;
+
+PG_DECLARE_ARRAY(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig);
+
 
 typedef enum {
     VOLTAGE_SENSOR_TYPE_ADC = 0,
@@ -59,13 +63,10 @@ typedef enum {
     VOLTAGE_SENSOR_ADC_EXT = 3,
 } voltageSensorADC_e;
 
-typedef struct voltageSensorADCConfig_s {
-    uint8_t scale;                      // adjust this to match battery voltage to reported value
-    uint8_t resdivval;                  // resistor divider R2 (default NAZE 10(K))
-    uint8_t resdivmul;                  // multiplier for scale (e.g. 2.5:1 ratio with multiplier of 4 can use '100' instead of '25' in ratio) to get better precision
-} voltageSensorADCConfig_t;
-
-PG_DECLARE_ARRAY(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig);
+typedef struct voltageMeter_s {
+    uint32_t filtered;          // voltage in 1mV steps
+    uint32_t unfiltered;
+} voltageMeter_t;
 
 
 //

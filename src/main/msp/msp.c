@@ -853,7 +853,7 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
 
             sbufWriteU8(dst, id);
             sbufWriteU16(dst, (uint16_t)constrain(meter.mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery
-            sbufWriteU16(dst, (uint16_t)constrain(meter.amperage, 0, 0xFFFF)); // send amperage in 0.01 A steps
+            sbufWriteU16(dst, (uint16_t)constrain(meter.filtered / 10, 0, 0xFFFF)); // send amperage in 10mA steps
         }
         break;
     }
