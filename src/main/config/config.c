@@ -625,6 +625,11 @@ void validateAndFixGyroConfig(void)
             filtDenom = pidDenom;
         }
 
+        // Check gyro rate sync
+        if (gyro.sampleRateHz < 3200) {
+            gyroConfigMutable()->gyro_rate_sync = true;
+        }
+
         // Fix gyro filter limits
         uint16_t decimation_limit = lrintf(0.5f * gyro.sampleRateHz / pidDenom);
         uint16_t cutoff_limit = lrintf(0.45f * gyro.sampleRateHz / filtDenom);
