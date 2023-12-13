@@ -268,7 +268,7 @@ void crsfFrameBatterySensor(sbuf_t *dst)
     } else {
         sbufWriteU16BigEndian(dst, getLegacyBatteryVoltage());
     }
-    sbufWriteU16BigEndian(dst, getAmperage() / 10);
+    sbufWriteU16BigEndian(dst, getBatteryCurrent() / 10);
     const uint32_t mAhDrawn = getMAhDrawn();
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentageRemaining();
     sbufWriteU8(dst, (mAhDrawn >> 16));
@@ -836,7 +836,7 @@ void initCrsfTelemetry(void)
         crsfSchedule[index++] = BIT(CRSF_FRAME_ATTITUDE_INDEX);
     }
     if ((isBatteryVoltageConfigured() && telemetryIsSensorEnabled(SENSOR_VOLTAGE))
-        || (isAmperageConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT | SENSOR_FUEL))) {
+        || (isBatteryCurrentConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT | SENSOR_FUEL))) {
         crsfSchedule[index++] = BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX);
     }
     if (telemetryIsSensorEnabled(SENSOR_MODE)) {

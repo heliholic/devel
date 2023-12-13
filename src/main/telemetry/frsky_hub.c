@@ -395,7 +395,7 @@ static void sendVoltageAmp(void)
 
 static void sendAmperage(void)
 {
-    frSkyHubWriteFrame(ID_CURRENT, (uint16_t)(getAmperage() / 10));
+    frSkyHubWriteFrame(ID_CURRENT, (uint16_t)(getBatteryCurrent() / 10));
 }
 
 static void sendFuelLevel(void)
@@ -556,7 +556,7 @@ void processFrSkyHubTelemetry(timeUs_t currentTimeUs)
                 sendVoltageAmp();
             }
 
-            if (isAmperageConfigured()) {
+            if (isBatteryCurrentConfigured()) {
                 if (telemetryIsSensorEnabled(SENSOR_CURRENT)) {
                     sendAmperage();
                 }

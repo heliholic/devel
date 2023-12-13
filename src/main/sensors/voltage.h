@@ -53,7 +53,7 @@ PG_DECLARE_ARRAY(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensor
 
 typedef enum {
     VOLTAGE_SENSOR_TYPE_ADC = 0,
-    VOLTAGE_SENSOR_TYPE_ESC
+    VOLTAGE_SENSOR_TYPE_ESC = 1,
 } voltageSensorType_e;
 
 typedef enum {
@@ -64,8 +64,10 @@ typedef enum {
 } voltageSensorADC_e;
 
 typedef struct voltageMeter_s {
-    uint32_t filtered;          // voltage in 1mV steps
-    uint32_t unfiltered;
+    uint32_t latest;
+    uint32_t voltage;
+    float latestf;
+    float voltagef;
 } voltageMeter_t;
 
 
@@ -79,7 +81,7 @@ void voltageSensorADCRead(voltageSensorADC_e adcChannel, voltageMeter_t *voltage
 
 void voltageSensorESCInit(void);
 void voltageSensorESCRefresh(void);
-void voltageSensorESCReadCombined(voltageMeter_t *voltageMeter);
+void voltageSensorESCReadTotal(voltageMeter_t *voltageMeter);
 void voltageSensorESCReadMotor(uint8_t motor, voltageMeter_t *voltageMeter);
 
 

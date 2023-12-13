@@ -413,7 +413,7 @@ static void govUpdateInputs(void)
 
     // Voltage & current filters
     gov.motorVoltage = filterApply(&gov.motorVoltageFilter, getBatteryVoltageLatest() * 0.01f);
-    gov.motorCurrent = filterApply(&gov.motorCurrentFilter, getAmperageLatest() * 0.01f);
+    gov.motorCurrent = filterApply(&gov.motorCurrentFilter, getBatteryCurrentLatest() * 0.01f);
 }
 
 static void govUpdateData(void)

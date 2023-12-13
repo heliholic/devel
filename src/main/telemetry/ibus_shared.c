@@ -383,7 +383,7 @@ static void setValue(uint8_t* bufferPtr, uint8_t sensorType, uint8_t length)
             value.uint16 = (uint16_t)(getBatteryAverageCellVoltage());
             break;
         case IBUS_SENSOR_TYPE_BAT_CURR:
-            value.uint16 = (uint16_t)getAmperage();
+            value.uint16 = (uint16_t)getBatteryCurrent();
             break;
 #if defined(USE_ACC)
         case IBUS_SENSOR_TYPE_ACC_X:

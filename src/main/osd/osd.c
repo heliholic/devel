@@ -520,7 +520,7 @@ static void osdUpdateStats(void)
         stats.min_voltage = value;
     }
 
-    value = getAmperage() / 100;
+    value = getBatteryCurrent() / 100;
     if (stats.max_current < value) {
         stats.max_current = value;
     }

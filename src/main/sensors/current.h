@@ -46,9 +46,12 @@ typedef enum {
 } currentSensor_e;
 
 typedef struct {
-    uint32_t filtered;             // current in 1mA steps
-    uint32_t unfiltered;
-    uint32_t mAhDrawn;             // mAh drawn from the battery since start
+    float latestf;
+    float currentf;
+    float capacityf;
+    int32_t latest;
+    int32_t current;
+    int32_t capacity;
 } currentMeter_t;
 
 
@@ -62,7 +65,7 @@ void currentSensorADCRead(currentMeter_t *meter);
 
 void currentSensorESCInit(void);
 void currentSensorESCRefresh(int32_t lastUpdateAt);
-void currentSensorESCReadCombined(currentMeter_t *meter);
+void currentSensorESCReadTotal(currentMeter_t *meter);
 void currentSensorESCReadMotor(uint8_t motorNumber, currentMeter_t *meter);
 
 

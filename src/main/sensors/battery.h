@@ -120,14 +120,14 @@ const char * getBatteryStateString(void);
 
 bool isBatteryVoltageConfigured(void);
 uint8_t getBatteryCellCount(void);
-uint16_t getBatteryVoltage(void);
+uint32_t getBatteryVoltage(void);
+uint32_t getBatteryVoltageLatest(void);
 uint16_t getLegacyBatteryVoltage(void);
-uint16_t getBatteryVoltageLatest(void);
 uint16_t getBatteryAverageCellVoltage(void);
 
-bool isAmperageConfigured(void);
-int32_t getAmperage(void);
-int32_t getAmperageLatest(void);
+bool isBatteryCurrentConfigured(void);
+int32_t getBatteryCurrent(void);
+int32_t getBatteryCurrentLatest(void);
 int32_t getMAhDrawn(void);
 
 uint8_t calculateBatteryPercentageRemaining(void);

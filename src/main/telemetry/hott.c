@@ -263,7 +263,7 @@ static inline void updateAlarmBatteryStatus(HOTT_EAM_MSG_t *hottEAMMessage)
     else if (consumptionState == BATTERY_WARNING  || consumptionState == BATTERY_CRITICAL) {
             hottEAMMessage->warning_beeps = 0x16;
             hottEAMMessage->alarm_invers1 = HOTT_EAM_ALARM1_FLAG_MAH;
-    }       
+    }
     else {
             hottEAMMessage->warning_beeps = HOTT_EAM_ALARM1_FLAG_NONE;
             hottEAMMessage->alarm_invers1 = HOTT_EAM_ALARM1_FLAG_NONE;
@@ -284,7 +284,7 @@ static inline void hottEAMUpdateBattery(HOTT_EAM_MSG_t *hottEAMMessage)
 
 static inline void hottEAMUpdateCurrentMeter(HOTT_EAM_MSG_t *hottEAMMessage)
 {
-    const int32_t amp = getAmperage() / 10;
+    const int32_t amp = getBatteryCurrent() / 10;
     hottEAMMessage->current_L = amp & 0xFF;
     hottEAMMessage->current_H = amp >> 8;
 }

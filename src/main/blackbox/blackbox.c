@@ -1181,8 +1181,8 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRssi();
 
-    blackboxCurrent->voltage = getBatteryVoltageLatest();
-    blackboxCurrent->current = getAmperageLatest();
+    blackboxCurrent->voltage = getBatteryVoltage();
+    blackboxCurrent->current = getBatteryCurrent();
 
     blackboxCurrent->headspeed = getHeadSpeed();
     blackboxCurrent->tailspeed = getTailSpeed();

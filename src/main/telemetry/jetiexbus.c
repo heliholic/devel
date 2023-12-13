@@ -310,7 +310,7 @@ int32_t getSensorValue(uint8_t sensor)
         break;
 
     case EX_CURRENT:
-        return getAmperage();
+        return getBatteryCurrent();
         break;
 
     case EX_ALTITUDE:
@@ -322,7 +322,7 @@ int32_t getSensorValue(uint8_t sensor)
         break;
 
     case EX_POWER:
-        return (getBatteryVoltage() * getAmperage() / 1000);
+        return (getBatteryVoltage() * getBatteryCurrent() / 1000);
         break;
 
     case EX_ROLL_ANGLE:

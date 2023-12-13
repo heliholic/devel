@@ -353,7 +353,7 @@ static void initSmartPortSensors(void)
         ADD_SENSOR(FSSP_DATAID_A4);
     }
 
-    if (isAmperageConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT)) {
+    if (isBatteryCurrentConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT)) {
 #ifdef USE_ESC_SENSOR_TELEMETRY
         if (!telemetryIsSensorEnabled(ESC_SENSOR_CURRENT))
 #endif
@@ -652,7 +652,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 break;
 #endif
             case FSSP_DATAID_CURRENT    :
-                smartPortSendPackage(id, getAmperage() / 10); // in 0.1A according to SmartPort spec
+                smartPortSendPackage(id, getBatteryCurrent() / 10); // in 0.1A according to SmartPort spec
                 *clearToSend = false;
                 break;
 #ifdef USE_ESC_SENSOR_TELEMETRY
