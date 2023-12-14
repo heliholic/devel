@@ -37,20 +37,20 @@
 
 #define GET_BATTERY_LPF_FREQUENCY(period) (10.0f / period)
 
-enum {
+typedef enum {
     VOLTAGE_METER_NONE = 0,
     VOLTAGE_METER_ADC,
     VOLTAGE_METER_ESC,
     VOLTAGE_METER_COUNT
-};
+} voltageMeterSource_e;
 
-enum {
+typedef enum {
     CURRENT_METER_NONE = 0,
     CURRENT_METER_ADC,
     CURRENT_METER_ESC,
     CURRENT_METER_MSP,
     CURRENT_METER_COUNT
-};
+} currentMeterSource_e;
 
 typedef struct batteryConfig_s {
     // battery size
