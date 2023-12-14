@@ -42,7 +42,6 @@ typedef enum {
     CURRENT_SENSOR_NONE = 0,
     CURRENT_SENSOR_ADC,
     CURRENT_SENSOR_ESC,
-    CURRENT_SENSOR_MSP
 } currentSensor_e;
 
 typedef struct {
