@@ -792,7 +792,7 @@ static void osdElementCrosshairs(osdElementParms_t *element)
 
 static void osdElementCurrentDraw(osdElementParms_t *element)
 {
-    const float amperage = fabsf(getBatteryCurrent() / 100.0f);
+    const float amperage = fabsf(getAmperage() / 100.0f);
     osdPrintFloat(element->buff, SYM_NONE, amperage, "%3u", 2, false, SYM_AMP);
 }
 
@@ -1022,7 +1022,7 @@ static void osdElementEfficiency(osdElementParms_t *element)
     int efficiency = 0;
     if (sensors(SENSOR_GPS) && ARMING_FLAG(ARMED) && STATE(GPS_FIX) && gpsSol.groundSpeed >= EFFICIENCY_MINIMUM_SPEED_CM_S) {
         const float speed = (float)osdGetSpeedToSelectedUnit(gpsSol.groundSpeed);
-        const float mAmperage = (float)getBatteryCurrent() * 10.f; // Current in mA
+        const float mAmperage = (float)getAmperage() * 10.f; // Current in mA
         efficiency = lrintf(pt1FilterApply(&batteryEfficiencyFilt, (mAmperage / speed)));
     }
 
@@ -1107,7 +1107,7 @@ static void osdElementLogStatus(osdElementParms_t *element)
 
 static void osdElementMahDrawn(osdElementParms_t *element)
 {
-    tfp_sprintf(element->buff, "%4d%c", getMAhDrawn(), SYM_MAH);
+    tfp_sprintf(element->buff, "%4d%c", getBatteryMAhDrawn(), SYM_MAH);
 }
 
 static void osdElementMainBatteryUsage(osdElementParms_t *element)
@@ -1115,7 +1115,7 @@ static void osdElementMainBatteryUsage(osdElementParms_t *element)
     // Set length of indicator bar
     #define MAIN_BATT_USAGE_STEPS 11 // Use an odd number so the bar can be centered.
 
-    const int usedCapacity = getMAhDrawn();
+    const int usedCapacity = getBatteryMAhDrawn();
     int displayBasis = usedCapacity;
 
     switch (element->type) {
@@ -1246,7 +1246,7 @@ static void osdElementPidsYaw(osdElementParms_t *element)
 
 static void osdElementPower(osdElementParms_t *element)
 {
-    tfp_sprintf(element->buff, "%4dW", getBatteryCurrent() * getBatteryVoltage() / 10000);
+    tfp_sprintf(element->buff, "%4dW", getAmperage() * getBatteryVoltage() / 10000);
 }
 
 static void osdElementRcChannels(osdElementParms_t *element)
@@ -1271,7 +1271,7 @@ static void osdElementRcChannels(osdElementParms_t *element)
 
 static void osdElementRemainingTimeEstimate(osdElementParms_t *element)
 {
-    const int mAhDrawn = getMAhDrawn();
+    const int mAhDrawn = getBatteryMAhDrawn();
 
     if (mAhDrawn <= 0.1 * osdConfig()->cap_alarm) {  // also handles the mAhDrawn == 0 condition
         tfp_sprintf(element->buff, "--:--");
@@ -1859,7 +1859,7 @@ void osdUpdateAlarms(void)
         }
     }
 
-    if (getMAhDrawn() >= osdConfig()->cap_alarm) {
+    if (getBatteryMAhDrawn() >= osdConfig()->cap_alarm) {
         SET_BLINK(OSD_MAH_DRAWN);
         SET_BLINK(OSD_MAIN_BATT_USAGE);
         SET_BLINK(OSD_REMAINING_TIME_ESTIMATE);

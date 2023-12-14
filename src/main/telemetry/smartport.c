@@ -652,7 +652,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 break;
 #endif
             case FSSP_DATAID_CURRENT    :
-                smartPortSendPackage(id, getBatteryCurrent() / 10); // in 0.1A according to SmartPort spec
+                smartPortSendPackage(id, getLegacyBatteryCurrent()); // in 0.1A according to SmartPort spec
                 *clearToSend = false;
                 break;
 #ifdef USE_ESC_SENSOR_TELEMETRY
@@ -722,14 +722,14 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                     if (batteryConfig()->batteryCapacity > 0) {
                         data = calculateBatteryPercentageRemaining();
                     } else {
-                        data = getMAhDrawn();
+                        data = getBatteryMAhDrawn();
                     }
                     smartPortSendPackage(id, data);
                     *clearToSend = false;
                 }
                 break;
             case FSSP_DATAID_CAP_USED   :
-                smartPortSendPackage(id, getMAhDrawn()); // given in mAh, should be in percent according to SmartPort spec
+                smartPortSendPackage(id, getBatteryMAhDrawn()); // given in mAh, should be in percent according to SmartPort spec
                 *clearToSend = false;
                 break;
 #if defined(USE_VARIO)

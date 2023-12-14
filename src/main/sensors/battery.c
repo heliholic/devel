@@ -148,7 +148,7 @@ uint32_t getBatteryVoltage(void)
 
 uint16_t getLegacyBatteryVoltage(void)
 {
-    return (voltageMeter.voltage + 50) / 100;
+    return (voltageMeter.voltage + 5) / 10;
 }
 
 uint32_t getBatteryVoltageLatest(void)
@@ -180,12 +180,17 @@ int32_t getBatteryCurrent(void) {
     return currentMeter.current;
 }
 
+int16_t getLegacyBatteryCurrent(void)
+{
+    return (currentMeter.current + 5) / 10;
+}
+
 int32_t getBatteryCurrentLatest(void)
 {
     return currentMeter.latest;
 }
 
-int32_t getMAhDrawn(void)
+int32_t getBatteryMAhDrawn(void)
 {
     return currentMeter.capacity;
 }

@@ -318,7 +318,7 @@ int32_t getSensorValue(uint8_t sensor)
         break;
 
     case EX_CAPACITY:
-        return getMAhDrawn();
+        return getBatteryMAhDrawn();
         break;
 
     case EX_POWER:

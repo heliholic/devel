@@ -395,7 +395,7 @@ static void sendVoltageAmp(void)
 
 static void sendAmperage(void)
 {
-    frSkyHubWriteFrame(ID_CURRENT, (uint16_t)(getBatteryCurrent() / 10));
+    frSkyHubWriteFrame(ID_CURRENT, (uint16_t)getLegacyBatteryCurrent());
 }
 
 static void sendFuelLevel(void)
@@ -404,7 +404,7 @@ static void sendFuelLevel(void)
     if (batteryConfig()->batteryCapacity > 0) {
         data = (uint16_t)calculateBatteryPercentageRemaining();
     } else {
-        data = (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF);
+        data = (uint16_t)constrain(getBatteryMAhDrawn(), 0, 0xFFFF);
     }
     frSkyHubWriteFrame(ID_FUEL_LEVEL, data);
 }

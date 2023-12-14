@@ -268,8 +268,8 @@ void crsfFrameBatterySensor(sbuf_t *dst)
     } else {
         sbufWriteU16BigEndian(dst, getLegacyBatteryVoltage());
     }
-    sbufWriteU16BigEndian(dst, getBatteryCurrent() / 10);
-    const uint32_t mAhDrawn = getMAhDrawn();
+    sbufWriteU16BigEndian(dst, getLegacyBatteryCurrent());
+    const uint32_t mAhDrawn = getBatteryMAhDrawn();
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentageRemaining();
     sbufWriteU8(dst, (mAhDrawn >> 16));
     sbufWriteU8(dst, (mAhDrawn >> 8));

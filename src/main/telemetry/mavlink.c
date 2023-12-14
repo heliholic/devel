@@ -138,7 +138,7 @@ static int16_t headingOrScaledMilliAmpereHoursDrawn(void)
 {
     if (isBatteryCurrentConfigured() && telemetryConfig()->mavlink_mah_as_heading_divisor > 0) {
         // In the Connex Prosight OSD, this goes between 0 and 999, so it will need to be scaled in that range.
-        return getMAhDrawn() / telemetryConfig()->mavlink_mah_as_heading_divisor;
+        return getBatteryMAhDrawn() / telemetryConfig()->mavlink_mah_as_heading_divisor;
     }
     // heading Current heading in degrees, in compass units (0..360, 0=north)
     return DECIDEGREES_TO_DEGREES(attitude.values.yaw);

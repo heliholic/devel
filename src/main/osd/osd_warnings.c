@@ -264,7 +264,7 @@ void renderOsdWarning(char *warningText, bool *blinking, uint8_t *displayAttr)
     }
 
     // Show warning if mah consumed is over the configured limit
-    if (osdWarnGetState(OSD_WARNING_OVER_CAP) && ARMING_FLAG(ARMED) && osdConfig()->cap_alarm > 0 && getMAhDrawn() >= osdConfig()->cap_alarm) {
+    if (osdWarnGetState(OSD_WARNING_OVER_CAP) && ARMING_FLAG(ARMED) && osdConfig()->cap_alarm > 0 && getBatteryMAhDrawn() >= osdConfig()->cap_alarm) {
         tfp_sprintf(warningText, "OVER CAP");
         *displayAttr = DISPLAYPORT_ATTR_WARNING;
         *blinking = true;;

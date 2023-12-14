@@ -131,7 +131,8 @@ uint16_t getBatteryAverageCellVoltage(void);
 bool isBatteryCurrentConfigured(void);
 int32_t getBatteryCurrent(void);
 int32_t getBatteryCurrentLatest(void);
-int32_t getMAhDrawn(void);
+int16_t getLegacyBatteryCurrent(void);
+int32_t getBatteryMAhDrawn(void);
 
 uint8_t calculateBatteryPercentageRemaining(void);
 
