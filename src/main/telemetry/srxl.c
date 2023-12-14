@@ -425,7 +425,7 @@ typedef struct
 bool srxlFrameFlightPackCurrent(sbuf_t *dst, timeUs_t currentTimeUs)
 {
     uint16_t amps = getLegacyBatteryCurrent();
-    uint16_t mah  = getBatteryMAhDrawn();
+    uint16_t mah  = getBatteryCapacityUsed();
     static uint16_t sentAmps;
     static uint16_t sentMah;
     static timeUs_t lastTimeSentFPmAh = 0;

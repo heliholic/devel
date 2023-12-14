@@ -742,7 +742,7 @@ static bool osdDisplayStat(int statistic, uint8_t displayRow)
 
     case OSD_STAT_USED_MAH:
         if (batteryConfig()->currentMeterSource != CURRENT_METER_NONE) {
-            tfp_sprintf(buff, "%d%c", getBatteryMAhDrawn(), SYM_MAH);
+            tfp_sprintf(buff, "%d%c", getBatteryCapacityUsed(), SYM_MAH);
             osdDisplayStatisticLabel(displayRow, "USED MAH", buff);
             return true;
         }

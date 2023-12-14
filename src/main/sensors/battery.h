@@ -132,7 +132,7 @@ bool isBatteryCurrentConfigured(void);
 int32_t getBatteryCurrent(void);
 int32_t getBatteryCurrentLatest(void);
 int16_t getLegacyBatteryCurrent(void);
-int32_t getBatteryMAhDrawn(void);
+int32_t getBatteryCapacityUsed(void);
 
 uint8_t calculateBatteryPercentageRemaining(void);
 

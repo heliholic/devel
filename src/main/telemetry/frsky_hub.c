@@ -404,7 +404,7 @@ static void sendFuelLevel(void)
     if (batteryConfig()->batteryCapacity > 0) {
         data = (uint16_t)calculateBatteryPercentageRemaining();
     } else {
-        data = (uint16_t)constrain(getBatteryMAhDrawn(), 0, 0xFFFF);
+        data = (uint16_t)constrain(getBatteryCapacityUsed(), 0, 0xFFFF);
     }
     frSkyHubWriteFrame(ID_FUEL_LEVEL, data);
 }

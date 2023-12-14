@@ -190,7 +190,7 @@ int32_t getBatteryCurrentLatest(void)
     return currentMeter.latest;
 }
 
-int32_t getBatteryMAhDrawn(void)
+int32_t getBatteryCapacityUsed(void)
 {
     return currentMeter.capacity;
 }

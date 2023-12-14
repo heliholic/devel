@@ -468,7 +468,7 @@ static void showBatteryPage(void)
         int32_t amperage = getBatteryCurrent();
         // 123456789012345678901
         // Amp: DDD.D mAh: DDDDD
-        tfp_sprintf(lineBuffer, "Amp: %d.%d mAh: %d", amperage / 100, (amperage % 100) / 10, getBatteryMAhDrawn());
+        tfp_sprintf(lineBuffer, "Amp: %d.%d mAh: %d", amperage / 100, (amperage % 100) / 10, getBatteryCapacityUsed());
         padLineBuffer();
         i2c_OLED_set_line(dev, rowIndex++);
         i2c_OLED_send_string(dev, lineBuffer);
