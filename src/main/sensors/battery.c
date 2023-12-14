@@ -61,29 +61,6 @@
  *
  */
 
-const char * const batteryVoltageSourceNames[VOLTAGE_METER_COUNT] = {
-    "NONE", "ADC", "ESC"
-};
-
-const char * const batteryCurrentSourceNames[CURRENT_METER_COUNT] = {
-    "NONE", "ADC", "ESC"
-};
-
-// Note: Cell count can be 0 when no battery is detected or when the battery voltage sensor is missing or disabled
-static uint8_t batteryCellCount;
-static uint16_t batteryWarningVoltage;
-static uint16_t batteryCriticalVoltage;
-static uint16_t batteryWarningHysteresisVoltage;
-static uint16_t batteryCriticalHysteresisVoltage;
-static lowVoltageCutoff_t lowVoltageCutoff;
-
-static currentMeter_t currentMeter;
-static voltageMeter_t voltageMeter;
-
-static batteryState_e batteryState;
-static batteryState_e voltageState;
-static batteryState_e consumptionState;
-
 #ifndef DEFAULT_CURRENT_METER_SOURCE
 #define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_NONE
 #endif
@@ -122,6 +99,31 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
 );
 
 
+const char * const batteryVoltageSourceNames[VOLTAGE_METER_COUNT] = {
+    "NONE", "ADC", "ESC"
+};
+
+const char * const batteryCurrentSourceNames[CURRENT_METER_COUNT] = {
+    "NONE", "ADC", "ESC"
+};
+
+
+// Note: Cell count can be 0 when no battery is detected or when the battery voltage sensor is missing or disabled
+static uint8_t batteryCellCount;
+static uint16_t batteryWarningVoltage;
+static uint16_t batteryCriticalVoltage;
+static uint16_t batteryWarningHysteresisVoltage;
+static uint16_t batteryCriticalHysteresisVoltage;
+static lowVoltageCutoff_t lowVoltageCutoff;
+
+static currentMeter_t currentMeter;
+static voltageMeter_t voltageMeter;
+
+static batteryState_e batteryState;
+static batteryState_e voltageState;
+static batteryState_e consumptionState;
+
+
 /** Access function **/
 
 const lowVoltageCutoff_t *getLowVoltageCutoff(void)
@@ -132,6 +134,11 @@ const lowVoltageCutoff_t *getLowVoltageCutoff(void)
 bool isBatteryVoltageConfigured(void)
 {
     return batteryConfig()->voltageMeterSource != VOLTAGE_METER_NONE;
+}
+
+const voltageMeter_t * getBatteryVoltageMeter()
+{
+    return &voltageMeter;
 }
 
 uint32_t getBatteryVoltage(void)
@@ -162,6 +169,11 @@ uint16_t getBatteryAverageCellVoltage(void)
 bool isBatteryCurrentConfigured(void)
 {
     return batteryConfig()->currentMeterSource != CURRENT_METER_NONE;
+}
+
+const currentMeter_t * getBatteryCurrentMeter()
+{
+    return &currentMeter;
 }
 
 int32_t getBatteryCurrent(void) {
@@ -415,8 +427,6 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
         case VOLTAGE_METER_ESC:
             if (featureIsEnabled(FEATURE_ESC_SENSOR))
                 voltageSensorESCReadTotal(&voltageMeter);
-            else
-                voltageMeterReset(&voltageMeter);
             break;
 #endif
         case VOLTAGE_METER_ADC:

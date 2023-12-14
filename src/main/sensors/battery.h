@@ -116,6 +116,9 @@ batteryState_e getBatteryState(void);
 batteryState_e getVoltageState(void);
 batteryState_e getConsumptionState(void);
 
+const voltageMeter_t * getBatteryVoltageMeter();
+const currentMeter_t * getBatteryCurrentMeter();
+
 const char * getBatteryStateString(void);
 
 bool isBatteryVoltageConfigured(void);
