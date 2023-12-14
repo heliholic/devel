@@ -1036,7 +1036,7 @@ static void blackboxStart(void)
     blackboxHistory[1] = &blackboxHistoryRing[1];
     blackboxHistory[2] = &blackboxHistoryRing[2];
 
-    vbatReference = getBatteryVoltageLatest();
+    vbatReference = getBatteryVoltageSample();
 
     //No need to clear the content of blackboxHistoryRing since our first frame will be an intra which overwrites it
 
@@ -1181,8 +1181,8 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRssi();
 
-    blackboxCurrent->voltage = getBatteryVoltageLatest();
-    blackboxCurrent->current = getAmperageLatest();
+    blackboxCurrent->voltage = getBatteryVoltage();
+    blackboxCurrent->current = getBatteryCurrent();
 
     blackboxCurrent->headspeed = getHeadSpeed();
     blackboxCurrent->tailspeed = getTailSpeed();
@@ -1380,7 +1380,8 @@ static bool blackboxWriteSysinfo(void)
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
             if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VOLTAGE)) {
-                blackboxPrintfHeaderLine("vbat_scale", "%u", voltageSensorADCConfig(VOLTAGE_SENSOR_ADC_VBAT)->vbatscale);
+                blackboxPrintfHeaderLine("vbat_scale", "%u",
+                    voltageSensorADCConfig(VOLTAGE_SENSOR_ADC_BAT)->scale);
             } else {
                 xmitState.headerIndex += 2; // Skip the next two vbat fields too
             }
@@ -1392,8 +1393,10 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("vbatref", "%u",                         vbatReference);
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
-            if (batteryConfig()->currentMeterSource == CURRENT_METER_ADC) {
-                blackboxPrintfHeaderLine("currentSensor", "%d,%d",currentSensorADCConfig()->offset, currentSensorADCConfig()->scale);
+            if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_CURRENT)) {
+                blackboxPrintfHeaderLine("currentSensor", "%d,%d",
+                    currentSensorADCConfig(CURRENT_SENSOR_ADC_BAT)->offset,
+                    currentSensorADCConfig(CURRENT_SENSOR_ADC_BAT)->scale);
             }
             );
 
