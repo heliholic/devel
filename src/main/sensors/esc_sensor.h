@@ -49,6 +49,7 @@ typedef struct escSensorConfig_s {
     uint16_t hw4_current_offset;    // HobbyWing V4 raw current offset
     uint8_t hw4_current_gain;       // HobbyWing V4 current gain
     uint8_t hw4_voltage_gain;       // HobbyWing V4 voltage gain
+    uint8_t filter_cutoff;          // Frequency cutoff in Hz
 } escSensorConfig_t;
 
 PG_DECLARE(escSensorConfig_t, escSensorConfig);

@@ -25,15 +25,14 @@
 #include "sensors/current.h"
 #include "sensors/voltage.h"
 
-//TODO: Make the 'cell full' voltage user adjustble
-#define CELL_VOLTAGE_FULL_CV 420
+#define CELL_VOLTAGE_FULL_CV            420
 
-#define VBAT_CELL_VOTAGE_RANGE_MIN 100
-#define VBAT_CELL_VOTAGE_RANGE_MAX 500
-#define VBAT_CELL_VOLTAGE_DEFAULT_MIN 330
-#define VBAT_CELL_VOLTAGE_DEFAULT_MAX 430
+#define VBAT_CELL_VOTAGE_RANGE_MIN      100
+#define VBAT_CELL_VOTAGE_RANGE_MAX      500
+#define VBAT_CELL_VOLTAGE_DEFAULT_MIN   330
+#define VBAT_CELL_VOLTAGE_DEFAULT_MAX   430
 
-#define MAX_AUTO_DETECT_CELL_COUNT 8
+#define MAX_AUTO_DETECT_CELL_COUNT      8
 
 #define GET_BATTERY_LPF_FREQUENCY(period) (10.0f / period)
 
@@ -52,6 +51,7 @@ typedef enum {
 } currentMeterSource_e;
 
 typedef struct batteryConfig_s {
+
     // battery size
     uint8_t forceBatteryCellCount;          // Number of cells in battery, used for overwriting auto-detected cell count if someone has issues with it.
 
@@ -83,8 +83,8 @@ typedef struct batteryConfig_s {
     uint8_t vbatLpfPeriod;                  // Period of the cutoff frequency for the Vbat filter for display and startup (in 0.1 s)
     uint8_t ibatLpfPeriod;                  // Period of the cutoff frequency for the Ibat filter (in 0.1 s)
 
-    uint16_t vbatUpdateHz;                   // Update rate for voltage ADC
-    uint16_t ibatUpdateHz;                   // Update rate for current ADC
+    uint16_t vbatUpdateHz;                  // Update rate for voltage task
+    uint16_t ibatUpdateHz;                  // Update rate for current task
 
 } batteryConfig_t;
 

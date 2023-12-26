@@ -53,6 +53,10 @@
 #define CURRENT_METER_OFFSET_DEFAULT 0
 #endif
 
+#ifndef CURRENT_METER_CUTOFF_DEFAULT
+#define CURRENT_METER_CUTOFF_DEFAULT 25
+#endif
+
 PG_REGISTER_ARRAY_WITH_RESET_FN(currentSensorADCConfig_t, MAX_CURRENT_SENSOR_ADC, currentSensorADCConfig, PG_CURRENT_SENSOR_ADC_CONFIG, 0);
 
 void pgResetFn_currentSensorADCConfig(currentSensorADCConfig_t *instance)
@@ -61,6 +65,7 @@ void pgResetFn_currentSensorADCConfig(currentSensorADCConfig_t *instance)
         RESET_CONFIG(currentSensorADCConfig_t, &instance[i],
             .scale = CURRENT_METER_SCALE_DEFAULT,
             .offset = CURRENT_METER_OFFSET_DEFAULT,
+            .cutoff = CURRENT_METER_CUTOFF_DEFAULT,
         );
     }
 }
@@ -163,7 +168,7 @@ void currentSensorADCInit(void)
 
     for (unsigned i = 0; i < MAX_CURRENT_SENSOR_ADC; i++) {
         lowpassFilterInit(&currentADCSensors[i].filter, LPF_BESSEL,
-            GET_BATTERY_LPF_FREQUENCY(batteryConfig()->ibatLpfPeriod),
+            currentSensorADCConfig(i)->cutoff,
             batteryConfig()->ibatUpdateHz, 0);
     }
 #endif
@@ -225,7 +230,7 @@ void currentSensorESCInit(void)
     memset(&currentESCSensor, 0, sizeof(currentESCSensor));
 
     lowpassFilterInit(&currentESCSensor.filter, LPF_BESSEL,
-        GET_BATTERY_LPF_FREQUENCY(batteryConfig()->ibatLpfPeriod),
+        escSensorConfig()->filter_cutoff,
         batteryConfig()->ibatUpdateHz, 0);
 }
 

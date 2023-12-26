@@ -116,15 +116,21 @@ const char * const batteryCurrentSourceNames[CURRENT_METER_COUNT] = {
 //       when the battery voltage sensor is missing or disabled
 static uint8_t batteryCellCount;
 
+static uint32_t batteryVoltage;
+static uint32_t batteryCurrent;
+
+static filter_t currentFilter;
+static filter_t voltageFilter;
+
+static voltageMeter_t voltageMeter;
+static currentMeter_t currentMeter;
+
+static lowVoltageCutoff_t lowVoltageCutoff;
+
 static uint16_t batteryWarningVoltage;
 static uint16_t batteryCriticalVoltage;
 static uint16_t batteryWarningHysteresisVoltage;
 static uint16_t batteryCriticalHysteresisVoltage;
-
-static lowVoltageCutoff_t lowVoltageCutoff;
-
-static currentMeter_t currentMeter;
-static voltageMeter_t voltageMeter;
 
 static batteryState_e batteryState;
 static batteryState_e voltageState;
@@ -150,12 +156,12 @@ const voltageMeter_t * getBatteryVoltageMeter()
 
 uint16_t getBatteryVoltage(void)
 {
-    return voltageMeter.voltage / 10;
+    return batteryVoltage / 10;
 }
 
 uint16_t getLegacyBatteryVoltage(void)
 {
-    return voltageMeter.voltage / 100;
+    return batteryVoltage / 100;
 }
 
 uint16_t getBatteryVoltageSample(void)
@@ -184,12 +190,12 @@ const currentMeter_t * getBatteryCurrentMeter()
 }
 
 uint16_t getBatteryCurrent(void) {
-    return currentMeter.current / 10;
+    return batteryCurrent / 10;
 }
 
 uint16_t getLegacyBatteryCurrent(void)
 {
-    return currentMeter.current / 100;
+    return batteryCurrent / 100;
 }
 
 uint16_t getBatteryCurrentSample(void)
@@ -271,7 +277,7 @@ static void batteryUpdateAlarms(void)
 
 static bool isVoltageStable(void)
 {
-    return ABS(voltageMeter.voltage - voltageMeter.sample) <= VBAT_STABLE_MAX_DELTA;
+    return ABS(batteryVoltage - voltageMeter.sample) <= VBAT_STABLE_MAX_DELTA;
 }
 
 static bool isVoltageFromBat(void)
@@ -439,17 +445,20 @@ void taskBatteryVoltageUpdate(timeUs_t currentTimeUs)
     switch (batteryConfig()->voltageMeterSource) {
         case VOLTAGE_METER_ADC:
             voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BAT, &voltageMeter);
+            batteryVoltage = filterApply(&voltageFilter, voltageMeter.sample);
             break;
         case VOLTAGE_METER_ESC:
 #ifdef USE_ESC_SENSOR
-            if (featureIsEnabled(FEATURE_ESC_SENSOR))
+            if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
                 voltageSensorESCReadTotal(&voltageMeter);
+                batteryVoltage = filterApply(&voltageFilter, voltageMeter.sample);
+            }
 #endif
             break;
     }
 
     DEBUG(BATTERY, 0, voltageMeter.sample);
-    DEBUG(BATTERY, 1, voltageMeter.voltage);
+    DEBUG(BATTERY, 1, batteryVoltage);
 }
 
 
@@ -468,19 +477,21 @@ void taskBatteryCurrentUpdate(timeUs_t currentTimeUs)
     switch (batteryConfig()->currentMeterSource) {
         case CURRENT_METER_ADC:
             currentSensorADCRead(CURRENT_SENSOR_ADC_BAT, &currentMeter);
+            batteryCurrent = filterApply(&currentFilter, currentMeter.sample);
             break;
 
         case CURRENT_METER_ESC:
 #ifdef USE_ESC_SENSOR
             if (featureIsEnabled(FEATURE_ESC_SENSOR)) {
                 currentSensorESCReadTotal(&currentMeter);
+                batteryCurrent = filterApply(&currentFilter, currentMeter.sample);
             }
 #endif
             break;
     }
 
     DEBUG(BATTERY, 2, currentMeter.sample);
-    DEBUG(BATTERY, 3, currentMeter.current);
+    DEBUG(BATTERY, 3, batteryCurrent);
 }
 
 
@@ -496,6 +507,14 @@ void batteryInit(void)
     voltageSensorESCInit();
     currentSensorESCInit();
 #endif
+
+    lowpassFilterInit(&voltageFilter, LPF_BESSEL,
+        GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod),
+        batteryConfig()->vbatUpdateHz, 0);
+
+    lowpassFilterInit(&currentFilter, LPF_BESSEL,
+        GET_BATTERY_LPF_FREQUENCY(batteryConfig()->ibatLpfPeriod),
+        batteryConfig()->ibatUpdateHz, 0);
 
     // presence
     batteryState = BATTERY_INIT;

@@ -55,6 +55,10 @@
 #define VOLTAGE_MULTIPLIER_DEFAULT 1
 #endif
 
+#ifndef VOLTAGE_CUTOFF_DEFAULT
+#define VOLTAGE_CUTOFF_DEFAULT 25
+#endif
+
 PG_REGISTER_ARRAY_WITH_RESET_FN(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig, PG_VOLTAGE_SENSOR_ADC_CONFIG, 0);
 
 void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
@@ -64,6 +68,7 @@ void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
             .scale = VOLTAGE_SCALE_DEFAULT,
             .resdivval = VOLTAGE_DIVIDER_DEFAULT,
             .resdivmul = VOLTAGE_MULTIPLIER_DEFAULT,
+            .cutoff = VOLTAGE_CUTOFF_DEFAULT,
         );
     }
 }
@@ -157,7 +162,7 @@ void voltageSensorADCInit(void)
         voltageADCSensors[i].enabled = adcIsEnabled(voltageSensorAdcChannelMap[i]);
 
         lowpassFilterInit(&voltageADCSensors[i].filter, LPF_BESSEL,
-            GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod),
+            voltageSensorADCConfig(i)->cutoff,
             batteryConfig()->vbatUpdateHz, 0);
     }
 #endif
@@ -230,7 +235,7 @@ void voltageSensorESCInit(void)
 #ifdef USE_ESC_SENSOR
     memset(&voltageESCSensor, 0, sizeof(voltageESCSensor));
     lowpassFilterInit(&voltageESCSensor.filter, LPF_BESSEL,
-        GET_BATTERY_LPF_FREQUENCY(batteryConfig()->vbatLpfPeriod),
+        escSensorConfig()->filter_cutoff,
         batteryConfig()->vbatUpdateHz, 0);
 #endif
 }

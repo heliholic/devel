@@ -49,6 +49,7 @@ typedef struct {
     uint8_t scale;                      // adjust this to match battery voltage to reported value
     uint8_t resdivval;                  // resistor divider R2 (default NAZE 10(K))
     uint8_t resdivmul;                  // multiplier for scale (e.g. 2.5:1 ratio with multiplier of 4 can use '100' instead of '25' in ratio) to get better precision
+    uint8_t cutoff;                     // filter cutoff in Hz
 } voltageSensorADCConfig_t;
 
 PG_DECLARE_ARRAY(voltageSensorADCConfig_t, MAX_VOLTAGE_SENSOR_ADC, voltageSensorADCConfig);
