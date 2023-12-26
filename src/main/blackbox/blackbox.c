@@ -49,6 +49,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/sensor.h"
 #include "drivers/time.h"
+#include "drivers/adc.h"
 
 #include "fc/board_info.h"
 #include "fc/rc_rates.h"
@@ -279,6 +280,9 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"Vbat",       -1, UNSIGNED, .Ipredict = PREDICT(VBATREF), .Iencode = ENCODING(NEG_14BIT),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(VOLTAGE)},
     {"Ibat",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(CURRENT)},
 
+    {"Vbec",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(VBEC)},
+    {"Vbus",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(VBUS)},
+
     {"headspeed",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(HEADSPEED)},
     {"tailspeed",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(TAILSPEED)},
 
@@ -386,6 +390,9 @@ typedef struct blackboxMainState_s {
 
     uint16_t voltage;
     uint16_t current;
+
+    uint16_t vbec;
+    uint16_t vbus;
 
     uint16_t rssi;
 
@@ -589,10 +596,16 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return isRssiConfigured() && isFieldEnabled(FIELD_SELECT(RSSI));
 
     case CONDITION(VOLTAGE):
-        return (batteryConfig()->voltageMeterSource != VOLTAGE_METER_NONE) && isFieldEnabled(FIELD_SELECT(BATTERY));
+        return isBatteryVoltageConfigured() && isFieldEnabled(FIELD_SELECT(BATTERY));
 
     case CONDITION(CURRENT):
-        return (batteryConfig()->currentMeterSource != CURRENT_METER_NONE) && isFieldEnabled(FIELD_SELECT(BATTERY));
+        return isBatteryCurrentConfigured() && isFieldEnabled(FIELD_SELECT(BATTERY));
+
+    case CONDITION(VBEC):
+        return adcIsEnabled(ADC_VBEC) && isFieldEnabled(FIELD_SELECT(VBEC));
+
+    case CONDITION(VBUS):
+        return adcIsEnabled(ADC_VBUS) && isFieldEnabled(FIELD_SELECT(VBUS));
 
     case CONDITION(DEBUG):
         return (debugMode != DEBUG_NONE);
@@ -736,6 +749,12 @@ static void writeIntraframe(void)
     }
     if (testBlackboxCondition(CONDITION(CURRENT))) {
         blackboxWriteUnsignedVB(blackboxCurrent->current);
+    }
+    if (testBlackboxCondition(CONDITION(VBEC))) {
+        blackboxWriteUnsignedVB(blackboxCurrent->vbec);
+    }
+    if (testBlackboxCondition(CONDITION(VBUS))) {
+        blackboxWriteUnsignedVB(blackboxCurrent->vbus);
     }
     if (testBlackboxCondition(CONDITION(HEADSPEED))) {
         blackboxWriteUnsignedVB(blackboxCurrent->headspeed);
@@ -902,6 +921,13 @@ static void writeInterframe(void)
     }
     if (testBlackboxCondition(CONDITION(CURRENT))) {
         blackboxWriteSignedVB((int32_t) blackboxCurrent->current - blackboxPrev->current);
+    }
+
+    if (testBlackboxCondition(CONDITION(VBEC))) {
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->vbec - blackboxPrev->vbec);
+    }
+    if (testBlackboxCondition(CONDITION(VBUS))) {
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->vbus - blackboxPrev->vbus);
     }
 
     if (testBlackboxCondition(CONDITION(HEADSPEED))) {
@@ -1183,6 +1209,12 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->voltage = getBatteryVoltage();
     blackboxCurrent->current = getBatteryCurrent();
+
+    voltageMeter_t meter;
+    voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BEC, &meter);
+    blackboxCurrent->vbec = meter.voltage;
+    voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BUS, &meter);
+    blackboxCurrent->vbus = meter.voltage;
 
     blackboxCurrent->headspeed = getHeadSpeed();
     blackboxCurrent->tailspeed = getTailSpeed();
