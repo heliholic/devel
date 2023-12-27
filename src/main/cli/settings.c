@@ -842,24 +842,24 @@ const clivalue_t valueTable[] = {
     { "ibat_update_hz",             VAR_UINT16 | MASTER_VALUE, .config.minmax = { 10, 1000 }, PG_BATTERY_CONFIG, offsetof(batteryConfig_t, ibatUpdateHz) },
 
 //  PG_VOLTAGE_SENSOR_ADC_CONFIG
-    { "vbat_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, scale) },
-    { "vbat_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, resdivval) },
-    { "vbat_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, resdivmul) },
+    { "vbat_scale",                 VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, scale) },
+    { "vbat_divider",               VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, divider) },
+    { "vbat_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, divmul) },
     { "vbat_cutoff",                VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BAT, cutoff) },
 
-    { "vbec_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, scale) },
-    { "vbec_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, resdivval) },
-    { "vbec_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, resdivmul) },
+    { "vbec_scale",                 VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, scale) },
+    { "vbec_divider",               VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, divider) },
+    { "vbec_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, divmul) },
     { "vbec_cutoff",                VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BEC, cutoff) },
 
-    { "vbus_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, scale) },
-    { "vbus_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, resdivval) },
-    { "vbus_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, resdivmul) },
+    { "vbus_scale",                 VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, scale) },
+    { "vbus_divider",               VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, divider) },
+    { "vbus_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, divmul) },
     { "vbus_cutoff",                VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_BUS, cutoff) },
 
-    { "vext_scale",                 VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, scale) },
-    { "vext_divider",               VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, resdivval) },
-    { "vext_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, resdivmul) },
+    { "vext_scale",                 VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_SCALE_MIN, VOLTAGE_SCALE_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, scale) },
+    { "vext_divider",               VAR_UINT16 | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, divider) },
+    { "vext_multiplier",            VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, divmul) },
     { "vext_cutoff",                VAR_UINT8  | HARDWARE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_VOLTAGE_SENSOR_ADC_CONFIG, PG_ARRAY_ELEMENT_OFFSET(voltageSensorADCConfig_t, VOLTAGE_SENSOR_ADC_EXT, cutoff) },
 
 // PG_CURRENT_SENSOR_ADC_CONFIG

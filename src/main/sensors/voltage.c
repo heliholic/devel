@@ -15,9 +15,10 @@
  * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "stdbool.h"
-#include "stdint.h"
-#include "string.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -66,8 +67,8 @@ void pgResetFn_voltageSensorADCConfig(voltageSensorADCConfig_t *instance)
     for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
         RESET_CONFIG(voltageSensorADCConfig_t, &instance[i],
             .scale = VOLTAGE_SCALE_DEFAULT,
-            .resdivval = VOLTAGE_DIVIDER_DEFAULT,
-            .resdivmul = VOLTAGE_MULTIPLIER_DEFAULT,
+            .divider = VOLTAGE_DIVIDER_DEFAULT,
+            .divmul = VOLTAGE_MULTIPLIER_DEFAULT,
             .cutoff = VOLTAGE_CUTOFF_DEFAULT,
         );
     }
@@ -102,11 +103,10 @@ static float voltageSensorADCtoVoltage(int sensor, const uint16_t adc)
 {
     const voltageSensorADCConfig_t *config = voltageSensorADCConfig(sensor);
 
-    const uint32_t divisor = constrain(config->resdivmul, VOLTAGE_MULTIPLIER_MIN, VOLTAGE_MULTIPLIER_MAX) *
-                             constrain(config->resdivval, VOLTAGE_DIVIDER_MIN, VOLTAGE_DIVIDER_MAX);
-    const uint32_t scale = config->scale * getVrefMv();
+    const float voltage = config->scale * getVrefMv();
+    const float divisor = fmaxf(config->divider * config->divmul, 1) * 4095;
 
-    return (adc * scale) / (4095.0f * divisor);
+    return adc * voltage / divisor;
 }
 #endif
 

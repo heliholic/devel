@@ -29,10 +29,10 @@
 #endif
 
 #define VOLTAGE_SCALE_MIN 0
-#define VOLTAGE_SCALE_MAX 255
+#define VOLTAGE_SCALE_MAX 65535
 
 #define VOLTAGE_DIVIDER_MIN 1
-#define VOLTAGE_DIVIDER_MAX 255
+#define VOLTAGE_DIVIDER_MAX 65535
 
 #define VOLTAGE_MULTIPLIER_MIN 1
 #define VOLTAGE_MULTIPLIER_MAX 255
@@ -46,9 +46,9 @@ typedef enum {
 } voltageSensorADC_e;
 
 typedef struct {
-    uint8_t scale;                      // adjust this to match battery voltage to reported value
-    uint8_t resdivval;                  // resistor divider R2 (default NAZE 10(K))
-    uint8_t resdivmul;                  // multiplier for scale (e.g. 2.5:1 ratio with multiplier of 4 can use '100' instead of '25' in ratio) to get better precision
+    uint16_t scale;                     // adjust scale and divider to match voltage to measured value
+    uint16_t divider;
+    uint8_t divmul;                     // extra multiplier for divider (backwards compatibility)
     uint8_t cutoff;                     // filter cutoff in Hz
 } voltageSensorADCConfig_t;
 

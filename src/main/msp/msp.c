@@ -812,9 +812,9 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
         sbufWriteU16(dst, batteryConfig()->batteryCapacity); // mAh
 
         // battery state
-        sbufWriteU8(dst, constrain(getLegacyBatteryVoltage(), 0, UINT8_MAX)); // in 100mV steps
-        sbufWriteU16(dst, constrain(getBatteryCapacityUsed(), 0, UINT16_MAX)); // milliamp hours drawn from battery
-        sbufWriteU16(dst, constrain(getBatteryCurrent(), 0, UINT16_MAX)); // current in 10mA steps
+        sbufWriteU8(dst, constrain(getLegacyBatteryVoltage(), 0, UINT8_MAX));       // in 100mV steps
+        sbufWriteU16(dst, constrain(getBatteryCapacityUsed(), 0, UINT16_MAX));      // mAh drawn from battery
+        sbufWriteU16(dst, constrain(getBatteryCurrent(), 0, UINT16_MAX));           // current in 10mA steps
 
         // battery alerts
         sbufWriteU8(dst, getBatteryState());
@@ -828,7 +828,7 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
             voltageMeter_t meter;
             if (voltageMeterRead(id, &meter)) {
                 sbufWriteU8(dst, id);
-                sbufWriteU16(dst, meter.voltage);  // mV
+                sbufWriteU16(dst, constrain(meter.voltage, 0, UINT16_MAX));  // mV
             }
         }
         break;
@@ -852,12 +852,12 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
         sbufWriteU8(dst, MAX_VOLTAGE_SENSOR_ADC);
         // Voltage meters using ADC sensors
         for (int i = 0; i < MAX_VOLTAGE_SENSOR_ADC; i++) {
-            sbufWriteU8(dst, 5);                                        // Frame length
+            sbufWriteU8(dst, 7);                                        // Frame length
             sbufWriteU8(dst, voltageSensorToMeterMap[i]);               // Meter id
             sbufWriteU8(dst, VOLTAGE_SENSOR_TYPE_ADC);                  // Meter type
-            sbufWriteU8(dst, voltageSensorADCConfig(i)->scale);
-            sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivval);
-            sbufWriteU8(dst, voltageSensorADCConfig(i)->resdivmul);
+            sbufWriteU16(dst, voltageSensorADCConfig(i)->scale);
+            sbufWriteU16(dst, voltageSensorADCConfig(i)->divider);
+            sbufWriteU8(dst, voltageSensorADCConfig(i)->divmul);
         }
         // Other voltage meter types go here
         break;
@@ -3266,12 +3266,12 @@ static mspResult_e mspCommonProcessInCommand(mspDescriptor_t srcDesc, int16_t cm
                 break;
         }
         if (index < MAX_VOLTAGE_SENSOR_ADC) {
-            voltageSensorADCConfigMutable(index)->scale = sbufReadU8(src);
-            voltageSensorADCConfigMutable(index)->resdivval = sbufReadU8(src);
-            voltageSensorADCConfigMutable(index)->resdivmul = sbufReadU8(src);
+            voltageSensorADCConfigMutable(index)->scale = sbufReadU16(src);
+            voltageSensorADCConfigMutable(index)->divider = sbufReadU16(src);
+            voltageSensorADCConfigMutable(index)->divmul = sbufReadU8(src);
         } else {
-            sbufReadU8(src);
-            sbufReadU8(src);
+            sbufReadU16(src);
+            sbufReadU16(src);
             sbufReadU8(src);
         }
         break;
