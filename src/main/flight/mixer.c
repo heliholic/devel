@@ -66,6 +66,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .swash_pitch_limit = 0,
     .swash_trim = { 0, 0, 0 },
     .swash_tta_precomp = 0,
+    .swash_geo_correction = 0,
 );
 
 PG_REGISTER_ARRAY(mixerRule_t, MIXER_RULE_COUNT, mixerRules, PG_GENERIC_MIXER_RULES, 0);
@@ -110,6 +111,7 @@ typedef struct {
     float           swashTrim[3];
 
     float           collTTAGain;
+    float           collGeoCorrection;
 
     float           cyclicLimit;
     float           cyclicTotal;
@@ -329,6 +331,18 @@ static void mixerUpdateCollective(void)
     }
 }
 
+static float mixerCollectiveCorrection(float SC)
+{
+    if (mixer.collGeoCorrection != 0) {
+        if (SC > 0)
+            SC += SC * mixer.collGeoCorrection;
+        else
+            SC -= SC * mixer.collGeoCorrection;
+    }
+
+    return SC;
+}
+
 static void mixerUpdateMotorizedTail(void)
 {
     // Motorized tail control
@@ -389,13 +403,19 @@ static void mixerUpdateSwash(void)
 {
     if (mixerConfig()->swash_type)
     {
-        const float SR = inputValue(ROLL) + mixer.swashTrim[0];
-        const float SP = inputValue(PITCH) + mixer.swashTrim[1];
-        const float SC = inputValue(COLLECTIVE) + mixer.swashTrim[2];
-        const float SY = inputValue(YAW);
-        const float ST = inputValue(THROTTLE);
+        float SR = inputValue(ROLL);
+        float SP = inputValue(PITCH);
+        float SY = inputValue(YAW);
+        float SC = inputValue(COLLECTIVE);
+        float ST = inputValue(THROTTLE);
 
-        const float TC = mixer.tailCenterTrim;
+        float TC = mixer.tailCenterTrim;
+
+        SC = mixerCollectiveCorrection(SC);
+
+        SR += mixer.swashTrim[0];
+        SP += mixer.swashTrim[1];
+        SC += mixer.swashTrim[2];
 
         switch (mixerConfig()->swash_type) {
             case SWASH_TYPE_120:
@@ -589,6 +609,7 @@ void INIT_CODE mixerInitConfig(void)
         mixer.swashTrim[i] = mixerConfig()->swash_trim[i] / 1000.0f;
 
     mixer.collTTAGain = mixerConfig()->swash_tta_precomp / 100.0f;
+    mixer.collGeoCorrection = mixerConfig()->swash_geo_correction / 1000.0f;
 
     mixer.tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
     mixer.tailCenterTrim = mixerConfig()->tail_center_trim / 1000.0f;
