@@ -54,7 +54,7 @@
 #define RX_REFRESH_RATE_MIN_US          490
 #define RX_REFRESH_RATE_MAX_US        40000
 
-#define RX_REFRESH_RATE_AVERAGING       100
+#define RX_REFRESH_RATE_AVERAGING        64
 
 #define RX_RANGE_COUNT                    4
 

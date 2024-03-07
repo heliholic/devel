@@ -89,7 +89,8 @@ static float setpointAutoSmoothingCutoff(float frameTimeUs)
     float cutoff = 0;
 
     if (frameTimeUs > 0) {
-        cutoff = sp.smoothingFactor / frameTimeUs;
+        // With lower frame rates, less smoothing is preferred due to the added delay
+        cutoff = transition(frameTimeUs, 1000, 20000, 0.5f, 1.333f) * sp.smoothingFactor / frameTimeUs;
     }
 
     return constrainf(cutoff, SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
@@ -117,15 +118,13 @@ INIT_CODE void setpointInitProfile(void)
 
     for (int i = 0; i < 4; i++) {
         sp.accelLimit[i] = 10.0f * currentControlRateProfile->accel_limit[i] * pidGetDT();
-        sp.responseCutoff[i] = constrain(
-            2500 / (10 * currentControlRateProfile->response_time[i] + 1),
-            SP_SMOOTHING_FILTER_MIN_HZ, SP_SMOOTHING_FILTER_MAX_HZ);
+        sp.responseCutoff[i] = 2500 / constrain(10 * currentControlRateProfile->response_time[i], 1, 1000);
     }
 }
 
 INIT_CODE void setpointInit(void)
 {
-    sp.smoothingFactor = 15e6f / (10 + rcControlsConfig()->rc_smoothness);
+    sp.smoothingFactor = 10e6f / constrain(rcControlsConfig()->rc_smoothness, 1, 250);
 
     sp.maxGainUp = pt1FilterGain(SP_MAX_UP_CUTOFF, pidGetPidFrequency());
     sp.maxGainDown = pt1FilterGain(SP_MAX_DN_CUTOFF, pidGetPidFrequency());
