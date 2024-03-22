@@ -10,7 +10,7 @@ Rotorflight does **NOT** support multi-rotor crafts, nor airplanes; it is only f
 development effort!
 
 
-## Information
+## Information!!
 
 For latest information, please see [Rotorflight Wiki](https://github.com/rotorflight/rotorflight/wiki)
 
