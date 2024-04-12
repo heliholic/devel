@@ -999,7 +999,7 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
  *  14-15:      Motor current peak in 0.1A
  *  16-17:      Capacity in mAh
  *  18-19:      BEC current in mA
- *  20-21:      BEC Voltage n mV
+ *  20-21:      BEC Voltage in mV
  *  22-23:      PWM in us
  *     24:      Throttle % (-100..100)
  *     25:      PWM duty cycle %
@@ -1008,7 +1008,8 @@ static void uncSensorProcess(timeUs_t currentTimeUs)
  *  28-31:      Error Flags
  *     32:      Operational condition
  *     33:      Timing 0..30
- *  34-37:      CRC32
+ *  34-35:      Reserved
+ *  36-39:      CRC32
  *
  */
 
@@ -1062,7 +1063,7 @@ static void kontronikSensorProcess(timeUs_t currentTimeUs)
     // check for any available bytes in the rx buffer
     while (serialRxBytesWaiting(escSensorPort)) {
         if (processKontronikTelemetryStream(serialRead(escSensorPort))) {
-            uint32_t crc = buffer[37] << 24 | buffer[36] << 16 | buffer[35] << 8 | buffer[34];
+            uint32_t crc = buffer[39] << 24 | buffer[38] << 16 | buffer[37] << 8 | buffer[36];
 
             if (calculateCRC32(buffer, 34) == crc) {
                 uint32_t rpm = buffer[7] << 24 | buffer[6] << 16 | buffer[5] << 8 | buffer[4];
