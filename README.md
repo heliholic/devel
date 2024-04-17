@@ -1,9 +1,12 @@
-# Rotorflight
+
+![Rotorflight](https://github.com/rotorflight/rotorflight/blob/master/images/rotorflight2.png?raw=true)
+
+***
 
 [Rotorflight](https://github.com/rotorflight) is a Flight Control software suite designed for
 single-rotor helicopters. It consists of:
 
-- Rotorflight Flight Controller Firmware (this repository)
+- Rotorflight Flight Controller Firmware
 - Rotorflight Configurator, for flashing and configuring the flight controller
 - Rotorflight Blackbox Explorer, for analyzing blackbox flight logs
 - Rotorflight LUA Scripts, for configuring the flight controller using a transmitter
@@ -12,12 +15,20 @@ Built on Betaflight 4.3, Rotorflight incorporates numerous advanced features spe
 tailored for helicopters. It's important to note that Rotorflight does _not_ support multi-rotor
 crafts or airplanes; it's exclusively designed for RC helicopters.
 
-This version of Rotorflight is also known as **Rotorflight 2** or **RF2**.
+
+## Downloads
+
+Please download the latest version from here:
+
+- [Rotorflight Configurator](https://github.com/rotorflight/rotorflight-configurator/releases/)
+- [Rotorflight Blackbox](https://github.com/rotorflight/rotorflight-blackbox/releases/)
+- [LUA Scripts for EdgeTx and OpenTx](https://github.com/rotorflight/rotorflight-lua-scripts/releases/)
+- [LUA Scripts for FrSky Ethos](https://github.com/rotorflight/rotorflight-lua-ethos/releases/)
 
 
-## Information
+## Installation
 
-Tutorials, documentation, and flight videos can be found on the [Rotorflight website](https://www.rotorflight.org/).
+Instructions, guides, tutorials, documentation can be found on the [Rotorflight website](https://www.rotorflight.org/).
 
 
 ## Features
@@ -77,16 +88,6 @@ An absolute minimum is an STM32G4 based board, but it probably won't be able to 
 the new features later on. The older STM32F411 should be avoided if possible.
 
 
-## Installation
-
-Download and flash the Rotorflight firmware with the
-[Rotorflight Configurator](https://github.com/rotorflight/rotorflight-configurator/releases).
-
-Flashing the Rotorflight firmware with any other flashing tools is not recommended.
-
-Visit the [website](https://www.rotorflight.org/) for more details on setting up and using Rotorflight.
-
-
 ## Contributing
 
 Rotorflight is an open-source community project. Anybody can join in and help to make it better by:
@@ -108,6 +109,11 @@ Rotorflight is forked from [Betaflight](https://github.com/betaflight), which in
 Rotorflight borrows ideas and code also from [HeliFlight3D](https://github.com/heliflight3d/), another Betaflight fork for helicopters.
 
 Big thanks to everyone who has contributed along the journey!
+
+
+## Donate
+
+If you find Rotorflight useful, please consider [supporting the development by donating](https://www.paypal.com/donate/?hosted_button_id=LLP4MT8C8TPVJ) to the Rotorflight Project.
 
 
 ## Contact
