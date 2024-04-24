@@ -83,6 +83,10 @@ float getDeflection(int axis)
     return sp.deflection[axis];
 }
 
+float getStickActivity(int axis)
+{
+    return sqrtf(sp.maximum[axis]);
+}
 
 static float setpointAutoSmoothingCutoff(float frameTimeUs)
 {

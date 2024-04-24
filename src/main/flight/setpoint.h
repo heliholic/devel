@@ -27,6 +27,7 @@
 
 float getSetpoint(int axis);
 float getDeflection(int axis);
+float getStickActivity(int axis);
 
 void setpointInit(void);
 void setpointInitProfile(void);

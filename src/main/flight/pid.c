@@ -944,16 +944,22 @@ static void pidApplyCyclicMode3(uint8_t axis, const pidProfile_t * pidProfile)
     // Apply error decay
     float decayRate, decayLimit, errorDecay;
 
-    if (isAirborne()) {
+    // if (isAirborne())
+    {
       decayRate  = pidTableLookup(curve, pidProfile->error_decay_rate_curve, LOOKUP_CURVE_POINTS) * 0.04f;
       decayLimit = pidTableLookup(curve, pidProfile->error_decay_limit_curve, LOOKUP_CURVE_POINTS);
-      errorDecay = limitf(pid.data[axis].axisError * decayRate, decayLimit);
+      // Reduce decay rate if no stick movement
+      float activity = fmaxf(getStickActivity(FD_ROLL), getStickActivity(FD_PITCH));
+      // Full decay >10% deflection
+      float multiplier = fminf(activity / (pidProfile->decay_cutoff_level / 100.0f), 1);
+      // Total decay
+      errorDecay = limitf(pid.data[axis].axisError * decayRate * multiplier, decayLimit);
     }
-    else {
-      decayRate  = pid.errorDecayRateGround / pid.dT;
-      decayLimit = 0;
-      errorDecay = pid.data[axis].axisError * decayRate;
-    }
+    // else {
+    //   decayRate  = pid.errorDecayRateGround / pid.dT;
+    //   decayLimit = 0;
+    //   errorDecay = pid.data[axis].axisError * decayRate;
+    // }
 
     pid.data[axis].axisError -= errorDecay * pid.dT;
 

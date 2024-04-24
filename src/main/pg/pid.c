@@ -64,6 +64,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .offset_bleed_rate_curve = { 0,0,0,0,0,0,2,4,30,250,250,250,250,250,250,250 },
         .offset_bleed_limit_curve = { 0,0,0,0,0,0,15,40,100,150,200,250,250,250,250,250 },
         .offset_charge_curve = { 0,100,100,100,100,100,95,90,82,76,72,68,65,62,60,58 },
+        .decay_cutoff_level = 10,
         .error_rotation = true,
         .iterm_relax_type = ITERM_RELAX_RPY,
         .iterm_relax_level = { 40, 40, 40 },
