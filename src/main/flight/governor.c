@@ -87,6 +87,7 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
     .gov_rpm_filter = 10,
     .gov_tta_filter = 0,
     .gov_ff_filter = 10,
+    .gov_ff_filter_type = LPF_DAMPED,
 );
 
 
@@ -1126,7 +1127,7 @@ void governorInit(const pidProfile_t *pidProfile)
         lowpassFilterInit(&gov.motorCurrentFilter, LPF_DAMPED, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.motorRPMFilter, LPF_DAMPED, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.TTAFilter, LPF_DAMPED, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
-        lowpassFilterInit(&gov.FFFilter, LPF_DAMPED, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.FFFilter, governorConfig()->gov_ff_filter_type, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
 
         governorInitProfile(pidProfile);
     }
