@@ -38,6 +38,8 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .swash_trim = { 0, 0, 0 },
     .swash_tta_precomp = 0,
     .swash_geo_correction = 0,
+    .wiggle_strength = 50,
+    .wiggle_flags = BIT(WIGGLE_READY) | BIT(WIGGLE_ERROR) | BIT(WIGGLE_FATAL),
 );
 
 PG_REGISTER_ARRAY(mixerRule_t, MIXER_RULE_COUNT, mixerRules, PG_GENERIC_MIXER_RULES, 0);
