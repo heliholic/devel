@@ -28,8 +28,8 @@ enum {
 
 
 bool wiggleActive(void);
-void wiggleTrigger(uint8_t action);
 float wiggleGetAxis(int axis);
+void wiggleTrigger(int action, int parmam);
 
 void wiggleUpdate(timeUs_t wiggleUpdate);
 void wiggleInit(void);

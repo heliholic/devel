@@ -407,7 +407,7 @@ void tryArm(void)
         if (armingWiggle == ARMING_WIGGLE_NOT_DONE) {
             armingDelayed = ARMING_DELAYED;
             armingWiggle = ARMING_WIGGLE_TRIGGERED;
-            wiggleTrigger(WIGGLE_ARMED);
+            wiggleTrigger(WIGGLE_ARMED, 0);
             return;
         }
         else if (armingWiggle == ARMING_WIGGLE_TRIGGERED) {

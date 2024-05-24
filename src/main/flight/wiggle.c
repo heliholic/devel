@@ -36,8 +36,9 @@
 
 
 typedef struct {
-    uint8_t     action;
-    uint8_t     state;
+    int         action;
+    int         param;
+    int         state;
     timeUs_t    start;
     float       axis[4];
 } wiggleState_t;
@@ -52,12 +53,13 @@ float wiggleGetAxis(int axis)
 
 bool wiggleActive(void)
 {
-    return wgl.action;
+    return (wgl.action != WIGGLE_OFF);
 }
 
-void wiggleTrigger(uint8_t action)
+void wiggleTrigger(int action, int param)
 {
     wgl.action = action;
+    wgl.param = param;
     wgl.state = 0;
 }
 
@@ -74,42 +76,12 @@ static void wiggleSetState(timeUs_t currentTimeUs, uint8_t state)
 
 static void wiggleStopAction(timeUs_t __unused currentTimeUs)
 {
+    wiggleResetAxis();
     wgl.action = 0;
     wgl.state = 0;
     wgl.start = 0;
-    wiggleResetAxis();
 }
 
-
-static void wiggleActionError(timeUs_t currentTimeUs)
-{
-    float level = 1.0f;
-
-    switch (wgl.state)
-    {
-        case 0:
-            wiggleResetAxis();
-            wiggleSetState(currentTimeUs, 1);
-            FALLTHROUGH;
-
-        case 1:
-        {
-            timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
-            int freq = time / 50;
-
-            wgl.axis[FD_COLL] = (freq & 1) ? level : -level;
-
-            if (time > 1000)
-                wiggleStopAction(currentTimeUs);
-
-            break;
-        }
-
-        default:
-            wiggleStopAction(currentTimeUs);
-            break;
-    }
-}
 
 static void wiggleActionArmed(timeUs_t currentTimeUs)
 {
@@ -125,7 +97,7 @@ static void wiggleActionArmed(timeUs_t currentTimeUs)
         case 1:
         {
             timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
-            float angle = time / 1e3f * M_2PIf;
+            float angle = time * 1e-3f * M_2PIf;
 
             wgl.axis[FD_ROLL] = sin_approx(angle) * level;
             wgl.axis[FD_PITCH] = cos_approx(angle) * level;
@@ -145,6 +117,36 @@ static void wiggleActionArmed(timeUs_t currentTimeUs)
             else if (time < 200)
                 wgl.axis[FD_COLL] = -0.5f;
             else
+                wiggleStopAction(currentTimeUs);
+
+            break;
+        }
+
+        default:
+            wiggleStopAction(currentTimeUs);
+            break;
+    }
+}
+
+static void wiggleActionError(timeUs_t currentTimeUs)
+{
+    float level = 1.0f;
+
+    switch (wgl.state)
+    {
+        case 0:
+            wiggleResetAxis();
+            wiggleSetState(currentTimeUs, 1);
+            FALLTHROUGH;
+
+        case 1:
+        {
+            timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
+            int freq = time / 50;
+
+            wgl.axis[FD_COLL] = (freq & 1) ? level : -level;
+
+            if (time > wgl.param)
                 wiggleStopAction(currentTimeUs);
 
             break;
@@ -178,7 +180,7 @@ static void wiggleActionBuzzer(timeUs_t currentTimeUs)
             else
                 wgl.axis[FD_COLL] = 0;
 
-            if (time > 5000)
+            if (time > wgl.param)
                 wiggleStopAction(currentTimeUs);
 
             break;
