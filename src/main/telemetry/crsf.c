@@ -484,6 +484,7 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
 #endif
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
+
 #define CRSF_DISPLAYPORT_MAX_CHUNK_LENGTH   50
 #define CRSF_DISPLAYPORT_BATCH_MAX          0x3F
 #define CRSF_DISPLAYPORT_FIRST_CHUNK_MASK   0x80
@@ -570,21 +571,7 @@ static void crsfFrameDisplayPortClear(sbuf_t *dst)
     *lengthPtr = sbufPtr(dst) - lengthPtr;
 }
 
-#endif
-
-// schedule array to decide how often each type of frame is sent
-typedef enum {
-    CRSF_FRAME_START_INDEX = 0,
-    CRSF_FRAME_ATTITUDE_INDEX = CRSF_FRAME_START_INDEX,
-    CRSF_FRAME_BATTERY_SENSOR_INDEX,
-    CRSF_FRAME_FLIGHT_MODE_INDEX,
-    CRSF_FRAME_GPS_INDEX,
-    CRSF_FRAME_HEARTBEAT_INDEX,
-    CRSF_SCHEDULE_COUNT_MAX
-} crsfFrameTypeIndex_e;
-
-static uint8_t crsfScheduleCount;
-static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
+#endif /* USE_CRSF_CMS_TELEMETRY */
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
@@ -612,6 +599,72 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
     crsfFinalize(dst);
 }
 #endif
+
+/*
+0x80 Passthrough telemetry
+Payload:
+uint8_t     Sub-cmd Single
+uint16_t    Sensor id
+uint32_t    Sensor value
+
+Payload:
+uint8_t     Sub-cmd Multi
+uint8_t     Sensor count
+uint16_t    Sensor id#1
+uint32_t    Sensor value#1
+uint16_t    Sensor id#2
+uint32_t    Sensor value#2
+...
+*/
+
+void crsfFramePassthroughTelemetrySingle(sbuf_t *dst, uint16_t sensor, uint32_t value)
+{
+    sbufWriteU8(dst, 1 + 6 + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
+    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_SINGLE);
+    sbufWriteU16BigEndian(dst, sensor);
+    sbufWriteU32BigEndian(dst, value);
+}
+
+void crsfFramePassthroughTelemetryMultiHeader(sbuf_t *dst, uint8_t count)
+{
+    sbufWriteU8(dst, count * 6 + 1 + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
+    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_SINGLE);
+    sbufWriteU8(dst, count);
+}
+
+void crsfFramePassthroughTelemetryMultiSensor(sbuf_t *dst, uint16_t sensor, uint32_t value)
+{
+    sbufWriteU16BigEndian(dst, sensor);
+    sbufWriteU32BigEndian(dst, value);
+}
+
+void crsfFramePassthroughTelemetryText(sbuf_t *dst, char * text)
+{
+    uint8_t *lengthPtr = sbufPtr(dst);
+    sbufWriteU8(dst, 0);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
+    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_TEXT);
+    sbufWriteStringWithZeroTerminator(dst, text);
+    *lengthPtr = sbufPtr(dst) - lengthPtr;
+}
+
+
+// schedule array to decide how often each type of frame is sent
+typedef enum {
+    CRSF_FRAME_START_INDEX = 0,
+    CRSF_FRAME_ATTITUDE_INDEX = CRSF_FRAME_START_INDEX,
+    CRSF_FRAME_BATTERY_SENSOR_INDEX,
+    CRSF_FRAME_FLIGHT_MODE_INDEX,
+    CRSF_FRAME_GPS_INDEX,
+    CRSF_FRAME_HEARTBEAT_INDEX,
+    CRSF_SCHEDULE_COUNT_MAX
+} crsfFrameTypeIndex_e;
+
+static uint8_t crsfScheduleCount;
+static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
+
 
 static void processCrsf(void)
 {

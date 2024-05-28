@@ -57,6 +57,7 @@ typedef enum {
     CRSF_FRAMETYPE_MSP_RESP = 0x7B,  // reply with 58 byte chunked binary
     CRSF_FRAMETYPE_MSP_WRITE = 0x7C,  // write with 8 byte chunked binary (OpenTX outbound telemetry buffer limit)
     CRSF_FRAMETYPE_DISPLAYPORT_CMD = 0x7D, // displayport control command
+    CRSF_FRAMETYPE_PASSTHROUGH = 0x80, // telemetry passthrough
 } crsfFrameType_e;
 
 enum {
@@ -74,6 +75,12 @@ enum {
     CRSF_DISPLAYPORT_SUBCMD_OPEN = 0x03,  // client request to open cms menu
     CRSF_DISPLAYPORT_SUBCMD_CLOSE = 0x04,  // client request to close cms menu
     CRSF_DISPLAYPORT_SUBCMD_POLL = 0x05,  // client request to poll/refresh cms menu
+};
+
+enum {
+    CRSF_PASSTHROUGH_SUBCMD_SINGLE = 0xF0,
+    CRSF_PASSTHROUGH_SUBCMD_TEXT = 0xF1,
+    CRSF_PASSTHROUGH_SUBCMD_MULTI = 0xF2,
 };
 
 enum {
