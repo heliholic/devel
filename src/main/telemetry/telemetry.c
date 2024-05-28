@@ -1,21 +1,18 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <stddef.h>
@@ -62,7 +59,7 @@
 #include "telemetry/msp_shared.h"
 
 
-void telemetryInit(void)
+void INIT_CODE telemetryInit(void)
 {
 #ifdef USE_TELEMETRY_FRSKY_HUB
     initFrSkyHubTelemetry();
@@ -106,7 +103,7 @@ void telemetryInit(void)
 
 bool telemetryDetermineEnabledState(portSharing_e portSharing)
 {
-    bool enabled = portSharing == PORTSHARING_NOT_SHARED;
+    bool enabled = (portSharing == PORTSHARING_NOT_SHARED);
 
     if (portSharing == PORTSHARING_SHARED) {
         if (isModeActivationConditionPresent(BOXTELEMETRY))
@@ -120,22 +117,23 @@ bool telemetryDetermineEnabledState(portSharing_e portSharing)
 
 bool telemetryCheckRxPortShared(const serialPortConfig_t *portConfig, const SerialRXType serialrxProvider)
 {
-    if (portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & TELEMETRY_SHAREABLE_PORT_FUNCTIONS_MASK &&
+    if ((portConfig->functionMask & FUNCTION_RX_SERIAL) &&
+        (portConfig->functionMask & TELEMETRY_SHAREABLE_PORT_FUNCTIONS_MASK) &&
         (serialrxProvider == SERIALRX_SPEKTRUM1024 ||
-        serialrxProvider == SERIALRX_SPEKTRUM2048 ||
-        serialrxProvider == SERIALRX_SBUS ||
-        serialrxProvider == SERIALRX_SUMD ||
-        serialrxProvider == SERIALRX_SUMH ||
-        serialrxProvider == SERIALRX_XBUS_MODE_B ||
-        serialrxProvider == SERIALRX_XBUS_MODE_B_RJ01 ||
-        serialrxProvider == SERIALRX_IBUS)) {
+         serialrxProvider == SERIALRX_SPEKTRUM2048 ||
+         serialrxProvider == SERIALRX_SBUS ||
+         serialrxProvider == SERIALRX_SUMD ||
+         serialrxProvider == SERIALRX_SUMH ||
+         serialrxProvider == SERIALRX_XBUS_MODE_B ||
+         serialrxProvider == SERIALRX_XBUS_MODE_B_RJ01 ||
+         serialrxProvider == SERIALRX_IBUS)) {
 
         return true;
     }
 #ifdef USE_TELEMETRY_IBUS
-    if (portConfig->functionMask & FUNCTION_TELEMETRY_IBUS
-        && portConfig->functionMask & FUNCTION_RX_SERIAL
-        && serialrxProvider == SERIALRX_IBUS) {
+    if (portConfig->functionMask & FUNCTION_TELEMETRY_IBUS &&
+        portConfig->functionMask & FUNCTION_RX_SERIAL &&
+        serialrxProvider == SERIALRX_IBUS) {
         // IBUS serial RX & telemetry
         return true;
     }
