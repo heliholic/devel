@@ -662,7 +662,9 @@ typedef enum {
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
-static uint8_t crsfScheduleCount;
+static uint8_t crsfScheduleCount = 0;
+static uint8_t crsfScheduleIndex = 0;
+
 static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 
@@ -672,12 +674,9 @@ static void processCrsf(void)
         return; // do nothing if telemetry ouptut buffer is not empty yet.
     }
 
-    static uint8_t crsfScheduleIndex = 0;
-
     const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
 
-    sbuf_t crsfPayloadBuf;
-    sbuf_t *dst = &crsfPayloadBuf;
+    sbuf_t dst[1];
 
     if (currentSchedule & BIT(CRSF_FRAME_ATTITUDE_INDEX)) {
         crsfInitializeFrame(dst);
@@ -689,12 +688,12 @@ static void processCrsf(void)
         crsfFrameBatterySensor(dst);
         crsfFinalize(dst);
     }
-
     if (currentSchedule & BIT(CRSF_FRAME_FLIGHT_MODE_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameFlightMode(dst);
         crsfFinalize(dst);
     }
+
 #ifdef USE_GPS
     if (currentSchedule & BIT(CRSF_FRAME_GPS_INDEX)) {
         crsfInitializeFrame(dst);
@@ -703,7 +702,7 @@ static void processCrsf(void)
     }
 #endif
 
-#if defined(USE_CRSF_V3)
+#ifdef USE_CRSF_V3
     if (currentSchedule & BIT(CRSF_FRAME_HEARTBEAT_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameHeartbeat(dst);
@@ -895,12 +894,14 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     }
 #endif
 
+#if 0
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
     if (currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
         crsfLastCycleTime = currentTimeUs;
         processCrsf();
     }
+#endif
 }
 
 #if defined(UNIT_TEST) || defined(USE_RX_EXPRESSLRS)
@@ -962,6 +963,7 @@ int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;
 }
-#endif
-#endif
+#endif /* USE_MSP_OVER_TELEMETRY */
+#endif /* USE_RX_EXPRESSLRS */
+
 #endif
