@@ -258,11 +258,10 @@ void crsfFrameBatterySensor(sbuf_t *dst)
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     sbufWriteU8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
-    if (telemetryConfig()->report_cell_voltage) {
-        sbufWriteU16BigEndian(dst, (getBatteryAverageCellVoltage() + 5) / 10); // vbat is in units of 0.01V
-    } else {
+    if (telemetryConfig()->report_cell_voltage)
+        sbufWriteU16BigEndian(dst, getBatteryAverageCellVoltage());
+    else
         sbufWriteU16BigEndian(dst, getLegacyBatteryVoltage());
-    }
     sbufWriteU16BigEndian(dst, getLegacyBatteryCurrent());
     const uint32_t mAhDrawn = getBatteryCapacityUsed();
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentageRemaining();
@@ -318,13 +317,11 @@ int16_t     Yaw angle ( rad / 10000 )
 // convert andgle in decidegree to radians/10000 with reducing angle to +/-180 degree range
 static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
 {
-    while (angle_decidegree > 1800) {
+    while (angle_decidegree > 1800)
         angle_decidegree -= 3600;
-    }
-    while (angle_decidegree < -1800) {
+    while (angle_decidegree < -1800)
         angle_decidegree += 3600;
-    }
-    return (int16_t)(RAD * 1000.0f * angle_decidegree);
+    return RAD * 1000 * angle_decidegree;
 }
 
 // fill dst buffer with crsf-attitude telemetry frame
@@ -669,7 +666,7 @@ static uint8_t crsfScheduleIndex = 0;
 static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 
-static void processCrsf(void)
+static void processCrsfTelemetry(void)
 {
     if (!crsfRxIsTelemetryBufEmpty()) {
         return; // do nothing if telemetry ouptut buffer is not empty yet.
@@ -713,6 +710,13 @@ static void processCrsf(void)
 
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
+
+
+static void processPassthroughTelemetry(void)
+{
+
+}
+
 
 void crsfScheduleDeviceInfoResponse(void)
 {
@@ -899,9 +903,10 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
     if (false && currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
         crsfLastCycleTime = currentTimeUs;
-        processCrsf();
+        processCrsfTelemetry();
     }
 
+    processPassthroughTelemetry();
 
 }
 
