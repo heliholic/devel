@@ -413,6 +413,56 @@ void crsfFrameDeviceInfo(sbuf_t *dst)
     *lengthPtr = sbufPtr(dst) - lengthPtr;
 }
 
+/*
+0x80 Passthrough telemetry
+Payload:
+uint8_t     Sub-cmd Single
+uint16_t    Sensor id
+uint32_t    Sensor value
+
+Payload:
+uint8_t     Sub-cmd Multi
+uint8_t     Sensor count
+uint16_t    Sensor id#1
+uint32_t    Sensor value#1
+uint16_t    Sensor id#2
+uint32_t    Sensor value#2
+...
+*/
+
+void crsfFramePassthroughTelemetrySingle(sbuf_t *dst, uint16_t sensor, uint32_t value)
+{
+    sbufWriteU8(dst, 1 + 6 + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
+    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_SINGLE);
+    sbufWriteU16BigEndian(dst, sensor);
+    sbufWriteU32BigEndian(dst, value);
+}
+
+void crsfFramePassthroughTelemetryMultiHeader(sbuf_t *dst, uint8_t count)
+{
+    sbufWriteU8(dst, count * 6 + 1 + CRSF_FRAME_LENGTH_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
+    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_MULTI);
+    sbufWriteU8(dst, count);
+}
+
+void crsfFramePassthroughTelemetryMultiSensor(sbuf_t *dst, uint16_t sensor, uint32_t value)
+{
+    sbufWriteU16BigEndian(dst, sensor);
+    sbufWriteU32BigEndian(dst, value);
+}
+
+void crsfFramePassthroughTelemetryText(sbuf_t *dst, char * text)
+{
+    uint8_t *lengthPtr = sbufPtr(dst);
+    sbufWriteU8(dst, 0);
+    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
+    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_TEXT);
+    sbufWriteStringWithZeroTerminator(dst, text);
+    *lengthPtr = sbufPtr(dst) - lengthPtr;
+}
+
 
 #if defined(USE_CRSF_V3)
 void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
@@ -598,57 +648,8 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
     sbufWriteData(dst, payload, payloadSize);
     crsfFinalize(dst);
 }
-#endif
 
-/*
-0x80 Passthrough telemetry
-Payload:
-uint8_t     Sub-cmd Single
-uint16_t    Sensor id
-uint32_t    Sensor value
-
-Payload:
-uint8_t     Sub-cmd Multi
-uint8_t     Sensor count
-uint16_t    Sensor id#1
-uint32_t    Sensor value#1
-uint16_t    Sensor id#2
-uint32_t    Sensor value#2
-...
-*/
-
-void crsfFramePassthroughTelemetrySingle(sbuf_t *dst, uint16_t sensor, uint32_t value)
-{
-    sbufWriteU8(dst, 1 + 6 + CRSF_FRAME_LENGTH_TYPE_CRC);
-    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
-    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_SINGLE);
-    sbufWriteU16BigEndian(dst, sensor);
-    sbufWriteU32BigEndian(dst, value);
-}
-
-void crsfFramePassthroughTelemetryMultiHeader(sbuf_t *dst, uint8_t count)
-{
-    sbufWriteU8(dst, count * 6 + 1 + CRSF_FRAME_LENGTH_TYPE_CRC);
-    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
-    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_SINGLE);
-    sbufWriteU8(dst, count);
-}
-
-void crsfFramePassthroughTelemetryMultiSensor(sbuf_t *dst, uint16_t sensor, uint32_t value)
-{
-    sbufWriteU16BigEndian(dst, sensor);
-    sbufWriteU32BigEndian(dst, value);
-}
-
-void crsfFramePassthroughTelemetryText(sbuf_t *dst, char * text)
-{
-    uint8_t *lengthPtr = sbufPtr(dst);
-    sbufWriteU8(dst, 0);
-    sbufWriteU8(dst, CRSF_FRAMETYPE_PASSTHROUGH);
-    sbufWriteU8(dst, CRSF_PASSTHROUGH_SUBCMD_TEXT);
-    sbufWriteStringWithZeroTerminator(dst, text);
-    *lengthPtr = sbufPtr(dst) - lengthPtr;
-}
+#endif /* USE_MSP_OVER_TELEMETRY */
 
 
 // schedule array to decide how often each type of frame is sent
@@ -776,20 +777,20 @@ void crsfProcessDisplayPortCmd(uint8_t *frameStart)
 {
     uint8_t cmd = *frameStart;
     switch (cmd) {
-    case CRSF_DISPLAYPORT_SUBCMD_OPEN: ;
-        const uint8_t rows = *(frameStart + CRSF_DISPLAYPORT_OPEN_ROWS_OFFSET);
-        const uint8_t cols = *(frameStart + CRSF_DISPLAYPORT_OPEN_COLS_OFFSET);
-        crsfDisplayPortSetDimensions(rows, cols);
-        crsfDisplayPortMenuOpen();
-        break;
-    case CRSF_DISPLAYPORT_SUBCMD_CLOSE:
-        crsfDisplayPortMenuExit();
-        break;
-    case CRSF_DISPLAYPORT_SUBCMD_POLL:
-        crsfDisplayPortRefresh();
-        break;
-    default:
-        break;
+        case CRSF_DISPLAYPORT_SUBCMD_OPEN:;
+            const uint8_t rows = *(frameStart + CRSF_DISPLAYPORT_OPEN_ROWS_OFFSET);
+            const uint8_t cols = *(frameStart + CRSF_DISPLAYPORT_OPEN_COLS_OFFSET);
+            crsfDisplayPortSetDimensions(rows, cols);
+            crsfDisplayPortMenuOpen();
+            break;
+        case CRSF_DISPLAYPORT_SUBCMD_CLOSE:
+            crsfDisplayPortMenuExit();
+            break;
+        case CRSF_DISPLAYPORT_SUBCMD_POLL:
+            crsfDisplayPortRefresh();
+            break;
+        default:
+            break;
     }
 
 }
@@ -894,14 +895,14 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     }
 #endif
 
-#if 0
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
+    if (false && currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
         crsfLastCycleTime = currentTimeUs;
         processCrsf();
     }
-#endif
+
+
 }
 
 #if defined(UNIT_TEST) || defined(USE_RX_EXPRESSLRS)
