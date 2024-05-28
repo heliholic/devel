@@ -682,6 +682,7 @@ void initCrsfTelemetry(void)
 #endif
 
     int index = 0;
+
     if (sensors(SENSOR_ACC) && telemetryIsSensorEnabled(SENSOR_PITCH | SENSOR_ROLL | SENSOR_HEADING)) {
         crsfSchedule[index++] = BIT(CRSF_FRAME_ATTITUDE_INDEX);
     }
@@ -740,7 +741,6 @@ void crsfProcessDisplayPortCmd(uint8_t *frameStart)
     }
 
 }
-
 #endif
 
 #if defined(USE_CRSF_V3)
