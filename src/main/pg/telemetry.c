@@ -30,6 +30,7 @@
 
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
+#include "pg/telemetry.h"
 #include "pg/rx.h"
 
 #include "drivers/timer.h"
@@ -43,6 +44,7 @@
 
 #include "rx/rx.h"
 
+#if 1
 #include "telemetry/telemetry.h"
 #include "telemetry/frsky_hub.h"
 #include "telemetry/hott.h"
@@ -55,7 +57,7 @@
 #include "telemetry/srxl.h"
 #include "telemetry/ibus.h"
 #include "telemetry/msp_shared.h"
-
+#endif
 
 PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
 
