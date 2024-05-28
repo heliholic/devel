@@ -47,10 +47,8 @@
 
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/rc_adjustments.h"
 
 #include "flight/imu.h"
-#include "flight/motors.h"
 #include "flight/position.h"
 #include "flight/governor.h"
 
@@ -65,12 +63,8 @@
 #include "rx/crsf.h"
 #include "rx/crsf_protocol.h"
 
-#include "scheduler/scheduler.h"
-
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
-#include "sensors/adcinternal.h"
-#include "sensors/esc_sensor.h"
 
 #include "telemetry/telemetry.h"
 #include "telemetry/msp_shared.h"
@@ -238,127 +232,6 @@ uint16      Altitude ( meter ­1000m offset )
 uint8_t     Satellites in use ( counter )
 */
 
-static int getVoltageMeter(voltageMeterId_e id)
-{
-    voltageMeter_t meter;
-
-    voltageMeterRead(id, &meter);
-
-    // Use ratio 200 in EdgeTx 2.9.3 and 20 in earlier versions
-    // Max voltage 25.5V
-    return meter.voltage * 255 / 200;
-}
-
-static int16_t crsfGpsReuse(uint8_t reuse, int16_t value)
-{
-    escSensorData_t *escData;
-
-    switch (reuse) {
-        case CRSF_GPS_REUSE_NONE:
-            return value;
-        case CRSF_GPS_REUSE_HEADSPEED:
-            return getHeadSpeed();
-        case CRSF_GPS_REUSE_THROTTLE:
-            return getGovernorOutput() * 1000;
-        case CRSF_GPS_REUSE_ESC_TEMP:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->temperature : 0;
-        case CRSF_GPS_REUSE_ESC_PWM:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->pwm : 0;
-        case CRSF_GPS_REUSE_ESC_THROTTLE:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->throttle : 0;
-        case CRSF_GPS_REUSE_ESC_BEC_VOLTAGE:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->bec_voltage : 0;
-        case CRSF_GPS_REUSE_ESC_BEC_CURRENT:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->bec_current : 0;
-        case CRSF_GPS_REUSE_ESC_BEC_TEMP:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->temperature2 : 0;
-        case CRSF_GPS_REUSE_ESC_STATUS:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? (escData->status & 0xFFFF) : 0;
-        case CRSF_GPS_REUSE_ESC_STATUS2:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? (escData->status >> 16) : 0;
-        case CRSF_GPS_REUSE_MCU_TEMP:
-            return getCoreTemperatureCelsius() * 10;
-        case CRSF_GPS_REUSE_MCU_LOAD:
-            return getAverageCPULoad();
-        case CRSF_GPS_REUSE_SYS_LOAD:
-            return getAverageSystemLoad();
-        case CRSF_GPS_REUSE_RT_LOAD:
-            return getMaxRealTimeLoad();
-        case CRSF_GPS_REUSE_BEC_VOLTAGE:
-            return getVoltageMeter(VOLTAGE_METER_ID_BEC);
-        case CRSF_GPS_REUSE_BUS_VOLTAGE:
-            return getVoltageMeter(VOLTAGE_METER_ID_BUS);
-        case CRSF_GPS_REUSE_MCU_VOLTAGE:
-            return getVoltageMeter(VOLTAGE_METER_ID_MCU);
-    }
-
-    return 0;
-}
-
-static int16_t crsfGpsAltitudeReuse(uint8_t reuse, int32_t altitude)
-{
-    escSensorData_t *escData;
-
-    switch (reuse) {
-        case CRSF_GPS_REUSE_NONE:
-            return constrain(altitude / 100, -1000, 5000);   // constrain altitude from -1000 to 5,000m
-        case CRSF_GPS_REUSE_HEADSPEED:
-            return getHeadSpeed();
-        case CRSF_GPS_REUSE_THROTTLE:
-            return getGovernorOutput() * 100;
-        case CRSF_GPS_REUSE_ESC_TEMP:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->temperature / 10 : 0;
-        case CRSF_GPS_REUSE_MCU_TEMP:
-            return getCoreTemperatureCelsius();
-        case CRSF_GPS_REUSE_MCU_LOAD:
-            return getAverageCPULoadPercent();
-        case CRSF_GPS_REUSE_SYS_LOAD:
-            return getAverageSystemLoadPercent();
-        case CRSF_GPS_REUSE_RT_LOAD:
-            return getMaxRealTimeLoadPercent();
-    }
-
-    return 0;
-}
-
-static int8_t crsfGpsSatsReuse(uint8_t reuse, int8_t value)
-{
-    escSensorData_t *escData;
-
-    switch (reuse) {
-        case CRSF_GPS_SATS_REUSE_NONE:
-            return value;
-        case CRSF_GPS_SATS_REUSE_ESC_TEMP:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? MAX(escData->temperature, 0) / 10 : 0;
-        case CRSF_GPS_SATS_REUSE_MCU_TEMP:
-            return MAX(getCoreTemperatureCelsius(), 0);
-        case CRSF_GPS_SATS_REUSE_PROFILE:
-            return getCurrentPidProfileIndex() + 1;
-        case CRSF_GPS_SATS_REUSE_RATE_PROFILE:
-            return getCurrentControlRateProfileIndex() + 1;
-        case CRSF_GPS_SATS_REUSE_MODEL_ID:
-            return pilotConfig()->modelId;
-        case CRSF_GPS_SATS_REUSE_LED_PROFILE:
-#ifdef USE_LED_STRIP
-            return getLedProfile() + 1;
-#else
-            return 0;
-#endif
-    }
-
-    return 0;
-}
-
 void crsfFrameGps(sbuf_t *dst)
 {
     // use sbufWrite since CRC does not include frame length
@@ -366,13 +239,10 @@ void crsfFrameGps(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_FRAMETYPE_GPS);
     sbufWriteU32BigEndian(dst, gpsSol.llh.lat); // CRSF and betaflight use same units for degrees
     sbufWriteU32BigEndian(dst, gpsSol.llh.lon);
-    sbufWriteU16BigEndian(dst, crsfGpsReuse(telemetryConfig()->crsf_gps_ground_speed_reuse,
-        (gpsSol.groundSpeed * 36 + 50) / 100)); // gpsSol.groundSpeed is in cm/s
-    sbufWriteU16BigEndian(dst, crsfGpsReuse(telemetryConfig()->crsf_gps_heading_reuse,
-        gpsSol.groundCourse * 10)); // gpsSol.groundCourse is degrees * 10
-    sbufWriteU16BigEndian(dst, crsfGpsAltitudeReuse(telemetryConfig()->crsf_gps_altitude_reuse,
-        getEstimatedAltitudeCm()) + 1000);
-    sbufWriteU8(dst, crsfGpsSatsReuse(telemetryConfig()->crsf_gps_sats_reuse, gpsSol.numSat));
+    sbufWriteU16BigEndian(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
+    sbufWriteU16BigEndian(dst, gpsSol.groundCourse * 10); // gpsSol.groundCourse is degrees * 10
+    sbufWriteU16BigEndian(dst, getEstimatedAltitudeCm() / 100 + 1000);
+    sbufWriteU8(dst, gpsSol.numSat);
 }
 
 /*
@@ -457,63 +327,14 @@ static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
     return (int16_t)(RAD * 1000.0f * angle_decidegree);
 }
 
-static int16_t crsfAttitudeReuse(uint8_t reuse, int attitude)
-{
-    escSensorData_t *escData;
-
-    switch (reuse) {
-        case CRSF_ATT_REUSE_NONE:
-            return decidegrees2Radians10000(attitude);
-        case CRSF_ATT_REUSE_THROTTLE:
-            return getGovernorOutput() * 10000;
-        case CRSF_ATT_REUSE_ESC_TEMP:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->temperature * 10 : 0;
-        case CRSF_ATT_REUSE_ESC_PWM:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->pwm : 0;
-        case CRSF_ATT_REUSE_ESC_BEC_VOLTAGE:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->bec_voltage : 0;
-        case CRSF_ATT_REUSE_ESC_BEC_CURRENT:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->bec_current : 0;
-        case CRSF_ATT_REUSE_ESC_BEC_TEMP:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? escData->temperature2 * 10 : 0;
-        case CRSF_ATT_REUSE_ESC_STATUS:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? (escData->status & 0xFFFF) : 0;
-        case CRSF_ATT_REUSE_ESC_STATUS2:
-            escData = getEscSensorData(ESC_SENSOR_COMBINED);
-            return (escData) ? (escData->status >> 16) : 0;
-        case CRSF_ATT_REUSE_MCU_TEMP:
-            return getCoreTemperatureCelsius() * 100;
-        case CRSF_ATT_REUSE_MCU_LOAD:
-            return getAverageCPULoad() * 10;
-        case CRSF_ATT_REUSE_SYS_LOAD:
-            return getAverageSystemLoad() * 10;
-        case CRSF_ATT_REUSE_RT_LOAD:
-            return getMaxRealTimeLoad() * 10;
-        case CRSF_ATT_REUSE_BEC_VOLTAGE:
-            return getVoltageMeter(VOLTAGE_METER_ID_BEC);
-        case CRSF_ATT_REUSE_BUS_VOLTAGE:
-            return getVoltageMeter(VOLTAGE_METER_ID_BUS);
-        case CRSF_ATT_REUSE_MCU_VOLTAGE:
-            return getVoltageMeter(VOLTAGE_METER_ID_MCU);
-    }
-
-    return 0;
-}
-
 // fill dst buffer with crsf-attitude telemetry frame
 void crsfFrameAttitude(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     sbufWriteU8(dst, CRSF_FRAMETYPE_ATTITUDE);
-    sbufWriteU16BigEndian(dst, crsfAttitudeReuse(telemetryConfig()->crsf_att_pitch_reuse, attitude.values.pitch));
-    sbufWriteU16BigEndian(dst, crsfAttitudeReuse(telemetryConfig()->crsf_att_roll_reuse, attitude.values.roll));
-    sbufWriteU16BigEndian(dst, crsfAttitudeReuse(telemetryConfig()->crsf_att_yaw_reuse, attitude.values.yaw));
+    sbufWriteU16BigEndian(dst, decidegrees2Radians10000(attitude.values.pitch));
+    sbufWriteU16BigEndian(dst, decidegrees2Radians10000(attitude.values.roll));
+    sbufWriteU16BigEndian(dst, decidegrees2Radians10000(attitude.values.yaw));
 }
 
 /*
@@ -521,39 +342,6 @@ void crsfFrameAttitude(sbuf_t *dst)
 Payload:
 char[]      Flight mode ( Null terminated string )
 */
-
-static void crsfFlightModeInfo(char *buf)
-{
-    const char *flightMode = "-";
-
-    // Modes that are only relevant when disarmed
-    if (!ARMING_FLAG(ARMED) && isArmingDisabled()) {
-        flightMode = "DISABLED";
-    } else
-#if defined(USE_GPS)
-    if (!ARMING_FLAG(ARMED) && featureIsEnabled(FEATURE_GPS) && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
-        flightMode = "GPS-WAIT";
-    } else
-#endif
-    // Flight modes in decreasing order of importance
-    if (FLIGHT_MODE(FAILSAFE_MODE)) {
-        flightMode = "FAILSAFE";
-    } else if (FLIGHT_MODE(GPS_RESCUE_MODE)) {
-        flightMode = "GPS-RESCUE";
-    } else if (FLIGHT_MODE(RESCUE_MODE)) {
-        flightMode = "RESCUE";
-    } else if (FLIGHT_MODE(HORIZON_MODE)) {
-        flightMode = "HORIZON";
-    } else if (FLIGHT_MODE(ANGLE_MODE)) {
-        flightMode = "ANGLE";
-    } else {
-        flightMode = "NORMAL";
-    }
-
-    const char armChar = ARMING_FLAG(ARMED) ? '*' : ' ';
-
-    tfp_sprintf(buf, "%s%c", flightMode, armChar);
-}
 
 static const char * govStateNames[] = {
     "OFF",
@@ -581,130 +369,11 @@ static void crsfGovernorInfo(char *buf)
     }
 }
 
-static void crsfHeadspeedInfo(char *buf)
-{
-    int val = getHeadSpeed();
-    tfp_sprintf(buf, "%d", val);
-}
-
-static void crsfThrottleInfo(char *buf)
-{
-    int val = lrintf(getGovernorOutput() * 100);
-    tfp_sprintf(buf, "%d", val);
-}
-
-static void crsfMCUTempInfo(char *buf)
-{
-    int val = getCoreTemperatureCelsius();
-    tfp_sprintf(buf, "%d", val);
-}
-
-static void crsfMCULoadInfo(char *buf)
-{
-    int val = getAverageCPULoadPercent();
-    tfp_sprintf(buf, "%d", val);
-}
-
-static void crsfSysLoadInfo(char *buf)
-{
-    int val = getAverageSystemLoadPercent();
-    tfp_sprintf(buf, "%d", val);
-}
-
-static void crsfRTLoadInfo(char *buf)
-{
-    int val = getMaxRealTimeLoadPercent();
-    tfp_sprintf(buf, "%d", val);
-}
-
-static void crsfESCTempInfo(char *buf)
-{
-    escSensorData_t *escData = getEscSensorData(ESC_SENSOR_COMBINED);
-    if (escData) {
-        int val = escData->temperature / 10;
-        tfp_sprintf(buf, "%d", val);
-    }
-}
-
-static void crsfVoltageMetereInfo(char *buf, voltageMeterId_e id)
-{
-    voltageMeter_t meter;
-
-    if (voltageMeterRead(id, &meter)) {
-        int val = meter.voltage / 10;
-        tfp_sprintf(buf, "%d.%02d", val / 100, val % 100);
-    }
-}
-
-static void crsfAdjFuncInfo(char *buf)
-{
-    if (getAdjustmentsRangeName()) {
-        int fun = getAdjustmentsRangeFunc();
-        int val = getAdjustmentsRangeValue();
-        tfp_sprintf(buf, "%d:%d", fun, val);
-    }
-}
-
-static void crsfGovAdjFuncInfo(char *buf)
-{
-    if (getAdjustmentsRangeName()) {
-        int fun = getAdjustmentsRangeFunc();
-        int val = getAdjustmentsRangeValue();
-        tfp_sprintf(buf, "%d:%d", fun, val);
-    }
-    else {
-        crsfGovernorInfo(buf);
-    }
-}
-
 void crsfFrameFlightMode(sbuf_t *dst)
 {
     char buff[32] = { 0, };
 
-    switch (telemetryConfig()->crsf_flight_mode_reuse) {
-        case CRSF_FM_REUSE_GOV_STATE:
-            crsfGovernorInfo(buff);
-            break;
-        case CRSF_FM_REUSE_HEADSPEED:
-            crsfHeadspeedInfo(buff);
-            break;
-        case CRSF_FM_REUSE_THROTTLE:
-            crsfThrottleInfo(buff);
-            break;
-        case CRSF_FM_REUSE_ESC_TEMP:
-            crsfESCTempInfo(buff);
-            break;
-        case CRSF_FM_REUSE_MCU_TEMP:
-            crsfMCUTempInfo(buff);
-            break;
-        case CRSF_FM_REUSE_MCU_LOAD:
-            crsfMCULoadInfo(buff);
-            break;
-        case CRSF_FM_REUSE_SYS_LOAD:
-            crsfSysLoadInfo(buff);
-            break;
-        case CRSF_FM_REUSE_RT_LOAD:
-            crsfRTLoadInfo(buff);
-            break;
-        case CRSF_FM_REUSE_BEC_VOLTAGE:
-            crsfVoltageMetereInfo(buff, VOLTAGE_METER_ID_BEC);
-            break;
-        case CRSF_FM_REUSE_BUS_VOLTAGE:
-            crsfVoltageMetereInfo(buff, VOLTAGE_METER_ID_BUS);
-            break;
-        case CRSF_FM_REUSE_MCU_VOLTAGE:
-            crsfVoltageMetereInfo(buff, VOLTAGE_METER_ID_MCU);
-            break;
-        case CRSF_FM_REUSE_ADJFUNC:
-            crsfAdjFuncInfo(buff);
-            break;
-        case CRSF_FM_REUSE_GOV_ADJFUNC:
-            crsfGovAdjFuncInfo(buff);
-            break;
-        default:
-            crsfFlightModeInfo(buff);
-            break;
-    }
+    crsfGovernorInfo(buff);
 
     uint8_t *lengthPtr = sbufPtr(dst);
     sbufWriteU8(dst, 0);
@@ -1024,12 +693,8 @@ void initCrsfTelemetry(void)
         crsfSchedule[index++] = BIT(CRSF_FRAME_FLIGHT_MODE_INDEX);
     }
 #ifdef USE_GPS
-    if ((featureIsEnabled(FEATURE_GPS)
-       && telemetryIsSensorEnabled(SENSOR_ALTITUDE | SENSOR_LAT_LONG | SENSOR_GROUND_SPEED | SENSOR_HEADING))
-       || telemetryConfig()->crsf_gps_ground_speed_reuse
-       || telemetryConfig()->crsf_gps_heading_reuse
-       || telemetryConfig()->crsf_gps_altitude_reuse
-       || telemetryConfig()->crsf_gps_sats_reuse) {
+    if (featureIsEnabled(FEATURE_GPS) &&
+        telemetryIsSensorEnabled(SENSOR_ALTITUDE | SENSOR_LAT_LONG | SENSOR_GROUND_SPEED | SENSOR_HEADING)) {
         crsfSchedule[index++] = BIT(CRSF_FRAME_GPS_INDEX);
     }
 #endif

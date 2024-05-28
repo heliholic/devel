@@ -1185,16 +1185,6 @@ const clivalue_t valueTable[] = {
     // Set to $size_of_battery to get a percentage of battery used.
     { "mavlink_mah_as_heading_divisor", VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 0, 30000 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, mavlink_mah_as_heading_divisor) },
 #endif
-    { "crsf_flight_mode_reuse",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_FM_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_flight_mode_reuse) },
-    { "crsf_att_pitch_reuse",        VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_ATT_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_att_pitch_reuse) },
-    { "crsf_att_roll_reuse",         VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_ATT_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_att_roll_reuse) },
-    { "crsf_att_yaw_reuse",          VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_ATT_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_att_yaw_reuse) },
-
-    { "crsf_gps_heading_reuse",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_GPS_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_gps_heading_reuse) },
-    { "crsf_gps_ground_speed_reuse", VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_GPS_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_gps_ground_speed_reuse) },
-    { "crsf_gps_altitude_reuse",     VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_GPS_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_gps_altitude_reuse) },
-    { "crsf_gps_sats_reuse",         VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_CRSF_GPS_SATS_REUSE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, crsf_gps_sats_reuse) },
-
     { "telemetry_sensors",           VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = TELEM_SENSOR_COUNT, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_sensors)},
 #endif // USE_TELEMETRY
 

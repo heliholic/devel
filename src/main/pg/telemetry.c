@@ -70,13 +70,9 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .hottAlarmSoundInterval = 5,
     .pidValuesAsTelemetry = 0,
     .report_cell_voltage = false,
+    .mavlink_mah_as_heading_divisor = 0,
     .flysky_sensors = { 0, },
     .telemetry_sensors = { 0, },
-    .mavlink_mah_as_heading_divisor = 0,
-    .crsf_flight_mode_reuse = CRSF_FM_REUSE_NONE,
-    .crsf_att_pitch_reuse = CRSF_ATT_REUSE_NONE,
-    .crsf_att_roll_reuse = CRSF_ATT_REUSE_NONE,
-    .crsf_att_yaw_reuse = CRSF_ATT_REUSE_NONE,
 );
 
 #endif
