@@ -314,7 +314,7 @@ int16_t     Roll angle ( rad / 10000 )
 int16_t     Yaw angle ( rad / 10000 )
 */
 
-// convert andgle in decidegree to radians/10000 with reducing angle to +/-180 degree range
+// convert angle in decidegree to radians/10000 with +/-180 degree range
 static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
 {
     while (angle_decidegree > 1800)
@@ -394,6 +394,7 @@ uint8_t     0x01 (Parameter version 1)
 void crsfFrameDeviceInfo(sbuf_t *dst)
 {
     char buff[30];
+
     tfp_sprintf(buff, "%s %s: %s", FC_FIRMWARE_NAME, FC_VERSION_STRING, systemConfig()->boardIdentifier);
 
     uint8_t *lengthPtr = sbufPtr(dst);
@@ -402,9 +403,9 @@ void crsfFrameDeviceInfo(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     sbufWriteStringWithZeroTerminator(dst, buff);
-    for (unsigned int ii = 0; ii < 12; ii++) {
-        sbufWriteU8(dst, 0x00);
-    }
+    sbufWriteU32(dst, 0);
+    sbufWriteU32(dst, 0);
+    sbufWriteU32(dst, 0);
     sbufWriteU8(dst, CRSF_DEVICEINFO_PARAMETER_COUNT);
     sbufWriteU8(dst, CRSF_DEVICEINFO_VERSION);
     *lengthPtr = sbufPtr(dst) - lengthPtr;
@@ -901,13 +902,13 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (false && currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
+    if (currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
         crsfLastCycleTime = currentTimeUs;
-        processCrsfTelemetry();
+        if (0)
+            processCrsfTelemetry();
+        else
+            processPassthroughTelemetry();
     }
-
-    processPassthroughTelemetry();
-
 }
 
 #if defined(UNIT_TEST) || defined(USE_RX_EXPRESSLRS)
