@@ -224,4 +224,9 @@ bool telemetryIsSensorEnabled(sensor_e sensor)
     return false;
 }
 
+uint32_t telemetryGetSensor(sensor_e sensor)
+{
+    return 0xdeadbeef + sensor;
+}
+
 #endif

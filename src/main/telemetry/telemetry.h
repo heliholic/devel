@@ -38,3 +38,4 @@ void telemetryProcess(uint32_t currentTime);
 
 bool telemetryIsSensorEnabled(sensor_e sensor);
 
+uint32_t telemetryGetSensor(sensor_e sensor);

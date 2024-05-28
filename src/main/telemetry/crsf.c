@@ -715,7 +715,14 @@ static void processCrsfTelemetry(void)
 
 static void processPassthroughTelemetry(void)
 {
+    sbuf_t dst[1];
 
+    if (crsfRxIsTelemetryBufEmpty()) {
+        uint32_t value = telemetryGetSensor(TELEM_ALTITUDE);
+        crsfInitializeFrame(dst);
+        crsfFramePassthroughTelemetrySingle(dst, TELEM_ALTITUDE, value);
+        crsfFinalize(dst);
+    }
 }
 
 
