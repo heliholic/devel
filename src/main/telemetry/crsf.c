@@ -1,21 +1,18 @@
 /*
- * This file is part of Cleanflight and Betaflight.
+ * This file is part of Rotorflight.
  *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -681,6 +678,7 @@ void crsfProcessCommand(uint8_t *frameStart)
 #endif /* USE_CRSF_V3 */
 
 #if defined(USE_RX_EXPRESSLRS)
+
 static int crsfFinalizeBuf(sbuf_t *dst, uint8_t *frame)
 {
     crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
