@@ -22,151 +22,103 @@
 
 typedef enum
 {
-    TELEM_NONE                              = 0,
+    TELEM_NONE = 0,
 
-    TELEM_MODEL_ID                          = 0x0001,
+    TELEM_MODEL_ID,
 
-    TELEM_BATTERY                           = 0x0010,
-    TELEM_BATTERY_VOLTAGE                   = 0x0011,
-    TELEM_BATTERY_CURRENT                   = 0x0012,
-    TELEM_BATTERY_CONSUMPTION               = 0x0013,
-    TELEM_BATTERY_CHARGE_LEVEL              = 0x0014,
-    TELEM_BATTERY_TEMPERATURE               = 0x0015,
+    TELEM_BATTERY,
+    TELEM_BATTERY_VOLTAGE,
+    TELEM_BATTERY_CURRENT,
+    TELEM_BATTERY_CONSUMPTION,
+    TELEM_BATTERY_CHARGE_LEVEL,
+    TELEM_BATTERY_TEMPERATURE,
+    TELEM_BATTERY_CELLS,
 
-    TELEM_CELL1_VOLTAGE                     = 0x0020,
-    TELEM_CELL2_VOLTAGE                     = 0x0021,
-    TELEM_CELL3_VOLTAGE                     = 0x0022,
-    TELEM_CELL4_VOLTAGE                     = 0x0023,
-    TELEM_CELL5_VOLTAGE                     = 0x0024,
-    TELEM_CELL6_VOLTAGE                     = 0x0025,
-    TELEM_CELL7_VOLTAGE                     = 0x0026,
-    TELEM_CELL8_VOLTAGE                     = 0x0027,
-    TELEM_CELL9_VOLTAGE                     = 0x0028,
-    TELEM_CELL10_VOLTAGE                    = 0x0029,
-    TELEM_CELL11_VOLTAGE                    = 0x002A,
-    TELEM_CELL12_VOLTAGE                    = 0x002B,
-    TELEM_CELL13_VOLTAGE                    = 0x002C,
-    TELEM_CELL14_VOLTAGE                    = 0x002D,
-    TELEM_CELL15_VOLTAGE                    = 0x002E,
-    TELEM_CELL16_VOLTAGE                    = 0x002F,
+    TELEM_ESC1_GROUP,
+    TELEM_ESC1_VOLTAGE,
+    TELEM_ESC1_CURRENT,
+    TELEM_ESC1_ERPM,
+    TELEM_ESC1_POWER,
+    TELEM_ESC1_THROTTLE,
+    TELEM_ESC1_TEMP1,
+    TELEM_ESC1_TEMP2,
+    TELEM_ESC1_BEC_VOLTAGE,
+    TELEM_ESC1_BEC_CURRENT,
+    TELEM_ESC1_ERRORS,
+    TELEM_ESC1_STATUS,
 
-    TELEM_ESC1_GROUP                        = 0x0040,
-    TELEM_ESC1_VOLTAGE                      = 0x0041,
-    TELEM_ESC1_CURRENT                      = 0x0042,
-    TELEM_ESC1_ERPM                         = 0x0043,
-    TELEM_ESC1_POWER                        = 0x0044,
-    TELEM_ESC1_THROTTLE                     = 0x0045,
-    TELEM_ESC1_TEMP1                        = 0x0046,
-    TELEM_ESC1_TEMP2                        = 0x0047,
-    TELEM_ESC1_BEC_VOLTAGE                  = 0x0048,
-    TELEM_ESC1_BEC_CURRENT                  = 0x0049,
-    TELEM_ESC1_ERRORS                       = 0x004E,
-    TELEM_ESC1_STATUS                       = 0x004F,
+    TELEM_ESC2_GROUP,
+    TELEM_ESC2_VOLTAGE,
+    TELEM_ESC2_CURRENT,
+    TELEM_ESC2_ERPM,
+    TELEM_ESC2_POWER,
+    TELEM_ESC2_THROTTLE,
+    TELEM_ESC2_TEMP1,
+    TELEM_ESC2_TEMP2,
+    TELEM_ESC2_BEC_VOLTAGE,
+    TELEM_ESC2_BEC_CURRENT,
+    TELEM_ESC2_ERRORS,
+    TELEM_ESC2_STATUS,
 
-    TELEM_ESC2_GROUP                        = 0x0050,
-    TELEM_ESC2_VOLTAGE                      = 0x0051,
-    TELEM_ESC2_CURRENT                      = 0x0052,
-    TELEM_ESC2_ERPM                         = 0x0053,
-    TELEM_ESC2_POWER                        = 0x0054,
-    TELEM_ESC2_THROTTLE                     = 0x0055,
-    TELEM_ESC2_TEMP1                        = 0x0056,
-    TELEM_ESC2_TEMP2                        = 0x0057,
-    TELEM_ESC2_BEC_VOLTAGE                  = 0x0058,
-    TELEM_ESC2_BEC_CURRENT                  = 0x0059,
-    TELEM_ESC2_ERRORS                       = 0x005E,
-    TELEM_ESC2_STATUS                       = 0x005F,
+    TELEM_BEC_VOLTAGE,
+    TELEM_BUS_VOLTAGE,
+    TELEM_MCU_VOLTAGE,
 
-    TELEM_ESC3_GROUP                        = 0x0060,
-    TELEM_ESC3_VOLTAGE                      = 0x0061,
-    TELEM_ESC3_CURRENT                      = 0x0062,
-    TELEM_ESC3_ERPM                         = 0x0063,
-    TELEM_ESC3_POWER                        = 0x0064,
-    TELEM_ESC3_THROTTLE                     = 0x0065,
-    TELEM_ESC3_TEMP1                        = 0x0066,
-    TELEM_ESC3_TEMP2                        = 0x0067,
-    TELEM_ESC3_BEC_VOLTAGE                  = 0x0068,
-    TELEM_ESC3_BEC_CURRENT                  = 0x0069,
-    TELEM_ESC3_ERRORS                       = 0x006E,
-    TELEM_ESC3_STATUS                       = 0x006F,
+    TELEM_BEC_CURRENT,
+    TELEM_BUS_CURRENT,
+    TELEM_MCU_CURRENT,
 
-    TELEM_ESC4_GROUP                        = 0x0070,
-    TELEM_ESC4_VOLTAGE                      = 0x0071,
-    TELEM_ESC4_CURRENT                      = 0x0072,
-    TELEM_ESC4_ERPM                         = 0x0073,
-    TELEM_ESC4_POWER                        = 0x0074,
-    TELEM_ESC4_THROTTLE                     = 0x0075,
-    TELEM_ESC4_TEMP1                        = 0x0076,
-    TELEM_ESC4_TEMP2                        = 0x0077,
-    TELEM_ESC4_BEC_VOLTAGE                  = 0x0078,
-    TELEM_ESC4_BEC_CURRENT                  = 0x0079,
-    TELEM_ESC4_ERRORS                       = 0x007E,
-    TELEM_ESC4_STATUS                       = 0x007F,
+    TELEM_BEC_TEMP,
+    TELEM_ESC_TEMP,
+    TELEM_MCU_TEMP,
+    TELEM_MOTOR_TEMP,
 
-    TELEM_BEC_VOLTAGE                       = 0x0080,
-    TELEM_BUS_VOLTAGE                       = 0x0081,
-    TELEM_MCU_VOLTAGE                       = 0x0082,
+    TELEM_EXT1_TEMP,
+    TELEM_EXT2_TEMP,
+    TELEM_EXT3_TEMP,
+    TELEM_EXT4_TEMP,
 
-    TELEM_BEC_CURRENT                       = 0x0090,
-    TELEM_BUS_CURRENT                       = 0x0091,
-    TELEM_MCU_CURRENT                       = 0x0092,
+    TELEM_ALTITUDE,
+    TELEM_VARIOMETER,
 
-    TELEM_BEC_TEMPERATURE                   = 0x00A0,
-    TELEM_ESC_TEMPERATURE                   = 0x00A1,
-    TELEM_MCU_TEMPERATURE                   = 0x00A2,
-    TELEM_MOTOR_TEMPERATURE                 = 0x00A3,
+    TELEM_HEADSPEED,
+    TELEM_TAILSPEED,
 
-    TELEM_EXT1_TEMPERATURE                  = 0x00AA,
-    TELEM_EXT2_TEMPERATURE                  = 0x00AB,
-    TELEM_EXT3_TEMPERATURE                  = 0x00AC,
-    TELEM_EXT4_TEMPERATURE                  = 0x00AD,
+    TELEM_ATTITUDE_PITCH,
+    TELEM_ATTITUDE_ROLL,
+    TELEM_ATTITUDE_YAW,
 
-    TELEM_AIRSPEED                          = 0x00B0,
-    TELEM_ALTITUDE                          = 0x00B1,
-    TELEM_VARIOMETER                        = 0x00B2,
+    TELEM_ACCEL_X,
+    TELEM_ACCEL_Y,
+    TELEM_ACCEL_Z,
 
-    TELEM_HEADSPEED                         = 0x00C0,
-    TELEM_TAILSPEED                         = 0x00C1,
+    TELEM_GPS_GROUP,
+    TELEM_GPS_HEADING,
+    TELEM_GPS_LATITUDE,
+    TELEM_GPS_LONGITUDE,
+    TELEM_GPS_ALTITUDE,
+    TELEM_GPS_DISTANCE,
+    TELEM_GPS_GROUNDSPEED,
+    TELEM_GPS_SAT_COUNT,
+    TELEM_GPS_DATE_TIME,
 
-    TELEM_ATTITUDE_PITCH                    = 0x0100,
-    TELEM_ATTITUDE_ROLL                     = 0x0101,
-    TELEM_ATTITUDE_YAW                      = 0x0102,
+    TELEM_FC_CPU_GROUP,
+    TELEM_FC_CPU_LOAD,
+    TELEM_FC_SYS_LOAD,
+    TELEM_FC_RT_LOAD,
+    TELEM_FC_UPTIME,
 
-    TELEM_ACCEL_X                           = 0x0110,
-    TELEM_ACCEL_Y                           = 0x0111,
-    TELEM_ACCEL_Z                           = 0x0112,
+    TELEM_FLIGHT_MODE,
+    TELEM_ARMING_FLAGS,
+    TELEM_GOVERNOR_STATE,
 
-    TELEM_GPS_GROUP                         = 0x0200,
-    TELEM_GPS_HEADING                       = 0x0201,
-    TELEM_GPS_LATITUDE                      = 0x0202,
-    TELEM_GPS_LONGITUDE                     = 0x0203,
-    TELEM_GPS_ALTITUDE                      = 0x0204,
-    TELEM_GPS_DISTANCE                      = 0x0205,
-    TELEM_GPS_GROUNDSPEED                   = 0x0206,
-    TELEM_GPS_SAT_COUNT                     = 0x020E,
-    TELEM_GPS_DATE_TIME                     = 0x020F,
+    TELEM_PROFILE_GORUP,
+    TELEM_PID_PROFILE,
+    TELEM_RATES_PROFILE,
+    TELEM_BATTERY_PROFILE,
+    TELEM_LED_PROFILE,
 
-    TELEM_FC_CPU_GROUP                      = 0x0220,
-    TELEM_FC_CPU_LOAD                       = 0x0221,
-    TELEM_FC_SYS_LOAD                       = 0x0222,
-    TELEM_FC_RT_LOAD                        = 0x0223,
-    TELEM_FC_UPTIME                         = 0x022F,
-
-    TELEM_FLIGHT_MODE                       = 0x0231,
-    TELEM_ARMING_FLAGS                      = 0x0232,
-    TELEM_GOVERNOR_STATE                    = 0x0233,
-
-    TELEM_PROFILE_GORUP                     = 0x0240,
-    TELEM_PID_PROFILE                       = 0x0241,
-    TELEM_RATES_PROFILE                     = 0x0242,
-    TELEM_BATTERY_PROFILE                   = 0x0243,
-    TELEM_LED_PROFILE                       = 0x0244,
-
-    TELEM_ADJFUNC                           = 0x0250,
-
-    TELEM_ADC1                              = 0x0801,
-    TELEM_ADC2                              = 0x0802,
-    TELEM_ADC3                              = 0x0803,
-    TELEM_ADC4                              = 0x0804,
+    TELEM_ADJFUNC,
 
     TELEM_SENSOR_COUNT,
 
@@ -186,7 +138,7 @@ typedef enum
     SENSOR_LAT_LONG        = TELEM_GPS_LATITUDE,
     SENSOR_GROUND_SPEED    = TELEM_GPS_GROUNDSPEED,
     SENSOR_DISTANCE        = TELEM_GPS_DISTANCE,
-    SENSOR_TEMPERATURE     = TELEM_ESC_TEMPERATURE,
+    SENSOR_TEMPERATURE     = TELEM_ESC_TEMP,
     SENSOR_CAP_USED        = TELEM_BATTERY_CONSUMPTION,
     SENSOR_ADJUSTMENT      = TELEM_ADJFUNC,
     SENSOR_GOV_MODE        = TELEM_GOVERNOR_STATE,
@@ -202,24 +154,26 @@ typedef enum
 typedef int (*tlmValue_f)(void);
 
 typedef struct {
-    sensor_e            sensor_id;
+    sensor_e            sensor_index;
+    uint16_t            sensor_code;
     const char *        sensor_name;
 
     int                 min_delay;
     int                 max_delay;
 
-    int                 length;
+    uint8_t             length;
 
     tlmValue_f          value;
 
 } telemetrySensor_t;
 
 
-const telemetrySensor_t * telemetryGetSensor(sensor_e sensor);
+const telemetrySensor_t * telemetryGetSensor(sensor_e sensor_id);
+const telemetrySensor_t * telemetryGetSensorCode(uint16_t sensor_code);
 
-inline int telemetryGetSensorValue(sensor_e sensor)
+inline int telemetryGetSensorValue(sensor_e sensor_id)
 {
-    return telemetryGetSensor(sensor)->value();
+    return telemetryGetSensor(sensor_id)->value();
 }
 
 bool telemetryIsSensorEnabled(sensor_e sensor_id);

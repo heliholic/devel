@@ -289,7 +289,7 @@ void INIT_CODE telemetryScheduleInit(void)
 {
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_e sensor = telemetryConfig()->telemetry_sensors[i];
-        if (sensor > 0 && sensor < TELEM_SENSOR_COUNT)
+        if (sensor)
             telemetryScheduleAdd(sensor);
     }
 }
