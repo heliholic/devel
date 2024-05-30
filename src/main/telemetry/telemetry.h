@@ -43,10 +43,10 @@ typedef struct {
 
 typedef struct {
 
-    int         current;
-    int         bucket;
+    int         current_slot;
+    int         bucket_level;
 
-    timeUs_t    update;
+    timeUs_t    update_time;
 
     telemetrySlot_t slots[TELEM_SENSOR_SLOT_COUNT];
 
@@ -58,19 +58,13 @@ extern serialPort_t *telemetrySharedPort;
 bool telemetryDetermineEnabledState(portSharing_e portSharing);
 bool telemetryCheckRxPortShared(const serialPortConfig_t *portConfig, const SerialRXType serialrxProvider);
 
-void telemetryInit(void);
+void telemetryProcess(timeUs_t currentTime);
 void telemetryCheckState(void);
-void telemetryProcess(uint32_t currentTime);
-
-bool telemetryIsSensorEnabled(sensor_e sensor);
-
-
-bool telemetryScheduleAdd(sensor_e sensor_id);
-
+void telemetryInit(void);
 
 void telemetryScheduleUpdate(timeUs_t currentTime);
-
-telemetrySlot_t * telemetryScheduleNext(void);
 void telemetryScheduleCommit(telemetrySlot_t * slot);
+telemetrySlot_t * telemetryScheduleNext(void);
 
-void telemetrySchedulerInit(void);
+bool telemetryScheduleAdd(sensor_e sensor_id);
+void telemetryScheduleInit(void);

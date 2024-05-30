@@ -45,6 +45,8 @@ static int getNull(void)
 const telemetrySensor_t telemetry_sensors[TELEM_SENSOR_COUNT] =
 {
     TLM_SENSOR(NONE,           "NONE",    0,    0,    0,    getNull),
+    TLM_SENSOR(MODEL_ID,       "ID  ",    0,    0,    0,    getNull),
+
     TLM_SENSOR(HEADSPEED,      "HSPD",   40, 1000,    2,    getHeadSpeed),
     TLM_SENSOR(TAILSPEED,      "TSPD",   40, 1000,    2,    getTailSpeed),
 };

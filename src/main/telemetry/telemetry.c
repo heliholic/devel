@@ -103,9 +103,9 @@ bool telemetryCheckRxPortShared(const serialPortConfig_t *portConfig, const Seri
 }
 
 
-void telemetryProcess(uint32_t currentTime)
+void telemetryProcess(timeUs_t currentTime)
 {
-    UNUSED(currentTime);
+    telemetryScheduleUpdate(currentTime);
 
 #ifdef USE_TELEMETRY_FRSKY_HUB
     handleFrSkyHubTelemetry(currentTime);
@@ -175,7 +175,7 @@ void telemetryCheckState(void)
 
 void INIT_CODE telemetryInit(void)
 {
-    telemetrySchedulerInit();
+    telemetryScheduleInit();
 
 #ifdef USE_TELEMETRY_FRSKY_HUB
     initFrSkyHubTelemetry();
@@ -242,9 +242,9 @@ bool telemetryScheduleAdd(sensor_e sensor_id)
 
 void telemetryScheduleUpdate(timeUs_t currentTime)
 {
-    int delta = cmpTimeUs(currentTime, sch.update);
+    int delta = cmpTimeUs(currentTime, sch.update_time);
 
-    sch.bucket = 0;
+    sch.bucket_level = 0;
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         telemetrySlot_t * slot = &sch.slots[i];
@@ -258,20 +258,20 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
             slot->bucket += delta * 1000 / delay;
             slot->bucket = constrain(slot->bucket, -2000000, 1000000);
 
-            sch.bucket += slot->bucket;
+            sch.bucket_level += slot->bucket;
         }
     }
 
-    sch.update = currentTime;
+    sch.update_time = currentTime;
 }
 
 telemetrySlot_t * telemetryScheduleNext(void)
 {
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        const int index = (sch.current + i) % TELEM_SENSOR_SLOT_COUNT;
+        const int index = (sch.current_slot + i) % TELEM_SENSOR_SLOT_COUNT;
         telemetrySlot_t * slot = &sch.slots[index];
         if (slot->sensor && slot->bucket > 0) {
-            sch.current = index;
+            sch.current_slot = index;
             return slot;
         }
     }
@@ -285,7 +285,7 @@ void telemetryScheduleCommit(telemetrySlot_t * slot)
     slot->changed = false;
 }
 
-void INIT_CODE telemetrySchedulerInit(void)
+void INIT_CODE telemetryScheduleInit(void)
 {
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_e sensor = telemetryConfig()->telemetry_sensors[i];
