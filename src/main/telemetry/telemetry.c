@@ -103,8 +103,80 @@ bool telemetryCheckRxPortShared(const serialPortConfig_t *portConfig, const Seri
 }
 
 
+void telemetryProcess(uint32_t currentTime)
+{
+    UNUSED(currentTime);
+
+#ifdef USE_TELEMETRY_FRSKY_HUB
+    handleFrSkyHubTelemetry(currentTime);
+#endif
+#ifdef USE_TELEMETRY_HOTT
+    handleHoTTTelemetry(currentTime);
+#endif
+#ifdef USE_TELEMETRY_SMARTPORT
+    handleSmartPortTelemetry();
+#endif
+#ifdef USE_TELEMETRY_LTM
+    handleLtmTelemetry();
+#endif
+#ifdef USE_TELEMETRY_JETIEXBUS
+    handleJetiExBusTelemetry();
+#endif
+#ifdef USE_TELEMETRY_MAVLINK
+    handleMAVLinkTelemetry();
+#endif
+#ifdef USE_TELEMETRY_CRSF
+    handleCrsfTelemetry(currentTime);
+#endif
+#ifdef USE_TELEMETRY_GHST
+    handleGhstTelemetry(currentTime);
+#endif
+#ifdef USE_TELEMETRY_SRXL
+    handleSrxlTelemetry(currentTime);
+#endif
+#ifdef USE_TELEMETRY_IBUS
+    handleIbusTelemetry();
+#endif
+}
+
+void telemetryCheckState(void)
+{
+#ifdef USE_TELEMETRY_FRSKY_HUB
+    checkFrSkyHubTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_HOTT
+    checkHoTTTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_SMARTPORT
+    checkSmartPortTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_LTM
+    checkLtmTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_JETIEXBUS
+    checkJetiExBusTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_MAVLINK
+    checkMAVLinkTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_CRSF
+    checkCrsfTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_GHST
+    checkGhstTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_SRXL
+    checkSrxlTelemetryState();
+#endif
+#ifdef USE_TELEMETRY_IBUS
+    checkIbusTelemetryState();
+#endif
+}
+
 void INIT_CODE telemetryInit(void)
 {
+    telemetrySchedulerInit();
+
 #ifdef USE_TELEMETRY_FRSKY_HUB
     initFrSkyHubTelemetry();
 #endif
@@ -145,88 +217,82 @@ void INIT_CODE telemetryInit(void)
     telemetryCheckState();
 }
 
-void telemetryCheckState(void)
-{
-#ifdef USE_TELEMETRY_FRSKY_HUB
-    checkFrSkyHubTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_HOTT
-    checkHoTTTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_SMARTPORT
-    checkSmartPortTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_LTM
-    checkLtmTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_JETIEXBUS
-    checkJetiExBusTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_MAVLINK
-    checkMAVLinkTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_CRSF
-    checkCrsfTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_GHST
-    checkGhstTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_SRXL
-    checkSrxlTelemetryState();
-#endif
-#ifdef USE_TELEMETRY_IBUS
-    checkIbusTelemetryState();
-#endif
-}
 
-void telemetryProcess(uint32_t currentTime)
-{
-    UNUSED(currentTime);
+static telemetryScheduler_t sch;
 
-#ifdef USE_TELEMETRY_FRSKY_HUB
-    handleFrSkyHubTelemetry(currentTime);
-#endif
-#ifdef USE_TELEMETRY_HOTT
-    handleHoTTTelemetry(currentTime);
-#endif
-#ifdef USE_TELEMETRY_SMARTPORT
-    handleSmartPortTelemetry();
-#endif
-#ifdef USE_TELEMETRY_LTM
-    handleLtmTelemetry();
-#endif
-#ifdef USE_TELEMETRY_JETIEXBUS
-    handleJetiExBusTelemetry();
-#endif
-#ifdef USE_TELEMETRY_MAVLINK
-    handleMAVLinkTelemetry();
-#endif
-#ifdef USE_TELEMETRY_CRSF
-    handleCrsfTelemetry(currentTime);
-#endif
-#ifdef USE_TELEMETRY_GHST
-    handleGhstTelemetry(currentTime);
-#endif
-#ifdef USE_TELEMETRY_SRXL
-    handleSrxlTelemetry(currentTime);
-#endif
-#ifdef USE_TELEMETRY_IBUS
-    handleIbusTelemetry();
-#endif
-}
 
-bool telemetryIsSensorEnabled(sensor_e sensor)
+bool telemetryScheduleAdd(sensor_e sensor_id)
 {
-    for (int i = 0; i < TELEM_SENSOR_COUNT; i++) {
-        if (telemetryConfig()->telemetry_sensors[i] == sensor)
+    const telemetrySensor_t * sensor = telemetryGetSensor(sensor_id);
+
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        telemetrySlot_t * slot = &sch.slots[i];
+        if (!slot->sensor) {
+            slot->sensor = sensor;
+            slot->min_delay = sensor->min_delay;
+            slot->max_delay = sensor->max_delay;
+            slot->bucket = 0;
+            slot->changed = true;
             return true;
+        }
     }
+
     return false;
 }
 
-uint32_t telemetryGetSensor(sensor_e sensor)
+void telemetryScheduleUpdate(timeUs_t currentTime)
 {
-    return 0xdeadbeef + sensor;
+    int delta = cmpTimeUs(currentTime, sch.update);
+
+    sch.bucket = 0;
+
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        telemetrySlot_t * slot = &sch.slots[i];
+
+        if (slot->sensor) {
+            const int value = slot->sensor->value();
+            slot->changed |= (value != slot->value);
+            slot->value = value;
+
+            const int delay = slot->changed ? slot->min_delay : slot->max_delay;
+            slot->bucket += delta * 1000 / delay;
+            slot->bucket = constrain(slot->bucket, -2000000, 1000000);
+
+            sch.bucket += slot->bucket;
+        }
+    }
+
+    sch.update = currentTime;
 }
 
-#endif
+telemetrySlot_t * telemetryScheduleNext(void)
+{
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        const int index = (sch.current + i) % TELEM_SENSOR_SLOT_COUNT;
+        telemetrySlot_t * slot = &sch.slots[index];
+        if (slot->sensor && slot->bucket > 0) {
+            sch.current = index;
+            return slot;
+        }
+    }
+
+    return NULL;
+}
+
+void telemetryScheduleCommit(telemetrySlot_t * slot)
+{
+    slot->value -= 1000000;
+    slot->changed = false;
+}
+
+void INIT_CODE telemetrySchedulerInit(void)
+{
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        sensor_e sensor = telemetryConfig()->telemetry_sensors[i];
+        if (sensor > 0 && sensor < TELEM_SENSOR_COUNT)
+            telemetryScheduleAdd(sensor);
+    }
+}
+
+
+#endif /* USE_TELEMETRY */

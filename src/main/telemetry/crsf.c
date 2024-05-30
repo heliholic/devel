@@ -809,7 +809,7 @@ static void processRotorflightTelemetry(void)
     sbuf_t dst[1];
 
     if (crsfRxIsTelemetryBufEmpty()) {
-        uint32_t value = getEstimatedAltitudeCm(); //telemetryGetSensor(TELEM_ALTITUDE);
+        uint32_t value = getEstimatedAltitudeCm();
         crsfInitializeFrame(dst);
         crsfFrameRotorflightTelemetryHeader(dst);
         crsfFrameRotorflightTelemetryValue(dst, 1, 0, 4, value);

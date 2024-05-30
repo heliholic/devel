@@ -26,6 +26,32 @@
 
 #include "rx/rx.h"
 
+#include "telemetry/sensors.h"
+
+
+typedef struct {
+
+    const telemetrySensor_t * sensor;
+
+    int         min_delay;
+    int         max_delay;
+    int         bucket;
+    int         value;
+    bool        changed;
+
+} telemetrySlot_t;
+
+typedef struct {
+
+    int         current;
+    int         bucket;
+
+    timeUs_t    update;
+
+    telemetrySlot_t slots[TELEM_SENSOR_SLOT_COUNT];
+
+} telemetryScheduler_t;
+
 
 extern serialPort_t *telemetrySharedPort;
 
@@ -38,4 +64,13 @@ void telemetryProcess(uint32_t currentTime);
 
 bool telemetryIsSensorEnabled(sensor_e sensor);
 
-uint32_t telemetryGetSensor(sensor_e sensor);
+
+bool telemetryScheduleAdd(sensor_e sensor_id);
+
+
+void telemetryScheduleUpdate(timeUs_t currentTime);
+
+telemetrySlot_t * telemetryScheduleNext(void);
+void telemetryScheduleCommit(telemetrySlot_t * slot);
+
+void telemetrySchedulerInit(void);
