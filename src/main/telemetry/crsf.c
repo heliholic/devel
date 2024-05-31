@@ -803,6 +803,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
             processCrsfTelemetry();
         else
             processRotorflightTelemetry();
+        crsfRxSendTelemetryData();
     }
 }
 
@@ -810,11 +811,11 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
 static int crsfFinalizeSbufBuf(sbuf_t *dst, uint8_t *frame)
 {
-    // frame size
-    const size_t frameSize = sbufPtr(dst) - crsfFrame;
+    // frame size including CRC
+    const size_t frameSize = sbufPtr(dst) - crsfFrame + 2;
 
     // Set frame length into the placeholder
-    crsfFrame[1] = frameSize - 1;
+    crsfFrame[1] = frameSize - 3;
 
     // frame CRC
     crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
