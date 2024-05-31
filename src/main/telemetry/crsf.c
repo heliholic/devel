@@ -69,7 +69,8 @@
 #include "crsf.h"
 
 
-#define CRSF_CYCLETIME_US                   25000
+#define CRSF_CYCLETIME_US                   10000
+
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
@@ -608,7 +609,6 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 #endif /* USE_MSP_OVER_TELEMETRY */
 
 
-
 static void processCrsfTelemetry(void)
 {
     if (crsfRxIsTelemetryBufEmpty()) {
@@ -797,9 +797,9 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
+    if (0 && currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
         crsfLastCycleTime = currentTimeUs;
-        if (0)
+        if (1)
             processCrsfTelemetry();
         else
             processRotorflightTelemetry();

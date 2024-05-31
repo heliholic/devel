@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -297,13 +298,15 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 
 telemetrySlot_t * telemetryScheduleNext(void)
 {
+    int index = sch.current_slot;
+
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        const int index = (sch.current_slot + i) % TELEM_SENSOR_SLOT_COUNT;
         telemetrySlot_t * slot = &sch.slots[index];
         if (slot->sensor && slot->bucket > 0) {
             sch.current_slot = index;
             return slot;
         }
+        index = (index + 1) % TELEM_SENSOR_SLOT_COUNT;
     }
 
     return NULL;
@@ -326,6 +329,8 @@ bool telemetryIsSensorEnabled(uint32_t sensor_bits)
 
 void INIT_CODE telemetryScheduleInit(void)
 {
+    memset(&sch, 0, sizeof(sch));
+
     telemetry_legacy_sensors = 0;
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
