@@ -26,6 +26,8 @@ typedef enum
 {
     TELEM_NONE = 0,
 
+    TELEM_HEARTBEAT,
+
     TELEM_MODEL_ID,
 
     TELEM_BATTERY_GROUP,
@@ -208,3 +210,4 @@ bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id);
 
 /* Compatibility */
 bool telemetryIsSensorEnabled(uint32_t sensor_bits);
+sensor_e telemetrySensorId2Bit(sensor_id_e sensor_id);

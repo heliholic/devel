@@ -119,6 +119,8 @@ STATIC int sensorEncodeS32(sbuf_t *buf, telemetryValue_t value)
 
 const telemetrySensor_t telemetry_sensors[TELEM_SENSOR_COUNT] =
 {
+    TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   100,   100,    Nil,    getNil),
+
     TLM_SENSOR(MODEL_ID,                "ID  ",     0x0001,     0,     0,    U16,    getNil),
 
     TLM_SENSOR(BATTERY_GROUP,           "Batt",     0x0010,     0,     0,    Nil,    getNil),
@@ -187,69 +189,62 @@ const telemetrySensor_t * telemetryGetSensorCode(uint16_t sensor_code)
     return NULL;
 }
 
-sensor_e telemetrySensorBit2Id(sensor_e sensor_bit)
+
+sensor_e telemetrySensorId2Bit(sensor_id_e sensor_id)
 {
     switch (sensor_bit)
     {
-        case SENSOR_VOLTAGE:
-            return TELEM_BATTERY_VOLTAGE;
-        case SENSOR_CURRENT:
-            return TELEM_BATTERY_CURRENT;
-        case SENSOR_FUEL:
-            return TELEM_BATTERY_CHARGE_LEVEL;
-        case SENSOR_MODE:
-            return TELEM_FLIGHT_MODE;
-        case SENSOR_ACC_X:
-            return TELEM_ACCEL_X;
-        case SENSOR_ACC_Y:
-            return TELEM_ACCEL_Y;
-        case SENSOR_ACC_Z:
-            return TELEM_ACCEL_Z;
-        case SENSOR_PITCH:
-            return TELEM_ATTITUDE_PITCH;
-        case SENSOR_ROLL:
-            return TELEM_ATTITUDE_ROLL;
-        case SENSOR_HEADING:
-            return TELEM_ATTITUDE_YAW;
-        case SENSOR_ALTITUDE:
-            return TELEM_ALTITUDE;
-        case SENSOR_VARIO:
-            return TELEM_VARIOMETER;
-        case SENSOR_LAT_LONG:
-            return TELEM_GPS_LATITUDE;
-        case SENSOR_GROUND_SPEED:
-            return TELEM_GPS_GROUNDSPEED;
-        case SENSOR_DISTANCE:
-            return TELEM_GPS_DISTANCE;
-        case SENSOR_TEMPERATURE:
-            return TELEM_ESC_TEMP;
-        case SENSOR_CAP_USED:
-            return TELEM_BATTERY_CONSUMPTION;
-        case SENSOR_ADJUSTMENT:
-            return TELEM_ADJFUNC;
-        case SENSOR_GOV_MODE:
-            return TELEM_GOVERNOR_STATE;
-        case ESC_SENSOR_CURRENT:
-            return TELEM_ESC1_CURRENT;
-        case ESC_SENSOR_VOLTAGE:
-            return TELEM_ESC1_VOLTAGE;
-        case ESC_SENSOR_RPM:
-            return TELEM_ESC1_ERPM;
-        case ESC_SENSOR_TEMPERATURE:
-            return TELEM_ESC1_TEMP1;
+        case TELEM_BATTERY_VOLTAGE:
+            return SENSOR_VOLTAGE;
+        case TELEM_BATTERY_CURRENT:
+            return SENSOR_CURRENT;
+        case TELEM_BATTERY_CHARGE_LEVEL:
+            return SENSOR_FUEL;
+        case TELEM_FLIGHT_MODE:
+            return SENSOR_MODE;
+        case TELEM_ACCEL_X:
+            return SENSOR_ACC_X;
+        case TELEM_ACCEL_Y:
+            return SENSOR_ACC_Y;
+        case TELEM_ACCEL_Z:
+            return SENSOR_ACC_Z;
+        case TELEM_ATTITUDE_PITCH:
+            return SENSOR_PITCH;
+        case TELEM_ATTITUDE_ROLL:
+            return SENSOR_ROLL;
+        case TELEM_ATTITUDE_YAW:
+            return SENSOR_HEADING;
+        case TELEM_ALTITUDE:
+            return SENSOR_ALTITUDE;
+        case TELEM_VARIOMETER:
+            return SENSOR_VARIO;
+        case TELEM_GPS_LATITUDE:
+            return SENSOR_LAT_LONG;
+        case TELEM_GPS_GROUNDSPEED:
+            return SENSOR_GROUND_SPEED;
+        case TELEM_GPS_DISTANCE:
+            return SENSOR_DISTANCE;
+        case TELEM_ESC_TEMP:
+            return SENSOR_TEMPERATURE;
+        case TELEM_BATTERY_CONSUMPTION:
+            return SENSOR_CAP_USED;
+        case TELEM_ADJFUNC:
+            return SENSOR_ADJUSTMENT;
+        case TELEM_GOVERNOR_STATE:
+            return SENSOR_GOV_MODE;
+        case TELEM_ESC1_CURRENT:
+            return ESC_SENSOR_CURRENT;
+        case TELEM_ESC1_VOLTAGE:
+            return ESC_SENSOR_VOLTAGE;
+        case TELEM_ESC1_ERPM:
+            return ESC_SENSOR_RPM;
+        case TELEM_ESC1_TEMP1:
+            return ESC_SENSOR_TEMPERATURE;
         default:
-            return TELEM_NONE;
+            return 0;
     }
 
-    return TELEM_NONE;
+    return 0;
 }
-
-static uint32_t telemetry_legacy_sensors = 0;
-
-bool telemetryIsSensorEnabled(uint32_t sensor_bits)
-{
-    return (telemetry_legacy_sensors & sensor_bits);
-}
-
 
 #endif /* USE_TELEMETRY */

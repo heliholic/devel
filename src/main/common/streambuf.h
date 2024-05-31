@@ -107,5 +107,8 @@ static inline const uint8_t * sbufConstPtr(const sbuf_t *buf) { return buf->ptr;
 /* Move pointer forward */
 static inline void sbufAdvance(sbuf_t *buf, int size) { buf->ptr += size; }
 
+/* Jump to another position */
+static inline void sbufJump(sbuf_t *buf, uint8_t *ptr) { buf->ptr = ptr; }
+
 /* Prepare buffer for reading */
 void sbufSwitchToReader(sbuf_t *buf, uint8_t * base);

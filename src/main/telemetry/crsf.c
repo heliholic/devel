@@ -69,7 +69,7 @@
 #include "crsf.h"
 
 
-#define CRSF_CYCLETIME_US                   100000 // 100ms, 10 Hz
+#define CRSF_CYCLETIME_US                   25000
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
@@ -273,10 +273,7 @@ uint8_t     Battery remaining ( percent )
 void crsfFrameBatterySensor(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
-    if (telemetryConfig()->report_cell_voltage)
-        sbufWriteU16BE(dst, getBatteryAverageCellVoltage());
-    else
-        sbufWriteU16BE(dst, getLegacyBatteryVoltage());
+    sbufWriteU16BE(dst, getLegacyBatteryVoltage());
     sbufWriteU16BE(dst, getLegacyBatteryCurrent());
     sbufWriteU24BE(dst, getBatteryCapacityUsed());
     sbufWriteU8(dst, calculateBatteryPercentageRemaining());
@@ -418,9 +415,9 @@ void crsfFrameDeviceInfo(sbuf_t *dst)
 0x88 Rotorflight telemetry
 Payload:
 uint16_t    Sensor id
-uint8_t     Instance id
-uint8_t     Value length
-...         Sensor value
+uint8_t     Data length
+data        Sensor data
+...
 */
 
 void crsfFrameRotorflightTelemetryHeader(sbuf_t *dst)
@@ -607,82 +604,53 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 #endif /* USE_MSP_OVER_TELEMETRY */
 
 
-// schedule array to decide how often each type of frame is sent
-typedef enum {
-    CRSF_FRAME_START_INDEX = 0,
-    CRSF_FRAME_ATTITUDE_INDEX = CRSF_FRAME_START_INDEX,
-    CRSF_FRAME_BATTERY_SENSOR_INDEX,
-    CRSF_FRAME_FLIGHT_MODE_INDEX,
-    CRSF_FRAME_GPS_INDEX,
-    CRSF_FRAME_HEARTBEAT_INDEX,
-    CRSF_SCHEDULE_COUNT_MAX
-} crsfFrameTypeIndex_e;
-
-static uint8_t crsfScheduleCount = 0;
-static uint8_t crsfScheduleIndex = 0;
-
-static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
-
 
 static void processCrsfTelemetry(void)
 {
-    if (!crsfRxIsTelemetryBufEmpty()) {
-        return; // do nothing if telemetry ouptut buffer is not empty yet.
-    }
-
-    const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
-
-
-    if (currentSchedule & BIT(CRSF_FRAME_ATTITUDE_INDEX)) {
-        sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameAttitude(dst);
-        crsfFinalizeSbuf(dst);
-    }
-    if (currentSchedule & BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX)) {
-        sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameBatterySensor(dst);
-        crsfFinalizeSbuf(dst);
-    }
-    if (currentSchedule & BIT(CRSF_FRAME_FLIGHT_MODE_INDEX)) {
-        sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameFlightMode(dst);
-        crsfFinalizeSbuf(dst);
-    }
-
+    if (crsfRxIsTelemetryBufEmpty()) {
+        telemetrySlot_t *slot = telemetryScheduleNext();
+        if (slot) {
+            sbuf_t *dst = crsfInitializeSbuf();
+            switch (slot->sensor->code) {
+                case TELEM_ALTITUDE:
+                    crsfFrameAttitude(dst);
+                    break;
+                case TELEM_BATTERY_GROUP:
+                    crsfFrameBatterySensor(dst);
+                    break;
+                case TELEM_FLIGHT_MODE:
+                    crsfFrameFlightMode(dst);
+                    break;
 #ifdef USE_GPS
-    if (currentSchedule & BIT(CRSF_FRAME_GPS_INDEX)) {
-        sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameGps(dst);
-        crsfFinalizeSbuf(dst);
-    }
+                case TELEM_GPS_GROUP:
+                    crsfFrameGps(dst);
+                    break;
 #endif
-
-#ifdef USE_CRSF_V3
-    if (currentSchedule & BIT(CRSF_FRAME_HEARTBEAT_INDEX)) {
-        sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameHeartbeat(dst);
-        crsfFinalizeSbuf(dst);
+                case TELEM_HEARTBEAT:
+                default:
+                    crsfFrameHeartbeat(dst);
+                    break;
+            }
+            telemetryScheduleCommit(slot);
+            crsfFinalizeSbuf(dst);
+        }
     }
-#endif
-
-    crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
-
 
 static void processRotorflightTelemetry(void)
 {
     if (crsfRxIsTelemetryBufEmpty()) {
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameRotorflightTelemetryHeader(dst);
-        while (sbufBytesRemaining() >= 6) {
+        while (sbufBytesRemaining(dst) >= 6) {
             telemetrySlot_t *slot = telemetryScheduleNext();
             if (slot) {
                 uint8_t *ptr = sbufPtr(dst);
                 crsfFrameRotorflightTelemetrySensor(dst, slot->sensor, slot->value);
-                if (sbufBytesRemaining() >= 2)
+                if (sbufBytesRemaining(dst) >= 2)
                     telemetryScheduleCommit(slot);
                 else
-                    sbufBacktrack(dst, ptr);
+                    sbufJump(dst, ptr);
             }
         }
         crsfFinalizeSbuf(dst);
@@ -701,46 +669,15 @@ void initCrsfTelemetry(void)
     // and feature is enabled, if so, set CRSF telemetry enabled
     crsfTelemetryEnabled = crsfRxIsActive();
 
-    if (!crsfTelemetryEnabled) {
-        return;
-    }
-
-    deviceInfoReplyPending = false;
+    if (crsfTelemetryEnabled) {
+        deviceInfoReplyPending = false;
 #if defined(USE_MSP_OVER_TELEMETRY)
-    mspReplyPending = false;
+        mspReplyPending = false;
 #endif
-
-    int index = 0;
-
-    if (sensors(SENSOR_ACC) && telemetryIsSensorEnabled(SENSOR_PITCH | SENSOR_ROLL | SENSOR_HEADING)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_ATTITUDE_INDEX);
-    }
-    if ((isBatteryVoltageConfigured() && telemetryIsSensorEnabled(SENSOR_VOLTAGE))
-        || (isBatteryCurrentConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT | SENSOR_FUEL))) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX);
-    }
-    if (telemetryIsSensorEnabled(SENSOR_MODE)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_FLIGHT_MODE_INDEX);
-    }
-#ifdef USE_GPS
-    if (featureIsEnabled(FEATURE_GPS) &&
-        telemetryIsSensorEnabled(SENSOR_ALTITUDE | SENSOR_LAT_LONG | SENSOR_GROUND_SPEED | SENSOR_HEADING)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_GPS_INDEX);
-    }
-#endif
-
-#if defined(USE_CRSF_V3)
-    while (index < (CRSF_CYCLETIME_US / CRSF_TELEMETRY_FRAME_INTERVAL_MAX_US) && index < CRSF_SCHEDULE_COUNT_MAX) {
-        // schedule heartbeat to ensure that telemetry/heartbeat frames are sent at minimum 50Hz
-        crsfSchedule[index++] = BIT(CRSF_FRAME_HEARTBEAT_INDEX);
-    }
-#endif
-
-    crsfScheduleCount = (uint8_t)index;
-
 #if defined(USE_CRSF_CMS_TELEMETRY)
-    crsfDisplayportRegister();
+        crsfDisplayportRegister();
 #endif
+    }
 }
 
 bool checkCrsfTelemetryState(void)
@@ -867,7 +804,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
+    if (currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
         crsfLastCycleTime = currentTimeUs;
         if (0)
             processCrsfTelemetry();
