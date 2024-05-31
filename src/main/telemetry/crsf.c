@@ -69,7 +69,8 @@
 #include "crsf.h"
 
 
-#define CRSF_CYCLETIME_US                   100000 // 100ms, 10 Hz
+#define CRSF_CYCLETIME_US                   10000
+
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
@@ -79,7 +80,17 @@
 static bool crsfTelemetryEnabled;
 static bool deviceInfoReplyPending;
 
-static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX];
+static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 8];
+static sbuf_t crsfSbuf[1];
+
+#if defined(USE_MSP_OVER_TELEMETRY)
+
+typedef struct mspBuffer_s {
+    uint8_t bytes[CRSF_MSP_BUFFER_SIZE];
+    int len;
+} mspBuffer_t;
+
+static mspBuffer_t mspRxBuffer;
 
 #if defined(USE_CRSF_V3)
 
@@ -136,14 +147,6 @@ bool crsfBaudNegotiationInProgress(void)
 
 #endif /* USE_CRSF_V3 */
 
-#if defined(USE_MSP_OVER_TELEMETRY)
-
-typedef struct mspBuffer_s {
-    uint8_t bytes[CRSF_MSP_BUFFER_SIZE];
-    int len;
-} mspBuffer_t;
-
-static mspBuffer_t mspRxBuffer;
 
 void initCrsfMspBuffer(void)
 {
@@ -202,24 +205,28 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
 #endif /* USE_MSP_OVER_TELEMETRY */
 
 
-static void crsfInitializeFrame(sbuf_t *dst)
+static sbuf_t * crsfInitializeSbuf(void)
 {
+    sbuf_t * dst = crsfSbuf;
+
     dst->ptr = crsfFrame;
-    dst->end = ARRAYEND(crsfFrame);
+    dst->end = crsfFrame + CRSF_FRAME_SIZE_MAX;
 
     sbufWriteU8(dst, CRSF_SYNC_BYTE);
     sbufWriteU8(dst, CRSF_FRAME_LENGTH_TYPE_CRC);  // placeholder
+
+    return dst;
 }
 
-static void crsfFinalize(sbuf_t *dst)
+static void crsfFinalizeSbuf(sbuf_t *dst)
 {
     // Frame length
-    const size_t frameLength = sbufPtr(dst) - crsfFrame + 2;
+    const size_t frameLength = sbufPtr(dst) - crsfFrame;
 
     if (frameLength <= CRSF_FRAME_SIZE_MAX)
     {
         // Set frame length into the placeholder
-        crsfFrame[1] = frameLength - 3;
+        crsfFrame[1] = frameLength - 1;
 
         // Frame CRC
         crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
@@ -228,7 +235,6 @@ static void crsfFinalize(sbuf_t *dst)
         crsfRxWriteTelemetryData(crsfFrame, frameLength);
     }
 }
-
 
 /*
 CRSF frame has the structure:
@@ -424,19 +430,10 @@ void crsfFrameRotorflightTelemetryHeader(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_FRAMETYPE_RF_TELEM);
 }
 
-void crsfFrameRotorflightTelemetryValue(sbuf_t *dst, uint16_t sensor, uint8_t instance, uint8_t length, uint32_t value)
+void crsfFrameRotorflightTelemetrySensor(sbuf_t *dst, const telemetrySensor_t * sensor, telemetryValue_t value)
 {
-    sbufWriteU16BigEndian(dst, sensor);
-    sbufWriteU8(dst, instance);
-    sbufWriteU8(dst, length);
-    if (length >= 4)
-        sbufWriteU8(dst, value >> 24);
-    if (length >= 3)
-        sbufWriteU8(dst, value >> 16);
-    if (length >= 2)
-        sbufWriteU8(dst, value >> 8);
-    if (length >= 1)
-        sbufWriteU8(dst, value >> 0);
+    sbufWriteU16BE(dst, sensor->code);
+    sensor->encode(dst, value);
 }
 
 
@@ -476,13 +473,11 @@ void crsfScheduleSpeedNegotiationResponse(void)
 void speedNegotiationProcess(timeUs_t currentTimeUs)
 {
     if (crsfSpeed.hasPendingReply) {
-        bool found = ((crsfSpeed.index < BAUD_COUNT) && crsfRxUseNegotiatedBaud()) ? true : false;
-        sbuf_t crsfSpeedNegotiationBuf;
-        sbuf_t *dst = &crsfSpeedNegotiationBuf;
-        crsfInitializeFrame(dst);
+        bool found = (crsfSpeed.index < BAUD_COUNT) && crsfRxUseNegotiatedBaud();
+        sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameSpeedNegotiationResponse(dst, found);
         crsfRxSendTelemetryData(); // prevent overwriting previous data
-        crsfFinalize(dst);
+        crsfFinalizeSbuf(dst);
         crsfRxSendTelemetryData();
         crsfSpeed.hasPendingReply = false;
         crsfSpeed.isNewSpeedValid = found;
@@ -496,12 +491,10 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         }
     } else if (!featureIsEnabled(FEATURE_TELEMETRY) && crsfRxUseNegotiatedBaud()) {
         // Send heartbeat if telemetry is disabled to allow RX to detect baud rate mismatches
-        sbuf_t crsfPayloadBuf;
-        sbuf_t *dst = &crsfPayloadBuf;
-        crsfInitializeFrame(dst);
+        sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameHeartbeat(dst);
         crsfRxSendTelemetryData(); // prevent overwriting previous data
-        crsfFinalize(dst);
+        crsfFinalizeSbuf(dst);
         crsfRxSendTelemetryData();
     }
 }
@@ -605,18 +598,69 @@ void crsfScheduleMspResponse(uint8_t requestOriginID)
 // sends MSP response chunk over CRSF. Must be of type mspResponseFnPtr
 static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 {
-    sbuf_t crsfPayloadBuf;
-    sbuf_t *dst = &crsfPayloadBuf;
-
-    crsfInitializeFrame(dst);
+    sbuf_t *dst = crsfInitializeSbuf();
     sbufWriteU8(dst, CRSF_FRAMETYPE_MSP_RESP); // CRSF type
     sbufWriteU8(dst, mspRequestOriginID);   // response destination must be the same as request origin in order to response reach proper destination.
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER); // origin is always this device
     sbufWriteData(dst, payload, payloadSize);
-    crsfFinalize(dst);
+    crsfFinalizeSbuf(dst);
 }
 
 #endif /* USE_MSP_OVER_TELEMETRY */
+
+
+static void processCrsfTelemetry(void)
+{
+    if (crsfRxIsTelemetryBufEmpty()) {
+        telemetrySlot_t *slot = telemetryScheduleNext();
+        if (slot) {
+            sbuf_t *dst = crsfInitializeSbuf();
+            switch (slot->sensor->code) {
+                case TELEM_ATTITUDE:
+                    crsfFrameAttitude(dst);
+                    break;
+                case TELEM_BATTERY:
+                    crsfFrameBatterySensor(dst);
+                    break;
+                case TELEM_FLIGHT_MODE:
+                    crsfFrameFlightMode(dst);
+                    break;
+#ifdef USE_GPS
+                case TELEM_GPS:
+                    crsfFrameGps(dst);
+                    break;
+#endif
+                case TELEM_HEARTBEAT:
+                default:
+                    crsfFrameHeartbeat(dst);
+                    break;
+            }
+            telemetryScheduleCommit(slot);
+            crsfFinalizeSbuf(dst);
+        }
+    }
+}
+
+static void processRotorflightTelemetry(void)
+{
+    if (crsfRxIsTelemetryBufEmpty()) {
+        sbuf_t *dst = crsfInitializeSbuf();
+        crsfFrameRotorflightTelemetryHeader(dst);
+        while (sbufBytesRemaining(dst) >= 6) {
+            telemetrySlot_t *slot = telemetryScheduleNext();
+            if (slot) {
+                uint8_t *ptr = sbufPtr(dst);
+                crsfFrameRotorflightTelemetrySensor(dst, slot->sensor, slot->value);
+                if (sbufBytesRemaining(dst) >= 2)
+                    telemetryScheduleCommit(slot);
+                else
+                    sbufJump(dst, ptr);
+            }
+        }
+        crsfFinalizeSbuf(dst);
+    }
+}
+
 
 void crsfScheduleDeviceInfoResponse(void)
 {
@@ -626,6 +670,23 @@ void crsfScheduleDeviceInfoResponse(void)
 bool checkCrsfTelemetryState(void)
 {
     return crsfTelemetryEnabled;
+}
+
+void initCrsfTelemetry(void)
+{
+    // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
+    // and feature is enabled, if so, set CRSF telemetry enabled
+    crsfTelemetryEnabled = crsfRxIsActive();
+
+    if (crsfTelemetryEnabled) {
+        deviceInfoReplyPending = false;
+#if defined(USE_MSP_OVER_TELEMETRY)
+        mspReplyPending = false;
+#endif
+#if defined(USE_CRSF_CMS_TELEMETRY)
+        crsfDisplayportRegister();
+#endif
+    }
 }
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
@@ -650,170 +711,20 @@ void crsfProcessDisplayPortCmd(uint8_t *frameStart)
     }
 
 }
-#endif /* USE_CRSF_CMS_TELEMETRY */
+#endif
 
 #if defined(USE_CRSF_V3)
 void crsfProcessCommand(uint8_t *frameStart)
 {
-    uint8_t cmd = *frameStart;
-    uint8_t subCmd = frameStart[1];
-    switch (cmd) {
-    case CRSF_COMMAND_SUBCMD_GENERAL:
-        switch (subCmd) {
-        case CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL:
-            crsfProcessSpeedNegotiationCmd(&frameStart[1]);
-            crsfScheduleSpeedNegotiationResponse();
-            break;
-        default:
-            break;
-        }
-        break;
-    default:
-        break;
+    uint8_t cmd = frameStart[0];
+    uint8_t sub = frameStart[1];
+
+    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub ==  CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
+        crsfProcessSpeedNegotiationCmd(&frameStart[1]);
+        crsfScheduleSpeedNegotiationResponse();
     }
 }
-#endif /* USE_CRSF_V3 */
-
-#if defined(USE_RX_EXPRESSLRS)
-
-static int crsfFinalizeBuf(sbuf_t *dst, uint8_t *frame)
-{
-    crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
-    sbufSwitchToReader(dst, crsfFrame);
-    const int frameSize = sbufBytesRemaining(dst);
-    for (int ii = 0; sbufBytesRemaining(dst); ++ii) {
-        frame[ii] = sbufReadU8(dst);
-    }
-    return frameSize;
-}
-
-int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
-{
-    sbuf_t crsfFrameBuf;
-    sbuf_t *sbuf = &crsfFrameBuf;
-
-    crsfInitializeFrame(sbuf);
-    switch (frameType) {
-    default:
-    case CRSF_FRAMETYPE_ATTITUDE:
-        crsfFrameAttitude(sbuf);
-        break;
-    case CRSF_FRAMETYPE_BATTERY_SENSOR:
-        crsfFrameBatterySensor(sbuf);
-        break;
-    case CRSF_FRAMETYPE_FLIGHT_MODE:
-        crsfFrameFlightMode(sbuf);
-        break;
-#if defined(USE_GPS)
-    case CRSF_FRAMETYPE_GPS:
-        crsfFrameGps(sbuf);
-        break;
 #endif
-#if defined(USE_MSP_OVER_TELEMETRY)
-    case CRSF_FRAMETYPE_DEVICE_INFO:
-        crsfFrameDeviceInfo(sbuf);
-        break;
-#endif
-    }
-    const int frameSize = crsfFinalizeBuf(sbuf, frame);
-    return frameSize;
-}
-
-#if defined(USE_MSP_OVER_TELEMETRY)
-int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
-{
-    sbuf_t crsfFrameBuf;
-    sbuf_t *sbuf = &crsfFrameBuf;
-
-    crsfInitializeFrame(sbuf);
-    sbufWriteU8(sbuf, payloadSize + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
-    sbufWriteU8(sbuf, CRSF_FRAMETYPE_MSP_RESP);
-    sbufWriteU8(sbuf, CRSF_ADDRESS_RADIO_TRANSMITTER);
-    sbufWriteU8(sbuf, CRSF_ADDRESS_FLIGHT_CONTROLLER);
-    sbufWriteData(sbuf, payload, payloadSize);
-    const int frameSize = crsfFinalizeBuf(sbuf, frame);
-    return frameSize;
-}
-#endif /* USE_MSP_OVER_TELEMETRY */
-#endif /* USE_RX_EXPRESSLRS */
-
-
-// schedule array to decide how often each type of frame is sent
-typedef enum {
-    CRSF_FRAME_START_INDEX = 0,
-    CRSF_FRAME_ATTITUDE_INDEX = CRSF_FRAME_START_INDEX,
-    CRSF_FRAME_BATTERY_SENSOR_INDEX,
-    CRSF_FRAME_FLIGHT_MODE_INDEX,
-    CRSF_FRAME_GPS_INDEX,
-    CRSF_FRAME_HEARTBEAT_INDEX,
-    CRSF_SCHEDULE_COUNT_MAX
-} crsfFrameTypeIndex_e;
-
-static uint8_t crsfScheduleCount = 0;
-static uint8_t crsfScheduleIndex = 0;
-
-static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
-
-
-static void processCrsfTelemetry(void)
-{
-    if (!crsfRxIsTelemetryBufEmpty()) {
-        return; // do nothing if telemetry ouptut buffer is not empty yet.
-    }
-
-    const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
-
-    sbuf_t dst[1];
-
-    if (currentSchedule & BIT(CRSF_FRAME_ATTITUDE_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameAttitude(dst);
-        crsfFinalize(dst);
-    }
-    if (currentSchedule & BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameBatterySensor(dst);
-        crsfFinalize(dst);
-    }
-    if (currentSchedule & BIT(CRSF_FRAME_FLIGHT_MODE_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameFlightMode(dst);
-        crsfFinalize(dst);
-    }
-
-#if defined(USE_GPS)
-    if (currentSchedule & BIT(CRSF_FRAME_GPS_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameGps(dst);
-        crsfFinalize(dst);
-    }
-#endif
-
-#if defined(USE_CRSF_V3)
-    if (currentSchedule & BIT(CRSF_FRAME_HEARTBEAT_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameHeartbeat(dst);
-        crsfFinalize(dst);
-    }
-#endif
-
-    crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
-}
-
-
-static void processRotorflightTelemetry(void)
-{
-    sbuf_t dst[1];
-
-    if (crsfRxIsTelemetryBufEmpty()) {
-        uint32_t value = getEstimatedAltitudeCm();
-        crsfInitializeFrame(dst);
-        crsfFrameRotorflightTelemetryHeader(dst);
-        crsfFrameRotorflightTelemetryValue(dst, 1, 0, 4, value);
-        crsfFinalize(dst);
-    }
-}
-
 
 /*
  * Called periodically by the scheduler
@@ -845,11 +756,9 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 #endif
 
     if (deviceInfoReplyPending) {
-        sbuf_t crsfPayloadBuf;
-        sbuf_t *dst = &crsfPayloadBuf;
-        crsfInitializeFrame(dst);
+        sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameDeviceInfo(dst);
-        crsfFinalize(dst);
+        crsfFinalizeSbuf(dst);
         deviceInfoReplyPending = false;
         crsfLastCycleTime = currentTimeUs; // reset telemetry timing due to ad-hoc request
         return;
@@ -858,11 +767,9 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 #if defined(USE_CRSF_CMS_TELEMETRY)
     if (crsfDisplayPortScreen()->reset) {
         crsfDisplayPortScreen()->reset = false;
-        sbuf_t crsfDisplayPortBuf;
-        sbuf_t *dst = &crsfDisplayPortBuf;
-        crsfInitializeFrame(dst);
+        sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameDisplayPortClear(dst);
-        crsfFinalize(dst);
+        crsfFinalizeSbuf(dst);
         crsfLastCycleTime = currentTimeUs;
         return;
     }
@@ -874,81 +781,94 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
         uint8_t *srcEnd = (uint8_t*)(crsfDisplayPortScreen()->buffer + screenSize);
         sbuf_t displayPortSbuf;
         sbuf_t *src = sbufInit(&displayPortSbuf, srcStart, srcEnd);
-        sbuf_t crsfDisplayPortBuf;
-        sbuf_t *dst = &crsfDisplayPortBuf;
         displayPortBatchId = (displayPortBatchId  + 1) % CRSF_DISPLAYPORT_BATCH_MAX;
         uint8_t i = 0;
         while (sbufBytesRemaining(src)) {
-            crsfInitializeFrame(dst);
+            sbuf_t *dst = crsfInitializeSbuf();
             crsfFrameDisplayPortChunk(dst, src, displayPortBatchId, i);
-            crsfFinalize(dst);
+            crsfFinalizeSbuf(dst);
             crsfRxSendTelemetryData();
             i++;
         }
         crsfLastCycleTime = currentTimeUs;
         return;
     }
-#endif /* USE_CRSF_CMS_TELEMETRY */
+#endif
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (currentTimeUs >= crsfLastCycleTime + (CRSF_CYCLETIME_US / crsfScheduleCount)) {
+    if (0 && currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
         crsfLastCycleTime = currentTimeUs;
-        if (0)
+        if (1)
             processCrsfTelemetry();
         else
             processRotorflightTelemetry();
     }
 }
 
+#if defined(USE_RX_EXPRESSLRS)
 
-void initCrsfTelemetry(void)
+static int crsfFinalizeSbufBuf(sbuf_t *dst, uint8_t *frame)
 {
-    // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
-    // and feature is enabled, if so, set CRSF telemetry enabled
-    crsfTelemetryEnabled = crsfRxIsActive();
+    // frame size
+    const size_t frameSize = sbufPtr(dst) - crsfFrame;
 
-    if (!crsfTelemetryEnabled) {
-        return;
-    }
+    // Set frame length into the placeholder
+    crsfFrame[1] = frameSize - 1;
 
-    deviceInfoReplyPending = false;
-#if defined(USE_MSP_OVER_TELEMETRY)
-    mspReplyPending = false;
-#endif
+    // frame CRC
+    crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
 
-    int index = 0;
+    // Copy data to the frame
+    memcpy(frame, crsfFrame, frameSize);
 
-    if (sensors(SENSOR_ACC) && telemetryIsSensorEnabled(SENSOR_PITCH | SENSOR_ROLL | SENSOR_HEADING)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_ATTITUDE_INDEX);
-    }
-    if ((isBatteryVoltageConfigured() && telemetryIsSensorEnabled(SENSOR_VOLTAGE))
-        || (isBatteryCurrentConfigured() && telemetryIsSensorEnabled(SENSOR_CURRENT | SENSOR_FUEL))) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_BATTERY_SENSOR_INDEX);
-    }
-    if (telemetryIsSensorEnabled(SENSOR_MODE)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_FLIGHT_MODE_INDEX);
-    }
-#if defined(USE_GPS)
-    if (featureIsEnabled(FEATURE_GPS) &&
-        telemetryIsSensorEnabled(SENSOR_ALTITUDE | SENSOR_LAT_LONG | SENSOR_GROUND_SPEED | SENSOR_HEADING)) {
-        crsfSchedule[index++] = BIT(CRSF_FRAME_GPS_INDEX);
-    }
-#endif
-
-#if defined(USE_CRSF_V3)
-    while (index < (CRSF_CYCLETIME_US / CRSF_TELEMETRY_FRAME_INTERVAL_MAX_US) && index < CRSF_SCHEDULE_COUNT_MAX) {
-        // schedule heartbeat to ensure that telemetry/heartbeat frames are sent at minimum 50Hz
-        crsfSchedule[index++] = BIT(CRSF_FRAME_HEARTBEAT_INDEX);
-    }
-#endif
-
-    crsfScheduleCount = (uint8_t)index;
-
-#if defined(USE_CRSF_CMS_TELEMETRY)
-    crsfDisplayportRegister();
-#endif
+    return frameSize;
 }
 
+int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
+{
+    sbuf_t *dst = crsfInitializeSbuf();
 
-#endif /* USE_TELEMETRY_CRSF */
+    switch (frameType) {
+        default:
+        case CRSF_FRAMETYPE_ATTITUDE:
+            crsfFrameAttitude(dst);
+            break;
+        case CRSF_FRAMETYPE_BATTERY_SENSOR:
+            crsfFrameBatterySensor(dst);
+            break;
+        case CRSF_FRAMETYPE_FLIGHT_MODE:
+            crsfFrameFlightMode(dst);
+            break;
+#if defined(USE_GPS)
+        case CRSF_FRAMETYPE_GPS:
+            crsfFrameGps(dst);
+            break;
+#endif
+#if defined(USE_MSP_OVER_TELEMETRY)
+        case CRSF_FRAMETYPE_DEVICE_INFO:
+            crsfFrameDeviceInfo(dst);
+            break;
+#endif
+    }
+
+    return crsfFinalizeSbufBuf(dst, frame);
+}
+
+#if defined(USE_MSP_OVER_TELEMETRY)
+int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
+{
+    sbuf_t *dst = crsfInitializeSbuf();
+
+    sbufWriteU8(dst, CRSF_FRAMETYPE_MSP_RESP);
+    sbufWriteU8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+    sbufWriteData(dst, payload, payloadSize);
+
+    return crsfFinalizeSbufBuf(dst, frame);
+}
+#endif /* USE_MSP_OVER_TELEMETRY */
+
+#endif /* USE_RX_EXPRESSLRS */
+
+#endif
