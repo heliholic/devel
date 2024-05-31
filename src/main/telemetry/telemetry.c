@@ -281,7 +281,7 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 
         if (slot->sensor) {
             const telemetryValue_t value = telemetryGetSensorValue(slot->sensor);
-            slot->changed |= (value.value != slot->value.value);
+            slot->changed |= (value.val != slot->value.val);
             slot->value = value;
 
             const int delay = slot->changed ? slot->min_delay : slot->max_delay;

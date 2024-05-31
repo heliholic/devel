@@ -167,7 +167,7 @@ typedef union {
     int         num;
     float       flt;
     void *      ptr;
-    uint32_t    value;
+    uint32_t    val;
 } telemetryValue_t;
 
 typedef union {
