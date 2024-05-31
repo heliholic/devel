@@ -92,13 +92,13 @@ static inline int32_t sbufReadS32BE(sbuf_t *src)    { return sbufReadU32BE(src);
 static inline int64_t sbufReadS64BE(sbuf_t *src)    { return sbufReadU64BE(src); }
 
 /* Read float */
-float sbufReadFloat(sbuf_t *src)
+float sbufReadFloat(sbuf_t *src);
 
 /* Read Data and Strings */
 void sbufReadData(sbuf_t *dst, void *data, int len);
 
 /* Space left in the buffer */
-static inline int sbufBytesRemaining(sbuf_t *buf) { return buf->end - buf->ptr; }
+static inline int sbufBytesRemaining(sbuf_t *buf) { return (buf->end - buf->ptr); }
 
 /* Get buffer pointer */
 static inline uint8_t * sbufPtr(sbuf_t *buf) { return buf->ptr; }

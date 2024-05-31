@@ -20,13 +20,15 @@
 #include "pg/pg.h"
 #include "pg/telemetry.h"
 
+#include "common/streambuf.h"
+
 typedef enum
 {
     TELEM_NONE = 0,
 
     TELEM_MODEL_ID,
 
-    TELEM_BATTERY,
+    TELEM_BATTERY_GROUP,
     TELEM_BATTERY_VOLTAGE,
     TELEM_BATTERY_CURRENT,
     TELEM_BATTERY_CONSUMPTION,
@@ -102,7 +104,7 @@ typedef enum
     TELEM_GPS_SAT_COUNT,
     TELEM_GPS_DATE_TIME,
 
-    TELEM_FC_CPU_GROUP,
+    TELEM_FC_GROUP,
     TELEM_FC_CPU_LOAD,
     TELEM_FC_SYS_LOAD,
     TELEM_FC_RT_LOAD,
@@ -112,7 +114,7 @@ typedef enum
     TELEM_ARMING_FLAGS,
     TELEM_GOVERNOR_STATE,
 
-    TELEM_PROFILE_GORUP,
+    TELEM_PROFILE_GROUP,
     TELEM_PID_PROFILE,
     TELEM_RATES_PROFILE,
     TELEM_BATTERY_PROFILE,
@@ -122,58 +124,87 @@ typedef enum
 
     TELEM_SENSOR_COUNT,
 
-    /* Compatibility values */
-    SENSOR_VOLTAGE         = TELEM_BATTERY_VOLTAGE,
-    SENSOR_CURRENT         = TELEM_BATTERY_CURRENT,
-    SENSOR_FUEL            = TELEM_BATTERY_CHARGE_LEVEL,
-    SENSOR_MODE            = TELEM_FLIGHT_MODE,
-    SENSOR_ACC_X           = TELEM_ACCEL_X,
-    SENSOR_ACC_Y           = TELEM_ACCEL_Y,
-    SENSOR_ACC_Z           = TELEM_ACCEL_Z,
-    SENSOR_PITCH           = TELEM_ATTITUDE_PITCH,
-    SENSOR_ROLL            = TELEM_ATTITUDE_ROLL,
-    SENSOR_HEADING         = TELEM_ATTITUDE_YAW,
-    SENSOR_ALTITUDE        = TELEM_ALTITUDE,
-    SENSOR_VARIO           = TELEM_VARIOMETER,
-    SENSOR_LAT_LONG        = TELEM_GPS_LATITUDE,
-    SENSOR_GROUND_SPEED    = TELEM_GPS_GROUNDSPEED,
-    SENSOR_DISTANCE        = TELEM_GPS_DISTANCE,
-    SENSOR_TEMPERATURE     = TELEM_ESC_TEMP,
-    SENSOR_CAP_USED        = TELEM_BATTERY_CONSUMPTION,
-    SENSOR_ADJUSTMENT      = TELEM_ADJFUNC,
-    SENSOR_GOV_MODE        = TELEM_GOVERNOR_STATE,
+} sensor_id_e;
 
-    ESC_SENSOR_CURRENT     = TELEM_ESC1_CURRENT,
-    ESC_SENSOR_VOLTAGE     = TELEM_ESC1_VOLTAGE,
-    ESC_SENSOR_RPM         = TELEM_ESC1_ERPM,
-    ESC_SENSOR_TEMPERATURE = TELEM_ESC1_TEMP1,
-
+typedef enum {
+    SENSOR_VOLTAGE         = BIT(0),
+    SENSOR_CURRENT         = BIT(1),
+    SENSOR_FUEL            = BIT(2),
+    SENSOR_MODE            = BIT(3),
+    SENSOR_ACC_X           = BIT(4),
+    SENSOR_ACC_Y           = BIT(5),
+    SENSOR_ACC_Z           = BIT(6),
+    SENSOR_PITCH           = BIT(7),
+    SENSOR_ROLL            = BIT(8),
+    SENSOR_HEADING         = BIT(9),
+    SENSOR_ALTITUDE        = BIT(10),
+    SENSOR_VARIO           = BIT(11),
+    SENSOR_LAT_LONG        = BIT(12),
+    SENSOR_GROUND_SPEED    = BIT(13),
+    SENSOR_DISTANCE        = BIT(14),
+    ESC_SENSOR_CURRENT     = BIT(15),
+    ESC_SENSOR_VOLTAGE     = BIT(16),
+    ESC_SENSOR_RPM         = BIT(17),
+    ESC_SENSOR_TEMPERATURE = BIT(18),
+    SENSOR_TEMPERATURE     = BIT(19),
+    SENSOR_CAP_USED        = BIT(20),
+    SENSOR_ADJUSTMENT      = BIT(21),
+    SENSOR_GOV_MODE        = BIT(22),
 } sensor_e;
 
 
-typedef int (*tlmValue_f)(void);
+typedef union {
+    int32_t     s32;
+    uint32_t    u32;
+    int         num;
+    float       flt;
+    void *      ptr;
+    uint32_t    value;
+} telemetryValue_t;
 
-typedef struct {
-    sensor_e            sensor_index;
-    uint16_t            sensor_code;
-    const char *        sensor_name;
+typedef union {
+    telemetryValue_t    (*func)(void);
+    int32_t             (*u32_f)(void);
+    uint32_t            (*s32_f)(void);
+    int                 (*num_f)(void);
+    float               (*flt_f)(void);
+    void *              (*ptr_t)(void);
+} telemetryFunction_f;
 
-    int                 min_delay;
-    int                 max_delay;
+typedef int (*telemetryEncode_f)(sbuf_t *buf, telemetryValue_t value);
 
-    uint8_t             length;
 
-    tlmValue_f          value;
+typedef uint16_t sensor_code_t;
+
+typedef struct telemetrySensor_s {
+
+    sensor_id_e             sensor_index;
+    sensor_code_t           sensor_code;
+    const char *            sensor_name;
+
+    int                     min_delay;
+    int                     max_delay;
+
+    telemetryEncode_f       encode;
+    telemetryFunction_f     value;
 
 } telemetrySensor_t;
 
 
-const telemetrySensor_t * telemetryGetSensor(sensor_e sensor_id);
-const telemetrySensor_t * telemetryGetSensorCode(uint16_t sensor_code);
+const telemetrySensor_t * telemetryGetSensor(sensor_id_e sensor_id);
+const telemetrySensor_t * telemetryGetSensorCode(sensor_code_t sensor_code);
 
-inline int telemetryGetSensorValue(sensor_e sensor_id)
+inline telemetryValue_t telemetryGetSensorValue(const telemetrySensor_t *sensor)
 {
-    return telemetryGetSensor(sensor_id)->value();
+    return sensor->value.func();
 }
 
-bool telemetryIsSensorEnabled(sensor_e sensor_id);
+inline telemetryValue_t telemetryGetSensorIdValue(sensor_id_e sensor_id)
+{
+    return telemetryGetSensorValue(telemetryGetSensor(sensor_id));
+}
+
+bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id);
+
+/* Compatibility */
+bool telemetryIsSensorEnabled(uint32_t sensor_bits);

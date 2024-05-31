@@ -62,6 +62,15 @@
 serialPort_t *telemetrySharedPort = NULL;
 
 
+bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id)
+{
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        if (telemetryConfig()->telemetry_sensors[i] == sensor_id)
+            return true;
+    }
+    return false;
+}
+
 bool telemetryDetermineEnabledState(portSharing_e portSharing)
 {
     bool enabled = (portSharing == PORTSHARING_NOT_SHARED);
@@ -221,19 +230,42 @@ void INIT_CODE telemetryInit(void)
 static telemetryScheduler_t sch;
 
 
-bool telemetryScheduleAdd(sensor_e sensor_id)
+bool INIT_CODE telemetryScheduleAdd(sensor_id_e sensor_id)
 {
     const telemetrySensor_t * sensor = telemetryGetSensor(sensor_id);
 
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        telemetrySlot_t * slot = &sch.slots[i];
-        if (!slot->sensor) {
-            slot->sensor = sensor;
-            slot->min_delay = sensor->min_delay;
-            slot->max_delay = sensor->max_delay;
-            slot->bucket = 0;
-            slot->changed = true;
-            return true;
+    if (sensor) {
+        for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+            telemetrySlot_t * slot = &sch.slots[i];
+            if (!slot->sensor) {
+                slot->sensor = sensor;
+                slot->min_delay = sensor->min_delay;
+                slot->max_delay = sensor->max_delay;
+                slot->bucket = 0;
+                slot->changed = true;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool INIT_CODE telemetryScheduleRem(sensor_id_e sensor_id)
+{
+    const telemetrySensor_t * sensor = telemetryGetSensor(sensor_id);
+
+    if (sensor) {
+        for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+            telemetrySlot_t * slot = &sch.slots[i];
+            if (slot->sensor == sensor) {
+                slot->sensor = NULL;
+                slot->min_delay = 0;
+                slot->max_delay = 0;
+                slot->bucket = 0;
+                slot->changed = false;
+                return true;
+            }
         }
     }
 
@@ -244,21 +276,17 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 {
     int delta = cmpTimeUs(currentTime, sch.update_time);
 
-    sch.bucket_level = 0;
-
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         telemetrySlot_t * slot = &sch.slots[i];
 
         if (slot->sensor) {
-            const int value = slot->sensor->value();
-            slot->changed |= (value != slot->value);
+            const telemetryValue_t value = telemetryGetSensorValue(slot->sensor);
+            slot->changed |= (value.value != slot->value.value);
             slot->value = value;
 
             const int delay = slot->changed ? slot->min_delay : slot->max_delay;
             slot->bucket += delta * 1000 / delay;
             slot->bucket = constrain(slot->bucket, -2000000, 1000000);
-
-            sch.bucket_level += slot->bucket;
         }
     }
 
@@ -281,14 +309,14 @@ telemetrySlot_t * telemetryScheduleNext(void)
 
 void telemetryScheduleCommit(telemetrySlot_t * slot)
 {
-    slot->value -= 1000000;
+    slot->bucket -= 1000000;
     slot->changed = false;
 }
 
 void INIT_CODE telemetryScheduleInit(void)
 {
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        sensor_e sensor = telemetryConfig()->telemetry_sensors[i];
+        sensor_id_e sensor = telemetryConfig()->telemetry_sensors[i];
         if (sensor)
             telemetryScheduleAdd(sensor);
     }

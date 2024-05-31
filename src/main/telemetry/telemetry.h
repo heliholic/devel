@@ -30,26 +30,18 @@
 
 
 typedef struct {
-
-    const telemetrySensor_t * sensor;
-
-    int         min_delay;
-    int         max_delay;
-    int         bucket;
-    int         value;
-    bool        changed;
-
+    const telemetrySensor_t *   sensor;
+    int                         min_delay;
+    int                         max_delay;
+    int                         bucket;
+    bool                        changed;
+    telemetryValue_t            value;
 } telemetrySlot_t;
 
 typedef struct {
-
-    int         current_slot;
-    int         bucket_level;
-
-    timeUs_t    update_time;
-
-    telemetrySlot_t slots[TELEM_SENSOR_SLOT_COUNT];
-
+    int                         current_slot;
+    timeUs_t                    update_time;
+    telemetrySlot_t             slots[TELEM_SENSOR_SLOT_COUNT];
 } telemetryScheduler_t;
 
 
@@ -66,5 +58,6 @@ void telemetryScheduleUpdate(timeUs_t currentTime);
 void telemetryScheduleCommit(telemetrySlot_t * slot);
 telemetrySlot_t * telemetryScheduleNext(void);
 
-bool telemetryScheduleAdd(sensor_e sensor_id);
+bool telemetryScheduleAdd(sensor_id_e sensor_id);
+bool telemetryScheduleRem(sensor_id_e sensor_id);
 void telemetryScheduleInit(void);

@@ -107,11 +107,7 @@ void sbufWriteU64BE(sbuf_t *dst, uint64_t val)
 
 void sbufWriteFloat(sbuf_t *dst, float val)
 {
-    uint32_t data = RAWCAST(val, uint32_t);
-    SBUFPUSH(dst, data >> 0);
-    SBUFPUSH(dst, data >> 8);
-    SBUFPUSH(dst, data >> 16);
-    SBUFPUSH(dst, data >> 24);
+    sbufWriteU32(dst, RAWCAST(val, uint32_t));
 }
 
 
@@ -198,12 +194,16 @@ uint32_t sbufReadU32BE(sbuf_t *src)
 
 uint64_t sbufReadU64(sbuf_t *src)
 {
-    return (uint64_t)sbufReadU32(src) | (uint64_t)sbufReadU32(src) << 32;
+    uint64_t a = sbufReadU32(src);
+    uint64_t b = sbufReadU32(src);
+    return a | (b << 32);
 }
 
 uint64_t sbufReadU64BE(sbuf_t *src)
 {
-    return (uint64_t)sbufReadU32BE(src) << 32 | (uint64_t)sbufReadU32BE(src);
+    uint64_t a = sbufReadU32(src);
+    uint64_t b = sbufReadU32(src);
+    return (a << 32) | b;
 }
 
 float sbufReadFloat(sbuf_t *src)
