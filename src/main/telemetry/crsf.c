@@ -74,6 +74,8 @@
 #define CRSF_DEVICE_INFO_GRACE_US           25000
 #define CRSF_TELEM_GRACE_US                 10000
 
+#define CRSF_TELEM_FRAME_INTERVAL_MAX_US    20000
+
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
@@ -81,6 +83,8 @@
 #define CRSF_MSP_LENGTH_OFFSET              1
 
 static bool crsfTelemetryEnabled;
+static bool crsfCustomTelemetryEnabled;
+
 static bool deviceInfoReplyPending;
 
 static sbuf_t crsfSbuf;
@@ -91,8 +95,6 @@ static uint32_t crsfNextCycleTime = 0;
 
 #if defined(USE_CRSF_V3)
 
-#define CRSF_TELEMETRY_FRAME_INTERVAL_MAX_US 20000      // 20ms
-
 static bool isCrsfV3Running = false;
 
 typedef struct {
@@ -100,7 +102,7 @@ typedef struct {
     bool isNewSpeedValid;
     uint8_t portID:3;
     uint8_t index;
-    uint32_t confirmationTime;
+    timeUs_t confirmationTime;
 } crsfSpeedControl_t;
 
 static crsfSpeedControl_t crsfSpeed = {0};
@@ -210,6 +212,10 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
 #endif /* USE_MSP_OVER_TELEMETRY */
 
 
+/*
+ * CRSF Stream buffer handling
+ */
+
 static sbuf_t * crsfInitializeSbuf(void)
 {
     sbuf_t * dst = &crsfSbuf;
@@ -242,25 +248,24 @@ static void crsfFinalizeSbuf(sbuf_t *dst)
 }
 
 /*
-CRSF frame has the structure:
-<Device address> <Frame length> <Type> <Payload> <CRC>
-Device address: (uint8_t)
-Frame length:   length in  bytes including Type (uint8_t)
-Type:           (uint8_t)
-CRC:            (uint8_t), crc of <Type> and <Payload>
-*/
+ * CRSF frame has the structure:
+ * <Device address> <Frame length> <Type> <Payload> <CRC>
+ * Device address: (uint8_t)
+ * Frame length:   length in  bytes including Type (uint8_t)
+ * Type:           (uint8_t)
+ * CRC:            (uint8_t), crc of <Type> and <Payload>
+ */
 
 /*
-0x02 GPS
-Payload:
-int32_t     Latitude ( degree / 10`000`000 )
-int32_t     Longitude (degree / 10`000`000 )
-uint16_t    Groundspeed ( km/h / 10 )
-uint16_t    GPS heading ( degree / 100 )
-uint16      Altitude ( meter ­1000m offset )
-uint8_t     Satellites in use ( counter )
-*/
-
+ * 0x02 GPS
+ * Payload:
+ * int32_t     Latitude ( degree / 10`000`000 )
+ * int32_t     Longitude (degree / 10`000`000 )
+ * uint16_t    Groundspeed ( km/h / 10 )
+ * uint16_t    GPS heading ( degree / 100 )
+ * uint16      Altitude ( meter ­1000m offset )
+ * uint8_t     Satellites in use ( counter )
+ */
 void crsfFrameGps(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_GPS);
@@ -273,12 +278,12 @@ void crsfFrameGps(sbuf_t *dst)
 }
 
 /*
-0x08 Battery sensor
-Payload:
-uint16_t    Voltage (100mV steps)
-uint16_t    Current (100mA steps)
-uint24_t    Fuel (drawn mAh)
-uint8_t     Battery remaining (percent)
+ * 0x08 Battery sensor
+ * Payload:
+ * uint16_t    Voltage (100mV steps)
+ * uint16_t    Current (100mA steps)
+ * uint24_t    Fuel (drawn mAh)
+ * uint8_t     Battery remaining (percent)
 */
 void crsfFrameBatterySensor(sbuf_t *dst)
 {
@@ -290,9 +295,9 @@ void crsfFrameBatterySensor(sbuf_t *dst)
 }
 
 /*
-0x0B Heartbeat
-Payload:
-int16_t    Origin Device address
+ * 0x0B Heartbeat
+ * Payload:
+ * int16_t    Origin Device address
 */
 void crsfFrameHeartbeat(sbuf_t *dst)
 {
@@ -300,36 +305,13 @@ void crsfFrameHeartbeat(sbuf_t *dst)
     sbufWriteU16BE(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
 }
 
-typedef enum {
-    CRSF_ACTIVE_ANTENNA1 = 0,
-    CRSF_ACTIVE_ANTENNA2 = 1
-} crsfActiveAntenna_e;
-
-typedef enum {
-    CRSF_RF_MODE_4_HZ = 0,
-    CRSF_RF_MODE_50_HZ = 1,
-    CRSF_RF_MODE_150_HZ = 2
-} crsrRfMode_e;
-
-typedef enum {
-    CRSF_RF_POWER_0_mW = 0,
-    CRSF_RF_POWER_10_mW = 1,
-    CRSF_RF_POWER_25_mW = 2,
-    CRSF_RF_POWER_100_mW = 3,
-    CRSF_RF_POWER_500_mW = 4,
-    CRSF_RF_POWER_1000_mW = 5,
-    CRSF_RF_POWER_2000_mW = 6,
-    CRSF_RF_POWER_250_mW = 7,
-    CRSF_RF_POWER_50_mW = 8
-} crsrRfPower_e;
-
 /*
-0x1E Attitude
-Payload:
-int16_t     Pitch angle (rad / 10000)
-int16_t     Roll angle (rad / 10000)
-int16_t     Yaw angle (rad / 10000)
-*/
+ * 0x1E Attitude
+ * Payload:
+ * int16_t     Pitch angle (rad / 10000)
+ * int16_t     Roll angle (rad / 10000)
+ * int16_t     Yaw angle (rad / 10000)
+ */
 
 // convert angle in decidegree to radians/10000 with +/-180 degree range
 static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
@@ -351,10 +333,10 @@ void crsfFrameAttitude(sbuf_t *dst)
 }
 
 /*
-0x21 Flight mode text based
-Payload:
-char[]      Flight mode (Null terminated string)
-*/
+ * 0x21 Flight mode text based
+ * Payload:
+ * char[]      Flight mode (Null terminated string)
+ */
 
 static const char * govStateNames[] = {
     "OFF",
@@ -393,17 +375,17 @@ void crsfFrameFlightMode(sbuf_t *dst)
 }
 
 /*
-0x29 Device Info
-Payload:
-uint8_t     Destination
-uint8_t     Origin
-char[]      Device Name (Null terminated string)
-uint32_t    Null Bytes
-uint32_t    Null Bytes
-uint32_t    Null Bytes
-uint8_t     255 (Max MSP Parameter)
-uint8_t     0x01 (Parameter version 1)
-*/
+ * 0x29 Device Info
+ * Payload:
+ * uint8_t     Destination
+ * uint8_t     Origin
+ * char[]      Device Name (Null terminated string)
+ * uint32_t    Null Bytes
+ * uint32_t    Null Bytes
+ * uint32_t    Null Bytes
+ * uint8_t     255 (Max MSP Parameter)
+ * uint8_t     0x01 (Parameter version 1)
+ */
 void crsfFrameDeviceInfo(sbuf_t *dst)
 {
     char buff[30];
@@ -421,31 +403,173 @@ void crsfFrameDeviceInfo(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_DEVICEINFO_VERSION);
 }
 
-/*
-0x88 Rotorflight telemetry
-Payload:
-uint16_t    Sensor id
-uint8_t     Data length
-data        Sensor data
-...
-*/
 
-void crsfFrameRotorflightTelemetryHeader(sbuf_t *dst)
+/*
+ * 0x88 Custom telemetry
+ * Payload:
+ * uint16_t    Sensor id
+ * <type>      Sensor data
+ * ...
+ */
+
+static int getNil(void)
 {
-    sbufWriteU8(dst, CRSF_FRAMETYPE_RF_TELEM);
+    return 0;
 }
 
-void crsfFrameRotorflightTelemetrySensor(sbuf_t *dst, const telemetrySensor_t * sensor, telemetryValue_t value)
+void crsfSensorEncodeNil(sbuf_t *buf, telemetryValue_t value)
+{
+    UNUSED(buf);
+    UNUSED(value);
+}
+
+void crsfSensorEncodeU8(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteU8(buf, value);
+}
+
+void crsfSensorEncodeS8(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteS8(buf, value);
+}
+
+void crsfSensorEncodeU16(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteU16BE(buf, value);
+}
+
+void crsfSensorEncodeS16(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteS16BE(buf, value);
+}
+
+void crsfSensorEncodeU24(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteU24BE(buf, value);
+}
+
+void crsfSensorEncodeS24(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteS24BE(buf, value);
+}
+
+void crsfSensorEncodeU32(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteU32BE(buf, value);
+}
+
+void crsfSensorEncodeS32(sbuf_t *buf, telemetryValue_t value)
+{
+    sbufWriteS32BE(buf, value);
+}
+
+static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
+{
+    sbufWriteU8(dst, CRSF_FRAMETYPE_CUSTOM_TELEM);
+}
+
+static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, const telemetrySensor_t * sensor, telemetryValue_t value)
 {
     sbufWriteU16BE(dst, sensor->code);
     sensor->encode(dst, value);
 }
 
 
+#define TLM_SENSOR(NAME, DESC, CODE, MIND, MAXD, ENCODER, VALF) \
+    [TELEM_##NAME] = { \
+        .index = TELEM_##NAME, \
+        .code = (CODE), \
+        .min_period = (MIND), \
+        .max_period = (MAXD), \
+        .value = (telemetryValue_f)(VALF), \
+        .encode = crsfSensorEncode##ENCODER, \
+    }
+
+const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
+{
+    TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   100,   100,    Nil,    getNil),
+
+    TLM_SENSOR(MODEL_ID,                "ID  ",     0x0001,  1000,  1000,    U16,    getNil),
+
+    TLM_SENSOR(BATTERY,                 "Batt",     0x0010,  1000,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_VOLTAGE,         "Vbat",     0x0011,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CURRENT,         "Curr",     0x0012,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CONSUMPTION,     "mAh ",     0x0013,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    "Bat%",     0x0014,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_TEMPERATURE,     "Tbat",     0x0015,   100,  1000,    Nil,    getNil),
+
+    TLM_SENSOR(BATTERY_CELLS,           "Cell",     0x0040,   100,  1000,    Nil,    getNil),
+
+    TLM_SENSOR(ESC1_DATA,               "ESC1",     0x0040,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(ESC1_VOLTAGE,            "Vol1",     0x0041,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(ESC1_CURRENT,            "Cur1",     0x0042,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(ESC1_ERPM,               "RPM1",     0x0043,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(ESC1_POWER,              "Pow1",     0x0044,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(ESC1_THROTTLE,           "Thr1",     0x0045,   100,  1000,    U8,     getNil),
+    TLM_SENSOR(ESC1_TEMP1,              "TeE1",     0x0046,   100,  1000,    U8,     getNil),
+    TLM_SENSOR(ESC1_TEMP2,              "TeB1",     0x0047,   100,  1000,    U8,     getNil),
+    TLM_SENSOR(ESC1_BEC_VOLTAGE,        "VoB1",     0x0048,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(ESC1_BEC_CURRENT,        "CuB1",     0x0049,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(ESC1_ERRORS,             "Err1",     0x004E,   100,  1000,    U32,    getNil),
+    TLM_SENSOR(ESC1_STATUS,             "Est1",     0x004F,   100,  1000,    U32,    getNil),
+
+    TLM_SENSOR(ESC_VOLTAGE,             "Vesc",     0x0080,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(BEC_VOLTAGE,             "Vbec",     0x0081,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(BUS_VOLTAGE,             "Vbus",     0x0082,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(MCU_VOLTAGE,             "Vmcu",     0x0083,   100,  1000,    U16,    getNil),
+
+    TLM_SENSOR(ESC_CURRENT,             "Iesc",     0x0090,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(BEC_CURRENT,             "Ibec",     0x0091,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(BUS_CURRENT,             "Ibus",     0x0092,   100,  1000,    U16,    getNil),
+    TLM_SENSOR(MCU_CURRENT,             "Imcu",     0x0093,   100,  1000,    U16,    getNil),
+
+    TLM_SENSOR(ESC_TEMP,                "Tesc",     0x00A0,   200,  1000,    U8,     getNil),
+    TLM_SENSOR(BEC_TEMP,                "Tbec",     0x00A1,   200,  1000,    U8,     getNil),
+    TLM_SENSOR(MCU_TEMP,                "Tmcu",     0x00A3,   200,  1000,    U8,     getNil),
+    TLM_SENSOR(AIR_TEMP,                "Tair",     0x00A4,   200,  1000,    U8,     getNil),
+    TLM_SENSOR(MOTOR_TEMP,              "Tmtr",     0x00A5,   200,  1000,    U8,     getNil),
+
+    TLM_SENSOR(ALTITUDE,                "Alt ",     0x00B1,   100,  1000,    S24,    getNil),
+    TLM_SENSOR(VARIOMETER,              "Vari",     0x00B2,   100,  1000,    S16,    getNil),
+
+    TLM_SENSOR(HEADSPEED,               "HSpd",     0x00C0,   100,  1000,    U16,    getHeadSpeed),
+    TLM_SENSOR(TAILSPEED,               "TSpd",     0x00C1,   100,  1000,    U16,    getTailSpeed),
+    TLM_SENSOR(MOTOR_RPM,               "Mrpm",     0x00C2,   100,  1000,    U16,    getNil),
+
+    TLM_SENSOR(ATTITUDE,                "Att",      0x0100,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(ATTITUDE_PITCH,          "AttP",     0x0101,   100,  1000,    S16,    getNil),
+    TLM_SENSOR(ATTITUDE_ROLL,           "AttR",     0x0102,   100,  1000,    S16,    getNil),
+    TLM_SENSOR(ATTITUDE_YAW,            "AttY",     0x0103,   100,  1000,    S16,    getNil),
+
+    TLM_SENSOR(ACCEL,                   "AccX",     0x0110,   250,  1000,    Nil,    getNil),
+    TLM_SENSOR(ACCEL_X,                 "AccX",     0x0111,   250,  1000,    S16,    getNil),
+    TLM_SENSOR(ACCEL_Y,                 "AccY",     0x0112,   250,  1000,    S16,    getNil),
+    TLM_SENSOR(ACCEL_Z,                 "AccZ",     0x0113,   250,  1000,    S16,    getNil),
+
+    TLM_SENSOR(GPS,                     "GPS ",     0x0120,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_SAT_COUNT,           "Gsat",     0x0121,   500,  5000,    Nil,    getNil),
+    TLM_SENSOR(GPS_HEADING,             "GHdg",     0x0122,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_LATITUDE,            "Glat",     0x0123,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_LONGITUDE,           "Glng",     0x0124,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_ALTITUDE,            "Galt",     0x0125,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_DISTANCE,            "Gdis",     0x0126,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_GROUNDSPEED,         "Gspd",     0x0127,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_DATE_TIME,           "Gtim",     0x012F,   100,  2000,    Nil,    getNil),
+
+    TLM_SENSOR(FC,                      "FC  ",     0x0140,   250,  1000,    Nil,    getNil),
+    TLM_SENSOR(FC_UPTIME,               "UpTm",     0x0141,   250,  1000,    U16,    getNil),
+    TLM_SENSOR(FC_CPU_LOAD,             "CPU%",     0x0142,   250,  1000,    U8,     getNil),
+    TLM_SENSOR(FC_SYS_LOAD,             "SYS%",     0x0143,   250,  1000,    U8,     getNil),
+    TLM_SENSOR(FC_RT_LOAD,              "RTT%",     0x0144,   250,  1000,    U8,     getNil),
+};
+
+
 #if defined(USE_CRSF_V3)
+
 void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
 {
     uint8_t *start = sbufPtr(dst);
+    
     sbufWriteU8(dst, CRSF_FRAMETYPE_COMMAND);
     sbufWriteU8(dst, CRSF_ADDRESS_CRSF_RECEIVER);
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
@@ -453,20 +577,20 @@ void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
     sbufWriteU8(dst, CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_RESPONSE);
     sbufWriteU8(dst, crsfSpeed.portID);
     sbufWriteU8(dst, reply);
+
     crc8_poly_0xba_sbuf_append(dst, start);
 }
 
 static void crsfProcessSpeedNegotiationCmd(uint8_t *frameStart)
 {
     uint32_t newBaudrate = frameStart[2] << 24 | frameStart[3] << 16 | frameStart[4] << 8 | frameStart[5];
-    uint8_t ii = 0;
-    for (ii = 0; ii < BAUD_COUNT; ++ii) {
-        if (newBaudrate == baudRates[ii]) {
+    unsigned index = 0;
+    for (index = 0; index < BAUD_COUNT; index++) {
+        if (newBaudrate == baudRates[index])
             break;
-        }
     }
     crsfSpeed.portID = frameStart[1];
-    crsfSpeed.index = ii;
+    crsfSpeed.index = index;
 }
 
 void crsfScheduleSpeedNegotiationResponse(void)
@@ -487,14 +611,16 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         crsfSpeed.hasPendingReply = false;
         crsfSpeed.isNewSpeedValid = found;
         crsfSpeed.confirmationTime = currentTimeUs;
-    } else if (crsfSpeed.isNewSpeedValid) {
+    } 
+    else if (crsfSpeed.isNewSpeedValid) {
         if (cmpTimeUs(currentTimeUs, crsfSpeed.confirmationTime) >= 4000) {
             // delay 4ms before applying the new baudrate
             crsfRxUpdateBaudrate(getCrsfDesiredSpeed());
             crsfSpeed.isNewSpeedValid = false;
             isCrsfV3Running = true;
         }
-    } else if (!featureIsEnabled(FEATURE_TELEMETRY) && crsfRxUseNegotiatedBaud()) {
+    }
+    else if (!featureIsEnabled(FEATURE_TELEMETRY) && crsfRxUseNegotiatedBaud()) {
         // Send heartbeat if telemetry is disabled to allow RX to detect baud rate mismatches
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameHeartbeat(dst);
@@ -503,7 +629,9 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         crsfRxSendTelemetryData();
     }
 }
-#endif
+
+#endif /* USE_CRSF_V3 */
+
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
 
@@ -586,12 +714,35 @@ static void crsfFrameDisplayPortClear(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_DISPLAYPORT_SUBCMD_CLEAR);
 }
 
+void crsfProcessDisplayPortCmd(uint8_t *frameStart)
+{
+    const uint8_t cmd = frameStart[0];
+
+    switch (cmd) {
+        case CRSF_DISPLAYPORT_SUBCMD_OPEN:;
+            const uint8_t rows = frameStart[CRSF_DISPLAYPORT_OPEN_ROWS_OFFSET];
+            const uint8_t cols = frameStart[CRSF_DISPLAYPORT_OPEN_COLS_OFFSET];
+            crsfDisplayPortSetDimensions(rows, cols);
+            crsfDisplayPortMenuOpen();
+            break;
+        case CRSF_DISPLAYPORT_SUBCMD_CLOSE:
+            crsfDisplayPortMenuExit();
+            break;
+        case CRSF_DISPLAYPORT_SUBCMD_POLL:
+            crsfDisplayPortRefresh();
+            break;
+        default:
+            break;
+    }
+}
+
 #endif /* USE_CRSF_CMS_TELEMETRY */
+
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
-static bool mspReplyPending;
-static uint8_t mspRequestOriginID = 0; // Saved origin of the MSP request
+static bool mspReplyPending = false;
+static uint8_t mspRequestOriginID = 0;
 
 void crsfScheduleMspResponse(uint8_t requestOriginID)
 {
@@ -612,6 +763,90 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 
 #endif /* USE_MSP_OVER_TELEMETRY */
 
+
+void crsfScheduleDeviceInfoResponse(void)
+{
+    deviceInfoReplyPending = true;
+}
+
+
+#if defined(USE_CRSF_V3)
+void crsfProcessCommand(uint8_t *frameStart)
+{
+    uint8_t cmd = frameStart[0];
+    uint8_t sub = frameStart[1];
+
+    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub == CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
+        crsfProcessSpeedNegotiationCmd(&frameStart[1]);
+        crsfScheduleSpeedNegotiationResponse();
+    }
+}
+#endif
+
+
+#if defined(USE_RX_EXPRESSLRS)
+
+static int crsfFinalizeSbufBuf(sbuf_t *dst, uint8_t *frame)
+{
+    // frame size including CRC
+    const size_t frameSize = sbufPtr(dst) - crsfFrame + 2;
+
+    // Set frame length into the placeholder
+    crsfFrame[1] = frameSize - 3;
+
+    // frame CRC
+    crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
+
+    // Copy data to the frame
+    memcpy(frame, crsfFrame, frameSize);
+
+    return frameSize;
+}
+
+int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
+{
+    sbuf_t *dst = crsfInitializeSbuf();
+
+    switch (frameType) {
+        default:
+        case CRSF_FRAMETYPE_ATTITUDE:
+            crsfFrameAttitude(dst);
+            break;
+        case CRSF_FRAMETYPE_BATTERY_SENSOR:
+            crsfFrameBatterySensor(dst);
+            break;
+        case CRSF_FRAMETYPE_FLIGHT_MODE:
+            crsfFrameFlightMode(dst);
+            break;
+#if defined(USE_GPS)
+        case CRSF_FRAMETYPE_GPS:
+            crsfFrameGps(dst);
+            break;
+#endif
+#if defined(USE_MSP_OVER_TELEMETRY)
+        case CRSF_FRAMETYPE_DEVICE_INFO:
+            crsfFrameDeviceInfo(dst);
+            break;
+#endif
+    }
+
+    return crsfFinalizeSbufBuf(dst, frame);
+}
+
+#if defined(USE_MSP_OVER_TELEMETRY)
+int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
+{
+    sbuf_t *dst = crsfInitializeSbuf();
+
+    sbufWriteU8(dst, CRSF_FRAMETYPE_MSP_RESP);
+    sbufWriteU8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+    sbufWriteData(dst, payload, payloadSize);
+
+    return crsfFinalizeSbufBuf(dst, frame);
+}
+#endif /* USE_MSP_OVER_TELEMETRY */
+#endif /* USE_RX_EXPRESSLRS */
 
 static void processCrsfTelemetry(void)
 {
@@ -645,95 +880,65 @@ static void processCrsfTelemetry(void)
     }
 }
 
-static void processRotorflightTelemetry(void)
+static void processCustomTelemetry(void)
 {
     if (crsfRxIsTelemetryBufEmpty()) {
         sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameRotorflightTelemetryHeader(dst);
+        crsfFrameCustomTelemetryHeader(dst);
         while (sbufBytesRemaining(dst) >= 6) {
             telemetrySlot_t *slot = telemetryScheduleNext();
-            if (slot) {
+            if (slot && slot->sensor) {
                 uint8_t *ptr = sbufPtr(dst);
-                crsfFrameRotorflightTelemetrySensor(dst, slot->sensor, slot->value);
+                crsfFrameCustomTelemetrySensor(dst, slot->sensor, slot->value);
                 if (sbufBytesRemaining(dst) >= 2)
                     telemetryScheduleCommit(slot);
                 else
                     sbufReset(dst, ptr);
+            }
+            else {
+                break;
             }
         }
         crsfFinalizeSbuf(dst);
     }
 }
 
-
-void crsfScheduleDeviceInfoResponse(void)
+void crsfInitCrsfTelemetry(void)
 {
-    deviceInfoReplyPending = true;
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
+        const telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[id];
+        switch (id) {
+            case TELEM_HEARTBEAT:
+            case TELEM_BATTERY:
+            case TELEM_ATTITUDE:
+            case TELEM_FLIGHT_MODE:
+            case TELEM_GPS:
+                telemetryScheduleAdd(sensor);
+                break;
+            default:
+                break;
+        }
+    }
 }
+
+void crsfInitCustomTelemetry(void)
+{
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
+        const telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[id];
+        if (sensor->index) {
+            telemetryScheduleAdd(sensor);
+        }
+    }
+}
+
 
 bool checkCrsfTelemetryState(void)
 {
     return crsfTelemetryEnabled;
 }
 
-void initCrsfTelemetry(void)
-{
-    // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
-    // and feature is enabled, if so, set CRSF telemetry enabled
-    crsfTelemetryEnabled = crsfRxIsActive();
-
-    if (crsfTelemetryEnabled) {
-        deviceInfoReplyPending = false;
-#if defined(USE_MSP_OVER_TELEMETRY)
-        mspReplyPending = false;
-#endif
-#if defined(USE_CRSF_CMS_TELEMETRY)
-        crsfDisplayportRegister();
-#endif
-    }
-}
-
-#if defined(USE_CRSF_CMS_TELEMETRY)
-void crsfProcessDisplayPortCmd(uint8_t *frameStart)
-{
-    const uint8_t cmd = frameStart[0];
-
-    switch (cmd) {
-        case CRSF_DISPLAYPORT_SUBCMD_OPEN:;
-            const uint8_t rows = frameStart[CRSF_DISPLAYPORT_OPEN_ROWS_OFFSET];
-            const uint8_t cols = frameStart[CRSF_DISPLAYPORT_OPEN_COLS_OFFSET];
-            crsfDisplayPortSetDimensions(rows, cols);
-            crsfDisplayPortMenuOpen();
-            break;
-        case CRSF_DISPLAYPORT_SUBCMD_CLOSE:
-            crsfDisplayPortMenuExit();
-            break;
-        case CRSF_DISPLAYPORT_SUBCMD_POLL:
-            crsfDisplayPortRefresh();
-            break;
-        default:
-            break;
-    }
-
-}
-#endif
-
-#if defined(USE_CRSF_V3)
-void crsfProcessCommand(uint8_t *frameStart)
-{
-    uint8_t cmd = frameStart[0];
-    uint8_t sub = frameStart[1];
-
-    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub == CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
-        crsfProcessSpeedNegotiationCmd(&frameStart[1]);
-        crsfScheduleSpeedNegotiationResponse();
-    }
-}
-#endif
-
-/*
- * Called periodically by the scheduler
- */
 void handleCrsfTelemetry(timeUs_t currentTimeUs)
 {
     if (!crsfTelemetryEnabled)
@@ -801,76 +1006,37 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     // Telemetry data to be send after a grace period
     if (currentTimeUs >= crsfNextCycleTime) {
         crsfNextCycleTime = currentTimeUs + CRSF_TELEM_GRACE_US;
-        if (1)
-            processCrsfTelemetry();
+        if (crsfCustomTelemetryEnabled)
+            processCustomTelemetry();
         else
-            processRotorflightTelemetry();
+            processCrsfTelemetry();
         crsfRxSendTelemetryData();
     }
 }
 
-#if defined(USE_RX_EXPRESSLRS)
-
-static int crsfFinalizeSbufBuf(sbuf_t *dst, uint8_t *frame)
+void initCrsfTelemetry(void)
 {
-    // frame size including CRC
-    const size_t frameSize = sbufPtr(dst) - crsfFrame + 2;
+    // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
+    // and feature is enabled, if so, set CRSF telemetry enabled
+    crsfTelemetryEnabled = crsfRxIsActive();
 
-    // Set frame length into the placeholder
-    crsfFrame[1] = frameSize - 3;
+    if (crsfTelemetryEnabled) 
+    {
+        deviceInfoReplyPending = false;
 
-    // frame CRC
-    crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
-
-    // Copy data to the frame
-    memcpy(frame, crsfFrame, frameSize);
-
-    return frameSize;
-}
-
-int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
-{
-    sbuf_t *dst = crsfInitializeSbuf();
-
-    switch (frameType) {
-        default:
-        case CRSF_FRAMETYPE_ATTITUDE:
-            crsfFrameAttitude(dst);
-            break;
-        case CRSF_FRAMETYPE_BATTERY_SENSOR:
-            crsfFrameBatterySensor(dst);
-            break;
-        case CRSF_FRAMETYPE_FLIGHT_MODE:
-            crsfFrameFlightMode(dst);
-            break;
-#if defined(USE_GPS)
-        case CRSF_FRAMETYPE_GPS:
-            crsfFrameGps(dst);
-            break;
-#endif
 #if defined(USE_MSP_OVER_TELEMETRY)
-        case CRSF_FRAMETYPE_DEVICE_INFO:
-            crsfFrameDeviceInfo(dst);
-            break;
+        mspReplyPending = false;
 #endif
+
+#if defined(USE_CRSF_CMS_TELEMETRY)
+        crsfDisplayportRegister();
+#endif
+
+        if (crsfCustomTelemetryEnabled)
+            crsfInitCustomTelemetry();
+        else
+            crsfInitCrsfTelemetry();
     }
-
-    return crsfFinalizeSbufBuf(dst, frame);
 }
-
-#if defined(USE_MSP_OVER_TELEMETRY)
-int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
-{
-    sbuf_t *dst = crsfInitializeSbuf();
-
-    sbufWriteU8(dst, CRSF_FRAMETYPE_MSP_RESP);
-    sbufWriteU8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
-    sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
-    sbufWriteData(dst, payload, payloadSize);
-
-    return crsfFinalizeSbufBuf(dst, frame);
-}
-#endif /* USE_MSP_OVER_TELEMETRY */
-#endif /* USE_RX_EXPRESSLRS */
 
 #endif /* USE_TELEMETRY_CRSF */

@@ -17,10 +17,19 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "pg/pg.h"
 #include "pg/telemetry.h"
 
 #include "common/streambuf.h"
+
+#include "flight/motors.h"
+#include "flight/servos.h"
+
 
 typedef enum
 {
@@ -161,59 +170,26 @@ typedef enum {
 } sensor_e;
 
 
-typedef union {
-    int32_t     s32;
-    uint32_t    u32;
-    int         num;
-    float       flt;
-    void *      ptr;
-    uint32_t    val;
-} telemetryValue_t;
+typedef int telemetryValue_t;
 
-typedef union {
-    telemetryValue_t    (*func)(void);
-    int32_t             (*u32_f)(void);
-    uint32_t            (*s32_f)(void);
-    int                 (*num_f)(void);
-    float               (*flt_f)(void);
-    void *              (*ptr_t)(void);
-} telemetryFunction_f;
-
-typedef int (*telemetryEncode_f)(sbuf_t *buf, telemetryValue_t value);
-
+typedef int (*telemetryValue_f)(void);
+typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetryValue_t value);
 
 typedef uint16_t sensor_code_t;
 
-typedef struct telemetrySensor_s {
+typedef struct {
 
     sensor_id_e             index;
     sensor_code_t           code;
-    const char *            name;
 
-    int                     min_delay;
-    int                     max_delay;
+    int                     min_period;
+    int                     max_period;
 
     telemetryEncode_f       encode;
-    telemetryFunction_f     value;
+    telemetryValue_f        value;
 
 } telemetrySensor_t;
 
 
-const telemetrySensor_t * telemetryGetSensor(sensor_id_e sensor_id);
-const telemetrySensor_t * telemetryGetSensorCode(sensor_code_t sensor_code);
-
-inline telemetryValue_t telemetryGetSensorValue(const telemetrySensor_t *sensor)
-{
-    return sensor->value.func();
-}
-
-inline telemetryValue_t telemetryGetSensorIdValue(sensor_id_e sensor_id)
-{
-    return telemetryGetSensorValue(telemetryGetSensor(sensor_id));
-}
-
-bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id);
-
 /* Compatibility */
-bool telemetryIsSensorEnabled(uint32_t sensor_bits);
-sensor_e telemetrySensorId2Bit(sensor_id_e sensor_id);
+sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id);

@@ -233,17 +233,15 @@ void INIT_CODE telemetryInit(void)
 static telemetryScheduler_t sch;
 
 
-bool INIT_CODE telemetryScheduleAdd(sensor_id_e sensor_id)
+bool INIT_CODE telemetryScheduleAdd(const telemetrySensor_t * sensor)
 {
-    const telemetrySensor_t * sensor = telemetryGetSensor(sensor_id);
-
     if (sensor) {
         for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
             telemetrySlot_t * slot = &sch.slots[i];
             if (!slot->sensor) {
                 slot->sensor = sensor;
-                slot->min_delay = sensor->min_delay;
-                slot->max_delay = sensor->max_delay;
+                slot->min_period = sensor->min_period;
+                slot->max_period = sensor->max_period;
                 slot->bucket = 0;
                 slot->changed = true;
                 return true;
@@ -260,13 +258,12 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         telemetrySlot_t * slot = &sch.slots[i];
-
         if (slot->sensor) {
-            const telemetryValue_t value = telemetryGetSensorValue(slot->sensor);
-            slot->changed |= (value.val != slot->value.val);
+            const telemetryValue_t value = slot->sensor->value();
+            slot->changed |= (value != slot->value);
             slot->value = value;
 
-            const int delay = slot->changed ? slot->min_delay : slot->max_delay;
+            const int delay = slot->changed ? slot->min_period: slot->max_period;
             slot->bucket += delta * 1000 / delay;
             slot->bucket = constrain(slot->bucket, -2000000, 1000000);
         }
@@ -315,9 +312,7 @@ void INIT_CODE telemetryScheduleInit(void)
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         if (id) {
-            sensor_e legacy = telemetrySensorId2Bit(id);
-            telemetry_legacy_sensors |= legacy;
-            telemetryScheduleAdd(id);
+            telemetry_legacy_sensors |= telemetrySensorGetLegacy(id);
         }
     }
 }
