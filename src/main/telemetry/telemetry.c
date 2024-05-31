@@ -301,12 +301,12 @@ telemetrySlot_t * telemetryScheduleNext(void)
     int index = sch.current_slot;
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        index = (index + 1) % TELEM_SENSOR_SLOT_COUNT;
         telemetrySlot_t * slot = &sch.slots[index];
         if (slot->sensor && slot->bucket > 0) {
             sch.current_slot = index;
             return slot;
         }
-        index = (index + 1) % TELEM_SENSOR_SLOT_COUNT;
     }
 
     return NULL;
