@@ -213,7 +213,7 @@ static void crsfInitializeFrame(sbuf_t *dst)
 
 static void crsfFinalize(sbuf_t *dst)
 {
-    // frame length
+    // Set frame length into the placeholder
     crsfFrame[1] = sbufPtr(dst) - crsfFrame - 1;
 
     // frame CRC
@@ -429,10 +429,10 @@ void crsfFrameRotorflightTelemetryHeader(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_FRAMETYPE_RF_TELEM);
 }
 
-void crsfFrameRotorflightTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
+void crsfFrameRotorflightTelemetrySensor(sbuf_t *dst, const telemetrySensor_t * sensor)
 {
-    sbufWriteU16B/e(dst, sensor->code);
-    sensor->encode(dst, sensor->value());
+    sbufWriteU16BE(dst, sensor->code);
+    sensor->encode(dst, telemetryGetSensorValue(sensor));
 }
 
 
@@ -680,13 +680,20 @@ static void processCrsfTelemetry(void)
 
 static void processRotorflightTelemetry(void)
 {
-    sbuf_t dst[1];
-
     if (crsfRxIsTelemetryBufEmpty()) {
-        uint32_t value = getEstimatedAltitudeCm(); //telemetryGetSensor(TELEM_ALTITUDE);
+        sbuf_t dst[1];
         crsfInitializeFrame(dst);
         crsfFrameRotorflightTelemetryHeader(dst);
-        crsfFrameRotorflightTelemetryValue(dst, 1, 0, 4, value);
+        while (sbufBytesRemaining(dst) > 8) {
+            telemetrySlot_t * slot = telemetryScheduleNext();
+            if (slot) {
+                crsfFrameRotorflightTelemetrySensor(dst, slot->sensor);
+                telemetryScheduleCommit(slot);
+            }
+            else {
+                break;
+            }
+        }
         crsfFinalize(dst);
     }
 }
@@ -777,7 +784,7 @@ void crsfProcessDisplayPortCmd(uint8_t *frameStart)
 #if defined(USE_CRSF_V3)
 void crsfProcessCommand(uint8_t *frameStart)
 {
-    uint8_t cmd = *frameStart;
+    uint8_t cmd = frameStart[0];
     uint8_t subCmd = frameStart[1];
     switch (cmd) {
     case CRSF_COMMAND_SUBCMD_GENERAL:

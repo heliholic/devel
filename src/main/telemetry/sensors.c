@@ -108,9 +108,9 @@ STATIC int sensorEncodeS32(sbuf_t *buf, telemetryValue_t value)
 
 #define TLM_SENSOR(NAME, DESC, CODE, MIND, MAXD, ENCODER, GETF) \
     [TELEM_##NAME] = { \
-        .sensor_index = TELEM_##NAME, \
-        .sensor_code = (CODE), \
-        .sensor_name = (DESC), \
+        .index = TELEM_##NAME, \
+        .code = (CODE), \
+        .name = (DESC), \
         .min_delay = (MIND), \
         .max_delay = (MAXD), \
         .value = (telemetryFunction_f)(GETF), \
@@ -180,7 +180,7 @@ const telemetrySensor_t * telemetryGetSensorCode(uint16_t sensor_code)
 {
     for (unsigned i = 0; i < ARRAYLEN(telemetry_sensors); i++) {
         const telemetrySensor_t * sensor = &telemetry_sensors[i];
-        if (sensor->sensor_code == sensor_code)
+        if (sensor->code == sensor_code)
             return sensor;
     }
 

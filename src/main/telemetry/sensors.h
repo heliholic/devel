@@ -178,9 +178,9 @@ typedef uint16_t sensor_code_t;
 
 typedef struct telemetrySensor_s {
 
-    sensor_id_e             sensor_index;
-    sensor_code_t           sensor_code;
-    const char *            sensor_name;
+    sensor_id_e             index;
+    sensor_code_t           code;
+    const char *            name;
 
     int                     min_delay;
     int                     max_delay;
