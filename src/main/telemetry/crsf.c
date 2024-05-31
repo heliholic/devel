@@ -429,19 +429,10 @@ void crsfFrameRotorflightTelemetryHeader(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_FRAMETYPE_RF_TELEM);
 }
 
-void crsfFrameRotorflightTelemetryValue(sbuf_t *dst, uint16_t sensor, uint8_t instance, uint8_t length, uint32_t value)
+void crsfFrameRotorflightTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
 {
-    sbufWriteU16BigEndian(dst, sensor);
-    sbufWriteU8(dst, instance);
-    sbufWriteU8(dst, length);
-    if (length >= 4)
-        sbufWriteU8(dst, value >> 24);
-    if (length >= 3)
-        sbufWriteU8(dst, value >> 16);
-    if (length >= 2)
-        sbufWriteU8(dst, value >> 8);
-    if (length >= 1)
-        sbufWriteU8(dst,value >> 0);
+    sbufWriteU16B/e(dst, sensor->code);
+    sensor->encode(dst, sensor->value());
 }
 
 
