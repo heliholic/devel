@@ -260,10 +260,10 @@ uint8_t     Satellites in use ( counter )
 void crsfFrameGps(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_GPS);
-    sbufWriteS32BE(dst, gpsSol.llh.lat); // CRSF and betaflight use same units for degrees
+    sbufWriteS32BE(dst, gpsSol.llh.lat);
     sbufWriteS32BE(dst, gpsSol.llh.lon);
-    sbufWriteU16BE(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
-    sbufWriteU16BE(dst, gpsSol.groundCourse * 10); // gpsSol.groundCourse is degrees * 10
+    sbufWriteU16BE(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // cm/s
+    sbufWriteU16BE(dst, gpsSol.groundCourse * 10); // degrees * 10
     sbufWriteU16BE(dst, getEstimatedAltitudeCm() / 100 + 1000);
     sbufWriteU8(dst, gpsSol.numSat);
 }
@@ -271,10 +271,10 @@ void crsfFrameGps(sbuf_t *dst)
 /*
 0x08 Battery sensor
 Payload:
-uint16_t    Voltage ( mV * 100 )
-uint16_t    Current ( mA * 100 )
-uint24_t    Fuel ( drawn mAh )
-uint8_t     Battery remaining ( percent )
+uint16_t    Voltage (100mV steps)
+uint16_t    Current (100mA steps)
+uint24_t    Fuel (drawn mAh)
+uint8_t     Battery remaining (percent)
 */
 void crsfFrameBatterySensor(sbuf_t *dst)
 {
@@ -288,7 +288,7 @@ void crsfFrameBatterySensor(sbuf_t *dst)
 /*
 0x0B Heartbeat
 Payload:
-int16_t    origin_add ( Origin Device address )
+int16_t    Origin Device address
 */
 void crsfFrameHeartbeat(sbuf_t *dst)
 {
@@ -322,9 +322,9 @@ typedef enum {
 /*
 0x1E Attitude
 Payload:
-int16_t     Pitch angle ( rad / 10000 )
-int16_t     Roll angle ( rad / 10000 )
-int16_t     Yaw angle ( rad / 10000 )
+int16_t     Pitch angle (rad / 10000)
+int16_t     Roll angle (rad / 10000)
+int16_t     Yaw angle (rad / 10000)
 */
 
 // convert angle in decidegree to radians/10000 with +/-180 degree range
@@ -349,7 +349,7 @@ void crsfFrameAttitude(sbuf_t *dst)
 /*
 0x21 Flight mode text based
 Payload:
-char[]      Flight mode ( Null terminated string )
+char[]      Flight mode (Null terminated string)
 */
 
 static const char * govStateNames[] = {
@@ -393,7 +393,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
 Payload:
 uint8_t     Destination
 uint8_t     Origin
-char[]      Device Name ( Null terminated string )
+char[]      Device Name (Null terminated string)
 uint32_t    Null Bytes
 uint32_t    Null Bytes
 uint32_t    Null Bytes
@@ -550,7 +550,8 @@ static void cRleEncodeStream(sbuf_t *source, sbuf_t *dest, uint8_t maxDestLen)
             } else {
                 break;
             }
-        } else if (destRemaining >= runLength) {
+        }
+        else if (destRemaining >= runLength) {
             sbufWriteU8(dest, c);
             sbufAdvance(source, runLength);
         }
@@ -567,12 +568,10 @@ static void crsfFrameDisplayPortChunk(sbuf_t *dst, sbuf_t *src, uint8_t batchId,
     sbufWriteU8(dst, batchId);
     sbufWriteU8(dst, idx);
     cRleEncodeStream(src, dst, CRSF_DISPLAYPORT_MAX_CHUNK_LENGTH);
-    if (idx == 0) {
+    if (idx == 0)
         *metaPtr |= CRSF_DISPLAYPORT_FIRST_CHUNK_MASK;
-    }
-    if (!sbufBytesRemaining(src)) {
+    if (!sbufBytesRemaining(src))
         *metaPtr |= CRSF_DISPLAYPORT_LAST_CHUNK_MASK;
-    }
 }
 
 static void crsfFrameDisplayPortClear(sbuf_t *dst)
@@ -588,7 +587,7 @@ static void crsfFrameDisplayPortClear(sbuf_t *dst)
 #if defined(USE_MSP_OVER_TELEMETRY)
 
 static bool mspReplyPending;
-static uint8_t mspRequestOriginID = 0; // origin ID of last msp-over-crsf request. Needed to send response to the origin.
+static uint8_t mspRequestOriginID = 0; // Saved origin of the MSP request
 
 void crsfScheduleMspResponse(uint8_t requestOriginID)
 {
@@ -600,9 +599,9 @@ void crsfScheduleMspResponse(uint8_t requestOriginID)
 static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 {
     sbuf_t *dst = crsfInitializeSbuf();
-    sbufWriteU8(dst, CRSF_FRAMETYPE_MSP_RESP); // CRSF type
-    sbufWriteU8(dst, mspRequestOriginID);   // response destination must be the same as request origin in order to response reach proper destination.
-    sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER); // origin is always this device
+    sbufWriteU8(dst, CRSF_FRAMETYPE_MSP_RESP);
+    sbufWriteU8(dst, mspRequestOriginID);
+    sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     sbufWriteData(dst, payload, payloadSize);
     crsfFinalizeSbuf(dst);
 }
@@ -798,7 +797,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
     // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (0 && currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
+    if (currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
         crsfLastCycleTime = currentTimeUs;
         if (1)
             processCrsfTelemetry();
@@ -869,7 +868,6 @@ int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
     return crsfFinalizeSbufBuf(dst, frame);
 }
 #endif /* USE_MSP_OVER_TELEMETRY */
-
 #endif /* USE_RX_EXPRESSLRS */
 
-#endif
+#endif /* USE_TELEMETRY_CRSF */
