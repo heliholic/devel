@@ -612,17 +612,17 @@ static void processCrsfTelemetry(void)
         if (slot) {
             sbuf_t *dst = crsfInitializeSbuf();
             switch (slot->sensor->code) {
-                case TELEM_ALTITUDE:
+                case TELEM_ATTITUDE:
                     crsfFrameAttitude(dst);
                     break;
-                case TELEM_BATTERY_GROUP:
+                case TELEM_BATTERY:
                     crsfFrameBatterySensor(dst);
                     break;
                 case TELEM_FLIGHT_MODE:
                     crsfFrameFlightMode(dst);
                     break;
 #ifdef USE_GPS
-                case TELEM_GPS_GROUP:
+                case TELEM_GPS:
                     crsfFrameGps(dst);
                     break;
 #endif
