@@ -111,7 +111,7 @@ uint32_t getCrsfCachedBaudrate(void)
 
 bool checkCrsfCustomizedSpeed(void)
 {
-    return crsfSpeed.index < BAUD_COUNT ? true : false;
+    return crsfSpeed.index < BAUD_COUNT;
 }
 
 uint32_t getCrsfDesiredSpeed(void)
@@ -145,7 +145,6 @@ typedef struct mspBuffer_s {
 
 static mspBuffer_t mspRxBuffer;
 
-
 void initCrsfMspBuffer(void)
 {
     mspRxBuffer.len = 0;
@@ -167,15 +166,18 @@ bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength)
 bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
 {
     static bool replyPending = false;
+
     if (replyPending) {
         if (crsfRxIsTelemetryBufEmpty()) {
             replyPending = sendMspReply(CRSF_FRAME_TX_MSP_FRAME_SIZE, responseFn);
         }
         return replyPending;
     }
+
     if (!mspRxBuffer.len) {
         return false;
     }
+
     int pos = 0;
     while (true) {
         const uint8_t mspFrameLength = mspRxBuffer.bytes[pos];
@@ -194,6 +196,7 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
             }
         }
     }
+
     return replyPending;
 }
 #endif /* USE_MSP_OVER_TELEMETRY */
@@ -210,17 +213,20 @@ static void crsfInitializeFrame(sbuf_t *dst)
 
 static void crsfFinalize(sbuf_t *dst)
 {
-    // frame length
-    crsfFrame[1] = sbufPtr(dst) - crsfFrame - 1;
+    // Frame length
+    const size_t frameLength = sbufPtr(dst) - crsfFrame;
 
-    // frame CRC
-    crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
+    if (frameLength <= CRSF_FRAME_SIZE_MAX)
+    {
+        // Set frame length into the placeholder
+        crsfFrame[1] = frameLength - 1;
 
-    // adjust for reading
-    sbufSwitchToReader(dst, crsfFrame);
+        // Frame CRC
+        crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
 
-    // write the telemetry frame to the receiver.
-    crsfRxWriteTelemetryData(sbufPtr(dst), sbufBytesRemaining(dst));
+        // Write the telemetry frame to the receiver
+        crsfRxWriteTelemetryData(crsfFrame, frameLength);
+    }
 }
 
 
@@ -246,13 +252,12 @@ uint8_t     Satellites in use ( counter )
 
 void crsfFrameGps(sbuf_t *dst)
 {
-    // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAMETYPE_GPS);
-    sbufWriteU32BigEndian(dst, gpsSol.llh.lat); // CRSF and betaflight use same units for degrees
-    sbufWriteU32BigEndian(dst, gpsSol.llh.lon);
-    sbufWriteU16BigEndian(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
-    sbufWriteU16BigEndian(dst, gpsSol.groundCourse * 10); // gpsSol.groundCourse is degrees * 10
-    sbufWriteU16BigEndian(dst, getEstimatedAltitudeCm() / 100 + 1000);
+    sbufWriteS32BE(dst, gpsSol.llh.lat); // CRSF and betaflight use same units for degrees
+    sbufWriteS32BE(dst, gpsSol.llh.lon);
+    sbufWriteU16BE(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
+    sbufWriteU16BE(dst, gpsSol.groundCourse * 10); // gpsSol.groundCourse is degrees * 10
+    sbufWriteU16BE(dst, getEstimatedAltitudeCm() / 100 + 1000);
     sbufWriteU8(dst, gpsSol.numSat);
 }
 
@@ -266,19 +271,11 @@ uint8_t     Battery remaining ( percent )
 */
 void crsfFrameBatterySensor(sbuf_t *dst)
 {
-    // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
-    if (telemetryConfig()->report_cell_voltage)
-        sbufWriteU16BigEndian(dst, getBatteryAverageCellVoltage());
-    else
-        sbufWriteU16BigEndian(dst, getLegacyBatteryVoltage());
-    sbufWriteU16BigEndian(dst, getLegacyBatteryCurrent());
-    const uint32_t mAhDrawn = getBatteryCapacityUsed();
-    const uint8_t batteryRemainingPercentage = calculateBatteryPercentageRemaining();
-    sbufWriteU8(dst, (mAhDrawn >> 16));
-    sbufWriteU8(dst, (mAhDrawn >> 8));
-    sbufWriteU8(dst, (uint8_t)mAhDrawn);
-    sbufWriteU8(dst, batteryRemainingPercentage);
+    sbufWriteU16BE(dst, getLegacyBatteryVoltage());
+    sbufWriteU16BE(dst, getLegacyBatteryCurrent());
+    sbufWriteU24BE(dst, getBatteryCapacityUsed());
+    sbufWriteU8(dst, calculateBatteryPercentageRemaining());
 }
 
 /*
@@ -289,7 +286,7 @@ int16_t    origin_add ( Origin Device address )
 void crsfFrameHeartbeat(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_HEARTBEAT);
-    sbufWriteU16BigEndian(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+    sbufWriteU16BE(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
 }
 
 typedef enum {
@@ -337,9 +334,9 @@ static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
 void crsfFrameAttitude(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_ATTITUDE);
-    sbufWriteU16BigEndian(dst, decidegrees2Radians10000(attitude.values.pitch));
-    sbufWriteU16BigEndian(dst, decidegrees2Radians10000(attitude.values.roll));
-    sbufWriteU16BigEndian(dst, decidegrees2Radians10000(attitude.values.yaw));
+    sbufWriteS16BE(dst, decidegrees2Radians10000(attitude.values.pitch));
+    sbufWriteS16BE(dst, decidegrees2Radians10000(attitude.values.roll));
+    sbufWriteS16BE(dst, decidegrees2Radians10000(attitude.values.yaw));
 }
 
 /*
@@ -417,9 +414,9 @@ void crsfFrameDeviceInfo(sbuf_t *dst)
 0x88 Rotorflight telemetry
 Payload:
 uint16_t    Sensor id
-uint8_t     Instance id
-uint8_t     Value length
-...         Sensor value
+uint8_t     Data length
+data        Sensor data
+...
 */
 
 void crsfFrameRotorflightTelemetryHeader(sbuf_t *dst)
@@ -825,14 +822,12 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 {
     static uint32_t crsfLastCycleTime;
 
-    if (!crsfTelemetryEnabled) {
+    if (!crsfTelemetryEnabled)
         return;
-    }
 
 #if defined(USE_CRSF_V3)
-    if (crsfBaudNegotiationInProgress()) {
+    if (crsfBaudNegotiationInProgress())
         return;
-    }
 #endif
 
     // Give the receiver a chance to send any outstanding telemetry data.
