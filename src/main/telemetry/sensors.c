@@ -192,12 +192,14 @@ const telemetrySensor_t * telemetryGetSensorCode(uint16_t sensor_code)
 
 sensor_e telemetrySensorId2Bit(sensor_id_e sensor_id)
 {
-    switch (sensor_bit)
+    switch (sensor_id)
     {
         case TELEM_BATTERY_VOLTAGE:
             return SENSOR_VOLTAGE;
         case TELEM_BATTERY_CURRENT:
             return SENSOR_CURRENT;
+        case TELEM_BATTERY_CONSUMPTION:
+            return SENSOR_CAP_USED;
         case TELEM_BATTERY_CHARGE_LEVEL:
             return SENSOR_FUEL;
         case TELEM_FLIGHT_MODE:
@@ -220,25 +222,25 @@ sensor_e telemetrySensorId2Bit(sensor_id_e sensor_id)
             return SENSOR_VARIO;
         case TELEM_GPS_LATITUDE:
             return SENSOR_LAT_LONG;
+        case TELEM_GPS_LONGITUDE:
+            return SENSOR_LAT_LONG;
         case TELEM_GPS_GROUNDSPEED:
             return SENSOR_GROUND_SPEED;
         case TELEM_GPS_DISTANCE:
             return SENSOR_DISTANCE;
         case TELEM_ESC_TEMP:
             return SENSOR_TEMPERATURE;
-        case TELEM_BATTERY_CONSUMPTION:
-            return SENSOR_CAP_USED;
         case TELEM_ADJFUNC:
             return SENSOR_ADJUSTMENT;
         case TELEM_GOVERNOR_STATE:
             return SENSOR_GOV_MODE;
-        case TELEM_ESC1_CURRENT:
+        case TELEM_ESC_CURRENT:
             return ESC_SENSOR_CURRENT;
-        case TELEM_ESC1_VOLTAGE:
+        case TELEM_ESC_VOLTAGE:
             return ESC_SENSOR_VOLTAGE;
-        case TELEM_ESC1_ERPM:
+        case TELEM_MOTOR_RPM:
             return ESC_SENSOR_RPM;
-        case TELEM_ESC1_TEMP1:
+        case TELEM_ESC_TEMP:
             return ESC_SENSOR_TEMPERATURE;
         default:
             return 0;
