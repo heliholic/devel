@@ -222,3 +222,8 @@ void sbufSwitchToReader(sbuf_t *buf, uint8_t *base)
     buf->end = buf->ptr;
     buf->ptr = base;
 }
+
+void sbufBacktrack(sbuf_t *buf, uint8_t *ptr)
+{
+    buf->ptr = ptr;
+}

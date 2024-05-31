@@ -56,8 +56,10 @@ void telemetryInit(void);
 
 void telemetryScheduleUpdate(timeUs_t currentTime);
 void telemetryScheduleCommit(telemetrySlot_t * slot);
+
 telemetrySlot_t * telemetryScheduleNext(void);
 
 bool telemetryScheduleAdd(sensor_id_e sensor_id);
 bool telemetryScheduleRem(sensor_id_e sensor_id);
+
 void telemetryScheduleInit(void);
