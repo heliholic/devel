@@ -80,8 +80,8 @@
 static bool crsfTelemetryEnabled;
 static bool deviceInfoReplyPending;
 
-static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 8];
 static sbuf_t crsfSbuf;
+static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
 
 
 #if defined(USE_CRSF_V3)
@@ -91,14 +91,14 @@ static sbuf_t crsfSbuf;
 static bool isCrsfV3Running = false;
 
 typedef struct {
-    uint8_t hasPendingReply:1;
-    uint8_t isNewSpeedValid:1;
+    bool hasPendingReply;
+    bool isNewSpeedValid;
     uint8_t portID:3;
     uint8_t index;
     uint32_t confirmationTime;
-} crsfSpeedControl_s;
+} crsfSpeedControl_t;
 
-static crsfSpeedControl_s crsfSpeed = {0};
+static crsfSpeedControl_t crsfSpeed = {0};
 
 uint32_t getCrsfCachedBaudrate(void)
 {
