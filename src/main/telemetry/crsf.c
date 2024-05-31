@@ -692,11 +692,12 @@ void initCrsfTelemetry(void)
 #if defined(USE_CRSF_CMS_TELEMETRY)
 void crsfProcessDisplayPortCmd(uint8_t *frameStart)
 {
-    uint8_t cmd = *frameStart;
+    const uint8_t cmd = frameStart[0];
+
     switch (cmd) {
         case CRSF_DISPLAYPORT_SUBCMD_OPEN:;
-            const uint8_t rows = *(frameStart + CRSF_DISPLAYPORT_OPEN_ROWS_OFFSET);
-            const uint8_t cols = *(frameStart + CRSF_DISPLAYPORT_OPEN_COLS_OFFSET);
+            const uint8_t rows = frameStart[CRSF_DISPLAYPORT_OPEN_ROWS_OFFSET];
+            const uint8_t cols = frameStart[CRSF_DISPLAYPORT_OPEN_COLS_OFFSET];
             crsfDisplayPortSetDimensions(rows, cols);
             crsfDisplayPortMenuOpen();
             break;
@@ -719,7 +720,7 @@ void crsfProcessCommand(uint8_t *frameStart)
     uint8_t cmd = frameStart[0];
     uint8_t sub = frameStart[1];
 
-    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub ==  CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
+    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub == CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
         crsfProcessSpeedNegotiationCmd(&frameStart[1]);
         crsfScheduleSpeedNegotiationResponse();
     }

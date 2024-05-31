@@ -121,14 +121,14 @@ const telemetrySensor_t telemetry_sensors[TELEM_SENSOR_COUNT] =
 {
     TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   100,   100,    Nil,    getNil),
 
-    TLM_SENSOR(MODEL_ID,                "ID  ",     0x0001,     0,     0,    U16,    getNil),
+    TLM_SENSOR(MODEL_ID,                "ID  ",     0x0001,   1000, 1000,    U16,    getNil),
 
-    TLM_SENSOR(BATTERY,                 "Batt",     0x0010,     0,     0,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_VOLTAGE,         "Vbat",     0x0011,     0,     0,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CURRENT,         "Curr",     0x0012,     0,     0,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CONSUMPTION,     "mAh ",     0x0013,     0,     0,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    "Bat%",     0x0014,     0,     0,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_TEMPERATURE,     "Tbat",     0x0015,     0,     0,    Nil,    getNil),
+    TLM_SENSOR(BATTERY,                 "Batt",     0x0010,   100,   100,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_VOLTAGE,         "Vbat",     0x0011,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CURRENT,         "Curr",     0x0012,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CONSUMPTION,     "mAh ",     0x0013,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    "Bat%",     0x0014,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_TEMPERATURE,     "Tbat",     0x0015,   100,  1000,    Nil,    getNil),
 
     TLM_SENSOR(BATTERY_CELLS,           "Cell",     0x0040,   100,  1000,    Nil,    getNil),
 
