@@ -83,14 +83,6 @@ static bool deviceInfoReplyPending;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 8];
 static sbuf_t crsfSbuf;
 
-#if defined(USE_MSP_OVER_TELEMETRY)
-
-typedef struct mspBuffer_s {
-    uint8_t bytes[CRSF_MSP_BUFFER_SIZE];
-    int len;
-} mspBuffer_t;
-
-static mspBuffer_t mspRxBuffer;
 
 #if defined(USE_CRSF_V3)
 
@@ -147,6 +139,15 @@ bool crsfBaudNegotiationInProgress(void)
 
 #endif /* USE_CRSF_V3 */
 
+
+#if defined(USE_MSP_OVER_TELEMETRY)
+
+typedef struct mspBuffer_s {
+    uint8_t bytes[CRSF_MSP_BUFFER_SIZE];
+    int len;
+} mspBuffer_t;
+
+static mspBuffer_t mspRxBuffer;
 
 void initCrsfMspBuffer(void)
 {
