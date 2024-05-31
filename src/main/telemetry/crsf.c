@@ -214,12 +214,12 @@ static void crsfInitializeFrame(sbuf_t *dst)
 static void crsfFinalize(sbuf_t *dst)
 {
     // Frame length
-    const size_t frameLength = sbufPtr(dst) - crsfFrame;
+    const size_t frameLength = sbufPtr(dst) - crsfFrame + 2;
 
     if (frameLength <= CRSF_FRAME_SIZE_MAX)
     {
         // Set frame length into the placeholder
-        crsfFrame[1] = frameLength - 1;
+        crsfFrame[1] = frameLength - 3;
 
         // Frame CRC
         crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
