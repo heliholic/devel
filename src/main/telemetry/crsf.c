@@ -178,9 +178,8 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
         return replyPending;
     }
 
-    if (!mspRxBuffer.len) {
+    if (mspRxBuffer.len == 0)
         return false;
-    }
 
     int pos = 0;
     while (true) {
@@ -570,7 +569,7 @@ static void crsfFrameDisplayPortChunk(sbuf_t *dst, sbuf_t *src, uint8_t batchId,
     cRleEncodeStream(src, dst, CRSF_DISPLAYPORT_MAX_CHUNK_LENGTH);
     if (idx == 0)
         *metaPtr |= CRSF_DISPLAYPORT_FIRST_CHUNK_MASK;
-    if (!sbufBytesRemaining(src))
+    if (sbufBytesRemaining(src) == 0)
         *metaPtr |= CRSF_DISPLAYPORT_LAST_CHUNK_MASK;
 }
 
