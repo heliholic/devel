@@ -81,7 +81,7 @@ static bool crsfTelemetryEnabled;
 static bool deviceInfoReplyPending;
 
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 8];
-static sbuf_t crsfSbuf[1];
+static sbuf_t crsfSbuf;
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
@@ -207,7 +207,7 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
 
 static sbuf_t * crsfInitializeSbuf(void)
 {
-    sbuf_t * dst = crsfSbuf;
+    sbuf_t * dst = &crsfSbuf;
 
     dst->ptr = crsfFrame;
     dst->end = crsfFrame + CRSF_FRAME_SIZE_MAX;
