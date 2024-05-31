@@ -39,8 +39,8 @@ typedef struct {
 } telemetrySlot_t;
 
 typedef struct {
-    int                         current_slot;
     timeUs_t                    update_time;
+    unsigned                    current_slot;
     telemetrySlot_t             slots[TELEM_SENSOR_SLOT_COUNT];
 } telemetryScheduler_t;
 

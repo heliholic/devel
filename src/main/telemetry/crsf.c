@@ -168,15 +168,18 @@ bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength)
 bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
 {
     static bool replyPending = false;
+
     if (replyPending) {
         if (crsfRxIsTelemetryBufEmpty()) {
             replyPending = sendMspReply(CRSF_FRAME_TX_MSP_FRAME_SIZE, responseFn);
         }
         return replyPending;
     }
+
     if (!mspRxBuffer.len) {
         return false;
     }
+
     int pos = 0;
     while (true) {
         const uint8_t mspFrameLength = mspRxBuffer.bytes[pos];
@@ -195,6 +198,7 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
             }
         }
     }
+
     return replyPending;
 }
 #endif /* USE_MSP_OVER_TELEMETRY */
@@ -663,6 +667,11 @@ void crsfScheduleDeviceInfoResponse(void)
     deviceInfoReplyPending = true;
 }
 
+bool checkCrsfTelemetryState(void)
+{
+    return crsfTelemetryEnabled;
+}
+
 void initCrsfTelemetry(void)
 {
     // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
@@ -678,11 +687,6 @@ void initCrsfTelemetry(void)
         crsfDisplayportRegister();
 #endif
     }
-}
-
-bool checkCrsfTelemetryState(void)
-{
-    return crsfTelemetryEnabled;
 }
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
@@ -713,20 +717,11 @@ void crsfProcessDisplayPortCmd(uint8_t *frameStart)
 void crsfProcessCommand(uint8_t *frameStart)
 {
     uint8_t cmd = frameStart[0];
-    uint8_t subCmd = frameStart[1];
-    switch (cmd) {
-    case CRSF_COMMAND_SUBCMD_GENERAL:
-        switch (subCmd) {
-        case CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL:
-            crsfProcessSpeedNegotiationCmd(&frameStart[1]);
-            crsfScheduleSpeedNegotiationResponse();
-            break;
-        default:
-            break;
-        }
-        break;
-    default:
-        break;
+    uint8_t sub = frameStart[1];
+
+    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub ==  CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
+        crsfProcessSpeedNegotiationCmd(&frameStart[1]);
+        crsfScheduleSpeedNegotiationResponse();
     }
 }
 #endif
@@ -738,14 +733,12 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 {
     static uint32_t crsfLastCycleTime;
 
-    if (!crsfTelemetryEnabled) {
+    if (!crsfTelemetryEnabled)
         return;
-    }
 
 #if defined(USE_CRSF_V3)
-    if (crsfBaudNegotiationInProgress()) {
+    if (crsfBaudNegotiationInProgress())
         return;
-    }
 #endif
 
     // Give the receiver a chance to send any outstanding telemetry data.

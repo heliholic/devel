@@ -227,6 +227,8 @@ void INIT_CODE telemetryInit(void)
 }
 
 
+/** Telemetry scheduling framework **/
+
 static telemetryScheduler_t sch;
 
 
@@ -329,8 +331,8 @@ void INIT_CODE telemetryScheduleInit(void)
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e sensor = telemetryConfig()->telemetry_sensors[i];
         if (sensor) {
-            sensor_e bit = telemetrySensorId2Bit(sensor);
-            telemetry_legacy_sensors |= bit;
+            sensor_e legacy = telemetrySensorId2Bit(sensor);
+            telemetry_legacy_sensors |= legacy;
             telemetryScheduleAdd(sensor);
         }
     }
