@@ -132,6 +132,11 @@ static inline float tan_approx(float x)
   __extension__ ({ __typeof__ (x) _x = (x); \
   (_x > 0) - (_x < 0); })
 
+
+#define RAWCAST(x,type) \
+  __extension__ ({ union { __typeof__ (x) a; type b; } data; data.a = x; data.b; })
+
+
 /*
  * Basic math operations
  */
