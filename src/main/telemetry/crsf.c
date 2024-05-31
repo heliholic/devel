@@ -69,7 +69,10 @@
 #include "crsf.h"
 
 
-#define CRSF_CYCLETIME_US                   10000
+#define CRSF_MSP_GRACE_US                   100000
+#define CRSF_CMS_GRACE_US                   100000
+#define CRSF_DEVICE_INFO_GRACE_US           25000
+#define CRSF_TELEM_GRACE_US                 10000
 
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
@@ -82,6 +85,8 @@ static bool deviceInfoReplyPending;
 
 static sbuf_t crsfSbuf;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
+
+static uint32_t crsfNextCycleTime = 0;
 
 
 #if defined(USE_CRSF_V3)
@@ -612,9 +617,9 @@ static void processCrsfTelemetry(void)
 {
     if (crsfRxIsTelemetryBufEmpty()) {
         telemetrySlot_t *slot = telemetryScheduleNext();
-        if (slot) {
+        if (slot && slot->sensor) {
             sbuf_t *dst = crsfInitializeSbuf();
-            switch (slot->sensor->code) {
+            switch (slot->sensor->index) {
                 case TELEM_ATTITUDE:
                     crsfFrameAttitude(dst);
                     break;
@@ -653,7 +658,7 @@ static void processRotorflightTelemetry(void)
                 if (sbufBytesRemaining(dst) >= 2)
                     telemetryScheduleCommit(slot);
                 else
-                    sbufJump(dst, ptr);
+                    sbufReset(dst, ptr);
             }
         }
         crsfFinalizeSbuf(dst);
@@ -731,8 +736,6 @@ void crsfProcessCommand(uint8_t *frameStart)
  */
 void handleCrsfTelemetry(timeUs_t currentTimeUs)
 {
-    static uint32_t crsfLastCycleTime;
-
     if (!crsfTelemetryEnabled)
         return;
 
@@ -750,7 +753,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 #if defined(USE_MSP_OVER_TELEMETRY)
     if (mspReplyPending) {
         mspReplyPending = handleCrsfMspFrameBuffer(&crsfSendMspResponse);
-        crsfLastCycleTime = currentTimeUs; // reset telemetry timing due to ad-hoc request
+        crsfNextCycleTime = currentTimeUs + CRSF_MSP_GRACE_US;
         return;
     }
 #endif
@@ -760,7 +763,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
         crsfFrameDeviceInfo(dst);
         crsfFinalizeSbuf(dst);
         deviceInfoReplyPending = false;
-        crsfLastCycleTime = currentTimeUs; // reset telemetry timing due to ad-hoc request
+        crsfNextCycleTime = currentTimeUs + CRSF_DEVICE_INFO_GRACE_US;
         return;
     }
 
@@ -770,7 +773,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameDisplayPortClear(dst);
         crsfFinalizeSbuf(dst);
-        crsfLastCycleTime = currentTimeUs;
+        crsfNextCycleTime = currentTimeUs + CRSF_CMS_GRACE_US;
         return;
     }
     static uint8_t displayPortBatchId = 0;
@@ -790,15 +793,14 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
             crsfRxSendTelemetryData();
             i++;
         }
-        crsfLastCycleTime = currentTimeUs;
+        crsfNextCycleTime = currentTimeUs + CRSF_CMS_GRACE_US;
         return;
     }
 #endif
 
-    // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
-    // Spread out scheduled frames evenly so each frame is sent at the same frequency.
-    if (currentTimeUs >= crsfLastCycleTime + CRSF_CYCLETIME_US) {
-        crsfLastCycleTime = currentTimeUs;
+    // Telemetry data to be send after a grace period
+    if (currentTimeUs >= crsfNextCycleTime) {
+        crsfNextCycleTime = currentTimeUs + CRSF_TELEM_GRACE_US;
         if (1)
             processCrsfTelemetry();
         else
