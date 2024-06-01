@@ -186,6 +186,7 @@ void telemetryCheckState(void)
 void INIT_CODE telemetryInit(void)
 {
     telemetryScheduleInit();
+    legacySensorInit();
 
 #ifdef USE_TELEMETRY_FRSKY_HUB
     initFrSkyHubTelemetry();
@@ -294,28 +295,9 @@ void telemetryScheduleCommit(telemetrySlot_t * slot)
     slot->changed = false;
 }
 
-
-static uint32_t telemetry_legacy_sensors = 0;
-
-bool telemetryIsSensorEnabled(uint32_t sensor_bits)
-{
-    return (telemetry_legacy_sensors & sensor_bits);
-}
-
-
 void INIT_CODE telemetryScheduleInit(void)
 {
     memset(&sch, 0, sizeof(sch));
-
-    telemetry_legacy_sensors = 0;
-
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
-        if (id) {
-            telemetry_legacy_sensors |= telemetrySensorGetLegacy(id);
-        }
-    }
 }
-
 
 #endif /* USE_TELEMETRY */

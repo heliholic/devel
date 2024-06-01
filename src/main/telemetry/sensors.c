@@ -90,4 +90,26 @@ sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id)
     return 0;
 }
 
+
+/** Legacy sensors **/
+
+static uint32_t telemetry_legacy_sensors = 0;
+
+bool telemetryIsSensorEnabled(uint32_t sensor_bits)
+{
+    return (telemetry_legacy_sensors & sensor_bits);
+}
+
+void INIT_CODE legacySensorInit(void)
+{
+    telemetry_legacy_sensors = 0;
+
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
+        if (id) {
+            telemetry_legacy_sensors |= telemetrySensorGetLegacy(id);
+        }
+    }
+}
+
 #endif /* USE_TELEMETRY */

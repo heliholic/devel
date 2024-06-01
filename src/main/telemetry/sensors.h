@@ -143,6 +143,30 @@ typedef enum
 
 } sensor_id_e;
 
+
+typedef int telemetryValue_t;
+
+typedef int (*telemetryValue_f)(void);
+typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetryValue_t value);
+
+typedef uint16_t sensor_code_t;
+
+typedef struct {
+
+    sensor_id_e             index;
+    sensor_code_t           code;
+
+    int                     min_period;
+    int                     max_period;
+
+    telemetryEncode_f       encode;
+    telemetryValue_f        value;
+
+} telemetrySensor_t;
+
+
+/* Compatibility */
+
 typedef enum {
     SENSOR_VOLTAGE         = BIT(0),
     SENSOR_CURRENT         = BIT(1),
@@ -169,27 +193,6 @@ typedef enum {
     SENSOR_GOV_MODE        = BIT(22),
 } sensor_e;
 
-
-typedef int telemetryValue_t;
-
-typedef int (*telemetryValue_f)(void);
-typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetryValue_t value);
-
-typedef uint16_t sensor_code_t;
-
-typedef struct {
-
-    sensor_id_e             index;
-    sensor_code_t           code;
-
-    int                     min_period;
-    int                     max_period;
-
-    telemetryEncode_f       encode;
-    telemetryValue_f        value;
-
-} telemetrySensor_t;
-
-
-/* Compatibility */
 sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id);
+
+void legacySensorInit(void);
