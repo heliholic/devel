@@ -41,6 +41,8 @@ typedef struct {
 typedef struct {
     timeUs_t                    update_time;
     unsigned                    current_slot;
+    int                         bitrate;
+    int                         bitbucket;
     telemetrySlot_t             slots[TELEM_SENSOR_SLOT_COUNT];
 } telemetryScheduler_t;
 
@@ -55,13 +57,8 @@ void telemetryCheckState(void);
 void telemetryInit(void);
 
 bool telemetryScheduleAdd(const telemetrySensor_t * sensor);
-
-void telemetryScheduleUpdate(timeUs_t currentTime);
-void telemetryScheduleCommit(telemetrySlot_t * slot);
-
 telemetrySlot_t * telemetryScheduleNext(void);
-
+void telemetryScheduleUpdate(timeUs_t currentTime);
+void telemetryScheduleCommit(telemetrySlot_t * slot, size_t bytes);
 void telemetryScheduleInit(void);
-
-bool telemetryIsSensorEnabled(uint32_t sensor_bits);
 

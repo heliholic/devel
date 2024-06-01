@@ -229,7 +229,7 @@ static sbuf_t * crsfInitializeSbuf(void)
     return dst;
 }
 
-static void crsfFinalizeSbuf(sbuf_t *dst)
+static size_t crsfFinalizeSbuf(sbuf_t *dst)
 {
     // Frame length including CRC
     const size_t frameLength = sbufPtr(dst) - crsfFrame + 2;
@@ -244,7 +244,11 @@ static void crsfFinalizeSbuf(sbuf_t *dst)
 
         // Write the telemetry frame to the receiver
         crsfRxWriteTelemetryData(crsfFrame, frameLength);
+
+        return frameLength;
     }
+
+    return 0;
 }
 
 /*
@@ -487,18 +491,19 @@ static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, const telemetrySensor_t 
 
 const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
 {
-    TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   100,   100,    Nil,    getNil),
+    TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   200,   200,    Nil,    getNil),
 
     TLM_SENSOR(MODEL_ID,                "ID  ",     0x0001,  1000,  1000,    U16,    getNil),
 
-    TLM_SENSOR(BATTERY,                 "Batt",     0x0010,  1000,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY,                 "Batt",     0x0010,   250,   250,    Nil,    getNil),
     TLM_SENSOR(BATTERY_VOLTAGE,         "Vbat",     0x0011,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(BATTERY_CURRENT,         "Curr",     0x0012,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(BATTERY_CONSUMPTION,     "mAh ",     0x0013,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(BATTERY_CHARGE_LEVEL,    "Bat%",     0x0014,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(BATTERY_TEMPERATURE,     "Tbat",     0x0015,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CELL_COUNT,      "Cels",     0x0016,   100,  1000,    Nil,    getNil),
 
-    TLM_SENSOR(BATTERY_CELLS,           "Cell",     0x0040,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   "Vcel",     0x001F,   100,  1000,    Nil,    getNil),
 
     TLM_SENSOR(ESC1_DATA,               "ESC1",     0x0040,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(ESC1_VOLTAGE,            "Vol1",     0x0041,   100,  1000,    U16,    getNil),
@@ -536,7 +541,7 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
     TLM_SENSOR(TAILSPEED,               "TSpd",     0x00C1,   100,  1000,    U16,    getTailSpeed),
     TLM_SENSOR(MOTOR_RPM,               "Mrpm",     0x00C2,   100,  1000,    U16,    getNil),
 
-    TLM_SENSOR(ATTITUDE,                "Att",      0x0100,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(ATTITUDE,                "Att",      0x0100,   100,   100,    Nil,    getNil),
     TLM_SENSOR(ATTITUDE_PITCH,          "AttP",     0x0101,   100,  1000,    S16,    getNil),
     TLM_SENSOR(ATTITUDE_ROLL,           "AttR",     0x0102,   100,  1000,    S16,    getNil),
     TLM_SENSOR(ATTITUDE_YAW,            "AttY",     0x0103,   100,  1000,    S16,    getNil),
@@ -546,7 +551,7 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
     TLM_SENSOR(ACCEL_Y,                 "AccY",     0x0112,   250,  1000,    S16,    getNil),
     TLM_SENSOR(ACCEL_Z,                 "AccZ",     0x0113,   250,  1000,    S16,    getNil),
 
-    TLM_SENSOR(GPS,                     "GPS ",     0x0120,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS,                     "GPS ",     0x0120,   500,   500,    Nil,    getNil),
     TLM_SENSOR(GPS_SAT_COUNT,           "Gsat",     0x0121,   500,  5000,    Nil,    getNil),
     TLM_SENSOR(GPS_HEADING,             "GHdg",     0x0122,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(GPS_LATITUDE,            "Glat",     0x0123,   100,  1000,    Nil,    getNil),
@@ -569,7 +574,7 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
 void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
 {
     uint8_t *start = sbufPtr(dst);
-    
+
     sbufWriteU8(dst, CRSF_FRAMETYPE_COMMAND);
     sbufWriteU8(dst, CRSF_ADDRESS_CRSF_RECEIVER);
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
@@ -611,7 +616,7 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         crsfSpeed.hasPendingReply = false;
         crsfSpeed.isNewSpeedValid = found;
         crsfSpeed.confirmationTime = currentTimeUs;
-    } 
+    }
     else if (crsfSpeed.isNewSpeedValid) {
         if (cmpTimeUs(currentTimeUs, crsfSpeed.confirmationTime) >= 4000) {
             // delay 4ms before applying the new baudrate
@@ -874,8 +879,8 @@ static void processCrsfTelemetry(void)
                     crsfFrameHeartbeat(dst);
                     break;
             }
-            telemetryScheduleCommit(slot);
-            crsfFinalizeSbuf(dst);
+            size_t bytes = crsfFinalizeSbuf(dst);
+            telemetryScheduleCommit(slot, bytes);
         }
     }
 }
@@ -891,7 +896,7 @@ static void processCustomTelemetry(void)
                 uint8_t *ptr = sbufPtr(dst);
                 crsfFrameCustomTelemetrySensor(dst, slot->sensor, slot->value);
                 if (sbufBytesRemaining(dst) >= 2)
-                    telemetryScheduleCommit(slot);
+                    telemetryScheduleCommit(slot, 0);
                 else
                     sbufReset(dst, ptr);
             }
@@ -899,7 +904,8 @@ static void processCustomTelemetry(void)
                 break;
             }
         }
-        crsfFinalizeSbuf(dst);
+        size_t bytes = crsfFinalizeSbuf(dst);
+        telemetryScheduleCommit(NULL, bytes);
     }
 }
 
@@ -1006,10 +1012,12 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     // Telemetry data to be send after a grace period
     if (currentTimeUs >= crsfNextCycleTime) {
         crsfNextCycleTime = currentTimeUs + CRSF_TELEM_GRACE_US;
+
         if (crsfCustomTelemetryEnabled)
             processCustomTelemetry();
         else
             processCrsfTelemetry();
+
         crsfRxSendTelemetryData();
     }
 }
@@ -1019,19 +1027,17 @@ void initCrsfTelemetry(void)
     // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
     // and feature is enabled, if so, set CRSF telemetry enabled
     crsfTelemetryEnabled = crsfRxIsActive();
+    crsfCustomTelemetryEnabled = false;
 
-    if (crsfTelemetryEnabled) 
+    if (crsfTelemetryEnabled)
     {
         deviceInfoReplyPending = false;
-
 #if defined(USE_MSP_OVER_TELEMETRY)
         mspReplyPending = false;
 #endif
-
 #if defined(USE_CRSF_CMS_TELEMETRY)
         crsfDisplayportRegister();
 #endif
-
         if (crsfCustomTelemetryEnabled)
             crsfInitCustomTelemetry();
         else

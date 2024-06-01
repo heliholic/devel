@@ -31,6 +31,11 @@
 #include "telemetry/sensors.h"
 
 
+/** Legacy sensors **/
+
+static uint32_t telemetry_legacy_sensors = 0;
+
+
 sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id)
 {
     switch (sensor_id)
@@ -89,11 +94,6 @@ sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id)
 
     return 0;
 }
-
-
-/** Legacy sensors **/
-
-static uint32_t telemetry_legacy_sensors = 0;
 
 bool telemetryIsSensorEnabled(uint32_t sensor_bits)
 {

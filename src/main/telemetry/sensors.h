@@ -45,7 +45,8 @@ typedef enum
     TELEM_BATTERY_CONSUMPTION,
     TELEM_BATTERY_CHARGE_LEVEL,
     TELEM_BATTERY_TEMPERATURE,
-    TELEM_BATTERY_CELLS,
+    TELEM_BATTERY_CELL_VOLTAGES,
+    TELEM_BATTERY_CELL_COUNT,
 
     TELEM_ESC1_DATA,
     TELEM_ESC1_VOLTAGE,
@@ -88,11 +89,7 @@ typedef enum
     TELEM_MCU_TEMP,
     TELEM_AIR_TEMP,
     TELEM_MOTOR_TEMP,
-
-    TELEM_EXT1_TEMP,
-    TELEM_EXT2_TEMP,
-    TELEM_EXT3_TEMP,
-    TELEM_EXT4_TEMP,
+    TELEM_EXHAUST_TEMP,
 
     TELEM_ALTITUDE,
     TELEM_VARIOMETER,
@@ -100,6 +97,7 @@ typedef enum
     TELEM_HEADSPEED,
     TELEM_TAILSPEED,
     TELEM_MOTOR_RPM,
+    TELEM_TRANS_RPM,
 
     TELEM_ATTITUDE,
     TELEM_ATTITUDE_PITCH,
@@ -165,7 +163,7 @@ typedef struct {
 } telemetrySensor_t;
 
 
-/* Compatibility */
+/** Legacy sensors **/
 
 typedef enum {
     SENSOR_VOLTAGE         = BIT(0),
@@ -196,3 +194,5 @@ typedef enum {
 sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id);
 
 void legacySensorInit(void);
+
+bool telemetryIsSensorEnabled(uint32_t sensor_bits);

@@ -257,16 +257,20 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 {
     int delta = cmpTimeUs(currentTime, sch.update_time);
 
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        telemetrySlot_t * slot = &sch.slots[i];
-        if (slot->sensor) {
-            const telemetryValue_t value = slot->sensor->value();
-            slot->changed |= (value != slot->value);
-            slot->value = value;
+    sch.bitbucket = constrain(sch.bitbucket + ((delta * sch.bitrate) >> 10), -2048000, 2048000);
 
-            const int delay = slot->changed ? slot->min_period: slot->max_period;
-            slot->bucket += delta * 1000 / delay;
-            slot->bucket = constrain(slot->bucket, -2000000, 1000000);
+    if (sch.bitbucket > 0) {
+        for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+            telemetrySlot_t * slot = &sch.slots[i];
+            if (slot->sensor) {
+                const telemetryValue_t value = slot->sensor->value();
+                slot->changed |= (value != slot->value);
+                slot->value = value;
+
+                const int delay = slot->changed ? slot->min_period: slot->max_period;
+                slot->bucket += delta * 1000 / delay;
+                slot->bucket = constrain(slot->bucket, -2000000, 1000000);
+            }
         }
     }
 
@@ -289,15 +293,22 @@ telemetrySlot_t * telemetryScheduleNext(void)
     return NULL;
 }
 
-void telemetryScheduleCommit(telemetrySlot_t * slot)
+void telemetryScheduleCommit(telemetrySlot_t * slot, size_t bytes)
 {
-    slot->bucket -= 1000000;
-    slot->changed = false;
+    if (slot) {
+        slot->bucket -= 1000000;
+        slot->changed = false;
+    }
+    if (bytes) {
+        sch.bitbucket -= bytes << 13;
+    }
 }
 
 void INIT_CODE telemetryScheduleInit(void)
 {
     memset(&sch, 0, sizeof(sch));
+
+    sch.bitrate = 1000;
 }
 
 #endif /* USE_TELEMETRY */
