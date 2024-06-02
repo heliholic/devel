@@ -479,13 +479,13 @@ static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, const telemetrySensor_t 
 }
 
 
-#define TLM_SENSOR(NAME, DESC, CODE, MIND, MAXD, ENCODER, VALF) \
+#define TLM_SENSOR(NAME, DESC, CODE, MINP, MAXP, ENCODER, VALFUNC) \
     [TELEM_##NAME] = { \
         .index = TELEM_##NAME, \
         .code = (CODE), \
-        .min_period = (MIND), \
-        .max_period = (MAXD), \
-        .value = (telemetryValue_f)(VALF), \
+        .min_period = (MINP), \
+        .max_period = (MAXP), \
+        .value = (VALFUNC), \
         .encode = crsfSensorEncode##ENCODER, \
     }
 
@@ -933,7 +933,7 @@ void crsfInitCustomTelemetry(void)
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         const telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[id];
-        if (sensor->index) {
+        if (sensor->index == id) {
             telemetryScheduleAdd(sensor);
         }
     }

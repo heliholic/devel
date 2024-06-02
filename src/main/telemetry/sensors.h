@@ -191,7 +191,7 @@ typedef enum {
     SENSOR_GOV_MODE        = BIT(22),
 } sensor_e;
 
-sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id);
+sensor_e telemetryGetLegacySensor(sensor_id_e sensor_id);
 
 void legacySensorInit(void);
 

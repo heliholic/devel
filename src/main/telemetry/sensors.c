@@ -36,7 +36,7 @@
 static uint32_t telemetry_legacy_sensors = 0;
 
 
-sensor_e telemetrySensorGetLegacy(sensor_id_e sensor_id)
+sensor_e telemetryGetLegacySensor(sensor_id_e sensor_id)
 {
     switch (sensor_id)
     {
@@ -107,7 +107,7 @@ void INIT_CODE legacySensorInit(void)
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         if (id) {
-            telemetry_legacy_sensors |= telemetrySensorGetLegacy(id);
+            telemetry_legacy_sensors |= telemetryGetLegacySensor(id);
         }
     }
 }
