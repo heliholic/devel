@@ -79,7 +79,7 @@
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
-#define CRSF_MSP_BUFFER_SIZE                96
+#define CRSF_MSP_BUFFER_SIZE                128
 #define CRSF_MSP_LENGTH_OFFSET              1
 
 static bool crsfTelemetryEnabled;
@@ -90,7 +90,7 @@ static bool deviceInfoReplyPending;
 static sbuf_t crsfSbuf;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
 
-static uint32_t crsfNextCycleTime = 0;
+static timeUs_t crsfNextCycleTime = 0;
 
 
 #if defined(USE_CRSF_V3)
@@ -106,6 +106,7 @@ typedef struct {
 } crsfSpeedControl_t;
 
 static crsfSpeedControl_t crsfSpeed = {0};
+
 
 uint32_t getCrsfCachedBaudrate(void)
 {
@@ -270,7 +271,7 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
  * uint16      Altitude ( meter ­1000m offset )
  * uint8_t     Satellites in use ( counter )
  */
-void crsfFrameGps(sbuf_t *dst)
+static void crsfFrameGps(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_GPS);
     sbufWriteS32BE(dst, gpsSol.llh.lat);
@@ -289,7 +290,7 @@ void crsfFrameGps(sbuf_t *dst)
  * uint24_t    Fuel (drawn mAh)
  * uint8_t     Battery remaining (percent)
 */
-void crsfFrameBatterySensor(sbuf_t *dst)
+static void crsfFrameBatterySensor(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
     sbufWriteU16BE(dst, getLegacyBatteryVoltage());
@@ -303,7 +304,7 @@ void crsfFrameBatterySensor(sbuf_t *dst)
  * Payload:
  * int16_t    Origin Device address
 */
-void crsfFrameHeartbeat(sbuf_t *dst)
+static void crsfFrameHeartbeat(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_HEARTBEAT);
     sbufWriteU16BE(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
@@ -390,7 +391,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
  * uint8_t     255 (Max MSP Parameter)
  * uint8_t     0x01 (Parameter version 1)
  */
-void crsfFrameDeviceInfo(sbuf_t *dst)
+static void crsfFrameDeviceInfo(sbuf_t *dst)
 {
     char buff[30];
 
@@ -489,7 +490,7 @@ static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, const telemetrySensor_t 
         .encode = crsfSensorEncode##ENCODER, \
     }
 
-const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
+static const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
 {
     TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   200,   200,    Nil,    getNil),
 
@@ -503,7 +504,7 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
     TLM_SENSOR(BATTERY_TEMPERATURE,     "Tbat",     0x0015,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(BATTERY_CELL_COUNT,      "Cels",     0x0016,   100,  1000,    Nil,    getNil),
 
-    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   "Vcel",     0x001F,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   "Vcel",     0x0020,   100,  1000,    Nil,    getNil),
 
     TLM_SENSOR(ESC1_DATA,               "ESC1",     0x0040,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(ESC1_VOLTAGE,            "Vol1",     0x0041,   100,  1000,    U16,    getNil),
@@ -535,7 +536,7 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
     TLM_SENSOR(MOTOR_TEMP,              "Tmtr",     0x00A5,   200,  1000,    U8,     getNil),
 
     TLM_SENSOR(ALTITUDE,                "Alt ",     0x00B1,   100,  1000,    S24,    getNil),
-    TLM_SENSOR(VARIOMETER,              "Vari",     0x00B2,   100,  1000,    S16,    getNil),
+    TLM_SENSOR(VARIOMETER,              "Vspd",     0x00B2,   100,  1000,    S16,    getNil),
 
     TLM_SENSOR(HEADSPEED,               "HSpd",     0x00C0,   100,  1000,    U16,    getHeadSpeed),
     TLM_SENSOR(TAILSPEED,               "TSpd",     0x00C1,   100,  1000,    U16,    getTailSpeed),
@@ -552,13 +553,12 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
     TLM_SENSOR(ACCEL_Z,                 "AccZ",     0x0113,   250,  1000,    S16,    getNil),
 
     TLM_SENSOR(GPS,                     "GPS ",     0x0120,   500,   500,    Nil,    getNil),
-    TLM_SENSOR(GPS_SAT_COUNT,           "Gsat",     0x0121,   500,  5000,    Nil,    getNil),
-    TLM_SENSOR(GPS_HEADING,             "GHdg",     0x0122,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_LATITUDE,            "Glat",     0x0123,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_LONGITUDE,           "Glng",     0x0124,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_ALTITUDE,            "Galt",     0x0125,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_DISTANCE,            "Gdis",     0x0126,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_GROUNDSPEED,         "Gspd",     0x0127,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_SATS,                "Gsat",     0x0121,   500,  5000,    Nil,    getNil),
+    TLM_SENSOR(GPS_COORD,               "Gcrd",     0x0122,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_HEADING,             "GHdg",     0x0123,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_ALTITUDE,            "Galt",     0x0124,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_DISTANCE,            "Gdis",     0x0125,   100,  1000,    Nil,    getNil),
+    TLM_SENSOR(GPS_GROUNDSPEED,         "Gspd",     0x0126,   100,  1000,    Nil,    getNil),
     TLM_SENSOR(GPS_DATE_TIME,           "Gtim",     0x012F,   100,  2000,    Nil,    getNil),
 
     TLM_SENSOR(FC,                      "FC  ",     0x0140,   250,  1000,    Nil,    getNil),
@@ -571,7 +571,7 @@ const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
 
 #if defined(USE_CRSF_V3)
 
-void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
+static void crsfFrameSpeedNegotiationResponse(sbuf_t *dst, bool reply)
 {
     uint8_t *start = sbufPtr(dst);
 
@@ -598,12 +598,13 @@ static void crsfProcessSpeedNegotiationCmd(uint8_t *frameStart)
     crsfSpeed.index = index;
 }
 
-void crsfScheduleSpeedNegotiationResponse(void)
+static void crsfScheduleSpeedNegotiationResponse(void)
 {
     crsfSpeed.hasPendingReply = true;
     crsfSpeed.isNewSpeedValid = false;
 }
 
+/* TASK_SPEED_NEGOTIATION @ 100Hz */
 void speedNegotiationProcess(timeUs_t currentTimeUs)
 {
     if (crsfSpeed.hasPendingReply) {
@@ -635,7 +636,18 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
     }
 }
 
-#endif /* USE_CRSF_V3 */
+void crsfProcessCommand(uint8_t *frameStart)
+{
+    uint8_t cmd = frameStart[0];
+    uint8_t sub = frameStart[1];
+
+    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub == CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
+        crsfProcessSpeedNegotiationCmd(&frameStart[1]);
+        crsfScheduleSpeedNegotiationResponse();
+    }
+}
+
+#endif
 
 
 #if defined(USE_CRSF_CMS_TELEMETRY)
@@ -769,26 +781,6 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 #endif /* USE_MSP_OVER_TELEMETRY */
 
 
-void crsfScheduleDeviceInfoResponse(void)
-{
-    deviceInfoReplyPending = true;
-}
-
-
-#if defined(USE_CRSF_V3)
-void crsfProcessCommand(uint8_t *frameStart)
-{
-    uint8_t cmd = frameStart[0];
-    uint8_t sub = frameStart[1];
-
-    if (cmd == CRSF_COMMAND_SUBCMD_GENERAL && sub == CRSF_COMMAND_SUBCMD_GENERAL_CRSF_SPEED_PROPOSAL) {
-        crsfProcessSpeedNegotiationCmd(&frameStart[1]);
-        crsfScheduleSpeedNegotiationResponse();
-    }
-}
-#endif
-
-
 #if defined(USE_RX_EXPRESSLRS)
 
 static int crsfFinalizeSbufBuf(sbuf_t *dst, uint8_t *frame)
@@ -853,6 +845,18 @@ int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
 #endif /* USE_MSP_OVER_TELEMETRY */
 #endif /* USE_RX_EXPRESSLRS */
 
+
+bool checkCrsfTelemetryState(void)
+{
+    return crsfTelemetryEnabled;
+}
+
+void crsfScheduleDeviceInfoResponse(void)
+{
+    deviceInfoReplyPending = true;
+}
+
+
 static void processCrsfTelemetry(void)
 {
     if (crsfRxIsTelemetryBufEmpty()) {
@@ -915,7 +919,6 @@ void crsfInitCrsfTelemetry(void)
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         const telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[id];
         switch (id) {
-            case TELEM_HEARTBEAT:
             case TELEM_BATTERY:
             case TELEM_ATTITUDE:
             case TELEM_FLIGHT_MODE:
@@ -939,11 +942,6 @@ void crsfInitCustomTelemetry(void)
     }
 }
 
-
-bool checkCrsfTelemetryState(void)
-{
-    return crsfTelemetryEnabled;
-}
 
 void handleCrsfTelemetry(timeUs_t currentTimeUs)
 {

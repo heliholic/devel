@@ -66,9 +66,7 @@ sensor_e telemetryGetLegacySensor(sensor_id_e sensor_id)
             return SENSOR_ALTITUDE;
         case TELEM_VARIOMETER:
             return SENSOR_VARIO;
-        case TELEM_GPS_LATITUDE:
-            return SENSOR_LAT_LONG;
-        case TELEM_GPS_LONGITUDE:
+        case TELEM_GPS_COORD:
             return SENSOR_LAT_LONG;
         case TELEM_GPS_GROUNDSPEED:
             return SENSOR_GROUND_SPEED;
