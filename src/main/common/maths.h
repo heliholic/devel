@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "common/types.h"
+
 /*
  * Floating point constants
  */
