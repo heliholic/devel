@@ -240,7 +240,7 @@ static void governorUpdatePassthrough(void);
 
 //// Access functions
 
-uint8_t getGovernorState(void)
+int getGovernorState(void)
 {
     return gov.state;
 }
