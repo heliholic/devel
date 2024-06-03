@@ -23,6 +23,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "common/types.h"
+
+
 #define NOOP do {} while (0)
 
 #define ARRAYLEN(x) (sizeof(x) / sizeof((x)[0]))
