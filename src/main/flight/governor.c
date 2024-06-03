@@ -95,10 +95,10 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
 typedef struct {
 
     // Governor mode (GM_ enum)
-    uint8_t         mode;
+    uint            mode;
 
     // State machine
-    uint8_t         state;
+    uint            state;
     timeMs_t        stateEntryTime;
 
     // Output throttle
@@ -240,7 +240,7 @@ static void governorUpdatePassthrough(void);
 
 //// Access functions
 
-uint8_t getGovernorState(void)
+int getGovernorState(void)
 {
     return gov.state;
 }
@@ -358,7 +358,7 @@ static inline float angleDrag(float angle)
     return angle * sqrtf(angle); // angle ^ 1.5
 }
 
-static inline void govChangeState(uint8_t futureState)
+static inline void govChangeState(uint futureState)
 {
     gov.state = futureState;
     gov.stateEntryTime = millis();
@@ -634,13 +634,13 @@ static void governorUpdatePassthrough(void)
  * State machine for governed speed control
  */
 
-static inline void govEnterSpoolupState(uint8_t state)
+static inline void govEnterSpoolupState(uint state)
 {
     govChangeState(state);
     govSpoolupInit();
 }
 
-static inline void govEnterActiveState(uint8_t state)
+static inline void govEnterActiveState(uint state)
 {
     govChangeState(state);
     govActiveInit();
