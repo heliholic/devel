@@ -95,10 +95,10 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
 typedef struct {
 
     // Governor mode (GM_ enum)
-    uint8_t         mode;
+    uint16_t        mode;
 
     // State machine
-    uint8_t         state;
+    uint16_t        state;
     timeMs_t        stateEntryTime;
 
     // Output throttle
@@ -240,7 +240,7 @@ static void governorUpdatePassthrough(void);
 
 //// Access functions
 
-uint8_t getGovernorState(void)
+int getGovernorState(void)
 {
     return gov.state;
 }
