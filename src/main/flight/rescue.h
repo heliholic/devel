@@ -29,7 +29,7 @@ enum {
     RESCUE_MODE_ALT_HOLD,
 };
 
-uint8_t getRescueState(void);
+int getRescueState(void);
 
 void rescueUpdate();
 float rescueApply(uint8_t axis, float setpoint);
