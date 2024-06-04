@@ -132,6 +132,11 @@ static inline float tan_approx(float x)
   __extension__ ({ __typeof__ (x) _x = (x); \
   (_x > 0) - (_x < 0); })
 
+
+#define REINTERPRET_CAST(value,type) \
+  __extension__ ({ union { __typeof__(value) a; __typeof__(type) b; } X = { .a = (value) }; (X.b); })
+
+
 /*
  * Basic math operations
  */
