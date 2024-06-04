@@ -163,7 +163,7 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 };
 
 
-static int getAdjustmentValue(uint8_t adjFunc)
+static int getAdjustmentValue(uint adjFunc)
 {
     int value = 0;
 
@@ -372,7 +372,7 @@ static int getAdjustmentValue(uint8_t adjFunc)
     return value;
 }
 
-static void setAdjustmentValue(uint8_t adjFunc, int value)
+static void setAdjustmentValue(uint adjFunc, int value)
 {
     switch (adjFunc) {
         case ADJUSTMENT_RATE_PROFILE:
@@ -577,7 +577,7 @@ static void setAdjustmentValue(uint8_t adjFunc, int value)
     }
 }
 
-static void blackboxAdjustmentEvent(uint8_t adjFunc, int value)
+static void blackboxAdjustmentEvent(uint adjFunc, int value)
 {
 #ifndef USE_BLACKBOX
     UNUSED(adjFunc);
@@ -595,7 +595,7 @@ static void blackboxAdjustmentEvent(uint8_t adjFunc, int value)
 
 #define ADJUSTMENT_LATENCY_MS 3000
 
-static void updateAdjustmentData(uint8_t adjFunc, int value)
+static void updateAdjustmentData(uint adjFunc, int value)
 {
     const timeMs_t now = millis();
 
@@ -622,7 +622,7 @@ static void updateAdjustmentData(uint8_t adjFunc, int value)
 
 void processRcAdjustments(void)
 {
-    uint8_t changed = 0;
+    bitmap_t changed = 0;
 
     if (rxIsReceivingSignal())
     {
