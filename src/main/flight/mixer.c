@@ -94,13 +94,13 @@ typedef struct {
     float           input[MIXER_INPUT_COUNT];
     float           output[MIXER_OUTPUT_COUNT];
 
-    uint32_t        mapping[MIXER_OUTPUT_COUNT];
-    int16_t         override[MIXER_INPUT_COUNT];
-    uint16_t        saturation[MIXER_INPUT_COUNT];
+    bitmap_t        mapping[MIXER_OUTPUT_COUNT];
+    int             override[MIXER_INPUT_COUNT];
+    uint            saturation[MIXER_INPUT_COUNT];
 
     float           tailCenterTrim;
     float           tailMotorIdle;
-    int8_t          tailMotorDirection;
+    int             tailMotorDirection;
 
     float           swashTrim[3];
 
@@ -117,7 +117,7 @@ typedef struct {
     float           cyclicPhaseSin;
     float           cyclicPhaseCos;
 
-    uint32_t        cyclicMapping;
+    bitmap_t        cyclicMapping;
 
 } mixerData_t;
 
@@ -132,11 +132,11 @@ static FAST_DATA_ZERO_INIT mixerData_t mixer;
 
 static float mixerInputHistory[4][MIXER_HISTORY_TIME];
 
-static FAST_DATA_ZERO_INIT uint16_t historyIndex;
+static FAST_DATA_ZERO_INIT uint historyIndex;
 
-float mixerGetInputHistory(uint8_t i, uint16_t delay)
+float mixerGetInputHistory(uint8_t index, uint delay)
 {
-    return mixerInputHistory[i][(historyIndex - delay) & MIXER_HISTORY_MASK];
+    return mixerInputHistory[index][(historyIndex - delay) & MIXER_HISTORY_MASK];
 }
 
 static inline void mixerUpdateHistory(void)
@@ -188,12 +188,12 @@ void mixerSaturateOutput(uint8_t index)
     }
 }
 
-int16_t mixerGetOverride(uint8_t index)
+int mixerGetOverride(uint8_t index)
 {
     return mixer.override[index];
 }
 
-int16_t mixerSetOverride(uint8_t index, int16_t value)
+int mixerSetOverride(uint8_t index, int value)
 {
     return mixer.override[index] = value;
 }

@@ -173,7 +173,7 @@ void validateAndFixMixerConfig(void);
 void mixerUpdate(void);
 
 float mixerGetInput(uint8_t index);
-float mixerGetInputHistory(uint8_t index, uint16_t delay);
+float mixerGetInputHistory(uint8_t index, uint delay);
 
 float mixerGetOutput(uint8_t index);
 
@@ -183,8 +183,8 @@ bool mixerSaturated(uint8_t index);
 void mixerSaturateInput(uint8_t index);
 void mixerSaturateOutput(uint8_t index);
 
-int16_t mixerGetOverride(uint8_t index);
-int16_t mixerSetOverride(uint8_t index, int16_t value);
+int mixerGetOverride(uint8_t index);
+int mixerSetOverride(uint8_t index, int value);
 
 bool mixerIsCyclicServo(uint8_t index);
 
