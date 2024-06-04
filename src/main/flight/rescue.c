@@ -60,10 +60,10 @@ typedef struct {
 
     /* Config parameters */
 
-    uint8_t         mode;
-    uint8_t         flip;
+    uint            mode;
+    uint            flip;
 
-    uint8_t         state;
+    uint            state;
     timeMs_t        stateEntryTime;
 
     timeDelta_t     pullUpTime;
@@ -426,7 +426,7 @@ static void rescueUpdateState(void)
 
 //// Interface functions
 
-uint8_t getRescueState(void)
+int getRescueState(void)
 {
     return rescue.state;
 }
