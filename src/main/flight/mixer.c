@@ -45,46 +45,9 @@
 
 #include "rx/rx.h"
 
-#include "pg/pg.h"
-#include "pg/pg_ids.h"
+#include "pg/mixer.h"
 
 #include "sensors/gyro.h"
-
-
-/** Configuration definitions **/
-
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_GENERIC_MIXER_CONFIG, 0);
-
-PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
-    .main_rotor_dir = DIR_CW,
-    .tail_rotor_mode = TAIL_MODE_VARIABLE,
-    .tail_motor_idle = 0,
-    .tail_center_trim = 0,
-    .swash_type = SWASH_TYPE_120,
-    .swash_ring = 100,
-    .swash_phase = 0,
-    .swash_pitch_limit = 0,
-    .swash_trim = { 0, 0, 0 },
-    .swash_tta_precomp = 0,
-    .swash_geo_correction = 0,
-);
-
-PG_REGISTER_ARRAY(mixerRule_t, MIXER_RULE_COUNT, mixerRules, PG_GENERIC_MIXER_RULES, 0);
-
-PG_REGISTER_ARRAY_WITH_RESET_FN(mixerInput_t, MIXER_INPUT_COUNT, mixerInputs, PG_GENERIC_MIXER_INPUTS, 0);
-
-void pgResetFn_mixerInputs(mixerInput_t *input)
-{
-    for (int i = MIXER_IN_STABILIZED_ROLL; i < MIXER_IN_COUNT; i++) {
-        input[i].rate =  1000;
-        input[i].min  = -1000;
-        input[i].max  =  1000;
-    }
-
-    input[MIXER_IN_STABILIZED_THROTTLE].rate =  1000;
-    input[MIXER_IN_STABILIZED_THROTTLE].min  =  0;
-    input[MIXER_IN_STABILIZED_THROTTLE].max  =  1000;
-}
 
 
 /** Internal data **/
@@ -94,13 +57,13 @@ typedef struct {
     float           input[MIXER_INPUT_COUNT];
     float           output[MIXER_OUTPUT_COUNT];
 
-    bitmap_t        mapping[MIXER_OUTPUT_COUNT];
-    int             override[MIXER_INPUT_COUNT];
-    uint            saturation[MIXER_INPUT_COUNT];
+    uint32_t        mapping[MIXER_OUTPUT_COUNT];
+    int16_t         override[MIXER_INPUT_COUNT];
+    uint16_t        saturation[MIXER_INPUT_COUNT];
 
     float           tailCenterTrim;
     float           tailMotorIdle;
-    int             tailMotorDirection;
+    int8_t          tailMotorDirection;
 
     float           swashTrim[3];
 
@@ -117,7 +80,7 @@ typedef struct {
     float           cyclicPhaseSin;
     float           cyclicPhaseCos;
 
-    bitmap_t        cyclicMapping;
+    uint32_t        cyclicMapping;
 
 } mixerData_t;
 
@@ -132,11 +95,11 @@ static FAST_DATA_ZERO_INIT mixerData_t mixer;
 
 static float mixerInputHistory[4][MIXER_HISTORY_TIME];
 
-static FAST_DATA_ZERO_INIT uint historyIndex;
+static FAST_DATA_ZERO_INIT uint16_t historyIndex;
 
-float mixerGetInputHistory(uint8_t index, uint delay)
+float mixerGetInputHistory(uint8_t i, uint16_t delay)
 {
-    return mixerInputHistory[index][(historyIndex - delay) & MIXER_HISTORY_MASK];
+    return mixerInputHistory[i][(historyIndex - delay) & MIXER_HISTORY_MASK];
 }
 
 static inline void mixerUpdateHistory(void)
@@ -188,12 +151,12 @@ void mixerSaturateOutput(uint8_t index)
     }
 }
 
-int mixerGetOverride(uint8_t index)
+int16_t mixerGetOverride(uint8_t index)
 {
     return mixer.override[index];
 }
 
-int mixerSetOverride(uint8_t index, int value)
+int16_t mixerSetOverride(uint8_t index, int16_t value)
 {
     return mixer.override[index] = value;
 }
