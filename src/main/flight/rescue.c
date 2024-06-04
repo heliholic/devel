@@ -63,7 +63,7 @@ typedef struct {
     uint8_t         mode;
     uint8_t         flip;
 
-    uint8_t         state;
+    uint16_t        state;
     timeMs_t        stateEntryTime;
 
     timeDelta_t     pullUpTime;
@@ -426,7 +426,7 @@ static void rescueUpdateState(void)
 
 //// Interface functions
 
-uint8_t getRescueState(void)
+int getRescueState(void)
 {
     return rescue.state;
 }
