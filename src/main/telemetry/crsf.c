@@ -417,55 +417,50 @@ static void crsfFrameDeviceInfo(sbuf_t *dst)
  * ...
  */
 
-static int getNil(void)
-{
-    return 0;
-}
-
-void crsfSensorEncodeNil(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeNil(sbuf_t *buf, telemetrySensor_t *sensor)
 {
     UNUSED(buf);
-    UNUSED(value);
+    UNUSED(sensor);
 }
 
-void crsfSensorEncodeU8(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeU8(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteU8(buf, value);
+    sbufWriteU8(buf, sensor->value);
 }
 
-void crsfSensorEncodeS8(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeS8(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteS8(buf, value);
+    sbufWriteS8(buf, sensor->value);
 }
 
-void crsfSensorEncodeU16(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeU16(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteU16BE(buf, value);
+    sbufWriteU16BE(buf, sensor->value);
 }
 
-void crsfSensorEncodeS16(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeS16(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteS16BE(buf, value);
+    sbufWriteS16BE(buf, sensor->value);
 }
 
-void crsfSensorEncodeU24(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeU24(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteU24BE(buf, value);
+    sbufWriteU24BE(buf, sensor->value);
 }
 
-void crsfSensorEncodeS24(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeS24(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteS24BE(buf, value);
+    sbufWriteS24BE(buf, sensor->value);
 }
 
-void crsfSensorEncodeU32(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeU32(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteU32BE(buf, value);
+    sbufWriteU32BE(buf, sensor->value);
 }
 
-void crsfSensorEncodeS32(sbuf_t *buf, telemetryValue_t value)
+void crsfSensorEncodeS32(sbuf_t *buf, telemetrySensor_t *sensor)
 {
-    sbufWriteS32BE(buf, value);
+    sbufWriteS32BE(buf, sensor->value);
 }
 
 static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
@@ -473,100 +468,132 @@ static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_FRAMETYPE_CUSTOM_TELEM);
 }
 
-static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, const telemetrySensor_t * sensor, telemetryValue_t value)
+static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
 {
-    sbufWriteU16BE(dst, sensor->code);
-    sensor->encode(dst, value);
+    sbufWriteU16BE(dst, sensor->tcode);
+    sensor->encode(dst, sensor);
 }
 
 
-#define TLM_SENSOR(NAME, DESC, CODE, MINP, MAXP, ENCODER, VALFUNC) \
-    [TELEM_##NAME] = { \
-        .index = TELEM_##NAME, \
-        .code = (CODE), \
+#define TLM_SENSOR(NAME, CODE, MINP, MAXP, ENCODER) \
+    { \
+        .telid = TELEM_##NAME, \
+        .tcode = (CODE), \
         .min_period = (MINP), \
         .max_period = (MAXP), \
-        .value = (VALFUNC), \
+        .bucket = 0, \
+        .value = 0, \
+        .update = 0, \
+        .active = false, \
         .encode = crsfSensorEncode##ENCODER, \
     }
 
-static const telemetrySensor_t crsfCustomTelemetrySensors[TELEM_SENSOR_COUNT] =
+static telemetrySensor_t crsfLegacyTelemetrySensors[] =
 {
-    TLM_SENSOR(HEARTBEAT,               "BEAT",     0x0000,   200,   200,    Nil,    getNil),
-
-    TLM_SENSOR(MODEL_ID,                "ID  ",     0x0001,  1000,  1000,    U16,    getNil),
-
-    TLM_SENSOR(BATTERY,                 "Batt",     0x0010,   250,   250,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_VOLTAGE,         "Vbat",     0x0011,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CURRENT,         "Curr",     0x0012,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CONSUMPTION,     "mAh ",     0x0013,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    "Bat%",     0x0014,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_TEMPERATURE,     "Tbat",     0x0015,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(BATTERY_CELL_COUNT,      "Cels",     0x0016,   100,  1000,    Nil,    getNil),
-
-    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   "Vcel",     0x0020,   100,  1000,    Nil,    getNil),
-
-    TLM_SENSOR(ESC1_DATA,               "ESC1",     0x0040,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(ESC1_VOLTAGE,            "Vol1",     0x0041,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(ESC1_CURRENT,            "Cur1",     0x0042,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(ESC1_ERPM,               "RPM1",     0x0043,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(ESC1_POWER,              "Pow1",     0x0044,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(ESC1_THROTTLE,           "Thr1",     0x0045,   100,  1000,    U8,     getNil),
-    TLM_SENSOR(ESC1_TEMP1,              "TeE1",     0x0046,   100,  1000,    U8,     getNil),
-    TLM_SENSOR(ESC1_TEMP2,              "TeB1",     0x0047,   100,  1000,    U8,     getNil),
-    TLM_SENSOR(ESC1_BEC_VOLTAGE,        "VoB1",     0x0048,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(ESC1_BEC_CURRENT,        "CuB1",     0x0049,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(ESC1_ERRORS,             "Err1",     0x004E,   100,  1000,    U32,    getNil),
-    TLM_SENSOR(ESC1_STATUS,             "Est1",     0x004F,   100,  1000,    U32,    getNil),
-
-    TLM_SENSOR(ESC_VOLTAGE,             "Vesc",     0x0080,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(BEC_VOLTAGE,             "Vbec",     0x0081,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(BUS_VOLTAGE,             "Vbus",     0x0082,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(MCU_VOLTAGE,             "Vmcu",     0x0083,   100,  1000,    U16,    getNil),
-
-    TLM_SENSOR(ESC_CURRENT,             "Iesc",     0x0090,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(BEC_CURRENT,             "Ibec",     0x0091,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(BUS_CURRENT,             "Ibus",     0x0092,   100,  1000,    U16,    getNil),
-    TLM_SENSOR(MCU_CURRENT,             "Imcu",     0x0093,   100,  1000,    U16,    getNil),
-
-    TLM_SENSOR(ESC_TEMP,                "Tesc",     0x00A0,   200,  1000,    U8,     getNil),
-    TLM_SENSOR(BEC_TEMP,                "Tbec",     0x00A1,   200,  1000,    U8,     getNil),
-    TLM_SENSOR(MCU_TEMP,                "Tmcu",     0x00A3,   200,  1000,    U8,     getNil),
-    TLM_SENSOR(AIR_TEMP,                "Tair",     0x00A4,   200,  1000,    U8,     getNil),
-    TLM_SENSOR(MOTOR_TEMP,              "Tmtr",     0x00A5,   200,  1000,    U8,     getNil),
-
-    TLM_SENSOR(ALTITUDE,                "Alt ",     0x00B1,   100,  1000,    S24,    getNil),
-    TLM_SENSOR(VARIOMETER,              "Vspd",     0x00B2,   100,  1000,    S16,    getNil),
-
-    TLM_SENSOR(HEADSPEED,               "HSpd",     0x00C0,   100,  1000,    U16,    getHeadSpeed),
-    TLM_SENSOR(TAILSPEED,               "TSpd",     0x00C1,   100,  1000,    U16,    getTailSpeed),
-    TLM_SENSOR(MOTOR_RPM,               "Mrpm",     0x00C2,   100,  1000,    U16,    getNil),
-
-    TLM_SENSOR(ATTITUDE,                "Att",      0x0100,   100,   100,    Nil,    getNil),
-    TLM_SENSOR(ATTITUDE_PITCH,          "AttP",     0x0101,   100,  1000,    S16,    getNil),
-    TLM_SENSOR(ATTITUDE_ROLL,           "AttR",     0x0102,   100,  1000,    S16,    getNil),
-    TLM_SENSOR(ATTITUDE_YAW,            "AttY",     0x0103,   100,  1000,    S16,    getNil),
-
-    TLM_SENSOR(ACCEL,                   "AccX",     0x0110,   250,  1000,    Nil,    getNil),
-    TLM_SENSOR(ACCEL_X,                 "AccX",     0x0111,   250,  1000,    S16,    getNil),
-    TLM_SENSOR(ACCEL_Y,                 "AccY",     0x0112,   250,  1000,    S16,    getNil),
-    TLM_SENSOR(ACCEL_Z,                 "AccZ",     0x0113,   250,  1000,    S16,    getNil),
-
-    TLM_SENSOR(GPS,                     "GPS ",     0x0120,   500,   500,    Nil,    getNil),
-    TLM_SENSOR(GPS_SATS,                "Gsat",     0x0121,   500,  5000,    Nil,    getNil),
-    TLM_SENSOR(GPS_COORD,               "Gcrd",     0x0122,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_HEADING,             "GHdg",     0x0123,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_ALTITUDE,            "Galt",     0x0124,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_DISTANCE,            "Gdis",     0x0125,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_GROUNDSPEED,         "Gspd",     0x0126,   100,  1000,    Nil,    getNil),
-    TLM_SENSOR(GPS_DATE_TIME,           "Gtim",     0x012F,   100,  2000,    Nil,    getNil),
-
-    TLM_SENSOR(FC,                      "FC  ",     0x0140,   250,  1000,    Nil,    getNil),
-    TLM_SENSOR(FC_UPTIME,               "UpTm",     0x0141,   250,  1000,    U16,    getNil),
-    TLM_SENSOR(FC_CPU_LOAD,             "CPU%",     0x0142,   250,  1000,    U8,     getNil),
-    TLM_SENSOR(FC_SYS_LOAD,             "SYS%",     0x0143,   250,  1000,    U8,     getNil),
-    TLM_SENSOR(FC_RT_LOAD,              "RTT%",     0x0144,   250,  1000,    U8,     getNil),
+    TLM_SENSOR(HEARTBEAT,                    0,   200,   200,    Nil),
+    TLM_SENSOR(BATTERY,                      0,   250,   250,    Nil),
+    TLM_SENSOR(ATTITUDE,                     0,   100,   100,    Nil),
+    TLM_SENSOR(GPS,                          0,   500,   500,    Nil),
 };
+
+static telemetrySensor_t crsfCustomTelemetrySensors[] =
+{
+    TLM_SENSOR(HEARTBEAT,               0x0000,   200,   200,    Nil),
+
+    TLM_SENSOR(MODEL_ID,                0x0001,  1000,  1000,    U16),
+
+    TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   100,  1000,    Nil),
+    TLM_SENSOR(BATTERY_CURRENT,         0x0012,   100,  1000,    Nil),
+    TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   100,  1000,    Nil),
+    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   100,  1000,    Nil),
+    TLM_SENSOR(BATTERY_TEMPERATURE,     0x0015,   100,  1000,    Nil),
+    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   100,  1000,    Nil),
+
+    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0020,   100,  1000,    Nil),
+
+    TLM_SENSOR(ESC1_VOLTAGE,            0x0041,   100,  1000,    U16),
+    TLM_SENSOR(ESC1_CURRENT,            0x0042,   100,  1000,    U16),
+    TLM_SENSOR(ESC1_ERPM,               0x0043,   100,  1000,    U16),
+    TLM_SENSOR(ESC1_POWER,              0x0044,   100,  1000,    U16),
+    TLM_SENSOR(ESC1_THROTTLE,           0x0045,   100,  1000,    U8),
+    TLM_SENSOR(ESC1_TEMP1,              0x0046,   100,  1000,    U8),
+    TLM_SENSOR(ESC1_TEMP2,              0x0047,   100,  1000,    U8),
+    TLM_SENSOR(ESC1_BEC_VOLTAGE,        0x0048,   100,  1000,    U16),
+    TLM_SENSOR(ESC1_BEC_CURRENT,        0x0049,   100,  1000,    U16),
+    TLM_SENSOR(ESC1_ERRORS,             0x004E,   100,  1000,    U32),
+    TLM_SENSOR(ESC1_STATUS,             0x004F,   100,  1000,    U32),
+
+    TLM_SENSOR(ESC_VOLTAGE,             0x0080,   100,  1000,    U16),
+    TLM_SENSOR(BEC_VOLTAGE,             0x0081,   100,  1000,    U16),
+    TLM_SENSOR(BUS_VOLTAGE,             0x0082,   100,  1000,    U16),
+    TLM_SENSOR(MCU_VOLTAGE,             0x0083,   100,  1000,    U16),
+
+    TLM_SENSOR(ESC_CURRENT,             0x0090,   100,  1000,    U16),
+    TLM_SENSOR(BEC_CURRENT,             0x0091,   100,  1000,    U16),
+    TLM_SENSOR(BUS_CURRENT,             0x0092,   100,  1000,    U16),
+    TLM_SENSOR(MCU_CURRENT,             0x0093,   100,  1000,    U16),
+
+    TLM_SENSOR(ESC_TEMP,                0x00A0,   200,  1000,    U8),
+    TLM_SENSOR(BEC_TEMP,                0x00A1,   200,  1000,    U8),
+    TLM_SENSOR(MCU_TEMP,                0x00A3,   200,  1000,    U8),
+    TLM_SENSOR(AIR_TEMP,                0x00A4,   200,  1000,    U8),
+    TLM_SENSOR(MOTOR_TEMP,              0x00A5,   200,  1000,    U8),
+
+    TLM_SENSOR(ALTITUDE,                0x00B1,   100,  1000,    S24),
+    TLM_SENSOR(VARIOMETER,              0x00B2,   100,  1000,    S16),
+
+    TLM_SENSOR(HEADSPEED,               0x00C0,   100,  1000,    U16),
+    TLM_SENSOR(TAILSPEED,               0x00C1,   100,  1000,    U16),
+    TLM_SENSOR(MOTOR_RPM,               0x00C2,   100,  1000,    U16),
+
+    TLM_SENSOR(ATTITUDE_PITCH,          0x0101,   100,  1000,    S16),
+    TLM_SENSOR(ATTITUDE_ROLL,           0x0102,   100,  1000,    S16),
+    TLM_SENSOR(ATTITUDE_YAW,            0x0103,   100,  1000,    S16),
+
+    TLM_SENSOR(ACCEL_X,                 0x0111,   250,  1000,    S16),
+    TLM_SENSOR(ACCEL_Y,                 0x0112,   250,  1000,    S16),
+    TLM_SENSOR(ACCEL_Z,                 0x0113,   250,  1000,    S16),
+
+    TLM_SENSOR(GPS_SATS,                0x0121,   500,  5000,    Nil),
+    TLM_SENSOR(GPS_COORD,               0x0122,   100,  1000,    Nil),
+    TLM_SENSOR(GPS_HEADING,             0x0123,   100,  1000,    Nil),
+    TLM_SENSOR(GPS_ALTITUDE,            0x0124,   100,  1000,    Nil),
+    TLM_SENSOR(GPS_DISTANCE,            0x0125,   100,  1000,    Nil),
+    TLM_SENSOR(GPS_GROUNDSPEED,         0x0126,   100,  1000,    Nil),
+    TLM_SENSOR(GPS_DATE_TIME,           0x012F,   100,  2000,    Nil),
+
+    TLM_SENSOR(FC_UPTIME,               0x0141,   250,  1000,    U16),
+    TLM_SENSOR(FC_CPU_LOAD,             0x0142,   250,  1000,    U8),
+    TLM_SENSOR(FC_SYS_LOAD,             0x0143,   250,  1000,    U8),
+    TLM_SENSOR(FC_RT_LOAD,              0x0144,   250,  1000,    U8),
+
+    TLM_SENSOR(FLIGHT_MODE,             0x0200,   100,  5000,    U8),
+    TLM_SENSOR(ARMING_FLAGS,            0x0201,   100,  5000,    U32),
+    TLM_SENSOR(RESCUE_STATE,            0x0202,   100,  5000,    U8),
+    TLM_SENSOR(GOVERNOR_STATE,          0x0202,   100,  5000,    U8),
+};
+
+telemetrySensor_t * crsfGetLegacySensor(sensor_id_e id)
+{
+    for (size_t i = 0; i < ARRAYLEN(crsfLegacyTelemetrySensors); i++) {
+        telemetrySensor_t * sensor = &crsfLegacyTelemetrySensors[i];
+        if (sensor->telid == id)
+            return sensor;
+    }
+
+    return NULL;
+}
+
+telemetrySensor_t * crsfGetCustomSensor(sensor_id_e id)
+{
+    for (size_t i = 0; i < ARRAYLEN(crsfCustomTelemetrySensors); i++) {
+        telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[i];
+        if (sensor->telid == id)
+            return sensor;
+    }
+
+    return NULL;
+}
 
 
 #if defined(USE_CRSF_V3)
@@ -860,10 +887,10 @@ void crsfScheduleDeviceInfoResponse(void)
 static void processCrsfTelemetry(void)
 {
     if (crsfRxIsTelemetryBufEmpty()) {
-        telemetrySlot_t *slot = telemetryScheduleNext();
-        if (slot && slot->sensor) {
+        telemetrySensor_t *sensor = telemetryScheduleNext();
+        if (sensor) {
             sbuf_t *dst = crsfInitializeSbuf();
-            switch (slot->sensor->index) {
+            switch (sensor->telid) {
                 case TELEM_ATTITUDE:
                     crsfFrameAttitude(dst);
                     break;
@@ -884,7 +911,7 @@ static void processCrsfTelemetry(void)
                     break;
             }
             size_t bytes = crsfFinalizeSbuf(dst);
-            telemetryScheduleCommit(slot, bytes);
+            telemetryScheduleCommit(sensor, bytes);
         }
     }
 }
@@ -895,12 +922,12 @@ static void processCustomTelemetry(void)
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameCustomTelemetryHeader(dst);
         while (sbufBytesRemaining(dst) >= 6) {
-            telemetrySlot_t *slot = telemetryScheduleNext();
-            if (slot && slot->sensor) {
+            telemetrySensor_t *sensor = telemetryScheduleNext();
+            if (sensor) {
                 uint8_t *ptr = sbufPtr(dst);
-                crsfFrameCustomTelemetrySensor(dst, slot->sensor, slot->value);
+                crsfFrameCustomTelemetrySensor(dst, sensor);
                 if (sbufBytesRemaining(dst) >= 2)
-                    telemetryScheduleCommit(slot, 0);
+                    telemetryScheduleCommit(sensor, 0);
                 else
                     sbufReset(dst, ptr);
             }
@@ -912,36 +939,6 @@ static void processCustomTelemetry(void)
         telemetryScheduleCommit(NULL, bytes);
     }
 }
-
-void crsfInitCrsfTelemetry(void)
-{
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
-        const telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[id];
-        switch (id) {
-            case TELEM_BATTERY:
-            case TELEM_ATTITUDE:
-            case TELEM_FLIGHT_MODE:
-            case TELEM_GPS:
-                telemetryScheduleAdd(sensor);
-                break;
-            default:
-                break;
-        }
-    }
-}
-
-void crsfInitCustomTelemetry(void)
-{
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
-        const telemetrySensor_t * sensor = &crsfCustomTelemetrySensors[id];
-        if (sensor->index == id) {
-            telemetryScheduleAdd(sensor);
-        }
-    }
-}
-
 
 void handleCrsfTelemetry(timeUs_t currentTimeUs)
 {
@@ -1020,12 +1017,38 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     }
 }
 
-void initCrsfTelemetry(void)
+static void INIT_CODE crsfInitLegacyTelemetry(void)
+{
+    uint16_t bitrate = telemetryConfig()->custom_bitrate;
+
+    telemetryScheduleInit(crsfLegacyTelemetrySensors, ARRAYLEN(crsfLegacyTelemetrySensors), bitrate);
+
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
+        if (telemetrySensorActive(id))
+            telemetryScheduleAdd(crsfGetLegacySensor(id));
+    }
+}
+
+static void INIT_CODE crsfInitCustomTelemetry(void)
+{
+    uint16_t bitrate = telemetryConfig()->custom_bitrate;
+
+    telemetryScheduleInit(crsfCustomTelemetrySensors, ARRAYLEN(crsfCustomTelemetrySensors), bitrate);
+
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
+        if (telemetrySensorActive(id))
+            telemetryScheduleAdd(crsfGetCustomSensor(id));
+    }
+}
+
+void INIT_CODE initCrsfTelemetry(void)
 {
     // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
     // and feature is enabled, if so, set CRSF telemetry enabled
     crsfTelemetryEnabled = crsfRxIsActive();
-    crsfCustomTelemetryEnabled = false;
+    crsfCustomTelemetryEnabled = telemetryConfig()->custom_telemetry;
 
     if (crsfTelemetryEnabled)
     {
@@ -1039,7 +1062,7 @@ void initCrsfTelemetry(void)
         if (crsfCustomTelemetryEnabled)
             crsfInitCustomTelemetry();
         else
-            crsfInitCrsfTelemetry();
+            crsfInitLegacyTelemetry();
     }
 }
 

@@ -31,6 +31,242 @@
 #include "telemetry/sensors.h"
 
 
+/** Sensor functions **/
+
+int telemetrySensorValue(sensor_id_e id)
+{
+    switch (id) {
+        case TELEM_NONE:
+            return 0;
+
+        case TELEM_HEARTBEAT:
+
+        case TELEM_MODEL_ID:
+
+        case TELEM_BATTERY:
+        case TELEM_BATTERY_VOLTAGE:
+        case TELEM_BATTERY_CURRENT:
+        case TELEM_BATTERY_CONSUMPTION:
+        case TELEM_BATTERY_CHARGE_LEVEL:
+        case TELEM_BATTERY_TEMPERATURE:
+        case TELEM_BATTERY_CELL_VOLTAGES:
+        case TELEM_BATTERY_CELL_COUNT:
+
+        case TELEM_ESC1_DATA:
+        case TELEM_ESC1_VOLTAGE:
+        case TELEM_ESC1_CURRENT:
+        case TELEM_ESC1_ERPM:
+        case TELEM_ESC1_POWER:
+        case TELEM_ESC1_THROTTLE:
+        case TELEM_ESC1_TEMP1:
+        case TELEM_ESC1_TEMP2:
+        case TELEM_ESC1_BEC_VOLTAGE:
+        case TELEM_ESC1_BEC_CURRENT:
+        case TELEM_ESC1_ERRORS:
+        case TELEM_ESC1_STATUS:
+
+        case TELEM_ESC2_DATA:
+        case TELEM_ESC2_VOLTAGE:
+        case TELEM_ESC2_CURRENT:
+        case TELEM_ESC2_ERPM:
+        case TELEM_ESC2_POWER:
+        case TELEM_ESC2_THROTTLE:
+        case TELEM_ESC2_TEMP1:
+        case TELEM_ESC2_TEMP2:
+        case TELEM_ESC2_BEC_VOLTAGE:
+        case TELEM_ESC2_BEC_CURRENT:
+        case TELEM_ESC2_ERRORS:
+        case TELEM_ESC2_STATUS:
+
+        case TELEM_ESC_VOLTAGE:
+        case TELEM_BEC_VOLTAGE:
+        case TELEM_BUS_VOLTAGE:
+        case TELEM_MCU_VOLTAGE:
+
+        case TELEM_ESC_CURRENT:
+        case TELEM_BEC_CURRENT:
+        case TELEM_BUS_CURRENT:
+        case TELEM_MCU_CURRENT:
+
+        case TELEM_ESC_TEMP:
+        case TELEM_BEC_TEMP:
+        case TELEM_MCU_TEMP:
+        case TELEM_AIR_TEMP:
+        case TELEM_MOTOR_TEMP:
+        case TELEM_EXHAUST_TEMP:
+
+        case TELEM_ALTITUDE:
+        case TELEM_VARIOMETER:
+
+        case TELEM_HEADSPEED:
+        case TELEM_TAILSPEED:
+        case TELEM_MOTOR_RPM:
+        case TELEM_TRANS_RPM:
+
+        case TELEM_ATTITUDE:
+        case TELEM_ATTITUDE_PITCH:
+        case TELEM_ATTITUDE_ROLL:
+        case TELEM_ATTITUDE_YAW:
+
+        case TELEM_ACCEL:
+        case TELEM_ACCEL_X:
+        case TELEM_ACCEL_Y:
+        case TELEM_ACCEL_Z:
+
+        case TELEM_GPS:
+        case TELEM_GPS_SATS:
+        case TELEM_GPS_COORD:
+        case TELEM_GPS_HEADING:
+        case TELEM_GPS_ALTITUDE:
+        case TELEM_GPS_DISTANCE:
+        case TELEM_GPS_GROUNDSPEED:
+        case TELEM_GPS_DATE_TIME:
+
+        case TELEM_FC:
+        case TELEM_FC_UPTIME:
+        case TELEM_FC_CPU_LOAD:
+        case TELEM_FC_SYS_LOAD:
+        case TELEM_FC_RT_LOAD:
+
+        case TELEM_FLIGHT_MODE:
+        case TELEM_ARMING_FLAGS:
+        case TELEM_RESCUE_STATE:
+        case TELEM_GOVERNOR_STATE:
+
+        case TELEM_PROFILES:
+        case TELEM_PID_PROFILE:
+        case TELEM_RATES_PROFILE:
+        case TELEM_BATTERY_PROFILE:
+        case TELEM_LED_PROFILE:
+
+        case TELEM_ADJFUNC:
+            return 0;
+
+        case TELEM_SENSOR_COUNT: // All enum vales handled
+            return 0;
+    }
+
+    return 0;
+}
+
+
+bool telemetrySensorActive(sensor_id_e id)
+{
+    switch (id) {
+        case TELEM_NONE:
+            return false;
+
+        case TELEM_HEARTBEAT:
+
+        case TELEM_MODEL_ID:
+
+        case TELEM_BATTERY:
+        case TELEM_BATTERY_VOLTAGE:
+        case TELEM_BATTERY_CURRENT:
+        case TELEM_BATTERY_CONSUMPTION:
+        case TELEM_BATTERY_CHARGE_LEVEL:
+        case TELEM_BATTERY_TEMPERATURE:
+        case TELEM_BATTERY_CELL_VOLTAGES:
+        case TELEM_BATTERY_CELL_COUNT:
+
+        case TELEM_ESC1_DATA:
+        case TELEM_ESC1_VOLTAGE:
+        case TELEM_ESC1_CURRENT:
+        case TELEM_ESC1_ERPM:
+        case TELEM_ESC1_POWER:
+        case TELEM_ESC1_THROTTLE:
+        case TELEM_ESC1_TEMP1:
+        case TELEM_ESC1_TEMP2:
+        case TELEM_ESC1_BEC_VOLTAGE:
+        case TELEM_ESC1_BEC_CURRENT:
+        case TELEM_ESC1_ERRORS:
+        case TELEM_ESC1_STATUS:
+
+        case TELEM_ESC2_DATA:
+        case TELEM_ESC2_VOLTAGE:
+        case TELEM_ESC2_CURRENT:
+        case TELEM_ESC2_ERPM:
+        case TELEM_ESC2_POWER:
+        case TELEM_ESC2_THROTTLE:
+        case TELEM_ESC2_TEMP1:
+        case TELEM_ESC2_TEMP2:
+        case TELEM_ESC2_BEC_VOLTAGE:
+        case TELEM_ESC2_BEC_CURRENT:
+        case TELEM_ESC2_ERRORS:
+        case TELEM_ESC2_STATUS:
+
+        case TELEM_ESC_VOLTAGE:
+        case TELEM_BEC_VOLTAGE:
+        case TELEM_BUS_VOLTAGE:
+        case TELEM_MCU_VOLTAGE:
+
+        case TELEM_ESC_CURRENT:
+        case TELEM_BEC_CURRENT:
+        case TELEM_BUS_CURRENT:
+        case TELEM_MCU_CURRENT:
+
+        case TELEM_ESC_TEMP:
+        case TELEM_BEC_TEMP:
+        case TELEM_MCU_TEMP:
+        case TELEM_AIR_TEMP:
+        case TELEM_MOTOR_TEMP:
+        case TELEM_EXHAUST_TEMP:
+
+        case TELEM_ALTITUDE:
+        case TELEM_VARIOMETER:
+
+        case TELEM_HEADSPEED:
+        case TELEM_TAILSPEED:
+        case TELEM_MOTOR_RPM:
+        case TELEM_TRANS_RPM:
+
+        case TELEM_ATTITUDE:
+        case TELEM_ATTITUDE_PITCH:
+        case TELEM_ATTITUDE_ROLL:
+        case TELEM_ATTITUDE_YAW:
+
+        case TELEM_ACCEL:
+        case TELEM_ACCEL_X:
+        case TELEM_ACCEL_Y:
+        case TELEM_ACCEL_Z:
+
+        case TELEM_GPS:
+        case TELEM_GPS_SATS:
+        case TELEM_GPS_COORD:
+        case TELEM_GPS_HEADING:
+        case TELEM_GPS_ALTITUDE:
+        case TELEM_GPS_DISTANCE:
+        case TELEM_GPS_GROUNDSPEED:
+        case TELEM_GPS_DATE_TIME:
+
+        case TELEM_FC:
+        case TELEM_FC_UPTIME:
+        case TELEM_FC_CPU_LOAD:
+        case TELEM_FC_SYS_LOAD:
+        case TELEM_FC_RT_LOAD:
+
+        case TELEM_FLIGHT_MODE:
+        case TELEM_ARMING_FLAGS:
+        case TELEM_RESCUE_STATE:
+        case TELEM_GOVERNOR_STATE:
+
+        case TELEM_PROFILES:
+        case TELEM_PID_PROFILE:
+        case TELEM_RATES_PROFILE:
+        case TELEM_BATTERY_PROFILE:
+        case TELEM_LED_PROFILE:
+
+        case TELEM_ADJFUNC:
+            return false;
+
+        case TELEM_SENSOR_COUNT:
+            return false;
+    }
+
+    return false;
+}
+
+
 /** Legacy sensors **/
 
 static uint32_t telemetry_legacy_sensors = 0;
