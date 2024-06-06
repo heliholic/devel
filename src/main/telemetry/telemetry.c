@@ -185,7 +185,6 @@ void telemetryCheckState(void)
 
 void INIT_CODE telemetryInit(void)
 {
-    telemetryScheduleInit();
     legacySensorInit();
 
 #ifdef USE_TELEMETRY_FRSKY_HUB
@@ -234,20 +233,14 @@ void INIT_CODE telemetryInit(void)
 static telemetryScheduler_t sch = INIT_ZERO;
 
 
-bool INIT_CODE telemetryScheduleAdd(const telemetrySensor_t * sensor)
+bool INIT_CODE telemetryScheduleAdd(telemetrySensor_t * sensor)
 {
     if (sensor) {
-        for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-            telemetrySlot_t * slot = &sch.slots[i];
-            if (!slot->sensor) {
-                slot->sensor = sensor;
-                slot->min_period = sensor->min_period;
-                slot->max_period = sensor->max_period;
-                slot->bucket = 0;
-                slot->changed = true;
-                return true;
-            }
-        }
+        sensor->bucket = 0;
+        sensor->value = 0;
+        sensor->update = true;
+        sensor->active = true;
+        return true;
     }
 
     return false;
@@ -255,21 +248,21 @@ bool INIT_CODE telemetryScheduleAdd(const telemetrySensor_t * sensor)
 
 void telemetryScheduleUpdate(timeUs_t currentTime)
 {
-    int delta = cmpTimeUs(currentTime, sch.update_time);
+    timeDelta_t delta = cmpTimeUs(currentTime, sch.update_time);
 
     sch.bitbucket = constrain(sch.bitbucket + ((delta * sch.bitrate) >> 10), -2048000, 2048000);
 
     if (sch.bitbucket > 0) {
-        for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-            telemetrySlot_t * slot = &sch.slots[i];
-            if (slot->sensor) {
-                const telemetryValue_t value = slot->sensor->value();
-                slot->changed |= (value != slot->value);
-                slot->value = value;
+        for (int i = 0; i < sch.sensor_count; i++) {
+            telemetrySensor_t * sensor = &sch.sensors[i];
+            if (sensor->active) {
+                const int value = telemetrySensorValue(sensor->telid);
+                sensor->update |= (value != sensor->value);
+                sensor->value = value;
 
-                const int delay = slot->changed ? slot->min_period: slot->max_period;
-                slot->bucket += delta * 1000 / delay;
-                slot->bucket = constrain(slot->bucket, -2000000, 1000000);
+                const int delay = sensor->update ? sensor->min_period : sensor->max_period;
+                sensor->bucket += delta * 1000 / delay;
+                sensor->bucket = constrain(sensor->bucket, -2000000, 1000000);
             }
         }
     }
@@ -277,36 +270,41 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
     sch.update_time = currentTime;
 }
 
-telemetrySlot_t * telemetryScheduleNext(void)
+telemetrySensor_t * telemetryScheduleNext(void)
 {
-    int index = sch.current_slot;
+    int index = sch.current_sensor;
 
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        index = (index + 1) % TELEM_SENSOR_SLOT_COUNT;
-        telemetrySlot_t * slot = &sch.slots[index];
-        if (slot->sensor && slot->bucket > 0) {
-            sch.current_slot = index;
-            return slot;
+    for (int i = 0; i < sch.sensor_count; i++) {
+        index = (index + 1) % sch.sensor_count;
+        telemetrySensor_t * sensor = &sch.sensors[index];
+        if (sensor->active && sensor->bucket > 0) {
+            sch.current_sensor = index;
+            return sensor;
         }
     }
 
     return NULL;
 }
 
-void telemetryScheduleCommit(telemetrySlot_t * slot, size_t bytes)
+void telemetryScheduleCommit(telemetrySensor_t * sensor, size_t bytes)
 {
-    if (slot) {
-        slot->bucket -= 1000000;
-        slot->changed = false;
+    if (sensor) {
+        sensor->bucket -= 1000000;
+        sensor->update = false;
     }
     if (bytes) {
         sch.bitbucket -= bytes << 13;
     }
 }
 
-void INIT_CODE telemetryScheduleInit(void)
+void INIT_CODE telemetryScheduleInit(telemetrySensor_t * sensors, size_t count, int bitrate)
 {
-    sch.bitrate = 1000;
+    sch.bitrate = bitrate;
+    sch.bitbucket = 0;
+    sch.update_time = 0;
+    sch.current_sensor = 0;
+    sch.sensor_count = count;
+    sch.sensors = sensors;
 }
 
 #endif /* USE_TELEMETRY */

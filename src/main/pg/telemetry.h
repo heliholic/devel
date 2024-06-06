@@ -30,7 +30,7 @@ typedef enum {
 } frskyGpsCoordFormat_e;
 
 
-#define TELEM_SENSOR_SLOT_COUNT 40
+#define TELEM_SENSOR_SLOT_COUNT 32
 
 typedef struct telemetryConfig_s {
     int16_t gpsNoFixLatitude;
@@ -43,6 +43,8 @@ typedef struct telemetryConfig_s {
     uint8_t hottAlarmSoundInterval;
     uint8_t pidValuesAsTelemetry;
     uint8_t report_cell_voltage;
+    uint8_t custom_telemetry;
+    uint16_t custom_bitrate;
     uint16_t mavlink_mah_as_heading_divisor;
     uint8_t flysky_sensors[IBUS_SENSOR_COUNT];
     uint16_t telemetry_sensors[TELEM_SENSOR_SLOT_COUNT];

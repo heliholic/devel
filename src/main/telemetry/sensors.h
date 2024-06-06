@@ -31,6 +31,8 @@
 #include "flight/servos.h"
 
 
+/** Custom telemetry sensor types **/
+
 typedef enum
 {
     TELEM_NONE = 0,
@@ -126,6 +128,7 @@ typedef enum
 
     TELEM_FLIGHT_MODE,
     TELEM_ARMING_FLAGS,
+    TELEM_RESCUE_STATE,
     TELEM_GOVERNOR_STATE,
 
     TELEM_PROFILES,
@@ -141,25 +144,31 @@ typedef enum
 } sensor_id_e;
 
 
-typedef int telemetryValue_t;
+typedef struct telemetrySensor_s telemetrySensor_t;
 
-typedef int (*telemetryValue_f)(void);
-typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetryValue_t value);
+typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetrySensor_t *sensor);
 
 typedef uint16_t sensor_code_t;
 
-typedef struct {
+struct telemetrySensor_s {
 
-    sensor_id_e             index;
-    sensor_code_t           code;
+    sensor_id_e             telid;
+    sensor_code_t           tcode;
 
-    int                     min_period;
-    int                     max_period;
+    uint16_t                min_period;
+    uint16_t                max_period;
+    int32_t                 bucket;
+
+    int                     value;
+    bool                    update;
+    bool                    active;
 
     telemetryEncode_f       encode;
-    telemetryValue_f        value;
+};
 
-} telemetrySensor_t;
+
+int telemetrySensorValue(sensor_id_e id);
+bool telemetrySensorActive(sensor_id_e id);
 
 
 /** Legacy sensors **/
