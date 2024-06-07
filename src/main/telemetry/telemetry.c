@@ -248,7 +248,7 @@ bool INIT_CODE telemetryScheduleAdd(telemetrySensor_t * sensor)
 
 void telemetryScheduleUpdate(timeUs_t currentTime)
 {
-    timeDelta_t delta = cmpTimeUs(currentTime, sch.update_time);
+    uint32_t delta = cmpTimeUs(currentTime, sch.update_time);
 
     sch.bitbucket = constrain(sch.bitbucket + ((delta * sch.bitrate) >> 10), -2048000, 2048000);
 

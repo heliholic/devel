@@ -31,8 +31,12 @@
 #include "sensors/battery.h"
 #include "sensors/voltage.h"
 #include "sensors/current.h"
+#include "sensors/esc_sensor.h"
+#include "sensors/adcinternal.h"
 
 #include "flight/position.h"
+
+#include "scheduler/scheduler.h"
 
 #include "telemetry/sensors.h"
 
@@ -41,6 +45,9 @@
 
 int telemetrySensorValue(sensor_id_e id)
 {
+    voltageMeter_t voltage;
+    currentMeter_t current;
+
     switch (id) {
         case TELEM_NONE:
             return 0;
@@ -56,7 +63,6 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_BATTERY_CELL_COUNT:
             return getBatteryCellCount();
         case TELEM_BATTERY_VOLTAGE:
-            return 42;
             return getBatteryVoltage();
         case TELEM_BATTERY_CURRENT:
             return getBatteryCurrent();
@@ -98,20 +104,28 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_ESC_VOLTAGE:
+            return voltageMeterRead(VOLTAGE_METER_ID_ESC_COMBINED, &voltage) ? voltage.voltage : 0;
         case TELEM_BEC_VOLTAGE:
+            return voltageMeterRead(VOLTAGE_METER_ID_BEC, &voltage) ? voltage.voltage : 0;
         case TELEM_BUS_VOLTAGE:
+            return voltageMeterRead(VOLTAGE_METER_ID_BUS, &voltage) ? voltage.voltage : 0;
         case TELEM_MCU_VOLTAGE:
-            return 0;
+            return voltageMeterRead(VOLTAGE_METER_ID_MCU, &voltage) ? voltage.voltage : 0;
 
         case TELEM_ESC_CURRENT:
+            return currentMeterRead(CURRENT_METER_ID_ESC_COMBINED, &current) ? current.current : 0;
         case TELEM_BEC_CURRENT:
+            return currentMeterRead(CURRENT_METER_ID_BEC, &current) ? current.current : 0;
         case TELEM_BUS_CURRENT:
+            return currentMeterRead(CURRENT_METER_ID_BUS, &current) ? current.current : 0;
         case TELEM_MCU_CURRENT:
-            return 0;
+            return currentMeterRead(CURRENT_METER_ID_MCU, &current) ? current.current : 0;
+
+        case TELEM_MCU_TEMP:
+            return getCoreTemperatureCelsius();
 
         case TELEM_ESC_TEMP:
         case TELEM_BEC_TEMP:
-        case TELEM_MCU_TEMP:
         case TELEM_AIR_TEMP:
         case TELEM_MOTOR_TEMP:
         case TELEM_EXHAUST_TEMP:
@@ -126,6 +140,7 @@ int telemetrySensorValue(sensor_id_e id)
             return getHeadSpeed();
         case TELEM_TAILSPEED:
             return getTailSpeed();
+
         case TELEM_MOTOR_RPM:
             return 0;
         case TELEM_TRANS_RPM:
@@ -154,11 +169,17 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_FC:
-        case TELEM_FC_UPTIME:
-        case TELEM_FC_CPU_LOAD:
-        case TELEM_FC_SYS_LOAD:
-        case TELEM_FC_RT_LOAD:
             return 0;
+
+        case TELEM_FC_UPTIME:
+            return millis();
+
+        case TELEM_FC_CPU_LOAD:
+            return getAverageCPULoadPercent();
+        case TELEM_FC_SYS_LOAD:
+            return getAverageSystemLoadPercent();
+        case TELEM_FC_RT_LOAD:
+            return getMaxRealTimeLoadPercent();
 
         case TELEM_FLIGHT_MODE:
         case TELEM_ARMING_FLAGS:
@@ -178,7 +199,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ADJFUNC:
             return 0;
 
-        case TELEM_SENSOR_COUNT: // All enum vales handled
+        default:
             return 0;
     }
 
