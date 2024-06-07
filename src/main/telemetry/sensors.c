@@ -328,7 +328,7 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_ADJFUNC:
             return true;
 
-        case TELEM_SENSOR_COUNT:
+        default:
             return false;
     }
 

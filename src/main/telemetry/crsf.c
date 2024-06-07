@@ -505,14 +505,14 @@ static telemetrySensor_t crsfLegacyTelemetrySensors[] =
 
 static telemetrySensor_t crsfCustomTelemetrySensors[] =
 {
-    TLM_SENSOR(MODEL_ID,                0x0001,   100,  4000,    U8),
+    TLM_SENSOR(MODEL_ID,                0x0001,   100,  2500,    U8),
 
     TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   200,  2500,    U16),
-    TLM_SENSOR(BATTERY_CURRENT,         0x0012,   100,  2500,    U16),
-    TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   100,  2500,    U16),
-    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   100,  2500,    U8),
-    TLM_SENSOR(BATTERY_TEMPERATURE,     0x0015,   100,  2500,    U8),
-    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   100,  2500,    U8),
+    TLM_SENSOR(BATTERY_CURRENT,         0x0012,   200,  2500,    U16),
+    TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   500,  2500,    U16),
+    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   500,  2500,    U8),
+    TLM_SENSOR(BATTERY_TEMPERATURE,     0x0015,   500,  2500,    U8),
+    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   250,  2500,    U8),
 
     TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0020,   100,  2500,    Nil),
 
@@ -528,21 +528,21 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(ESC1_ERRORS,             0x004E,   100,  2500,    U32),
     TLM_SENSOR(ESC1_STATUS,             0x004F,   100,  2500,    U32),
 
-    TLM_SENSOR(ESC_VOLTAGE,             0x0080,   250,  4000,    U16),
-    TLM_SENSOR(BEC_VOLTAGE,             0x0081,   250,  4000,    U16),
-    TLM_SENSOR(BUS_VOLTAGE,             0x0082,   250,  4000,    U16),
-    TLM_SENSOR(MCU_VOLTAGE,             0x0083,   250,  4000,    U16),
+    TLM_SENSOR(ESC_VOLTAGE,             0x0080,   250,  2500,    U16),
+    TLM_SENSOR(BEC_VOLTAGE,             0x0081,   250,  2500,    U16),
+    TLM_SENSOR(BUS_VOLTAGE,             0x0082,   250,  2500,    U16),
+    TLM_SENSOR(MCU_VOLTAGE,             0x0083,   250,  2500,    U16),
 
-    TLM_SENSOR(ESC_CURRENT,             0x0090,   250,  4000,    U16),
-    TLM_SENSOR(BEC_CURRENT,             0x0091,   250,  4000,    U16),
-    TLM_SENSOR(BUS_CURRENT,             0x0092,   250,  4000,    U16),
-    TLM_SENSOR(MCU_CURRENT,             0x0093,   250,  4000,    U16),
+    TLM_SENSOR(ESC_CURRENT,             0x0090,   250,  2500,    U16),
+    TLM_SENSOR(BEC_CURRENT,             0x0091,   250,  2500,    U16),
+    TLM_SENSOR(BUS_CURRENT,             0x0092,   250,  2500,    U16),
+    TLM_SENSOR(MCU_CURRENT,             0x0093,   250,  2500,    U16),
 
-    TLM_SENSOR(ESC_TEMP,                0x00A0,   500,  4000,    U8),
-    TLM_SENSOR(BEC_TEMP,                0x00A1,   500,  4000,    U8),
-    TLM_SENSOR(MCU_TEMP,                0x00A3,   500,  4000,    U8),
-    TLM_SENSOR(AIR_TEMP,                0x00A4,   500,  4000,    U8),
-    TLM_SENSOR(MOTOR_TEMP,              0x00A5,   500,  4000,    U8),
+    TLM_SENSOR(ESC_TEMP,                0x00A0,   500,  2500,    U8),
+    TLM_SENSOR(BEC_TEMP,                0x00A1,   500,  2500,    U8),
+    TLM_SENSOR(MCU_TEMP,                0x00A3,   500,  2500,    U8),
+    TLM_SENSOR(AIR_TEMP,                0x00A4,   500,  2500,    U8),
+    TLM_SENSOR(MOTOR_TEMP,              0x00A5,   500,  2500,    U8),
 
     TLM_SENSOR(ALTITUDE,                0x00B1,   200,  2500,    S24),
     TLM_SENSOR(VARIOMETER,              0x00B2,   200,  2500,    S16),
@@ -572,10 +572,10 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(FC_SYS_LOAD,             0x0143,   250,  2500,    U8),
     TLM_SENSOR(FC_RT_LOAD,              0x0144,   250,  2500,    U8),
 
-    TLM_SENSOR(FLIGHT_MODE,             0x0200,   100,  4000,    U8),
-    TLM_SENSOR(ARMING_FLAGS,            0x0201,   100,  4000,    U32),
-    TLM_SENSOR(RESCUE_STATE,            0x0202,   100,  4000,    U8),
-    TLM_SENSOR(GOVERNOR_STATE,          0x0202,   100,  4000,    U8),
+    TLM_SENSOR(FLIGHT_MODE,             0x0200,   100,  2500,    U8),
+    TLM_SENSOR(ARMING_FLAGS,            0x0201,   100,  2500,    U32),
+    TLM_SENSOR(RESCUE_STATE,            0x0202,   100,  2500,    U8),
+    TLM_SENSOR(GOVERNOR_STATE,          0x0202,   100,  2500,    U8),
 };
 
 telemetrySensor_t * crsfGetLegacySensor(sensor_id_e id)
