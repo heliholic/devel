@@ -549,7 +549,6 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
 
     TLM_SENSOR(HEADSPEED,               0x00C0,   200,  2500,    U16),
     TLM_SENSOR(TAILSPEED,               0x00C1,   200,  2500,    U16),
-    TLM_SENSOR(MOTOR_RPM,               0x00C2,   200,  2500,    U16),
 
     TLM_SENSOR(ATTITUDE_PITCH,          0x0101,   100,  2500,    S16),
     TLM_SENSOR(ATTITUDE_ROLL,           0x0102,   100,  2500,    S16),
@@ -572,7 +571,7 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(FC_SYS_LOAD,             0x0143,   250,  2500,    U8),
     TLM_SENSOR(FC_RT_LOAD,              0x0144,   250,  2500,    U8),
 
-    TLM_SENSOR(FLIGHT_MODE,             0x0200,   100,  2500,    U8),
+    TLM_SENSOR(FLIGHT_MODE,             0x0200,   100,  2500,    U32),
     TLM_SENSOR(ARMING_FLAGS,            0x0201,   100,  2500,    U32),
     TLM_SENSOR(RESCUE_STATE,            0x0202,   100,  2500,    U8),
     TLM_SENSOR(GOVERNOR_STATE,          0x0202,   100,  2500,    U8),

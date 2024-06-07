@@ -36,6 +36,8 @@
 
 #include "flight/position.h"
 
+#include "fc/runtime_config.h"
+
 #include "scheduler/scheduler.h"
 
 #include "telemetry/sensors.h"
@@ -315,7 +317,9 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_FC_RT_LOAD:
 
         case TELEM_FLIGHT_MODE:
+            return flightModeFlags;
         case TELEM_ARMING_FLAGS:
+            return getArmingDisableFlags();
         case TELEM_RESCUE_STATE:
         case TELEM_GOVERNOR_STATE:
 
