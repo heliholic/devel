@@ -43,11 +43,21 @@
 
 /** Sensor functions **/
 
-int telemetrySensorValue(sensor_id_e id)
+static int getVoltage(voltageMeterId_e id)
 {
     voltageMeter_t voltage;
-    currentMeter_t current;
+    return voltageMeterRead(id, &voltage) ? voltage.voltage / 10 : 0;
+}
 
+static int getCurrent(currentMeterId_e id)
+{
+    currentMeter_t current;
+    return currentMeterRead(id, &current) ? current.current / 10: 0;
+}
+
+
+int telemetrySensorValue(sensor_id_e id)
+{
     switch (id) {
         case TELEM_NONE:
             return 0;
@@ -104,22 +114,22 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_ESC_VOLTAGE:
-            return voltageMeterRead(VOLTAGE_METER_ID_ESC_COMBINED, &voltage) ? voltage.voltage : 0;
+            return getVoltage(VOLTAGE_METER_ID_ESC_COMBINED);
         case TELEM_BEC_VOLTAGE:
-            return voltageMeterRead(VOLTAGE_METER_ID_BEC, &voltage) ? voltage.voltage : 0;
+            return getVoltage(VOLTAGE_METER_ID_BEC);
         case TELEM_BUS_VOLTAGE:
-            return voltageMeterRead(VOLTAGE_METER_ID_BUS, &voltage) ? voltage.voltage : 0;
+            return getVoltage(VOLTAGE_METER_ID_BUS);
         case TELEM_MCU_VOLTAGE:
-            return voltageMeterRead(VOLTAGE_METER_ID_MCU, &voltage) ? voltage.voltage : 0;
+            return getVoltage(VOLTAGE_METER_ID_MCU);
 
         case TELEM_ESC_CURRENT:
-            return currentMeterRead(CURRENT_METER_ID_ESC_COMBINED, &current) ? current.current : 0;
+            return getCurrent(CURRENT_METER_ID_ESC_COMBINED);
         case TELEM_BEC_CURRENT:
-            return currentMeterRead(CURRENT_METER_ID_BEC, &current) ? current.current : 0;
+            return getCurrent(CURRENT_METER_ID_BEC);
         case TELEM_BUS_CURRENT:
-            return currentMeterRead(CURRENT_METER_ID_BUS, &current) ? current.current : 0;
+            return getCurrent(CURRENT_METER_ID_BUS);
         case TELEM_MCU_CURRENT:
-            return currentMeterRead(CURRENT_METER_ID_MCU, &current) ? current.current : 0;
+            return getCurrent(CURRENT_METER_ID_MCU);
 
         case TELEM_MCU_TEMP:
             return getCoreTemperatureCelsius();
@@ -188,6 +198,7 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_PROFILES:
+            return 0;
         case TELEM_PID_PROFILE:
             return getCurrentPidProfileIndex();
         case TELEM_RATES_PROFILE:
