@@ -56,6 +56,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_BATTERY_CELL_COUNT:
             return getBatteryCellCount();
         case TELEM_BATTERY_VOLTAGE:
+            return 42;
             return getBatteryVoltage();
         case TELEM_BATTERY_CURRENT:
             return getBatteryCurrent();

@@ -252,6 +252,11 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
     return 0;
 }
 
+static size_t crsfSbufLen(sbuf_t *buf)
+{
+    return buf->ptr - crsfFrame;
+}
+
 /*
  * CRSF frame has the structure:
  * <Device address> <Frame length> <Type> <Payload> <CRC>
@@ -500,9 +505,9 @@ static telemetrySensor_t crsfLegacyTelemetrySensors[] =
 
 static telemetrySensor_t crsfCustomTelemetrySensors[] =
 {
-    TLM_SENSOR(MODEL_ID,                0x0001,  1000,  1000,    U16),
+    TLM_SENSOR(MODEL_ID,                0x0001,  1000,  1000,    U8),
 
-    TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   100,  1000,    U16),
+    TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   500,  1000,    U16),
     TLM_SENSOR(BATTERY_CURRENT,         0x0012,   100,  1000,    U16),
     TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   100,  1000,    U16),
     TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   100,  1000,    U8),
@@ -922,22 +927,25 @@ static void processCustomTelemetry(void)
     if (crsfRxIsTelemetryBufEmpty()) {
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameCustomTelemetryHeader(dst);
-        while (sbufBytesRemaining(dst) >= 6) {
+        while (sbufBytesRemaining(dst) > 4) {
             telemetrySensor_t *sensor = telemetryScheduleNext();
             if (sensor) {
                 uint8_t *ptr = sbufPtr(dst);
                 crsfFrameCustomTelemetrySensor(dst, sensor);
-                if (sbufBytesRemaining(dst) >= 2)
-                    telemetryScheduleCommit(sensor, 0);
-                else
+                if (sbufBytesRemaining(dst) < 2) {
                     sbufReset(dst, ptr);
+                    break;
+                }
+                telemetryScheduleCommit(sensor, 0);
             }
             else {
                 break;
             }
         }
-        size_t bytes = crsfFinalizeSbuf(dst);
-        telemetryScheduleCommit(NULL, bytes);
+        if (crsfSbufLen(dst) > 2) {
+            size_t bytes = crsfFinalizeSbuf(dst);
+            telemetryScheduleCommit(NULL, bytes);
+        }
     }
 }
 
@@ -1020,7 +1028,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
 static void INIT_CODE crsfInitLegacyTelemetry(void)
 {
-    uint16_t bitrate = telemetryConfig()->custom_bitrate;
+    const uint16_t bitrate = telemetryConfig()->custom_bitrate;
 
     telemetryScheduleInit(crsfLegacyTelemetrySensors, ARRAYLEN(crsfLegacyTelemetrySensors), bitrate);
 
@@ -1036,9 +1044,11 @@ static void INIT_CODE crsfInitLegacyTelemetry(void)
 
 static void INIT_CODE crsfInitCustomTelemetry(void)
 {
-    uint16_t bitrate = telemetryConfig()->custom_bitrate;
+    const uint16_t bitrate = telemetryConfig()->custom_bitrate;
 
     telemetryScheduleInit(crsfCustomTelemetrySensors, ARRAYLEN(crsfCustomTelemetrySensors), bitrate);
+
+    telemetryScheduleAdd(crsfGetCustomSensor(TELEM_BATTERY_VOLTAGE));
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
