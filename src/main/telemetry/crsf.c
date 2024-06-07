@@ -502,12 +502,12 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
 {
     TLM_SENSOR(MODEL_ID,                0x0001,  1000,  1000,    U16),
 
-    TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   100,  1000,    Nil),
-    TLM_SENSOR(BATTERY_CURRENT,         0x0012,   100,  1000,    Nil),
-    TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   100,  1000,    Nil),
-    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   100,  1000,    Nil),
-    TLM_SENSOR(BATTERY_TEMPERATURE,     0x0015,   100,  1000,    Nil),
-    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   100,  1000,    Nil),
+    TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   100,  1000,    U16),
+    TLM_SENSOR(BATTERY_CURRENT,         0x0012,   100,  1000,    U16),
+    TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   100,  1000,    U16),
+    TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   100,  1000,    U8),
+    TLM_SENSOR(BATTERY_TEMPERATURE,     0x0015,   100,  1000,    U8),
+    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   100,  1000,    U8),
 
     TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0020,   100,  1000,    Nil),
 
@@ -554,12 +554,12 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(ACCEL_Y,                 0x0112,   250,  1000,    S16),
     TLM_SENSOR(ACCEL_Z,                 0x0113,   250,  1000,    S16),
 
-    TLM_SENSOR(GPS_SATS,                0x0121,   500,  5000,    Nil),
+    TLM_SENSOR(GPS_SATS,                0x0121,   500,  5000,    U8),
     TLM_SENSOR(GPS_COORD,               0x0122,   100,  1000,    Nil),
-    TLM_SENSOR(GPS_HEADING,             0x0123,   100,  1000,    Nil),
-    TLM_SENSOR(GPS_ALTITUDE,            0x0124,   100,  1000,    Nil),
-    TLM_SENSOR(GPS_DISTANCE,            0x0125,   100,  1000,    Nil),
-    TLM_SENSOR(GPS_GROUNDSPEED,         0x0126,   100,  1000,    Nil),
+    TLM_SENSOR(GPS_HEADING,             0x0123,   100,  1000,    U16),
+    TLM_SENSOR(GPS_ALTITUDE,            0x0124,   100,  1000,    S16),
+    TLM_SENSOR(GPS_DISTANCE,            0x0125,   100,  1000,    U16),
+    TLM_SENSOR(GPS_GROUNDSPEED,         0x0126,   100,  1000,    U16),
     TLM_SENSOR(GPS_DATE_TIME,           0x012F,   100,  2000,    Nil),
 
     TLM_SENSOR(FC_UPTIME,               0x0141,   250,  1000,    U16),

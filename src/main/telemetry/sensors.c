@@ -28,6 +28,12 @@
 #include "pg/pg_ids.h"
 #include "pg/telemetry.h"
 
+#include "sensors/battery.h"
+#include "sensors/voltage.h"
+#include "sensors/current.h"
+
+#include "flight/position.h"
+
 #include "telemetry/sensors.h"
 
 
@@ -40,17 +46,27 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_HEARTBEAT:
+            return 0;
 
         case TELEM_MODEL_ID:
+            return 0;
 
         case TELEM_BATTERY:
-        case TELEM_BATTERY_VOLTAGE:
-        case TELEM_BATTERY_CURRENT:
-        case TELEM_BATTERY_CONSUMPTION:
-        case TELEM_BATTERY_CHARGE_LEVEL:
-        case TELEM_BATTERY_TEMPERATURE:
-        case TELEM_BATTERY_CELL_VOLTAGES:
+            return 0;
         case TELEM_BATTERY_CELL_COUNT:
+            return getBatteryCellCount();
+        case TELEM_BATTERY_VOLTAGE:
+            return getBatteryVoltage();
+        case TELEM_BATTERY_CURRENT:
+            return getBatteryCurrent();
+        case TELEM_BATTERY_CONSUMPTION:
+            return getBatteryCapacityUsed();
+        case TELEM_BATTERY_CHARGE_LEVEL:
+            return calculateBatteryPercentageRemaining();
+        case TELEM_BATTERY_TEMPERATURE:
+            return 0;
+        case TELEM_BATTERY_CELL_VOLTAGES:
+            return 0;
 
         case TELEM_ESC1_DATA:
         case TELEM_ESC1_VOLTAGE:
@@ -64,6 +80,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ESC1_BEC_CURRENT:
         case TELEM_ESC1_ERRORS:
         case TELEM_ESC1_STATUS:
+            return 0;
 
         case TELEM_ESC2_DATA:
         case TELEM_ESC2_VOLTAGE:
@@ -77,16 +94,19 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ESC2_BEC_CURRENT:
         case TELEM_ESC2_ERRORS:
         case TELEM_ESC2_STATUS:
+            return 0;
 
         case TELEM_ESC_VOLTAGE:
         case TELEM_BEC_VOLTAGE:
         case TELEM_BUS_VOLTAGE:
         case TELEM_MCU_VOLTAGE:
+            return 0;
 
         case TELEM_ESC_CURRENT:
         case TELEM_BEC_CURRENT:
         case TELEM_BUS_CURRENT:
         case TELEM_MCU_CURRENT:
+            return 0;
 
         case TELEM_ESC_TEMP:
         case TELEM_BEC_TEMP:
@@ -94,24 +114,33 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_AIR_TEMP:
         case TELEM_MOTOR_TEMP:
         case TELEM_EXHAUST_TEMP:
+            return 0;
 
         case TELEM_ALTITUDE:
+            return getEstimatedAltitudeCm();
         case TELEM_VARIOMETER:
+            return getEstimatedVarioCms();
 
         case TELEM_HEADSPEED:
+            return getHeadSpeed();
         case TELEM_TAILSPEED:
+            return getTailSpeed();
         case TELEM_MOTOR_RPM:
+            return 0;
         case TELEM_TRANS_RPM:
+            return 0;
 
         case TELEM_ATTITUDE:
         case TELEM_ATTITUDE_PITCH:
         case TELEM_ATTITUDE_ROLL:
         case TELEM_ATTITUDE_YAW:
+            return 0;
 
         case TELEM_ACCEL:
         case TELEM_ACCEL_X:
         case TELEM_ACCEL_Y:
         case TELEM_ACCEL_Z:
+            return 0;
 
         case TELEM_GPS:
         case TELEM_GPS_SATS:
@@ -121,23 +150,29 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_GPS_DISTANCE:
         case TELEM_GPS_GROUNDSPEED:
         case TELEM_GPS_DATE_TIME:
+            return 0;
 
         case TELEM_FC:
         case TELEM_FC_UPTIME:
         case TELEM_FC_CPU_LOAD:
         case TELEM_FC_SYS_LOAD:
         case TELEM_FC_RT_LOAD:
+            return 0;
 
         case TELEM_FLIGHT_MODE:
         case TELEM_ARMING_FLAGS:
         case TELEM_RESCUE_STATE:
         case TELEM_GOVERNOR_STATE:
+            return 0;
 
         case TELEM_PROFILES:
         case TELEM_PID_PROFILE:
+            return getCurrentPidProfileIndex();
         case TELEM_RATES_PROFILE:
+            return getCurrentControlRateProfileIndex();
         case TELEM_BATTERY_PROFILE:
         case TELEM_LED_PROFILE:
+            return 0;
 
         case TELEM_ADJFUNC:
             return 0;
