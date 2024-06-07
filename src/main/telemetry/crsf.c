@@ -69,10 +69,10 @@
 #include "crsf.h"
 
 
-#define CRSF_MSP_GRACE_US                   250000
-#define CRSF_CMS_GRACE_US                   250000
+#define CRSF_MSP_GRACE_US                   100000
+#define CRSF_CMS_GRACE_US                   100000
 #define CRSF_DEVICE_INFO_GRACE_US           25000
-#define CRSF_TELEM_GRACE_US                 25000
+#define CRSF_TELEM_GRACE_US                 10000
 
 #define CRSF_TELEM_FRAME_INTERVAL_MAX_US    20000
 
@@ -273,7 +273,7 @@ static size_t crsfSbufLen(sbuf_t *buf)
  * int32_t     Longitude (degree / 10`000`000 )
  * uint16_t    Groundspeed ( km/h / 10 )
  * uint16_t    GPS heading ( degree / 100 )
- * uint16      Altitude ( meter ­2500m offset )
+ * uint16      Altitude ( meter ­1000m offset )
  * uint8_t     Satellites in use ( counter )
  */
 static void crsfFrameGps(sbuf_t *dst)
@@ -283,7 +283,7 @@ static void crsfFrameGps(sbuf_t *dst)
     sbufWriteS32BE(dst, gpsSol.llh.lon);
     sbufWriteU16BE(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // cm/s
     sbufWriteU16BE(dst, gpsSol.groundCourse * 10); // degrees * 10
-    sbufWriteU16BE(dst, getEstimatedAltitudeCm() / 100 + 2500);
+    sbufWriteU16BE(dst, getEstimatedAltitudeCm() / 100 + 1000);
     sbufWriteU8(dst, gpsSol.numSat);
 }
 
@@ -318,28 +318,28 @@ static void crsfFrameHeartbeat(sbuf_t *dst)
 /*
  * 0x1E Attitude
  * Payload:
- * int16_t     Pitch angle (rad / 25000)
- * int16_t     Roll angle (rad / 25000)
- * int16_t     Yaw angle (rad / 25000)
+ * int16_t     Pitch angle (rad / 10000)
+ * int16_t     Roll angle (rad / 10000)
+ * int16_t     Yaw angle (rad / 10000)
  */
 
-// convert angle in decidegree to radians/25000 with +/-180 degree range
-static int16_t decidegrees2Radians25000(int16_t angle_decidegree)
+// convert angle in decidegree to radians/10000 with +/-180 degree range
+static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
 {
     while (angle_decidegree > 1800)
         angle_decidegree -= 3600;
     while (angle_decidegree < -1800)
         angle_decidegree += 3600;
-    return RAD * 2500 * angle_decidegree;
+    return RAD * 1000 * angle_decidegree;
 }
 
 // fill dst buffer with crsf-attitude telemetry frame
 void crsfFrameAttitude(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_ATTITUDE);
-    sbufWriteS16BE(dst, decidegrees2Radians25000(attitude.values.pitch));
-    sbufWriteS16BE(dst, decidegrees2Radians25000(attitude.values.roll));
-    sbufWriteS16BE(dst, decidegrees2Radians25000(attitude.values.yaw));
+    sbufWriteS16BE(dst, decidegrees2Radians10000(attitude.values.pitch));
+    sbufWriteS16BE(dst, decidegrees2Radians10000(attitude.values.roll));
+    sbufWriteS16BE(dst, decidegrees2Radians10000(attitude.values.yaw));
 }
 
 /*
@@ -512,7 +512,7 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   500,  2500,    U16),
     TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   500,  2500,    U8),
     TLM_SENSOR(BATTERY_TEMPERATURE,     0x0015,   500,  2500,    U8),
-    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   250,  2500,    U8),
+    TLM_SENSOR(BATTERY_CELL_COUNT,      0x0016,   500,  2500,    U8),
 
     TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0020,   100,  2500,    Nil),
 
