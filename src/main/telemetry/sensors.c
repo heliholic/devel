@@ -157,6 +157,7 @@ bool telemetrySensorActive(sensor_id_e id)
             return false;
 
         case TELEM_HEARTBEAT:
+            return false;
 
         case TELEM_MODEL_ID:
 
@@ -257,7 +258,7 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_LED_PROFILE:
 
         case TELEM_ADJFUNC:
-            return false;
+            return true;
 
         case TELEM_SENSOR_COUNT:
             return false;

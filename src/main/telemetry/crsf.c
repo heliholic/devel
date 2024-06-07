@@ -488,18 +488,18 @@ static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sens
         .encode = crsfSensorEncode##ENCODER, \
     }
 
+static telemetrySensor_t * crsfHeartBeatSensor = NULL;
+
 static telemetrySensor_t crsfLegacyTelemetrySensors[] =
 {
-    TLM_SENSOR(HEARTBEAT,                    0,   200,   200,    Nil),
-    TLM_SENSOR(BATTERY,                      0,   250,   250,    Nil),
-    TLM_SENSOR(ATTITUDE,                     0,   100,   100,    Nil),
-    TLM_SENSOR(GPS,                          0,   500,   500,    Nil),
+    TLM_SENSOR(HEARTBEAT,                    0,   100,   100,    Nil),
+    TLM_SENSOR(BATTERY,                      0,  1000,  1000,    Nil),
+    TLM_SENSOR(ATTITUDE,                     0,   200,   200,    Nil),
+    TLM_SENSOR(GPS,                          0,  1000,  1000,    Nil),
 };
 
 static telemetrySensor_t crsfCustomTelemetrySensors[] =
 {
-    TLM_SENSOR(HEARTBEAT,               0x0000,   200,   200,    Nil),
-
     TLM_SENSOR(MODEL_ID,                0x0001,  1000,  1000,    U16),
 
     TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   100,  1000,    Nil),
@@ -912,6 +912,7 @@ static void processCrsfTelemetry(void)
             }
             size_t bytes = crsfFinalizeSbuf(dst);
             telemetryScheduleCommit(sensor, bytes);
+            telemetryScheduleCommit(crsfHeartBeatSensor, bytes);
         }
     }
 }
@@ -1022,6 +1023,9 @@ static void INIT_CODE crsfInitLegacyTelemetry(void)
     uint16_t bitrate = telemetryConfig()->custom_bitrate;
 
     telemetryScheduleInit(crsfLegacyTelemetrySensors, ARRAYLEN(crsfLegacyTelemetrySensors), bitrate);
+
+    crsfHeartBeatSensor = crsfGetLegacySensor(TELEM_HEARTBEAT);
+    telemetryScheduleAdd(crsfHeartBeatSensor);
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
