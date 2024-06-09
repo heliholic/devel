@@ -1191,8 +1191,10 @@ const clivalue_t valueTable[] = {
     { "mavlink_mah_as_heading_divisor", VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 0, 30000 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, mavlink_mah_as_heading_divisor) },
 #endif
     { "telemetry_mode",             VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_TELEM_MODE }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, custom_telemetry) },
-    { "telemetry_interval",         VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 0, 10000 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_interval) },
+    { "telemetry_link_rate",        VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_link_rate) },
+    { "telemetry_link_ratio",       VAR_UINT16 | MASTER_VALUE, .config.minmaxUnsigned = { 0, 1000 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_link_ratio) },
     { "telemetry_sensors",          VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = TELEM_SENSOR_SLOT_COUNT, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_sensors)},
+    { "telemetry_interval",         VAR_UINT16 | MASTER_VALUE | MODE_ARRAY, .config.array.length = TELEM_SENSOR_SLOT_COUNT, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_interval)},
 #endif // USE_TELEMETRY
 
 // PG_LED_STRIP_CONFIG

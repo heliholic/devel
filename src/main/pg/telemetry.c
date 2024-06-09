@@ -40,10 +40,12 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .pidValuesAsTelemetry = 0,
     .report_cell_voltage = false,
     .custom_telemetry = false,
-    .telemetry_interval = 100,
     .mavlink_mah_as_heading_divisor = 0,
     .flysky_sensors = INIT_ZERO,
     .telemetry_sensors = INIT_ZERO,
+    .telemetry_interval = INIT_ZERO,
+    .telemetry_link_rate = 50,
+    .telemetry_link_ratio = 1,
 );
 
 #endif

@@ -1027,15 +1027,20 @@ static void INIT_CODE crsfInitLegacyTelemetry(void)
 {
     telemetryScheduleInit(crsfLegacyTelemetrySensors, ARRAYLEN(crsfLegacyTelemetrySensors));
 
-    crsfTelemetryInterval = telemetryConfig()->telemetry_interval * 1000;
+    crsfTelemetryInterval = 1000 * telemetryConfig()->telemetry_link_rate /
+        telemetryConfig()->telemetry_link_rate;
 
     crsfHeartBeatSensor = crsfGetLegacySensor(TELEM_HEARTBEAT);
     telemetryScheduleAdd(crsfHeartBeatSensor);
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
-        if (telemetrySensorActive(id))
-            telemetryScheduleAdd(crsfGetLegacySensor(id));
+        if (telemetrySensorActive(id)) {
+            telemetrySensor_t * sensor = crsfGetLegacySensor(id);
+            if (telemetryConfig()->telemetry_interval[i])
+                sensor->min_interval = telemetryConfig()->telemetry_interval[i];
+            telemetryScheduleAdd(sensor);
+        }
     }
 }
 
@@ -1043,12 +1048,17 @@ static void INIT_CODE crsfInitCustomTelemetry(void)
 {
     telemetryScheduleInit(crsfCustomTelemetrySensors, ARRAYLEN(crsfCustomTelemetrySensors));
 
-    crsfTelemetryInterval = telemetryConfig()->telemetry_interval * 1000;
+    crsfTelemetryInterval = 1000 * telemetryConfig()->telemetry_link_rate /
+        telemetryConfig()->telemetry_link_rate;
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
-        if (telemetrySensorActive(id))
-            telemetryScheduleAdd(crsfGetCustomSensor(id));
+        if (telemetrySensorActive(id)) {
+            telemetrySensor_t * sensor = crsfGetCustomSensor(id);
+            if (telemetryConfig()->telemetry_interval[i])
+                sensor->min_interval = telemetryConfig()->telemetry_interval[i];
+            telemetryScheduleAdd(sensor);
+        }
     }
 }
 

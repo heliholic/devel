@@ -44,10 +44,12 @@ typedef struct telemetryConfig_s {
     uint8_t pidValuesAsTelemetry;
     uint8_t report_cell_voltage;
     uint8_t custom_telemetry;
-    uint16_t telemetry_interval;
     uint16_t mavlink_mah_as_heading_divisor;
     uint8_t flysky_sensors[IBUS_SENSOR_COUNT];
     uint16_t telemetry_sensors[TELEM_SENSOR_SLOT_COUNT];
+    uint16_t telemetry_interval[TELEM_SENSOR_SLOT_COUNT];
+    uint16_t telemetry_link_rate;
+    uint16_t telemetry_link_ratio;
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);
