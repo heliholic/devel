@@ -552,9 +552,9 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(ATTITUDE_ROLL,           0x0102,   100,  2500,    S16),
     TLM_SENSOR(ATTITUDE_YAW,            0x0103,   100,  2500,    S16),
 
-    TLM_SENSOR(ACCEL_X,                 0x0111,   200,  2500,    S16),
-    TLM_SENSOR(ACCEL_Y,                 0x0112,   200,  2500,    S16),
-    TLM_SENSOR(ACCEL_Z,                 0x0113,   200,  2500,    S16),
+    TLM_SENSOR(ACCEL_X,                 0x0111,   100,  2500,    S16),
+    TLM_SENSOR(ACCEL_Y,                 0x0112,   100,  2500,    S16),
+    TLM_SENSOR(ACCEL_Z,                 0x0113,   100,  2500,    S16),
 
     TLM_SENSOR(GPS_SATS,                0x0121,   500,  2500,    U8),
     TLM_SENSOR(GPS_COORD,               0x0122,   100,  2500,    Nil),
