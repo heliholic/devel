@@ -233,17 +233,14 @@ void INIT_CODE telemetryInit(void)
 static telemetryScheduler_t sch = INIT_ZERO;
 
 
-bool INIT_CODE telemetryScheduleAdd(telemetrySensor_t * sensor)
+void INIT_CODE telemetryScheduleAdd(telemetrySensor_t * sensor)
 {
     if (sensor) {
         sensor->bucket = 0;
         sensor->value = 0;
         sensor->update = true;
         sensor->active = true;
-        return true;
     }
-
-    return false;
 }
 
 void telemetryScheduleUpdate(timeUs_t currentTime)

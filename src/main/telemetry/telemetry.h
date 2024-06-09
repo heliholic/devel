@@ -47,8 +47,8 @@ void telemetryProcess(timeUs_t currentTime);
 void telemetryCheckState(void);
 void telemetryInit(void);
 
-bool telemetryScheduleAdd(telemetrySensor_t * sensor);
 telemetrySensor_t * telemetryScheduleNext(void);
+void telemetryScheduleAdd(telemetrySensor_t * sensor);
 void telemetryScheduleUpdate(timeUs_t currentTime);
 void telemetryScheduleCommit(telemetrySensor_t * sensor);
 void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count);
