@@ -495,7 +495,7 @@ static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sens
 
 static telemetrySensor_t * crsfHeartBeatSensor = NULL;
 
-static telemetrySensor_t crsfLegacyTelemetrySensors[] =
+static telemetrySensor_t crsfNativeTelemetrySensors[] =
 {
     TLM_SENSOR(HEARTBEAT,                    0,   100,   100,    Nil),
     TLM_SENSOR(BATTERY,                      0,  1000,  1000,    Nil),
@@ -578,10 +578,10 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(LED_PROFILE,             0x0213,   100,  2500,    U8),
 };
 
-telemetrySensor_t * crsfGetLegacySensor(sensor_id_e id)
+telemetrySensor_t * crsfGetNativeSensor(sensor_id_e id)
 {
-    for (size_t i = 0; i < ARRAYLEN(crsfLegacyTelemetrySensors); i++) {
-        telemetrySensor_t * sensor = &crsfLegacyTelemetrySensors[i];
+    for (size_t i = 0; i < ARRAYLEN(crsfNativeTelemetrySensors); i++) {
+        telemetrySensor_t * sensor = &crsfNativeTelemetrySensors[i];
         if (sensor->telid == id)
             return sensor;
     }
@@ -1023,20 +1023,20 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     crsfRxSendTelemetryData();
 }
 
-static void INIT_CODE crsfInitLegacyTelemetry(void)
+static void INIT_CODE crsfInitNativeTelemetry(void)
 {
-    telemetryScheduleInit(crsfLegacyTelemetrySensors, ARRAYLEN(crsfLegacyTelemetrySensors));
+    telemetryScheduleInit(crsfNativeTelemetrySensors, ARRAYLEN(crsfNativeTelemetrySensors));
 
     crsfTelemetryInterval = 1000 * telemetryConfig()->telemetry_link_rate /
         telemetryConfig()->telemetry_link_rate;
 
-    crsfHeartBeatSensor = crsfGetLegacySensor(TELEM_HEARTBEAT);
+    crsfHeartBeatSensor = crsfGetNativeSensor(TELEM_HEARTBEAT);
     telemetryScheduleAdd(crsfHeartBeatSensor);
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         if (telemetrySensorActive(id)) {
-            telemetrySensor_t * sensor = crsfGetLegacySensor(id);
+            telemetrySensor_t * sensor = crsfGetNativeSensor(id);
             if (telemetryConfig()->telemetry_interval[i])
                 sensor->min_interval = telemetryConfig()->telemetry_interval[i];
             telemetryScheduleAdd(sensor);
@@ -1081,7 +1081,7 @@ void INIT_CODE initCrsfTelemetry(void)
         if (crsfCustomTelemetryEnabled)
             crsfInitCustomTelemetry();
         else
-            crsfInitLegacyTelemetry();
+            crsfInitNativeTelemetry();
     }
 }
 
