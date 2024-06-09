@@ -1028,7 +1028,7 @@ static void INIT_CODE crsfInitNativeTelemetry(void)
     telemetryScheduleInit(crsfNativeTelemetrySensors, ARRAYLEN(crsfNativeTelemetrySensors));
 
     crsfTelemetryInterval = 1000 * telemetryConfig()->telemetry_link_rate /
-        telemetryConfig()->telemetry_link_rate;
+        telemetryConfig()->telemetry_link_ratio;
 
     crsfHeartBeatSensor = crsfGetNativeSensor(TELEM_HEARTBEAT);
     telemetryScheduleAdd(crsfHeartBeatSensor);
@@ -1049,7 +1049,7 @@ static void INIT_CODE crsfInitCustomTelemetry(void)
     telemetryScheduleInit(crsfCustomTelemetrySensors, ARRAYLEN(crsfCustomTelemetrySensors));
 
     crsfTelemetryInterval = 1000 * telemetryConfig()->telemetry_link_rate /
-        telemetryConfig()->telemetry_link_rate;
+        telemetryConfig()->telemetry_link_ratio;
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];

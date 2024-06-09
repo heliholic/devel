@@ -250,7 +250,7 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
     const int limit = 50000 * sch.sensor_count;
 
     const bool limit1 = (sch.total_bucket > limit);
-    const bool limit2 = (sch.total_bucket > 2 * limit);
+    const bool limit2 = (sch.total_bucket > 3 * limit);
 
     if (!limit2)
     {
@@ -279,13 +279,13 @@ telemetrySensor_t * telemetryScheduleNext(void)
 {
     int index = sch.start_index;
 
-    sch.start_index = (index + 1) % sch.sensor_count;
-
     for (int i = 0; i < sch.sensor_count; i++) {
-        telemetrySensor_t * sensor = &sch.sensors[index];
-        if (sensor->active && sensor->bucket > 0)
-            return sensor;
         index = (index + 1) % sch.sensor_count;
+        telemetrySensor_t * sensor = &sch.sensors[index];
+        if (sensor->active && sensor->bucket > 0) {
+            sch.start_index = index;
+            return sensor;
+        }
     }
 
     return NULL;
@@ -294,6 +294,7 @@ telemetrySensor_t * telemetryScheduleNext(void)
 void telemetryScheduleCommit(telemetrySensor_t * sensor)
 {
     if (sensor) {
+        sch.total_bucket -= 1000000;
         sensor->bucket -= 1000000;
         sensor->update = false;
     }
