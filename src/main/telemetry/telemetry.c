@@ -247,10 +247,10 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 {
     timeDelta_t delta = cmpTimeUs(currentTime, sch.update_time);
 
-    const int limit = 500000 * sch.sensor_count;
+    const int limit = 50000 * sch.sensor_count;
 
-    const bool limit1 = sch.total_bucket > limit;
-    const bool limit2 = sch.total_bucket > 2 * limit;
+    const bool limit1 = (sch.total_bucket > limit);
+    const bool limit2 = (sch.total_bucket > 2 * limit);
 
     if (!limit2)
     {
@@ -265,7 +265,7 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 
                 const int interval = (sensor->update && !limit1) ? sensor->min_interval : sensor->max_interval;
                 sensor->bucket += delta * 1000 / interval;
-                sensor->bucket = constrain(sensor->bucket, -2000000, 2000000);
+                sensor->bucket = constrain(sensor->bucket, -1000000, 200000);
 
                 sch.total_bucket += sensor->bucket;
             }
