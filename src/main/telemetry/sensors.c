@@ -121,7 +121,7 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_HEARTBEAT:
-            return millis() / 1000;
+            return millis();
 
         case TELEM_BATTERY:
             return 0;
