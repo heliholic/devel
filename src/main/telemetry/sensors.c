@@ -142,13 +142,13 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_ROLL_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1000);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1200);
         case TELEM_PITCH_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1000);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1200);
         case TELEM_YAW_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 1000);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 2400);
         case TELEM_COLLECTIVE_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1000);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1200);
         case TELEM_THROTTLE_CONTROL:
             return lrintf(mixerGetInput(MIXER_IN_STABILIZED_THROTTLE) * 1000);
 
@@ -263,14 +263,14 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_GPS_DATE_TIME:
             return 0;
 
-        case TELEM_FC:
+        case TELEM_LOAD:
             return 0;
-        case TELEM_FC_CPU_LOAD:
-            return getAverageCPULoadPercent();
-        case TELEM_FC_SYS_LOAD:
-            return getAverageSystemLoadPercent();
-        case TELEM_FC_RT_LOAD:
-            return getMaxRealTimeLoadPercent();
+        case TELEM_CPU_LOAD:
+            return getAverageCPULoad();
+        case TELEM_SYS_LOAD:
+            return getAverageSystemLoad();
+        case TELEM_RT_LOAD:
+            return getMaxRealTimeLoad();
 
         case TELEM_MODEL_ID:
             return pilotConfig()->modelId;
@@ -417,10 +417,10 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_GPS_DATE_TIME:
             return false;
 
-        case TELEM_FC:
-        case TELEM_FC_CPU_LOAD:
-        case TELEM_FC_SYS_LOAD:
-        case TELEM_FC_RT_LOAD:
+        case TELEM_LOAD:
+        case TELEM_CPU_LOAD:
+        case TELEM_SYS_LOAD:
+        case TELEM_RT_LOAD:
             return true;
 
         case TELEM_MODEL_ID:

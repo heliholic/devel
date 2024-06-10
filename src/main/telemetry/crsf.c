@@ -63,6 +63,8 @@
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
 
+#include "scheduler/scheduler.h"
+
 #include "telemetry/telemetry.h"
 #include "telemetry/msp_shared.h"
 
@@ -468,6 +470,14 @@ void crsfSensorEncodeS32(sbuf_t *buf, telemetrySensor_t *sensor)
     sbufWriteS32BE(buf, sensor->value);
 }
 
+void crsfSensorEncodeSysLoad(sbuf_t *buf, telemetrySensor_t *sensor)
+{
+    UNUSED(sensor);
+    sbufWriteU8(buf, getAverageCPULoadPercent());
+    sbufWriteU8(buf, getAverageSystemLoadPercent());
+    sbufWriteU8(buf, getMaxRealTimeLoadPercent());
+}
+
 void crsfSensorEncodeLatLong(sbuf_t *buf, telemetrySensor_t *sensor)
 {
     UNUSED(sensor);
@@ -533,7 +543,7 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(ESC1_CURRENT,            0x0042,   100,  3000,    U16),
     TLM_SENSOR(ESC1_ERPM,               0x0043,   100,  3000,    U16),
     TLM_SENSOR(ESC1_POWER,              0x0044,   100,  3000,    U16),
-    TLM_SENSOR(ESC1_THROTTLE,           0x0045,   100,  3000,    U8),
+    TLM_SENSOR(ESC1_THROTTLE,           0x0045,   100,  3000,    U16),
     TLM_SENSOR(ESC1_TEMP1,              0x0046,   100,  3000,    U8),
     TLM_SENSOR(ESC1_TEMP2,              0x0047,   100,  3000,    U8),
     TLM_SENSOR(ESC1_BEC_VOLTAGE,        0x0048,   100,  3000,    U16),
@@ -590,9 +600,10 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(GPS_HOME_DISTANCE,       0x0129,   100,  3000,    U16),
     TLM_SENSOR(GPS_HOME_DIRECTION,      0x012A,   100,  3000,    S16),
 
-    TLM_SENSOR(FC_CPU_LOAD,             0x0141,   250,  3000,    U8),
-    TLM_SENSOR(FC_SYS_LOAD,             0x0142,   250,  3000,    U8),
-    TLM_SENSOR(FC_RT_LOAD,              0x0143,   250,  3000,    U8),
+    TLM_SENSOR(LOAD,                    0x0140,  1000,  1000,    SysLoad),
+    TLM_SENSOR(CPU_LOAD,                0x0141,   250,  3000,    U16),
+    TLM_SENSOR(SYS_LOAD,                0x0142,   250,  3000,    U16),
+    TLM_SENSOR(RT_LOAD,                 0x0143,   250,  3000,    U16),
 
     TLM_SENSOR(MODEL_ID,                0x0200,   100,  3000,    U8),
     TLM_SENSOR(FLIGHT_MODE,             0x0201,   100,  3000,    U32),
