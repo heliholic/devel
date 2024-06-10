@@ -40,6 +40,7 @@
 #include "flight/position.h"
 #include "flight/governor.h"
 #include "flight/rescue.h"
+#include "flight/mixer.h"
 #include "flight/imu.h"
 
 #include "io/gps.h"
@@ -139,6 +140,17 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
         case TELEM_BATTERY_CELL_VOLTAGES:
             return 0;
+
+        case TELEM_ROLL_CONTROL:
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1000);
+        case TELEM_PITCH_CONTROL:
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1000);
+        case TELEM_YAW_CONTROL:
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 1000);
+        case TELEM_COLLECTIVE_CONTROL:
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1000);
+        case TELEM_THROTTLE_CONTROL:
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_THROTTLE) * 1000);
 
         case TELEM_ESC1_DATA:
         case TELEM_ESC1_VOLTAGE:
@@ -311,7 +323,11 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_BATTERY_CELL_VOLTAGES:
             return true;
 
-        case TELEM_THROTTLE:
+        case TELEM_ROLL_CONTROL:
+        case TELEM_PITCH_CONTROL:
+        case TELEM_YAW_CONTROL:
+        case TELEM_COLLECTIVE_CONTROL:
+        case TELEM_THROTTLE_CONTROL:
             return true;
 
         case TELEM_ESC1_DATA:

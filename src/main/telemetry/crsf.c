@@ -523,7 +523,11 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
 
     TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0020,   100,  3000,    Nil),
 
-    TLM_SENSOR(THROTTLE,                0x0030,   100,  3000,    U8),
+    TLM_SENSOR(ROLL_CONTROL,            0x0031,   100,  3000,    S16),
+    TLM_SENSOR(PITCH_CONTROL,           0x0032,   100,  3000,    S16),
+    TLM_SENSOR(YAW_CONTROL,             0x0033,   100,  3000,    S16),
+    TLM_SENSOR(COLLECTIVE_CONTROL,      0x0034,   100,  3000,    S16),
+    TLM_SENSOR(THROTTLE_CONTROL,        0x0035,   100,  3000,    S16),
 
     TLM_SENSOR(ESC1_VOLTAGE,            0x0041,   100,  3000,    U16),
     TLM_SENSOR(ESC1_CURRENT,            0x0042,   100,  3000,    U16),
