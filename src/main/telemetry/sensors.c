@@ -97,6 +97,23 @@ static int getEscSensorValue(uint8_t motor, uint8_t id)
     return 0;
 }
 
+static uint32_t getCoordHash(int32_t lat, int32_t lon)
+{
+    union {
+        struct {
+            uint16_t L;
+            uint16_t H;
+        } LH;
+        uint32_t U;
+        int32_t S;
+    } x, y, z;
+    x.S = lat;
+    y.S = lon;
+    z.LH.L = x.LH.L ^ y.LH.H;
+    z.LH.H = x.LH.H ^ y.LH.L;
+    return z.U;
+}
+
 int telemetrySensorValue(sensor_id_e id)
 {
     switch (id) {
@@ -220,7 +237,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_GPS_VDOP:
             return 0;
         case TELEM_GPS_COORD:
-            return 0;
+            return getCoordHash(gpsSol.llh.lat, gpsSol.llh.lat);
         case TELEM_GPS_ALTITUDE:
             return gpsSol.llh.altCm;
         case TELEM_GPS_HEADING:

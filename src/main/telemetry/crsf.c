@@ -471,8 +471,8 @@ void crsfSensorEncodeS32(sbuf_t *buf, telemetrySensor_t *sensor)
 void crsfSensorEncodeLatLong(sbuf_t *buf, telemetrySensor_t *sensor)
 {
     UNUSED(sensor);
-    sbufWriteS24BE(buf, gpsSol.llh.lat);
-    sbufWriteS24BE(buf, gpsSol.llh.lon);
+    sbufWriteS32BE(buf, gpsSol.llh.lat);
+    sbufWriteS32BE(buf, gpsSol.llh.lon);
 }
 
 static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
