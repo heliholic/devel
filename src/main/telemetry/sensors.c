@@ -97,7 +97,6 @@ static int getEscSensorValue(uint8_t motor, uint8_t id)
     return 0;
 }
 
-
 int telemetrySensorValue(sensor_id_e id)
 {
     switch (id) {
@@ -105,10 +104,7 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_HEARTBEAT:
-            return 0;
-
-        case TELEM_MODEL_ID:
-            return pilotConfig()->modelId;
+            return millis() / 1000;
 
         case TELEM_BATTERY:
             return 0;
@@ -240,8 +236,6 @@ int telemetrySensorValue(sensor_id_e id)
 
         case TELEM_FC:
             return 0;
-        case TELEM_FC_UPTIME:
-            return millis();
         case TELEM_FC_CPU_LOAD:
             return getAverageCPULoadPercent();
         case TELEM_FC_SYS_LOAD:
@@ -249,6 +243,8 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_FC_RT_LOAD:
             return getMaxRealTimeLoadPercent();
 
+        case TELEM_MODEL_ID:
+            return pilotConfig()->modelId;
         case TELEM_FLIGHT_MODE:
             return flightModeFlags;
         case TELEM_ARMING_FLAGS:
@@ -286,9 +282,6 @@ bool telemetrySensorActive(sensor_id_e id)
             return false;
 
         case TELEM_HEARTBEAT:
-            return false;
-
-        case TELEM_MODEL_ID:
             return true;
 
         case TELEM_BATTERY:
@@ -392,12 +385,12 @@ bool telemetrySensorActive(sensor_id_e id)
             return false;
 
         case TELEM_FC:
-        case TELEM_FC_UPTIME:
         case TELEM_FC_CPU_LOAD:
         case TELEM_FC_SYS_LOAD:
         case TELEM_FC_RT_LOAD:
             return true;
 
+        case TELEM_MODEL_ID:
         case TELEM_FLIGHT_MODE:
         case TELEM_ARMING_FLAGS:
         case TELEM_RESCUE_STATE:
