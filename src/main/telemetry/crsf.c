@@ -505,8 +505,6 @@ static telemetrySensor_t crsfNativeTelemetrySensors[] =
 
 static telemetrySensor_t crsfCustomTelemetrySensors[] =
 {
-    TLM_SENSOR(MODEL_ID,                0x0001,   100,  3000,    U8),
-
     TLM_SENSOR(BATTERY_VOLTAGE,         0x0011,   200,  3000,    U16),
     TLM_SENSOR(BATTERY_CURRENT,         0x0012,   200,  3000,    U16),
     TLM_SENSOR(BATTERY_CONSUMPTION,     0x0013,   200,  3000,    U16),
@@ -527,8 +525,18 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(ESC1_TEMP2,              0x0047,   100,  3000,    U8),
     TLM_SENSOR(ESC1_BEC_VOLTAGE,        0x0048,   100,  3000,    U16),
     TLM_SENSOR(ESC1_BEC_CURRENT,        0x0049,   100,  3000,    U16),
-    TLM_SENSOR(ESC1_ERRORS,             0x004E,   100,  3000,    U32),
     TLM_SENSOR(ESC1_STATUS,             0x004F,   100,  3000,    U32),
+
+    TLM_SENSOR(ESC2_VOLTAGE,            0x0051,   100,  3000,    U16),
+    TLM_SENSOR(ESC2_CURRENT,            0x0052,   100,  3000,    U16),
+    TLM_SENSOR(ESC2_ERPM,               0x0053,   100,  3000,    U16),
+    TLM_SENSOR(ESC2_POWER,              0x0054,   100,  3000,    U16),
+    TLM_SENSOR(ESC2_THROTTLE,           0x0055,   100,  3000,    U8),
+    TLM_SENSOR(ESC2_TEMP1,              0x0056,   100,  3000,    U8),
+    TLM_SENSOR(ESC2_TEMP2,              0x0057,   100,  3000,    U8),
+    TLM_SENSOR(ESC2_BEC_VOLTAGE,        0x0058,   100,  3000,    U16),
+    TLM_SENSOR(ESC2_BEC_CURRENT,        0x0059,   100,  3000,    U16),
+    TLM_SENSOR(ESC2_STATUS,             0x005F,   100,  3000,    U32),
 
     TLM_SENSOR(ESC_VOLTAGE,             0x0080,   200,  3000,    U16),
     TLM_SENSOR(BEC_VOLTAGE,             0x0081,   200,  3000,    U16),
@@ -559,11 +567,13 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(ACCEL_Z,                 0x0113,   100,  3000,    S16),
 
     TLM_SENSOR(GPS_SATS,                0x0121,   500,  3000,    U8),
-    TLM_SENSOR(GPS_COORD,               0x0122,   100,  3000,    Nil),
-    TLM_SENSOR(GPS_HEADING,             0x0123,   100,  3000,    U16),
-    TLM_SENSOR(GPS_ALTITUDE,            0x0124,   100,  3000,    S16),
-    TLM_SENSOR(GPS_DISTANCE,            0x0125,   100,  3000,    U16),
-    TLM_SENSOR(GPS_GROUNDSPEED,         0x0126,   100,  3000,    U16),
+    TLM_SENSOR(GPS_HDOP,                0x0122,   500,  3000,    U8),
+    TLM_SENSOR(GPS_COORD,               0x0124,   100,  3000,    Nil),
+    TLM_SENSOR(GPS_ALTITUDE,            0x0125,   100,  3000,    S16),
+    TLM_SENSOR(GPS_HEADING,             0x0126,   100,  3000,    U16),
+    TLM_SENSOR(GPS_GROUNDSPEED,         0x0127,   100,  3000,    U16),
+    TLM_SENSOR(GPS_HOME_DISTANCE,       0x0128,   100,  3000,    U16),
+    TLM_SENSOR(GPS_HOME_DIRECTION,      0x0129,   100,  3000,    S16),
 
     TLM_SENSOR(FC_UPTIME,               0x0141,   500,  3000,    U16),
     TLM_SENSOR(FC_CPU_LOAD,             0x0142,   250,  3000,    U8),
@@ -575,9 +585,10 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(RESCUE_STATE,            0x0202,   100,  3000,    U8),
     TLM_SENSOR(GOVERNOR_STATE,          0x0202,   100,  3000,    U8),
 
-    TLM_SENSOR(PID_PROFILE,             0x0211,   100,  3000,    U8),
-    TLM_SENSOR(RATES_PROFILE,           0x0212,   100,  3000,    U8),
-    TLM_SENSOR(LED_PROFILE,             0x0213,   100,  3000,    U8),
+    TLM_SENSOR(MODEL_ID,                0x0211,   100,  3000,    U8),
+    TLM_SENSOR(PID_PROFILE,             0x0212,   100,  3000,    U8),
+    TLM_SENSOR(RATES_PROFILE,           0x0213,   100,  3000,    U8),
+    TLM_SENSOR(LED_PROFILE,             0x0214,   100,  3000,    U8),
 };
 
 telemetrySensor_t * crsfGetNativeSensor(sensor_id_e id)

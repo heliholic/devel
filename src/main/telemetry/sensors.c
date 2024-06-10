@@ -27,6 +27,7 @@
 
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
+#include "pg/pilot.h"
 #include "pg/telemetry.h"
 
 #include "sensors/battery.h"
@@ -40,6 +41,8 @@
 #include "flight/governor.h"
 #include "flight/rescue.h"
 #include "flight/imu.h"
+
+#include "io/gps.h"
 
 #include "fc/runtime_config.h"
 
@@ -62,6 +65,38 @@ static int getCurrent(currentMeterId_e id)
     return currentMeterRead(id, &current) ? current.current / 10: 0;
 }
 
+static int getEscSensorValue(uint8_t motor, uint8_t id)
+{
+    escSensorData_t * data = getEscSensorData(motor);
+
+    if (data) {
+        switch (id) {
+            case 1:
+                return data->voltage;
+            case 2:
+                return data->current;
+            case 3:
+                return data->erpm;
+            case 4:
+                return data->pwm;
+            case 5:
+                return data->throttle;
+            case 6:
+                return data->temperature;
+            case 7:
+                return data->temperature2;
+            case 8:
+                return data->bec_voltage;
+            case 9:
+                return data->bec_current;
+            case 10:
+                return data->status;
+        }
+    }
+
+    return 0;
+}
+
 
 int telemetrySensorValue(sensor_id_e id)
 {
@@ -73,7 +108,7 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_MODEL_ID:
-            return 0;
+            return pilotConfig()->modelId;
 
         case TELEM_BATTERY:
             return 0;
@@ -102,9 +137,8 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ESC1_TEMP2:
         case TELEM_ESC1_BEC_VOLTAGE:
         case TELEM_ESC1_BEC_CURRENT:
-        case TELEM_ESC1_ERRORS:
         case TELEM_ESC1_STATUS:
-            return 0;
+            return getEscSensorValue(0, id - TELEM_ESC1_VOLTAGE);
 
         case TELEM_ESC2_DATA:
         case TELEM_ESC2_VOLTAGE:
@@ -116,9 +150,8 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ESC2_TEMP2:
         case TELEM_ESC2_BEC_VOLTAGE:
         case TELEM_ESC2_BEC_CURRENT:
-        case TELEM_ESC2_ERRORS:
         case TELEM_ESC2_STATUS:
-            return 0;
+            return getEscSensorValue(1, id - TELEM_ESC1_VOLTAGE);
 
         case TELEM_ESC_VOLTAGE:
             return getVoltage(VOLTAGE_METER_ID_ESC_COMBINED);
@@ -181,18 +214,32 @@ int telemetrySensorValue(sensor_id_e id)
             return lrintf(acc.accADC[2] * acc.dev.acc_1G_rec * 10);
 
         case TELEM_GPS:
+            return 0;
         case TELEM_GPS_SATS:
+            return gpsSol.numSat;
+        case TELEM_GPS_PDOP:
+            return 0;
+        case TELEM_GPS_HDOP:
+            return gpsSol.hdop;
+        case TELEM_GPS_VDOP:
+            return 0;
         case TELEM_GPS_COORD:
-        case TELEM_GPS_HEADING:
+            return 0;
         case TELEM_GPS_ALTITUDE:
-        case TELEM_GPS_DISTANCE:
+            return gpsSol.llh.altCm;
+        case TELEM_GPS_HEADING:
+            return gpsSol.groundCourse;
         case TELEM_GPS_GROUNDSPEED:
+            return gpsSol.groundSpeed;
+        case TELEM_GPS_HOME_DISTANCE:
+            return GPS_distanceToHome;
+        case TELEM_GPS_HOME_DIRECTION:
+            return GPS_directionToHome;
         case TELEM_GPS_DATE_TIME:
             return 0;
 
         case TELEM_FC:
             return 0;
-
         case TELEM_FC_UPTIME:
             return millis();
         case TELEM_FC_CPU_LOAD:
@@ -267,7 +314,6 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_ESC1_TEMP2:
         case TELEM_ESC1_BEC_VOLTAGE:
         case TELEM_ESC1_BEC_CURRENT:
-        case TELEM_ESC1_ERRORS:
         case TELEM_ESC1_STATUS:
             return true;
 
@@ -281,7 +327,6 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_ESC2_TEMP2:
         case TELEM_ESC2_BEC_VOLTAGE:
         case TELEM_ESC2_BEC_CURRENT:
-        case TELEM_ESC2_ERRORS:
         case TELEM_ESC2_STATUS:
             return true;
 
@@ -332,13 +377,19 @@ bool telemetrySensorActive(sensor_id_e id)
 
         case TELEM_GPS:
         case TELEM_GPS_SATS:
+        case TELEM_GPS_HDOP:
         case TELEM_GPS_COORD:
-        case TELEM_GPS_HEADING:
         case TELEM_GPS_ALTITUDE:
-        case TELEM_GPS_DISTANCE:
+        case TELEM_GPS_HEADING:
         case TELEM_GPS_GROUNDSPEED:
-        case TELEM_GPS_DATE_TIME:
+        case TELEM_GPS_HOME_DISTANCE:
+        case TELEM_GPS_HOME_DIRECTION:
             return true;
+
+        case TELEM_GPS_PDOP:
+        case TELEM_GPS_VDOP:
+        case TELEM_GPS_DATE_TIME:
+            return false;
 
         case TELEM_FC:
         case TELEM_FC_UPTIME:
@@ -410,7 +461,7 @@ sensor_e telemetryGetLegacySensor(sensor_id_e sensor_id)
             return SENSOR_LAT_LONG;
         case TELEM_GPS_GROUNDSPEED:
             return SENSOR_GROUND_SPEED;
-        case TELEM_GPS_DISTANCE:
+        case TELEM_GPS_HOME_DISTANCE:
             return SENSOR_DISTANCE;
         case TELEM_MCU_TEMP:
             return SENSOR_TEMPERATURE;
