@@ -45,6 +45,8 @@
 
 #include "io/gps.h"
 
+#include "fc/rc_modes.h"
+#include "fc/rc_adjustments.h"
 #include "fc/runtime_config.h"
 
 #include "scheduler/scheduler.h"
@@ -98,7 +100,7 @@ static int getEscSensorValue(uint8_t motor, uint8_t id)
     return 0;
 }
 
-static uint32_t getCoordHash(int32_t lat, int32_t lon)
+static uint32_t getTupleHash(uint32_t a, uint32_t b)
 {
     union {
         struct {
@@ -108,8 +110,8 @@ static uint32_t getCoordHash(int32_t lat, int32_t lon)
         uint32_t U;
         int32_t S;
     } x, y, z;
-    x.S = lat;
-    y.S = lon;
+    x.S = a;
+    y.S = b;
     z.LH.L = x.LH.L ^ y.LH.H;
     z.LH.H = x.LH.H ^ y.LH.L;
     return z.U;
@@ -249,7 +251,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_GPS_VDOP:
             return 0;
         case TELEM_GPS_COORD:
-            return getCoordHash(gpsSol.llh.lat, gpsSol.llh.lat);
+            return getTupleHash(gpsSol.llh.lat, gpsSol.llh.lat);
         case TELEM_GPS_ALTITUDE:
             return gpsSol.llh.altCm;
         case TELEM_GPS_HEADING:
@@ -291,10 +293,12 @@ int telemetrySensorValue(sensor_id_e id)
             return getCurrentControlRateProfileIndex();
         case TELEM_BATTERY_PROFILE:
         case TELEM_LED_PROFILE:
+        case TELEM_OSD_PROFILE:
             return 0;
 
         case TELEM_ADJFUNC:
-            return 0;
+            return getAdjustmentsRangeName() ?
+                getTupleHash(getAdjustmentsRangeFunc(), getAdjustmentsRangeValue()) : 0;
 
         default:
             return 0;
@@ -433,9 +437,12 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_PROFILES:
         case TELEM_PID_PROFILE:
         case TELEM_RATES_PROFILE:
-        case TELEM_BATTERY_PROFILE:
         case TELEM_LED_PROFILE:
             return true;
+
+        case TELEM_BATTERY_PROFILE:
+        case TELEM_OSD_PROFILE:
+            return false;
 
         case TELEM_ADJFUNC:
             return true;

@@ -43,6 +43,7 @@
 #include "drivers/persistent.h"
 
 #include "fc/rc_modes.h"
+#include "fc/rc_adjustments.h"
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
@@ -470,19 +471,18 @@ void crsfSensorEncodeS32(sbuf_t *buf, telemetrySensor_t *sensor)
     sbufWriteS32BE(buf, sensor->value);
 }
 
-void crsfSensorEncodeSysLoad(sbuf_t *buf, telemetrySensor_t *sensor)
-{
-    UNUSED(sensor);
-    sbufWriteU8(buf, getAverageCPULoadPercent());
-    sbufWriteU8(buf, getAverageSystemLoadPercent());
-    sbufWriteU8(buf, getMaxRealTimeLoadPercent());
-}
-
 void crsfSensorEncodeLatLong(sbuf_t *buf, telemetrySensor_t *sensor)
 {
     UNUSED(sensor);
     sbufWriteS32BE(buf, gpsSol.llh.lat);
     sbufWriteS32BE(buf, gpsSol.llh.lon);
+}
+
+void crsfSensorEncodeAdjFunc(sbuf_t *buf, telemetrySensor_t *sensor)
+{
+    UNUSED(sensor);
+    sbufWriteU16BE(buf, getAdjustmentsRangeFunc());
+    sbufWriteS32BE(buf, getAdjustmentsRangeValue());
 }
 
 static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
@@ -600,7 +600,6 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(GPS_HOME_DISTANCE,       0x0129,   100,  3000,    U16),
     TLM_SENSOR(GPS_HOME_DIRECTION,      0x012A,   100,  3000,    S16),
 
-    TLM_SENSOR(LOAD,                    0x0140,  1000,  1000,    SysLoad),
     TLM_SENSOR(CPU_LOAD,                0x0141,   250,  3000,    U16),
     TLM_SENSOR(SYS_LOAD,                0x0142,   250,  3000,    U16),
     TLM_SENSOR(RT_LOAD,                 0x0143,   250,  3000,    U16),
@@ -614,6 +613,8 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(PID_PROFILE,             0x0211,   100,  3000,    U8),
     TLM_SENSOR(RATES_PROFILE,           0x0212,   100,  3000,    U8),
     TLM_SENSOR(LED_PROFILE,             0x0213,   100,  3000,    U8),
+
+    TLM_SENSOR(ADJFUNC,                 0x0220,   100,  3000,    AdjFunc),
 };
 
 telemetrySensor_t * crsfGetNativeSensor(sensor_id_e id)
