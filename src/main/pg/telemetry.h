@@ -30,7 +30,7 @@ typedef enum {
 } frskyGpsCoordFormat_e;
 
 
-#define TELEM_SENSOR_SLOT_COUNT 32
+#define TELEM_SENSOR_SLOT_COUNT 40
 
 typedef struct telemetryConfig_s {
     int16_t gpsNoFixLatitude;

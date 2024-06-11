@@ -138,8 +138,6 @@ int telemetrySensorValue(sensor_id_e id)
             return getBatteryCapacityUsed();
         case TELEM_BATTERY_CHARGE_LEVEL:
             return calculateBatteryPercentageRemaining();
-        case TELEM_BATTERY_TEMPERATURE:
-            return 0;
         case TELEM_BATTERY_CELL_VOLTAGES:
             return 0;
 
@@ -205,6 +203,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_BEC_TEMP:
         case TELEM_AIR_TEMP:
         case TELEM_MOTOR_TEMP:
+        case TELEM_BATTERY_TEMP:
         case TELEM_EXHAUST_TEMP:
             return 0;
 
@@ -324,7 +323,6 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_BATTERY_CURRENT:
         case TELEM_BATTERY_CONSUMPTION:
         case TELEM_BATTERY_CHARGE_LEVEL:
-        case TELEM_BATTERY_TEMPERATURE:
         case TELEM_BATTERY_CELL_COUNT:
         case TELEM_BATTERY_CELL_VOLTAGES:
             return true;
@@ -380,6 +378,7 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_BEC_TEMP:
         case TELEM_AIR_TEMP:
         case TELEM_MOTOR_TEMP:
+        case TELEM_BATTERY_TEMP:
         case TELEM_EXHAUST_TEMP:
             return false;
 
