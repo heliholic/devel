@@ -537,7 +537,7 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(PITCH_CONTROL,           0x0032,   100,  3000,    S16),
     TLM_SENSOR(YAW_CONTROL,             0x0033,   100,  3000,    S16),
     TLM_SENSOR(COLLECTIVE_CONTROL,      0x0034,   100,  3000,    S16),
-    TLM_SENSOR(THROTTLE_CONTROL,        0x0035,   100,  3000,    S16),
+    TLM_SENSOR(THROTTLE_CONTROL,        0x0035,   100,  3000,    S8),
 
     TLM_SENSOR(ESC1_VOLTAGE,            0x0041,   100,  3000,    U16),
     TLM_SENSOR(ESC1_CURRENT,            0x0042,   100,  3000,    U16),
@@ -600,9 +600,9 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(GPS_HOME_DISTANCE,       0x0129,   100,  3000,    U16),
     TLM_SENSOR(GPS_HOME_DIRECTION,      0x012A,   100,  3000,    S16),
 
-    TLM_SENSOR(CPU_LOAD,                0x0141,   250,  3000,    U16),
-    TLM_SENSOR(SYS_LOAD,                0x0142,   250,  3000,    U16),
-    TLM_SENSOR(RT_LOAD,                 0x0143,   250,  3000,    U16),
+    TLM_SENSOR(CPU_LOAD,                0x0141,   250,  3000,    U8),
+    TLM_SENSOR(SYS_LOAD,                0x0142,   250,  3000,    U8),
+    TLM_SENSOR(RT_LOAD,                 0x0143,   250,  3000,    U8),
 
     TLM_SENSOR(MODEL_ID,                0x0200,   100,  3000,    U8),
     TLM_SENSOR(FLIGHT_MODE,             0x0201,   100,  3000,    U32),

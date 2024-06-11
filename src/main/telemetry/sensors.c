@@ -124,7 +124,7 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_HEARTBEAT:
-            return millis();
+            return millis() % 60000;
 
         case TELEM_BATTERY:
             return 0;
@@ -144,15 +144,15 @@ int telemetrySensorValue(sensor_id_e id)
             return 0;
 
         case TELEM_ROLL_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 1200);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_ROLL) * 120);
         case TELEM_PITCH_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 1200);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_PITCH) * 120);
         case TELEM_YAW_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 2400);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_YAW) * 240);
         case TELEM_COLLECTIVE_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 1200);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_COLLECTIVE) * 120);
         case TELEM_THROTTLE_CONTROL:
-            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_THROTTLE) * 1000);
+            return lrintf(mixerGetInput(MIXER_IN_STABILIZED_THROTTLE) * 100);
 
         case TELEM_ESC1_DATA:
         case TELEM_ESC1_VOLTAGE:
@@ -268,11 +268,11 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_LOAD:
             return 0;
         case TELEM_CPU_LOAD:
-            return getAverageCPULoad();
+            return getAverageCPULoadPercent();
         case TELEM_SYS_LOAD:
-            return getAverageSystemLoad();
+            return getAverageSystemLoadPercent();
         case TELEM_RT_LOAD:
-            return getMaxRealTimeLoad();
+            return getMaxRealTimeLoadPercent();
 
         case TELEM_MODEL_ID:
             return pilotConfig()->modelId;
