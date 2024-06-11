@@ -163,7 +163,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ESC1_BEC_VOLTAGE:
         case TELEM_ESC1_BEC_CURRENT:
         case TELEM_ESC1_STATUS:
-            return getEscSensorValue(0, id - TELEM_ESC1_VOLTAGE);
+            return getEscSensorValue(0, id - TELEM_ESC1_DATA);
 
         case TELEM_ESC2_DATA:
         case TELEM_ESC2_VOLTAGE:
@@ -176,7 +176,7 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ESC2_BEC_VOLTAGE:
         case TELEM_ESC2_BEC_CURRENT:
         case TELEM_ESC2_STATUS:
-            return getEscSensorValue(1, id - TELEM_ESC1_VOLTAGE);
+            return getEscSensorValue(1, id - TELEM_ESC2_DATA);
 
         case TELEM_ESC_VOLTAGE:
             return getVoltage(VOLTAGE_METER_ID_ESC_COMBINED);
