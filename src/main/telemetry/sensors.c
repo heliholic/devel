@@ -208,6 +208,8 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_EXHAUST_TEMP:
             return 0;
 
+        case TELEM_HEADING:
+            return attitude.values.yaw;
         case TELEM_ALTITUDE:
             return getEstimatedAltitudeCm();
         case TELEM_VARIOMETER:
@@ -385,6 +387,7 @@ bool telemetrySensorActive(sensor_id_e id)
         case TELEM_VARIOMETER:
             return true;
 
+        case TELEM_HEADING:
         case TELEM_HEADSPEED:
         case TELEM_TAILSPEED:
             return true;
