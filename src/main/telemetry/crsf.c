@@ -471,6 +471,17 @@ void crsfSensorEncodeS32(sbuf_t *buf, telemetrySensor_t *sensor)
     sbufWriteS32BE(buf, sensor->value);
 }
 
+void crsfSensorEncodeCells(sbuf_t *buf, telemetrySensor_t *sensor)
+{
+    UNUSED(sensor);
+    const int cells = getBatteryCellCount();
+    sbufWriteU8(buf, cells);
+    for (int i = 0; i < cells; i++) {
+        int volt = constrain(getBatteryCellVoltage(i) - 200, 0, 255);
+        sbufWriteU8(buf, volt);
+    }
+}
+
 void crsfSensorEncodeLatLong(sbuf_t *buf, telemetrySensor_t *sensor)
 {
     UNUSED(sensor);
@@ -530,7 +541,7 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(BATTERY_CHARGE_LEVEL,    0x0014,   200,  3000,    U8),
 
     TLM_SENSOR(BATTERY_CELL_COUNT,      0x0020,   200,  3000,    U8),
-    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0021,   100,  3000,    Nil),
+    TLM_SENSOR(BATTERY_CELL_VOLTAGES,   0x0021,   100,  3000,    Cells),
 
     TLM_SENSOR(ROLL_CONTROL,            0x0031,   100,  3000,    S16),
     TLM_SENSOR(PITCH_CONTROL,           0x0032,   100,  3000,    S16),
