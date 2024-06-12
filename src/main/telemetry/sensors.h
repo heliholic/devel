@@ -150,6 +150,15 @@ typedef enum
 
     TELEM_ADJFUNC,
 
+    TELEM_DEBUG_0,
+    TELEM_DEBUG_1,
+    TELEM_DEBUG_2,
+    TELEM_DEBUG_3,
+    TELEM_DEBUG_4,
+    TELEM_DEBUG_5,
+    TELEM_DEBUG_6,
+    TELEM_DEBUG_7,
+
     TELEM_SENSOR_COUNT,
 
 } sensor_id_e;

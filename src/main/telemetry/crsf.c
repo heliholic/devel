@@ -670,6 +670,15 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(LED_PROFILE,             0x0213,   200,  3000,    U8),
 
     TLM_SENSOR(ADJFUNC,                 0x0220,   200,  3000,    AdjFunc),
+
+    TLM_SENSOR(DEBUG_0,                 0xFE00,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_1,                 0xFE01,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_2,                 0xFE02,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_3,                 0xFE03,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_4,                 0xFE04,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_5,                 0xFE05,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_6,                 0xFE06,   100,  3000,    S32),
+    TLM_SENSOR(DEBUG_7,                 0xFE07,   100,  3000,    S32),
 };
 
 telemetrySensor_t * crsfGetNativeSensor(sensor_id_e id)

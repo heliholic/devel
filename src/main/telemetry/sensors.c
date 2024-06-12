@@ -30,6 +30,8 @@
 #include "pg/pilot.h"
 #include "pg/telemetry.h"
 
+#include "build/debug.h"
+
 #include "sensors/battery.h"
 #include "sensors/voltage.h"
 #include "sensors/current.h"
@@ -307,6 +309,23 @@ int telemetrySensorValue(sensor_id_e id)
             return getAdjustmentsRangeName() ?
                 getTupleHash(getAdjustmentsRangeFunc(), getAdjustmentsRangeValue()) : 0;
 
+        case TELEM_DEBUG_0:
+            return debug[0];
+        case TELEM_DEBUG_1:
+            return debug[1];
+        case TELEM_DEBUG_2:
+            return debug[2];
+        case TELEM_DEBUG_3:
+            return debug[3];
+        case TELEM_DEBUG_4:
+            return debug[4];
+        case TELEM_DEBUG_5:
+            return debug[5];
+        case TELEM_DEBUG_6:
+            return debug[6];
+        case TELEM_DEBUG_7:
+            return debug[7];
+
         default:
             return 0;
     }
@@ -457,6 +476,16 @@ bool telemetrySensorActive(sensor_id_e id)
 
         case TELEM_ADJFUNC:
             return true;
+
+        case TELEM_DEBUG_0:
+        case TELEM_DEBUG_1:
+        case TELEM_DEBUG_2:
+        case TELEM_DEBUG_3:
+        case TELEM_DEBUG_4:
+        case TELEM_DEBUG_5:
+        case TELEM_DEBUG_6:
+        case TELEM_DEBUG_7:
+            return debugMode;
 
         default:
             return false;
