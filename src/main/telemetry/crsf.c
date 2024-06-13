@@ -538,6 +538,8 @@ void crsfSensorEncodeAdjFunc(sbuf_t *buf, telemetrySensor_t *sensor)
 static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
 {
     sbufWriteU8(dst, CRSF_FRAMETYPE_CUSTOM_TELEM);
+    sbufWriteU8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
 }
 
 static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
