@@ -257,7 +257,7 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
     return 0;
 }
 
-static size_t crsfSbufLen(sbuf_t *buf)
+size_t crsfSbufLen(sbuf_t *buf)
 {
     return buf->ptr - crsfFrame;
 }
@@ -542,7 +542,7 @@ static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
 }
 
-static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
+void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
 {
     sbufWriteU16BE(dst, sensor->tcode);
     sensor->encode(dst, sensor);
@@ -1033,24 +1033,11 @@ static void processCustomTelemetry(void)
     if (crsfRxIsTelemetryBufEmpty()) {
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameCustomTelemetryHeader(dst);
+        crsfSensorEncodeAccel(dst, NULL);
         while (sbufBytesRemaining(dst) > 8) {
-            telemetrySensor_t *sensor = telemetryScheduleNext();
-            if (sensor) {
-                uint8_t *ptr = sbufPtr(dst);
-                crsfFrameCustomTelemetrySensor(dst, sensor);
-                if (sbufBytesRemaining(dst) < 4) {
-                    sbufReset(dst, ptr);
-                    break;
-                }
-                telemetryScheduleCommit(sensor);
-            }
-            else {
-                break;
-            }
+            sbufWriteU8(dst, 0xFF);
         }
-        if (crsfSbufLen(dst) > 4) {
-            crsfFinalizeSbuf(dst);
-        }
+        crsfFinalizeSbuf(dst);
     }
 }
 
