@@ -293,6 +293,19 @@ static void crsfFrameGps(sbuf_t *dst)
 }
 
 /*
+ * 0x07 Barometer sensor
+ * Payload:
+ * uint16_t    Altitude (dm)
+ * int16_t     Variomaeter
+*/
+static void crsfFrameBaroSensor(sbuf_t *dst)
+{
+    sbufWriteU8(dst, CRSF_FRAMETYPE_BARO_SENSOR);
+    sbufWriteU16BE(dst, getEstimatedAltitudeCm() / 10 + 10000);
+    sbufWriteS16BE(dst, getEstimatedVarioCms());
+}
+
+/*
  * 0x08 Battery sensor
  * Payload:
  * uint16_t    Voltage (100mV steps)
@@ -570,6 +583,7 @@ static telemetrySensor_t crsfNativeTelemetrySensors[] =
     TLM_SENSOR(FLIGHT_MODE,                  0,   200,   200,    Nil),
     TLM_SENSOR(BATTERY,                      0,   200,   200,    Nil),
     TLM_SENSOR(ATTITUDE,                     0,   200,   200,    Nil),
+    TLM_SENSOR(VARIOMETER,                   0,   200,   200,    Nil),
     TLM_SENSOR(GPS,                          0,   200,   200,    Nil),
 };
 
@@ -947,6 +961,9 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
         case CRSF_FRAMETYPE_ATTITUDE:
             crsfFrameAttitude(dst);
             break;
+        case CRSF_FRAMETYPE_BARO_SENSOR:
+            crsfFrameBaroSensor(dst);
+            break;
         case CRSF_FRAMETYPE_BATTERY_SENSOR:
             crsfFrameBatterySensor(dst);
             break;
@@ -1004,6 +1021,9 @@ static void processCrsfTelemetry(void)
             switch (sensor->telid) {
                 case TELEM_ATTITUDE:
                     crsfFrameAttitude(dst);
+                    break;
+                case TELEM_VARIOMETER:
+                    crsfFrameBaroSensor(dst);
                     break;
                 case TELEM_BATTERY:
                     crsfFrameBatterySensor(dst);
