@@ -1065,8 +1065,7 @@ static void processCrsfTelemetry(void)
                     break;
             }
             size_t bytes = crsfFinalizeSbuf(dst);
-            bytes = crsfLinkFrameSize(bytes);
-            telemetryScheduleCommit(sensor, bytes);
+            telemetryScheduleCommit(sensor, crsfLinkFrameSize(bytes));
             telemetryScheduleCommit(crsfHeartBeatSensor, 0);
         }
     }
@@ -1079,7 +1078,7 @@ static void processCustomTelemetry(void)
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameCustomTelemetryHeader(dst);
 if (0) {
-        while (sbufBytesRemaining(dst) > 32) {
+        while (sbufBytesRemaining(dst) > 8) {
             telemetrySensor_t *sensor = telemetryScheduleNext();
             if (sensor) {
                 uint8_t *ptr = sbufPtr(dst);
@@ -1108,8 +1107,7 @@ if (0) {
 }
         if (crsfSbufLen(dst) > 8) {
             size_t bytes = crsfFinalizeSbuf(dst);
-            bytes = crsfLinkFrameSize(bytes);
-            telemetryScheduleCommit(NULL, bytes);
+            telemetryScheduleCommit(NULL, crsfLinkFrameSize(bytes));
         }
     }
 }
