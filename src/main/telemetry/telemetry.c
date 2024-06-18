@@ -286,21 +286,21 @@ telemetrySensor_t * telemetryScheduleNext(void)
     return NULL;
 }
 
-void telemetryScheduleCommit(telemetrySensor_t * sensor, size_t bytes)
+void telemetryScheduleCommit(telemetrySensor_t * sensor, size_t units)
 {
     if (sensor) {
         sensor->bucket -= 1000000;
         sensor->update = false;
     }
-    if (bytes) {
-        sch.rate_bucket -= bytes;
+    if (units) {
+        sch.rate_bucket -= units;
     }
 }
 
 void INIT_CODE telemetryScheduleInit(telemetrySensor_t * sensors, size_t count, float maxrate)
 {
     sch.rate_bucket = 0;
-    sch.max_rate = maxrate * 1e-6f;  // bytes / us
+    sch.max_rate = maxrate * 1e-6f;  // units / us
     sch.update_time = 0;
     sch.start_index = 0;
     sch.sensor_count = count;

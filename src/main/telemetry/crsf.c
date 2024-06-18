@@ -220,10 +220,10 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
  * CRSF Stream buffer handling
  */
 
-static size_t crsfLinkFrameSize(size_t size)
+static size_t crsfLinkFrameSlots(size_t size)
 {
     // Telemetry data is send as multiples of 5 bytes with 4 bytes (virtual) overhead.
-    return ((size + 8) / 5) * 5;
+    return (size + 8) / 5;
 }
 
 static size_t crsfSbufLen(sbuf_t *buf)
@@ -1065,7 +1065,7 @@ static void processCrsfTelemetry(void)
                     break;
             }
             size_t bytes = crsfFinalizeSbuf(dst);
-            telemetryScheduleCommit(sensor, crsfLinkFrameSize(bytes));
+            telemetryScheduleCommit(sensor, crsfLinkFrameSlots(bytes));
             telemetryScheduleCommit(crsfHeartBeatSensor, 0);
         }
     }
@@ -1107,7 +1107,7 @@ if (0) {
 }
         if (crsfSbufLen(dst) > 8) {
             size_t bytes = crsfFinalizeSbuf(dst);
-            telemetryScheduleCommit(NULL, crsfLinkFrameSize(bytes));
+            telemetryScheduleCommit(NULL, crsfLinkFrameSlots(bytes));
         }
     }
 }
@@ -1192,7 +1192,7 @@ static void INIT_CODE crsfInitNativeTelemetry(void)
 {
     const float rate = telemetryConfig()->telemetry_link_rate;
     const float ratio = telemetryConfig()->telemetry_link_ratio;
-    const float maxrate = 5 * rate / ratio;
+    const float maxrate = rate / ratio;
 
     crsfTelemetryInterval = 1000000 * ratio / rate;
 
@@ -1216,7 +1216,7 @@ static void INIT_CODE crsfInitCustomTelemetry(void)
 {
     const float rate = telemetryConfig()->telemetry_link_rate;
     const float ratio = telemetryConfig()->telemetry_link_ratio;
-    const float maxrate = 5 * rate / ratio;
+    const float maxrate = rate / ratio;
 
     crsfTelemetryInterval = 1000000 * ratio / rate;
 
