@@ -228,7 +228,7 @@ static size_t crsfLinkFrameSize(size_t size)
 
 static size_t crsfSbufLen(sbuf_t *buf)
 {
-    return buf->ptr - crsfFrame;
+    return buf->ptr - (buf->end - CRSF_FRAME_SIZE_MAX);
 }
 
 static sbuf_t * crsfInitializeSbuf(void)
