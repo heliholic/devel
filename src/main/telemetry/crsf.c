@@ -96,6 +96,12 @@ static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
 static timeUs_t crsfNextCycleTime = 0;
 
 
+static bool crsfCanTransmitTelemetry(void)
+{
+    return crsfRxIsTelemetryBufEmpty() && telemetryScheduleCanTransmit();
+}
+
+
 #if defined(USE_CRSF_V3)
 
 static bool isCrsfV3Running = false;
@@ -183,7 +189,7 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
     static bool replyPending = false;
 
     if (replyPending) {
-        if (crsfRxIsTelemetryBufEmpty()) {
+        if (crsfCanTransmitTelemetry()) {
             replyPending = sendMspReply(CRSF_FRAME_TX_MSP_FRAME_SIZE, responseFn);
         }
         return replyPending;
@@ -196,7 +202,7 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
     while (true) {
         const uint8_t mspFrameLength = mspRxBuffer.bytes[pos];
         if (handleMspFrame(&mspRxBuffer.bytes[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength, NULL)) {
-            if (crsfRxIsTelemetryBufEmpty()) {
+            if (crsfCanTransmitTelemetry()) {
                 replyPending = sendMspReply(CRSF_FRAME_TX_MSP_FRAME_SIZE, responseFn);
             } else {
                 replyPending = true;
@@ -259,6 +265,9 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
 
         // Write the telemetry frame to the receiver
         crsfRxWriteTelemetryData(crsfFrame, frameLength);
+
+        // Update schedule
+        telemetryScheduleCommit(NULL, crsfLinkFrameSlots(frameLength));
 
         return frameLength;
     }
@@ -1034,7 +1043,7 @@ void crsfScheduleDeviceInfoResponse(void)
 
 static void processCrsfTelemetry(void)
 {
-    if (crsfRxIsTelemetryBufEmpty()) {
+    if (crsfCanTransmitTelemetry()) {
         telemetrySensor_t *sensor = telemetryScheduleNext();
         if (sensor) {
             sbuf_t *dst = crsfInitializeSbuf();
@@ -1064,8 +1073,8 @@ static void processCrsfTelemetry(void)
                     crsfFrameHeartbeat(dst);
                     break;
             }
-            size_t bytes = crsfFinalizeSbuf(dst);
-            telemetryScheduleCommit(sensor, crsfLinkFrameSlots(bytes));
+            crsfFinalizeSbuf(dst);
+            telemetryScheduleCommit(sensor, 0);
             telemetryScheduleCommit(crsfHeartBeatSensor, 0);
         }
     }
@@ -1074,7 +1083,7 @@ static void processCrsfTelemetry(void)
 static void processCustomTelemetry(void)
 {
 
-    if (crsfRxIsTelemetryBufEmpty() && telemetryScheduleCanTransmit()) {
+    if (crsfCanTransmitTelemetry()) {
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameCustomTelemetryHeader(dst);
 if (0) {
@@ -1106,8 +1115,8 @@ if (0) {
         }
 }
         if (crsfSbufLen(dst) > 8) {
-            size_t bytes = crsfFinalizeSbuf(dst);
-            telemetryScheduleCommit(NULL, crsfLinkFrameSlots(bytes));
+            crsfFinalizeSbuf(dst);
+            telemetryScheduleCommit(NULL, 0);
         }
     }
 }
