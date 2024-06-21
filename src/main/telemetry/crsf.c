@@ -1220,6 +1220,8 @@ static void INIT_CODE crsfInitCustomTelemetry(void)
             telemetrySensor_t * sensor = crsfGetCustomSensor(id);
             if (telemetryConfig()->telemetry_interval[i])
                 sensor->min_interval = telemetryConfig()->telemetry_interval[i];
+            if (sensor->max_interval > 1000)
+                sensor->max_interval += rand() % 100;
             telemetryScheduleAdd(sensor);
         }
     }
