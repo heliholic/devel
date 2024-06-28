@@ -31,8 +31,6 @@
 
 typedef struct {
     timeUs_t                    update_time;
-    float                       rate_bucket;
-    float                       max_rate;
     uint16_t                    start_index;
     uint16_t                    sensor_count;
     telemetrySensor_t *         sensors;
@@ -48,11 +46,10 @@ void telemetryProcess(timeUs_t currentTime);
 void telemetryCheckState(void);
 void telemetryInit(void);
 
-bool telemetryScheduleCanTransmit(void);
 telemetrySensor_t * telemetryScheduleNext(void);
 
 void telemetryScheduleAdd(telemetrySensor_t * sensor);
 void telemetryScheduleUpdate(timeUs_t currentTime);
-void telemetryScheduleCommit(telemetrySensor_t * sensor, size_t units);
-void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count, float maxrate);
+void telemetryScheduleCommit(telemetrySensor_t * sensor);
+void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count);
 

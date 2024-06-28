@@ -242,8 +242,6 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
 {
     timeDelta_t delta = cmpTimeUs(currentTime, sch.update_time);
 
-    sch.rate_bucket = constrainf(sch.rate_bucket + delta * sch.max_rate, -72, 8);
-
     for (int i = 0; i < sch.sensor_count; i++) {
         telemetrySensor_t * sensor = &sch.sensors[i];
         if (sensor->active) {
@@ -260,44 +258,32 @@ void telemetryScheduleUpdate(timeUs_t currentTime)
     sch.update_time = currentTime;
 }
 
-bool telemetryScheduleCanTransmit(void)
-{
-    return (sch.rate_bucket >= 0);
-}
-
 telemetrySensor_t * telemetryScheduleNext(void)
 {
-    if (telemetryScheduleCanTransmit()) {
-        int index = sch.start_index;
+    int index = sch.start_index;
 
-        for (int i = 0; i < sch.sensor_count; i++) {
-            index = (index + 1) % sch.sensor_count;
-            telemetrySensor_t * sensor = &sch.sensors[index];
-            if (sensor->active && sensor->bucket >= 0) {
-                sch.start_index = index;
-                return sensor;
-            }
+    for (int i = 0; i < sch.sensor_count; i++) {
+        index = (index + 1) % sch.sensor_count;
+        telemetrySensor_t * sensor = &sch.sensors[index];
+        if (sensor->active && sensor->bucket >= 0) {
+            sch.start_index = index;
+            return sensor;
         }
     }
 
     return NULL;
 }
 
-void telemetryScheduleCommit(telemetrySensor_t * sensor, size_t units)
+void telemetryScheduleCommit(telemetrySensor_t * sensor)
 {
     if (sensor) {
         sensor->bucket -= 1000000;
         sensor->update = false;
     }
-    if (units) {
-        sch.rate_bucket -= units;
-    }
 }
 
-void INIT_CODE telemetryScheduleInit(telemetrySensor_t * sensors, size_t count, float maxrate)
+void INIT_CODE telemetryScheduleInit(telemetrySensor_t * sensors, size_t count)
 {
-    sch.rate_bucket = 0;
-    sch.max_rate = maxrate * 1e-6f;  // units / us
     sch.update_time = 0;
     sch.start_index = 0;
     sch.sensor_count = count;
