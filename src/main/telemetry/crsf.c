@@ -135,7 +135,7 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
     // Frame length including CRC
     const size_t frameLength = crsfSbufLen(dst) + 2;
 
-    if (frameLength <= CRSF_FRAME_SIZE_MAX)
+    if (frameLength <= CRSF_FRAME_SIZE_MAX + 1)
     {
         // Set frame length into the placeholder
         crsfFrame[1] = frameLength - 3;
