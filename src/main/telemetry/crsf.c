@@ -26,6 +26,7 @@
 #include "build/atomic.h"
 #include "build/build_config.h"
 #include "build/version.h"
+#include "build/dprintf.h"
 
 #include "cms/cms.h"
 
@@ -228,6 +229,15 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
     sbufWriteU8(dst, mspRequestOriginID);
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     sbufWriteData(dst, payload, payloadSize);
+    int frameLength = crsfSbufLen(dst);
+    if (true)
+    {
+        dprintf("MSP RESP [%d]:", frameLength);
+        for (int i = 0; i < frameLength; i++) {
+            dprintf(" %02X", crsfFrame[i]);
+        }
+        dprintf("\r\n");
+    }
     crsfFinalizeSbuf(dst);
 }
 
@@ -260,6 +270,16 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
             }
             if (loop) {
                 const uint8_t mspFrameLength = mspRequestDataBuffer[pos];
+
+                if (mspFrameLength)
+                {
+                    dprintf("MSP REQ [%d]:", mspFrameLength);
+                    for (int i = 0; i < mspFrameLength; i++) {
+                        dprintf(" %02X", mspRequestDataBuffer[CRSF_MSP_LENGTH_OFFSET + pos + i]);
+                    }
+                    dprintf("\r\n");
+                }
+
                 mspRespPending = handleMspFrame(&mspRequestDataBuffer[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength, NULL);
                 pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
             }
@@ -1243,6 +1263,8 @@ void INIT_CODE initCrsfTelemetry(void)
             crsfInitCustomTelemetry();
         else
             crsfInitNativeTelemetry();
+
+        initDebugSerial(SERIAL_PORT_USART6);
     }
 }
 
