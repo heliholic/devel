@@ -74,10 +74,6 @@
 #include "crsf.h"
 
 
-#define CRSF_MSP_GRACE_US                   100000
-#define CRSF_CMS_GRACE_US                   100000
-#define CRSF_DEVICE_INFO_GRACE_US           50000
-
 #define CRSF_DEVICEINFO_VERSION             0x01
 #define CRSF_DEVICEINFO_PARAMETER_COUNT     0
 
@@ -86,14 +82,15 @@
 
 static bool crsfTelemetryEnabled;
 static bool crsfCustomTelemetryEnabled;
-static timeDelta_t crsfTelemetryInterval;
+
+static float crsfTelemetryRateBucket;
+static float crsfTelemetryRateQuanta;
+static timeUs_t crsfTelemetryUpdateTime;
 
 static bool deviceInfoReplyPending = false;
 
 static sbuf_t crsfSbuf;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
-
-static timeUs_t crsfNextCycleTime = 0;
 
 
 bool checkCrsfTelemetryState(void)
@@ -101,20 +98,37 @@ bool checkCrsfTelemetryState(void)
     return crsfTelemetryEnabled;
 }
 
-static bool crsfCanTransmitTelemetry(void)
+static inline size_t crsfLinkFrameSlots(size_t bytes)
 {
-    return crsfRxIsTelemetryBufEmpty() && telemetryScheduleCanTransmit();
+    // Telemetry data is send in 5 byte slots, with 1 slot overhead
+    return (bytes + 9) / 5;
 }
 
-static size_t crsfLinkFrameSlots(size_t size)
+static inline void crsfTelemetryRateConsume(size_t slots)
 {
-    // Telemetry data is send in 5 byte slots, with 4 bytes of (virtual) overhead
-    return (size + 8) / 5;
+    crsfTelemetryRateBucket -= slots;
+}
+
+static void crsfTelemetryRateUpdate(timeUs_t currentTimeUs)
+{
+    timeDelta_t delta = cmpTimeUs(currentTimeUs, crsfTelemetryUpdateTime);
+
+    crsfTelemetryRateBucket += crsfTelemetryRateQuanta * delta;
+    crsfTelemetryRateBucket = constrainf(crsfTelemetryRateBucket, -25, 1);
+
+    crsfTelemetryUpdateTime = currentTimeUs;
+
+    telemetryScheduleUpdate(currentTimeUs);
+}
+
+static bool crsfCanTransmitTelemetry(void)
+{
+    return crsfRxIsTelemetryBufEmpty() && crsfTelemetryRateBucket >= 0;
 }
 
 static size_t crsfSbufLen(sbuf_t *buf)
 {
-    return buf->ptr - (buf->end - CRSF_FRAME_SIZE_MAX);
+    return buf->ptr - crsfFrame;
 }
 
 static sbuf_t * crsfInitializeSbuf(void)
@@ -122,7 +136,7 @@ static sbuf_t * crsfInitializeSbuf(void)
     sbuf_t * dst = &crsfSbuf;
 
     dst->ptr = crsfFrame;
-    dst->end = crsfFrame + CRSF_FRAME_SIZE_MAX;
+    dst->end = crsfFrame + CRSF_FRAME_SIZE_MAX + 1;
 
     sbufWriteU8(dst, CRSF_SYNC_BYTE);
     sbufWriteU8(dst, CRSF_FRAME_LENGTH_TYPE_CRC);  // placeholder
@@ -146,8 +160,8 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
         // Write the telemetry frame to the receiver
         crsfRxWriteTelemetryData(crsfFrame, frameLength);
 
-        // Update schedule
-        telemetryScheduleCommit(NULL, crsfLinkFrameSlots(frameLength));
+        // Consume telemetry rate
+        crsfTelemetryRateConsume(crsfLinkFrameSlots(frameLength - 1));
 
         return frameLength;
     }
@@ -229,6 +243,7 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     sbufWriteData(dst, payload, payloadSize);
     crsfFinalizeSbuf(dst);
+    crsfTelemetryRateConsume(2);
 }
 
 void crsfScheduleMspResponse(uint8_t requestOriginID)
@@ -272,10 +287,8 @@ bool handleCrsfMspFrameBuffer(mspResponseFnPtr responseFn)
     }
 
     if (mspRespPending) {
-        if (crsfCanTransmitTelemetry()) {
-            mspRespPending = sendMspReply(CRSF_FRAME_TX_MSP_FRAME_SIZE, responseFn);
-            return true;
-        }
+        mspRespPending = sendMspReply(CRSF_FRAME_TX_MSP_FRAME_SIZE, responseFn);
+        return true;
     }
 
     return false;
@@ -943,7 +956,6 @@ static bool crsfSendDisplayPortData(void)
             sbuf_t *dst = crsfInitializeSbuf();
             crsfFrameDisplayPortChunk(dst, src, displayPortBatchId, i);
             crsfFinalizeSbuf(dst);
-            crsfRxSendTelemetryData();
         }
         return true;
     }
@@ -1063,71 +1075,83 @@ bool crsfSendDeviceInfoData(void)
 }
 
 
-static void processCrsfTelemetry(void)
+static bool processCrsfTelemetry(void)
 {
-    telemetrySensor_t *sensor = telemetryScheduleNext();
+    if (!crsfCustomTelemetryEnabled)
+    {
+        telemetrySensor_t *sensor = telemetryScheduleNext();
 
-    if (sensor) {
-        sbuf_t *dst = crsfInitializeSbuf();
-        switch (sensor->telid) {
-            case TELEM_ATTITUDE:
-                crsfFrameAttitude(dst);
-                break;
-            case TELEM_VARIOMETER:
-                crsfFrameVarioSensor(dst);
-                break;
-            case TELEM_ALTITUDE:
-                crsfFrameAltitudeSensor(dst);
-                break;
-            case TELEM_BATTERY:
-                crsfFrameBatterySensor(dst);
-                break;
-            case TELEM_FLIGHT_MODE:
-                crsfFrameFlightMode(dst);
-                break;
-#ifdef USE_GPS
-            case TELEM_GPS:
-                crsfFrameGps(dst);
-                break;
-#endif
-            case TELEM_HEARTBEAT:
-            default:
-                crsfFrameHeartbeat(dst);
-                break;
+        if (sensor) {
+            sbuf_t *dst = crsfInitializeSbuf();
+            switch (sensor->telid) {
+                case TELEM_ATTITUDE:
+                    crsfFrameAttitude(dst);
+                    break;
+                case TELEM_VARIOMETER:
+                    crsfFrameVarioSensor(dst);
+                    break;
+                case TELEM_ALTITUDE:
+                    crsfFrameAltitudeSensor(dst);
+                    break;
+                case TELEM_BATTERY:
+                    crsfFrameBatterySensor(dst);
+                    break;
+                case TELEM_FLIGHT_MODE:
+                    crsfFrameFlightMode(dst);
+                    break;
+    #ifdef USE_GPS
+                case TELEM_GPS:
+                    crsfFrameGps(dst);
+                    break;
+    #endif
+                case TELEM_HEARTBEAT:
+                default:
+                    crsfFrameHeartbeat(dst);
+                    break;
+            }
+            crsfFinalizeSbuf(dst);
+            telemetryScheduleCommit(sensor);
+            telemetryScheduleCommit(crsfHeartBeatSensor);
+            return true;
         }
-        crsfFinalizeSbuf(dst);
-        telemetryScheduleCommit(sensor, 0);
-        telemetryScheduleCommit(crsfHeartBeatSensor, 0);
     }
+
+    return false;
 }
 
-static void processCustomTelemetry(void)
+static bool processCustomTelemetry(void)
 {
-    size_t sensor_count = 0;
-    sbuf_t *dst = crsfInitializeSbuf();
+    if (crsfCustomTelemetryEnabled)
+    {
+        size_t sensor_count = 0;
+        sbuf_t *dst = crsfInitializeSbuf();
 
-    crsfFrameCustomTelemetryHeader(dst);
+        crsfFrameCustomTelemetryHeader(dst);
 
-    while (sbufBytesRemaining(dst) > 8) {
-        telemetrySensor_t *sensor = telemetryScheduleNext();
-        if (sensor) {
-            uint8_t *ptr = sbufPtr(dst);
-            crsfFrameCustomTelemetrySensor(dst, sensor);
-            if (sbufBytesRemaining(dst) < 2) {
-                sbufReset(dst, ptr);
+        while (sbufBytesRemaining(dst) > 8) {
+            telemetrySensor_t *sensor = telemetryScheduleNext();
+            if (sensor) {
+                uint8_t *ptr = sbufPtr(dst);
+                crsfFrameCustomTelemetrySensor(dst, sensor);
+                if (sbufBytesRemaining(dst) < 2) {
+                    sbufReset(dst, ptr);
+                    break;
+                }
+                telemetryScheduleCommit(sensor);
+                sensor_count++;
+            }
+            else {
                 break;
             }
-            telemetryScheduleCommit(sensor, 0);
-            sensor_count++;
         }
-        else {
-            break;
+
+        if (sensor_count) {
+            crsfFinalizeSbuf(dst);
+            return true;
         }
     }
 
-    if (sensor_count) {
-        crsfFinalizeSbuf(dst);
-    }
+    return false;
 }
 
 void handleCrsfTelemetry(timeUs_t currentTimeUs)
@@ -1135,60 +1159,36 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
     if (!crsfTelemetryEnabled)
         return;
 
-    crsfRxSendTelemetryData();
-
 #if defined(USE_CRSF_V3)
     if (crsfBaudNegotiationInProgress())
         return;
 #endif
 
-    telemetryScheduleUpdate(currentTimeUs);
+    crsfRxSendTelemetryData();
 
-#if defined(USE_MSP_OVER_TELEMETRY)
-    if (handleCrsfMspFrameBuffer(&crsfSendMspResponse)) {
-        crsfNextCycleTime = currentTimeUs + CRSF_MSP_GRACE_US;
-        crsfRxSendTelemetryData();
-        return;
-    }
-#endif
+    crsfTelemetryRateUpdate(currentTimeUs);
 
     if (crsfCanTransmitTelemetry())
     {
-        if (crsfSendDeviceInfoData()) {
-            crsfNextCycleTime = currentTimeUs + CRSF_DEVICE_INFO_GRACE_US;
-            crsfRxSendTelemetryData();
-            return;
-        }
-
-#if defined(USE_CRSF_CMS_TELEMETRY)
-        if (crsfSendDisplayPortData()) {
-            crsfNextCycleTime = currentTimeUs + CRSF_CMS_GRACE_US;
-            crsfRxSendTelemetryData();
-            return;
-        }
+        if (
+#if defined(USE_MSP_OVER_TELEMETRY)
+            handleCrsfMspFrameBuffer(&crsfSendMspResponse) ||
 #endif
-
-        if (currentTimeUs >= crsfNextCycleTime) {
-            if (crsfCustomTelemetryEnabled)
-                processCustomTelemetry();
-            else
-                processCrsfTelemetry();
-            crsfNextCycleTime += crsfTelemetryInterval;
+#if defined(USE_CRSF_CMS_TELEMETRY)
+            crsfSendDisplayPortData() ||
+#endif
+            crsfSendDeviceInfoData() ||
+            processCrsfTelemetry() ||
+            processCustomTelemetry())
+        {
             crsfRxSendTelemetryData();
-            return;
         }
     }
 }
 
 static void INIT_CODE crsfInitNativeTelemetry(void)
 {
-    const float rate = telemetryConfig()->telemetry_link_rate;
-    const float ratio = telemetryConfig()->telemetry_link_ratio;
-    const float maxrate = rate / ratio;
-
-    crsfTelemetryInterval = 1000000 * ratio / rate;
-
-    telemetryScheduleInit(crsfNativeTelemetrySensors, ARRAYLEN(crsfNativeTelemetrySensors), maxrate);
+    telemetryScheduleInit(crsfNativeTelemetrySensors, ARRAYLEN(crsfNativeTelemetrySensors));
 
     crsfHeartBeatSensor = crsfGetNativeSensor(TELEM_HEARTBEAT);
     telemetryScheduleAdd(crsfHeartBeatSensor);
@@ -1206,13 +1206,7 @@ static void INIT_CODE crsfInitNativeTelemetry(void)
 
 static void INIT_CODE crsfInitCustomTelemetry(void)
 {
-    const float rate = telemetryConfig()->telemetry_link_rate;
-    const float ratio = telemetryConfig()->telemetry_link_ratio;
-    const float maxrate = rate / ratio;
-
-    crsfTelemetryInterval = 1000000 * ratio / rate;
-
-    telemetryScheduleInit(crsfCustomTelemetrySensors, ARRAYLEN(crsfCustomTelemetrySensors), maxrate);
+    telemetryScheduleInit(crsfCustomTelemetrySensors, ARRAYLEN(crsfCustomTelemetrySensors));
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
@@ -1236,13 +1230,20 @@ void INIT_CODE initCrsfTelemetry(void)
 
     if (crsfTelemetryEnabled)
     {
-#if defined(USE_CRSF_CMS_TELEMETRY)
-        crsfDisplayportRegister();
-#endif
+        const float rate = telemetryConfig()->telemetry_link_rate;
+        const float ratio = telemetryConfig()->telemetry_link_ratio;
+
+        crsfTelemetryRateBucket = 0;
+        crsfTelemetryRateQuanta = rate / (ratio * 1000000);
+
         if (crsfCustomTelemetryEnabled)
             crsfInitCustomTelemetry();
         else
             crsfInitNativeTelemetry();
+
+#if defined(USE_CRSF_CMS_TELEMETRY)
+        crsfDisplayportRegister();
+#endif
     }
 }
 
