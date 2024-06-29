@@ -23,7 +23,7 @@
 #include "common/printf.h"
 
 // Either define it here, or on the command line
-//#define USE_SERIAL_DPRINTF
+#define USE_SERIAL_DPRINTF
 
 #ifdef USE_SERIAL_DPRINTF
 
