@@ -80,6 +80,9 @@
 #define CRSF_MSP_BUFFER_SIZE                128
 #define CRSF_MSP_LENGTH_OFFSET              1
 
+// 64 byte frame + 1 sync byte
+#define CRSF_FRAME_BUFFER_SIZE              CRSF_FRAME_SIZE_MAX + 1
+
 static bool crsfTelemetryEnabled;
 static bool crsfCustomTelemetryEnabled;
 
@@ -90,7 +93,7 @@ static timeUs_t crsfTelemetryUpdateTime;
 static bool deviceInfoReplyPending = false;
 
 static sbuf_t crsfSbuf;
-static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
+static uint8_t crsfFrame[CRSF_FRAME_BUFFER_SIZE + 32];
 
 
 bool checkCrsfTelemetryState(void)
@@ -136,7 +139,7 @@ static sbuf_t * crsfInitializeSbuf(void)
     sbuf_t * dst = &crsfSbuf;
 
     dst->ptr = crsfFrame;
-    dst->end = crsfFrame + CRSF_FRAME_SIZE_MAX + 1;
+    dst->end = crsfFrame + CRSF_FRAME_BUFFER_SIZE;
 
     sbufWriteU8(dst, CRSF_SYNC_BYTE);
     sbufWriteU8(dst, CRSF_FRAME_LENGTH_TYPE_CRC);  // placeholder
@@ -149,7 +152,7 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
     // Frame length including CRC
     const size_t frameLength = crsfSbufLen(dst) + 2;
 
-    if (frameLength <= CRSF_FRAME_SIZE_MAX + 1)
+    if (frameLength <= CRSF_FRAME_BUFFER_SIZE)
     {
         // Set frame length into the placeholder
         crsfFrame[1] = frameLength - 3;
