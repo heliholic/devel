@@ -26,6 +26,7 @@
 #include "build/atomic.h"
 #include "build/build_config.h"
 #include "build/version.h"
+#include "build/dprintf.h"
 
 #include "cms/cms.h"
 
@@ -101,6 +102,10 @@ static bool deviceInfoReplyPending = false;
 
 static sbuf_t crsfSbuf;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX + 32];
+
+static uint32_t crsfFrameCount = 0;
+static uint32_t crsfByteCount = 0;
+static timeUs_t crsfStatsUpdateTime = 0;
 
 
 bool checkCrsfTelemetryState(void)
@@ -179,6 +184,10 @@ static size_t crsfTransmitSbuf(sbuf_t *dst)
 
         // Consume telemetry rate
         crsfTelemetryRateConsume(crsfLinkFrameSlots(frameLength));
+
+        // Update statictics
+        crsfFrameCount += 1;
+        crsfByteCount += frameLength;
 
         return frameLength;
     }
@@ -1206,6 +1215,14 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
             crsfSendCustomTelemetry() ||
             crsfSendHeartBeat();
     }
+
+    timeDelta_t delta = cmpTimeUs(currentTimeUs, crsfStatsUpdateTime);
+    if (delta >= 999500) {
+        dprintf("CRSF %dus frames:%d bytes:%d rate:%dbps\r\n", delta, crsfFrameCount, crsfByteCount, crsfByteCount * 8);
+        crsfFrameCount = 0;
+        crsfByteCount = 0;
+        crsfStatsUpdateTime = currentTimeUs;
+    }
 }
 
 static void INIT_CODE crsfInitNativeTelemetry(void)
@@ -1268,6 +1285,8 @@ void INIT_CODE initCrsfTelemetry(void)
 #if defined(USE_CRSF_CMS_TELEMETRY)
         crsfDisplayportRegister();
 #endif
+
+        initDebugSerial(SERIAL_PORT_USART6, 921600);
     }
 }
 
