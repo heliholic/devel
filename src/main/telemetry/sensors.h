@@ -189,6 +189,7 @@ struct telemetrySensor_s {
 
 int telemetrySensorValue(sensor_id_e id);
 bool telemetrySensorActive(sensor_id_e id);
+bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id);
 
 
 /** Legacy sensors **/

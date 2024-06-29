@@ -63,15 +63,6 @@
 serialPort_t *telemetrySharedPort = NULL;
 
 
-bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id)
-{
-    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        if (telemetryConfig()->telemetry_sensors[i] == sensor_id)
-            return true;
-    }
-    return false;
-}
-
 bool telemetryDetermineEnabledState(portSharing_e portSharing)
 {
     bool enabled = (portSharing == PORTSHARING_NOT_SHARED);

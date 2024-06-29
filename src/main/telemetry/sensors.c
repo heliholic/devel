@@ -121,6 +121,16 @@ static uint32_t getTupleHash(uint32_t a, uint32_t b)
     return z.U;
 }
 
+
+bool telemetryIsSensorIdEnabled(sensor_id_e sensor_id)
+{
+    for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
+        if (telemetryConfig()->telemetry_sensors[i] == sensor_id)
+            return true;
+    }
+    return false;
+}
+
 int telemetrySensorValue(sensor_id_e id)
 {
     switch (id) {
