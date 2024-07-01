@@ -70,8 +70,6 @@ STATIC_UNIT_TESTED uint32_t crsfChannelData[CRSF_MAX_CHANNEL];
 
 static serialPort_t *serialPort;
 static timeUs_t crsfFrameStartAtUs = 0;
-static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
-static uint8_t telemetryBufLen = 0;
 static float channelScale = CRSF_RC_CHANNEL_SCALE_LEGACY;
 
 #ifdef USE_RX_LINK_UPLINK_POWER
@@ -597,25 +595,11 @@ STATIC_UNIT_TESTED float crsfReadRawRC(const rxRuntimeState_t *rxRuntimeState, u
     }
 }
 
-void crsfRxWriteTelemetryData(const void *data, int len)
+void crsfRxTransmitTelemetryData(const void *data, int len)
 {
-    len = MIN(len, (int)sizeof(telemetryBuf));
-    memcpy(telemetryBuf, data, len);
-    telemetryBufLen = len;
-}
-
-void crsfRxSendTelemetryData(void)
-{
-    // if there is telemetry data to write
-    if (telemetryBufLen > 0) {
-        serialWriteBuf(serialPort, telemetryBuf, telemetryBufLen);
-        telemetryBufLen = 0; // reset telemetry buffer
+    if (len > 0 && len <= CRSF_FRAME_SIZE_MAX) {
+        serialWriteBuf(serialPort, data, len);
     }
-}
-
-bool crsfRxIsTelemetryBufEmpty(void)
-{
-    return telemetryBufLen == 0;
 }
 
 bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
