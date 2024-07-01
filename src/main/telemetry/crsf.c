@@ -130,7 +130,7 @@ static void crsfTelemetryRateUpdate(timeUs_t currentTimeUs)
 
 static bool crsfCanTransmitTelemetry(void)
 {
-    return crsfRxIsTelemetryBufEmpty() && crsfTelemetryRateBucket >= 0;
+    return crsfTelemetryRateBucket >= 0;
 }
 
 static size_t crsfSbufLen(sbuf_t *buf)
@@ -151,7 +151,7 @@ static sbuf_t * crsfInitializeSbuf(void)
     return dst;
 }
 
-static size_t crsfFinalizeSbuf(sbuf_t *dst)
+static size_t crsfTransmitSbuf(sbuf_t *dst)
 {
     // Frame length including CRC
     const size_t frameLength = crsfSbufLen(dst) + 1;
@@ -164,8 +164,8 @@ static size_t crsfFinalizeSbuf(sbuf_t *dst)
         // CRC does not include device address and frame length
         crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]);
 
-        // Write the telemetry frame to the receiver
-        crsfRxWriteTelemetryData(crsfFrame, frameLength);
+        // Transmit the telemetry frame to the receiver
+        crsfRxTransmitTelemetryData(crsfFrame, frameLength);
 
         // Consume telemetry rate
         crsfTelemetryRateConsume(crsfLinkFrameSlots(frameLength));
@@ -249,7 +249,7 @@ static void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
     sbufWriteU8(dst, mspRequestOriginID);
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     sbufWriteData(dst, payload, payloadSize);
-    crsfFinalizeSbuf(dst);
+    crsfTransmitSbuf(dst);
     crsfTelemetryRateConsume(2);
 }
 
@@ -813,9 +813,7 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         bool found = (crsfSpeed.index < BAUD_COUNT) && crsfRxUseNegotiatedBaud();
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameSpeedNegotiationResponse(dst, found);
-        crsfRxSendTelemetryData(); // prevent overwriting previous data
-        crsfFinalizeSbuf(dst);
-        crsfRxSendTelemetryData();
+        crsfTransmitSbuf(dst);
         crsfSpeed.hasPendingReply = false;
         crsfSpeed.isNewSpeedValid = found;
         crsfSpeed.confirmationTime = currentTimeUs;
@@ -832,9 +830,7 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         // Send heartbeat if telemetry is disabled to allow RX to detect baud rate mismatches
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameHeartbeat(dst);
-        crsfRxSendTelemetryData(); // prevent overwriting previous data
-        crsfFinalizeSbuf(dst);
-        crsfRxSendTelemetryData();
+        crsfTransmitSbuf(dst);
     }
 }
 
@@ -943,7 +939,7 @@ static bool crsfSendDisplayPortData(void)
         crsfDisplayPortScreen()->reset = false;
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameDisplayPortClear(dst);
-        crsfFinalizeSbuf(dst);
+        crsfTransmitSbuf(dst);
         return true;
     }
 
@@ -959,7 +955,7 @@ static bool crsfSendDisplayPortData(void)
         for (uint8_t i = 0; sbufBytesRemaining(src); i++) {
             sbuf_t *dst = crsfInitializeSbuf();
             crsfFrameDisplayPortChunk(dst, src, displayPortBatchId, i);
-            crsfFinalizeSbuf(dst);
+            crsfTransmitSbuf(dst);
         }
         return true;
     }
@@ -994,7 +990,7 @@ void crsfProcessDisplayPortCmd(uint8_t *frameStart)
 
 #if defined(USE_RX_EXPRESSLRS)
 
-static int crsfFinalizeSbufBuf(sbuf_t *dst, uint8_t *frame)
+static int crsfTransmitSbufBuf(sbuf_t *dst, uint8_t *frame)
 {
     // frame size including CRC
     const size_t frameLength = crsfSbufLen(dst) + 2;
@@ -1042,7 +1038,7 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
             break;
     }
 
-    return crsfFinalizeSbufBuf(dst, frame);
+    return crsfTransmitSbufBuf(dst, frame);
 }
 
 #if defined(USE_MSP_OVER_TELEMETRY)
@@ -1055,7 +1051,7 @@ int getCrsfMspFrame(uint8_t *frame, uint8_t *payload, const uint8_t payloadSize)
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     sbufWriteData(dst, payload, payloadSize);
 
-    return crsfFinalizeSbufBuf(dst, frame);
+    return crsfTransmitSbufBuf(dst, frame);
 }
 #endif /* USE_MSP_OVER_TELEMETRY */
 #endif /* USE_RX_EXPRESSLRS */
@@ -1072,7 +1068,7 @@ static bool crsfSendDeviceInfoData(void)
         deviceInfoReplyPending = false;
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameDeviceInfo(dst);
-        crsfFinalizeSbuf(dst);
+        crsfTransmitSbuf(dst);
         return true;
     }
     return false;
@@ -1083,7 +1079,7 @@ static bool crsfSendHeartBeat(void)
     if (crsfHeartBeatRateBucket >= 0) {
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameHeartbeat(dst);
-        crsfFinalizeSbuf(dst);
+        crsfTransmitSbuf(dst);
         return true;
     }
     return false;
@@ -1122,7 +1118,7 @@ static bool crsfSendTelemetry(void)
                     crsfFrameHeartbeat(dst);
                     break;
             }
-            crsfFinalizeSbuf(dst);
+            crsfTransmitSbuf(dst);
             telemetryScheduleCommit(sensor);
             return true;
         }
@@ -1158,7 +1154,7 @@ static bool crsfSendCustomTelemetry(void)
         }
 
         if (sensor_count) {
-            crsfFinalizeSbuf(dst);
+            crsfTransmitSbuf(dst);
             return true;
         }
     }
@@ -1176,8 +1172,6 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
         return;
 #endif
 
-    crsfRxSendTelemetryData();
-
     crsfTelemetryRateUpdate(currentTimeUs);
 
     if (crsfCanTransmitTelemetry())
@@ -1194,7 +1188,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
             crsfSendCustomTelemetry() ||
             crsfSendHeartBeat())
         {
-            crsfRxSendTelemetryData();
+            // Nil
         }
     }
 }
