@@ -80,7 +80,9 @@
 #define CRSF_MSP_BUFFER_SIZE                128
 #define CRSF_MSP_LENGTH_OFFSET              1
 
-#define CRSF_HEARTBEAT_RATE                 10
+#define CRSF_HEARTBEAT_RATE                 50
+#define CRSF_HEARTBEAT_PERIOD               (1000000 / CRSF_HEARTBEAT_RATE)
+
 
 static bool crsfTelemetryEnabled;
 static bool crsfCustomTelemetryEnabled;
@@ -819,8 +821,9 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
         crsfSpeed.confirmationTime = currentTimeUs;
     }
     else if (crsfSpeed.isNewSpeedValid) {
+        // delay 4ms before applying the new baudrate
         if (cmpTimeUs(currentTimeUs, crsfSpeed.confirmationTime) >= 4000) {
-            // delay 4ms before applying the new baudrate
+            crsfSpeed.confirmationTime = currentTimeUs;
             crsfRxUpdateBaudrate(getCrsfDesiredSpeed());
             crsfSpeed.isNewSpeedValid = false;
             isCrsfV3Running = true;
@@ -828,9 +831,12 @@ void speedNegotiationProcess(timeUs_t currentTimeUs)
     }
     else if (!featureIsEnabled(FEATURE_TELEMETRY) && crsfRxUseNegotiatedBaud()) {
         // Send heartbeat if telemetry is disabled to allow RX to detect baud rate mismatches
-        sbuf_t *dst = crsfInitializeSbuf();
-        crsfFrameHeartbeat(dst);
-        crsfTransmitSbuf(dst);
+        if (cmpTimeUs(currentTimeUs, crsfSpeed.confirmationTime) >= CRSF_HEARTBEAT_PERIOD) {
+            crsfSpeed.confirmationTime = currentTimeUs;
+            sbuf_t *dst = crsfInitializeSbuf();
+            crsfFrameHeartbeat(dst);
+            crsfTransmitSbuf(dst);
+        }
     }
 }
 
@@ -1076,12 +1082,14 @@ static bool crsfSendDeviceInfoData(void)
 
 static bool crsfSendHeartBeat(void)
 {
+#if defined(USE_CRSF_V3)
     if (crsfHeartBeatRateBucket >= 0) {
         sbuf_t *dst = crsfInitializeSbuf();
         crsfFrameHeartbeat(dst);
         crsfTransmitSbuf(dst);
         return true;
     }
+#endif
     return false;
 }
 
