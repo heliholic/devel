@@ -1156,21 +1156,34 @@ static bool crsfSendCustomTelemetry(void)
 
         crsfFrameCustomTelemetryHeader(dst);
 
-        while (sbufBytesRemaining(dst) > 6) {
-            telemetrySensor_t *sensor = telemetryScheduleNext();
-            if (sensor) {
-                uint8_t *ptr = sbufPtr(dst);
-                crsfFrameCustomTelemetrySensor(dst, sensor);
-                if (sbufBytesRemaining(dst) < 1) {
-                    sbufReset(dst, ptr);
+        if (true) {
+            while (sbufBytesRemaining(dst) > 6) {
+                telemetrySensor_t *sensor = telemetryScheduleNext();
+                if (sensor) {
+                    uint8_t *ptr = sbufPtr(dst);
+                    crsfFrameCustomTelemetrySensor(dst, sensor);
+                    if (sbufBytesRemaining(dst) < 1) {
+                        sbufReset(dst, ptr);
+                        break;
+                    }
+                    telemetryScheduleCommit(sensor);
+                    sensor_count++;
+                }
+                else {
                     break;
                 }
-                telemetryScheduleCommit(sensor);
-                sensor_count++;
             }
-            else {
-                break;
+        }
+        else {
+            static uint32_t counter = 0;
+            uint8_t size = (counter >> 6) & 0x3F;
+            sbufWriteU16BE(dst, 0xBEEF);
+            sbufWriteU32BE(dst, counter++);
+            sbufWriteU8(dst, size);
+            while (crsfSbufLen(dst) < size) {
+                sbufWriteU8(dst, 0);
             }
+            sensor_count++;
         }
 
         if (sensor_count) {
