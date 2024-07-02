@@ -1184,7 +1184,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
 
     if (crsfCanTransmitTelemetry())
     {
-        if (
+        bool __unused sent =
 #if defined(USE_MSP_OVER_TELEMETRY)
             handleCrsfMspFrameBuffer(&crsfSendMspResponse) ||
 #endif
@@ -1194,10 +1194,7 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
             crsfSendDeviceInfoData() ||
             crsfSendTelemetry() ||
             crsfSendCustomTelemetry() ||
-            crsfSendHeartBeat())
-        {
-            // Nil
-        }
+            crsfSendHeartBeat();
     }
 }
 
