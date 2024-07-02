@@ -335,6 +335,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
     return crc;
 }
 
+#if defined(USE_CRSF_V3)
 STATIC_UNIT_TESTED uint8_t crsfFrameCmdCRC(void)
 {
     // CRC includes type and payload
@@ -344,6 +345,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameCmdCRC(void)
     }
     return crc;
 }
+#endif
 
 // Receive ISR callback, called back from serial port
 STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *data)
