@@ -90,6 +90,8 @@ static bool crsfCustomTelemetryEnabled;
 static float crsfHeartBeatRateBucket;
 static float crsfTelemetryRateBucket;
 static float crsfTelemetryRateQuanta;
+
+static uint8_t crsfTelemetryFrameId;
 static timeUs_t crsfTelemetryUpdateTime;
 
 static bool deviceInfoReplyPending = false;
@@ -607,6 +609,7 @@ static void crsfFrameCustomTelemetryHeader(sbuf_t *dst)
     sbufWriteU8(dst, CRSF_FRAMETYPE_CUSTOM_TELEM);
     sbufWriteU8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
     sbufWriteU8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+    sbufWriteU8(dst, crsfTelemetryFrameId);
 }
 
 static void crsfFrameCustomTelemetrySensor(sbuf_t *dst, telemetrySensor_t * sensor)
@@ -1163,6 +1166,7 @@ static bool crsfSendCustomTelemetry(void)
 
         if (sensor_count) {
             crsfTransmitSbuf(dst);
+            crsfTelemetryFrameId++;
             return true;
         }
     }
@@ -1245,6 +1249,8 @@ void INIT_CODE initCrsfTelemetry(void)
         crsfHeartBeatRateBucket = 0;
         crsfTelemetryRateBucket = 0;
         crsfTelemetryRateQuanta = rate / (ratio * 1000000);
+
+        crsfTelemetryFrameId = 0;
 
         if (crsfCustomTelemetryEnabled)
             crsfInitCustomTelemetry();
