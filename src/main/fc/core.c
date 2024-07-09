@@ -370,7 +370,8 @@ void updateArmingStatus(void)
         else {
             warningLedFlash();
             const bitmap_t flags = getArmingDisableFlags();
-            if (!(flags &
+            if ((flags & ARMING_DISABLED_ARM_SWITCH) &&
+                !(flags &
                   (ARMING_DISABLED_BOOT_GRACE_TIME |
                    ARMING_DISABLED_MSP |
                    ARMING_DISABLED_CLI |
@@ -382,8 +383,8 @@ void updateArmingStatus(void)
                    ARMING_DISABLED_RPMFILTER |
                    ARMING_DISABLED_REBOOT_REQUIRED |
                    ARMING_DISABLED_ACC_CALIBRATION |
-                   ARMING_DISABLED_DSHOT_BITBANG |
-                   ARMING_DISABLED_MOTOR_PROTOCOL)))
+                   ARMING_DISABLED_MOTOR_PROTOCOL |
+                   ARMING_DISABLED_DSHOT_BITBANG)))
             {
                 const timeMs_t now = millis();
                 if (now >= armingErrorWiggleTime + 3000) {
