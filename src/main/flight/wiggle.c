@@ -32,6 +32,7 @@
 #include "config/feature.h"
 #include "config/config.h"
 
+#include "flight/pid.h"
 #include "flight/wiggle.h"
 
 
@@ -74,6 +75,11 @@ static void wiggleSetState(timeUs_t currentTimeUs, uint8_t state)
     wgl.start = currentTimeUs;
 }
 
+static timeDelta_t wiggleStateTime(timeUs_t currentTimeUs)
+{
+    return cmpTimeUs(currentTimeUs, wgl.start) / 1000;
+}
+
 static void wiggleStopAction(timeUs_t __unused currentTimeUs)
 {
     wiggleResetAxis();
@@ -83,9 +89,11 @@ static void wiggleStopAction(timeUs_t __unused currentTimeUs)
 }
 
 
-static void wiggleActionArmed(timeUs_t currentTimeUs)
+static void wiggleActionReady(timeUs_t currentTimeUs)
 {
-    float level = 0.333f;
+    const int circle_period = 1200;
+    const float level = pidGetCollective();
+    const float delta = 0.5f;
 
     switch (wgl.state)
     {
@@ -96,26 +104,31 @@ static void wiggleActionArmed(timeUs_t currentTimeUs)
 
         case 1:
         {
-            timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
-            float angle = time * 1e-3f * M_2PIf;
+            timeDelta_t time = wiggleStateTime(currentTimeUs);
+            float angle = time * M_2PIf / circle_period;
 
-            wgl.axis[FD_ROLL] = sin_approx(angle) * level;
-            wgl.axis[FD_PITCH] = cos_approx(angle) * level;
+            wgl.axis[FD_COLL] = level;
+            wgl.axis[FD_ROLL] = sin_approx(angle) * delta;
+            wgl.axis[FD_PITCH] = cos_approx(angle) * delta;
 
-            if (time > 1000)
+            if (time > circle_period) {
+                wiggleResetAxis();
                 wiggleSetState(currentTimeUs, 2);
+            }
 
             break;
         }
 
         case 2:
         {
-            timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
+            timeDelta_t time = wiggleStateTime(currentTimeUs);
 
             if (time < 100)
-                wgl.axis[FD_COLL] = 0.5f;
+                wgl.axis[FD_COLL] = level;
             else if (time < 200)
-                wgl.axis[FD_COLL] = -0.5f;
+                wgl.axis[FD_COLL] = level - delta;
+            else if (time < 300)
+                wgl.axis[FD_COLL] = level + delta;
             else
                 wiggleStopAction(currentTimeUs);
 
@@ -128,9 +141,11 @@ static void wiggleActionArmed(timeUs_t currentTimeUs)
     }
 }
 
-static void wiggleActionError(timeUs_t currentTimeUs)
+static void wiggleActionArmed(timeUs_t currentTimeUs)
 {
-    float level = 1.0f;
+    const float delta = 0.5f;
+    const float level = pidGetCollective();
+    const timeDelta_t period = 50;
 
     switch (wgl.state)
     {
@@ -141,7 +156,39 @@ static void wiggleActionError(timeUs_t currentTimeUs)
 
         case 1:
         {
-            timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
+            timeDelta_t time = wiggleStateTime(currentTimeUs);
+
+            if (time < period)
+                wgl.axis[FD_COLL] = level - delta;
+            else if (time < 2 * period)
+                wgl.axis[FD_COLL] = level;
+            else if (time < 3 * period)
+                wgl.axis[FD_COLL] = level - delta;
+            else
+                wiggleStopAction(currentTimeUs);
+            break;
+        }
+
+        default:
+            wiggleStopAction(currentTimeUs);
+            break;
+    }
+}
+
+static void wiggleActionError(timeUs_t currentTimeUs)
+{
+    float level = 0.666f;
+
+    switch (wgl.state)
+    {
+        case 0:
+            wiggleResetAxis();
+            wiggleSetState(currentTimeUs, 1);
+            FALLTHROUGH;
+
+        case 1:
+        {
+            timeDelta_t time = wiggleStateTime(currentTimeUs);
             int freq = time / 50;
 
             wgl.axis[FD_COLL] = (freq & 1) ? level : -level;
@@ -171,7 +218,7 @@ static void wiggleActionBuzzer(timeUs_t currentTimeUs)
 
         case 1:
         {
-            timeDelta_t time = cmpTimeUs(currentTimeUs, wgl.start) / 1000;
+            timeDelta_t time = wiggleStateTime(currentTimeUs);
             int step = time / 500;
             int freq = time / 50;
 
@@ -198,6 +245,9 @@ void wiggleUpdate(timeUs_t currentTimeUs)
     if (wgl.action) {
         switch (wgl.action)
         {
+            case WIGGLE_READY:
+                wiggleActionReady(currentTimeUs);
+                break;
             case WIGGLE_ARMED:
                 wiggleActionArmed(currentTimeUs);
                 break;

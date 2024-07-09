@@ -21,6 +21,7 @@
 
 enum {
     WIGGLE_OFF = 0,
+    WIGGLE_READY,
     WIGGLE_ARMED,
     WIGGLE_ERROR,
     WIGGLE_BUZZER,
