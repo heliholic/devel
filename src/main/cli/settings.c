@@ -905,6 +905,12 @@ const clivalue_t valueTable[] = {
     { "swash_tta_precomp",          VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_tta_precomp) },
     { "swash_geo_correction",       VAR_INT8   | MASTER_VALUE,  .config.minmax = { -125, 125 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_geo_correction) },
 
+    { "wiggle_strength",            VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, wiggle_strength) },
+    { "wiggle_enable_ready",        VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = WIGGLE_READY, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, wiggle_flags) },
+    { "wiggle_enable_armed",        VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = WIGGLE_ARMED, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, wiggle_flags) },
+    { "wiggle_enable_error",        VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = WIGGLE_ERROR, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, wiggle_flags) },
+    { "wiggle_enable_fatal",        VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = WIGGLE_FATAL, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, wiggle_flags) },
+
 // PG_GOVERNOR_CONFIG
     { "gov_mode",                   VAR_UINT8  |  MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_MODE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_mode) },
     { "gov_startup_time",           VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_startup_time) },

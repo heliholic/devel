@@ -84,6 +84,14 @@ enum {
     DIR_CCW,
 };
 
+enum {
+    WIGGLE_OFF = 0,
+    WIGGLE_READY,
+    WIGGLE_ARMED,
+    WIGGLE_ERROR,
+    WIGGLE_FATAL,
+};
+
 
 #define MIXER_RULE_COUNT      32
 #define MIXER_INPUT_COUNT     MIXER_IN_COUNT
@@ -107,6 +115,9 @@ typedef struct
     uint8_t   swash_tta_precomp;    // TTA correction %
 
     int8_t    swash_geo_correction; // Head geometry correction (collective assymetry)
+
+    uint8_t   wiggle_strength;      // Swashplate indication amplitude
+    uint32_t  wiggle_flags;         // Wiggle enable flags
 
 } mixerConfig_t;
 

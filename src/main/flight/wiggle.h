@@ -19,14 +19,6 @@
 
 #include "platform.h"
 
-enum {
-    WIGGLE_OFF = 0,
-    WIGGLE_READY,
-    WIGGLE_ARMED,
-    WIGGLE_ERROR,
-    WIGGLE_BUZZER,
-};
-
 
 bool wiggleActive(void);
 float wiggleGetAxis(int axis);

@@ -375,21 +375,31 @@ void updateArmingStatus(void)
                   (ARMING_DISABLED_BOOT_GRACE_TIME |
                    ARMING_DISABLED_MSP |
                    ARMING_DISABLED_CLI |
-                   ARMING_DISABLED_CMS_MENU)) &&
-                 (flags &
-                  (ARMING_DISABLED_NO_GYRO |
-                   ARMING_DISABLED_LOAD |
-                   ARMING_DISABLED_GOVERNOR |
-                   ARMING_DISABLED_RPMFILTER |
-                   ARMING_DISABLED_REBOOT_REQUIRED |
-                   ARMING_DISABLED_ACC_CALIBRATION |
-                   ARMING_DISABLED_MOTOR_PROTOCOL |
-                   ARMING_DISABLED_DSHOT_BITBANG)))
+                   ARMING_DISABLED_CMS_MENU)))
             {
                 const timeMs_t now = millis();
-                if (now >= armingErrorWiggleTime + 3000) {
-                    armingErrorWiggleTime = now;
-                    wiggleTrigger(WIGGLE_ERROR, 250);
+                if (flags &
+                    (ARMING_DISABLED_NO_GYRO |
+                     ARMING_DISABLED_LOAD |
+                     ARMING_DISABLED_GOVERNOR |
+                     ARMING_DISABLED_RPMFILTER |
+                     ARMING_DISABLED_REBOOT_REQUIRED |
+                     ARMING_DISABLED_ACC_CALIBRATION |
+                     ARMING_DISABLED_MOTOR_PROTOCOL |
+                     ARMING_DISABLED_DSHOT_BITBANG))
+                {
+                    if (now >= armingErrorWiggleTime + 5000) {
+                        armingErrorWiggleTime = now;
+                        wiggleTrigger(WIGGLE_FATAL, 2500);
+                    }
+                }
+                else
+                {
+                    const timeMs_t now = millis();
+                    if (now >= armingErrorWiggleTime + 2500) {
+                        armingErrorWiggleTime = now;
+                        wiggleTrigger(WIGGLE_ERROR, 250);
+                    }
                 }
             }
         }

@@ -32,11 +32,15 @@
 #include "config/feature.h"
 #include "config/config.h"
 
+#include "pg/mixer.h"
+
 #include "flight/pid.h"
 #include "flight/wiggle.h"
 
 
 typedef struct {
+    bitmap_t    flags;
+    float       strength;
     int         action;
     int         param;
     int         state;
@@ -44,7 +48,7 @@ typedef struct {
     float       axis[4];
 } wiggleState_t;
 
-static wiggleState_t wgl = { 0, };
+static wiggleState_t wgl = INIT_ZERO;
 
 
 float wiggleGetAxis(int axis)
@@ -59,9 +63,11 @@ bool wiggleActive(void)
 
 void wiggleTrigger(int action, int param)
 {
-    wgl.action = action;
-    wgl.param = param;
-    wgl.state = 0;
+    if (wgl.flags & BIT(action)) {
+        wgl.action = action;
+        wgl.param = param;
+        wgl.state = 0;
+    }
 }
 
 static inline void wiggleResetAxis(void)
@@ -80,6 +86,12 @@ static timeDelta_t wiggleStateTime(timeUs_t currentTimeUs)
     return cmpTimeUs(currentTimeUs, wgl.start) / 1000;
 }
 
+static void wiggleNextStateAfter(timeUs_t currentTimeUs, timeDelta_t period)
+{
+    if (wiggleStateTime(currentTimeUs) > period)
+        wiggleSetState(currentTimeUs, wgl.state + 1);
+}
+
 static void wiggleStopAction(timeUs_t __unused currentTimeUs)
 {
     wiggleResetAxis();
@@ -91,151 +103,154 @@ static void wiggleStopAction(timeUs_t __unused currentTimeUs)
 
 static void wiggleActionReady(timeUs_t currentTimeUs)
 {
-    const int circle_period = 1200;
+    const timeDelta_t circle_period = 1200;
+    const timeDelta_t jump_period = 100;
+
     const float level = pidGetCollective();
-    const float delta = 0.5f;
 
     switch (wgl.state)
     {
         case 0:
+        {
             wiggleResetAxis();
             wiggleSetState(currentTimeUs, 1);
             FALLTHROUGH;
-
+        }
         case 1:
         {
-            timeDelta_t time = wiggleStateTime(currentTimeUs);
-            float angle = time * M_2PIf / circle_period;
-
+            const float angle = wiggleStateTime(currentTimeUs) * M_2PIf / circle_period;
+            wgl.axis[FD_ROLL] = sin_approx(angle) * wgl.strength;
+            wgl.axis[FD_PITCH] = cos_approx(angle) * wgl.strength;
             wgl.axis[FD_COLL] = level;
-            wgl.axis[FD_ROLL] = sin_approx(angle) * delta;
-            wgl.axis[FD_PITCH] = cos_approx(angle) * delta;
-
-            if (time > circle_period) {
-                wiggleResetAxis();
-                wiggleSetState(currentTimeUs, 2);
-            }
-
+            wiggleNextStateAfter(currentTimeUs, circle_period);
             break;
         }
-
         case 2:
         {
-            timeDelta_t time = wiggleStateTime(currentTimeUs);
-
-            if (time < 100)
-                wgl.axis[FD_COLL] = level;
-            else if (time < 200)
-                wgl.axis[FD_COLL] = level - delta;
-            else if (time < 300)
-                wgl.axis[FD_COLL] = level + delta;
-            else
-                wiggleStopAction(currentTimeUs);
-
+            wgl.axis[FD_ROLL] = 0;
+            wgl.axis[FD_PITCH] = 0;
+            wgl.axis[FD_COLL] = level;
+            wiggleNextStateAfter(currentTimeUs, jump_period);
             break;
         }
-
+        case 3:
+        {
+            wgl.axis[FD_ROLL] = 0;
+            wgl.axis[FD_PITCH] = 0;
+            wgl.axis[FD_COLL] = level + wgl.strength;
+            wiggleNextStateAfter(currentTimeUs, jump_period);
+            break;
+        }
+        case 4:
+        {
+            wgl.axis[FD_ROLL] = 0;
+            wgl.axis[FD_PITCH] = 0;
+            wgl.axis[FD_COLL] = level - wgl.strength;
+            wiggleNextStateAfter(currentTimeUs, jump_period);
+            break;
+        }
         default:
+        {
             wiggleStopAction(currentTimeUs);
             break;
+        }
     }
 }
 
 static void wiggleActionArmed(timeUs_t currentTimeUs)
 {
-    const float delta = 0.5f;
+    const timeDelta_t jump_period = 50;
+
     const float level = pidGetCollective();
-    const timeDelta_t period = 50;
 
     switch (wgl.state)
     {
         case 0:
+        {
             wiggleResetAxis();
             wiggleSetState(currentTimeUs, 1);
             FALLTHROUGH;
-
+        }
         case 1:
         {
-            timeDelta_t time = wiggleStateTime(currentTimeUs);
-
-            if (time < period)
-                wgl.axis[FD_COLL] = level - delta;
-            else if (time < 2 * period)
-                wgl.axis[FD_COLL] = level;
-            else if (time < 3 * period)
-                wgl.axis[FD_COLL] = level - delta;
-            else
-                wiggleStopAction(currentTimeUs);
+            wgl.axis[FD_COLL] = level - wgl.strength;
+            wiggleNextStateAfter(currentTimeUs, jump_period);
             break;
         }
-
+        case 2:
+        {
+            wgl.axis[FD_COLL] = level;
+            wiggleNextStateAfter(currentTimeUs, jump_period);
+            break;
+        }
+        case 3:
+        {
+            wgl.axis[FD_COLL] = level + wgl.strength;
+            wiggleNextStateAfter(currentTimeUs, jump_period);
+            break;
+        }
         default:
+        {
             wiggleStopAction(currentTimeUs);
             break;
+        }
     }
 }
 
 static void wiggleActionError(timeUs_t currentTimeUs)
 {
-    float level = 0.666f;
+    const int frequency = 50;
 
     switch (wgl.state)
     {
         case 0:
+        {
             wiggleResetAxis();
             wiggleSetState(currentTimeUs, 1);
             FALLTHROUGH;
-
+        }
         case 1:
         {
-            timeDelta_t time = wiggleStateTime(currentTimeUs);
-            int freq = time / 50;
-
-            wgl.axis[FD_COLL] = (freq & 1) ? level : -level;
-
-            if (time > wgl.param)
-                wiggleStopAction(currentTimeUs);
-
+            const int cycle = wiggleStateTime(currentTimeUs) / frequency;
+            wgl.axis[FD_COLL] = (cycle & 1) ? wgl.strength : -wgl.strength;
+            wiggleNextStateAfter(currentTimeUs, wgl.param);
             break;
         }
-
         default:
+        {
             wiggleStopAction(currentTimeUs);
             break;
+        }
     }
 }
 
-static void wiggleActionBuzzer(timeUs_t currentTimeUs)
+static void wiggleActionFatal(timeUs_t currentTimeUs)
 {
-    float level = 0.5f;
+    const int frequency = 50;
+    const int period = 500;
 
     switch (wgl.state)
     {
         case 0:
+        {
             wiggleResetAxis();
             wiggleSetState(currentTimeUs, 1);
             FALLTHROUGH;
-
+        }
         case 1:
         {
-            timeDelta_t time = wiggleStateTime(currentTimeUs);
-            int step = time / 500;
-            int freq = time / 50;
-
-            if (step & 1)
-                wgl.axis[FD_COLL] = (freq & 1) ? level : -level;
-            else
-                wgl.axis[FD_COLL] = 0;
-
-            if (time > wgl.param)
-                wiggleStopAction(currentTimeUs);
-
+            const timeDelta_t time = wiggleStateTime(currentTimeUs);
+            const int step = time / period;
+            const int freq = time / frequency;
+            wgl.axis[FD_COLL] = (step & 1) ? ((freq & 1) ? wgl.strength : -wgl.strength) : 0;
+            wiggleNextStateAfter(currentTimeUs, wgl.param);
             break;
         }
-
         default:
+        {
             wiggleStopAction(currentTimeUs);
             break;
+        }
     }
 }
 
@@ -254,8 +269,8 @@ void wiggleUpdate(timeUs_t currentTimeUs)
             case WIGGLE_ERROR:
                 wiggleActionError(currentTimeUs);
                 break;
-            case WIGGLE_BUZZER:
-                wiggleActionBuzzer(currentTimeUs);
+            case WIGGLE_FATAL:
+                wiggleActionFatal(currentTimeUs);
                 break;
             default:
                 wiggleStopAction(currentTimeUs);
@@ -264,7 +279,8 @@ void wiggleUpdate(timeUs_t currentTimeUs)
     }
 }
 
-void wiggleInit(void)
+void INIT_CODE wiggleInit(void)
 {
-    /* NADA */
+    wgl.flags       = mixerConfig()->wiggle_flags;
+    wgl.strength    = constrain(mixerConfig()->wiggle_strength, 0, 100) / 100.0f;
 }
