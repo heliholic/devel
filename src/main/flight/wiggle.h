@@ -15,28 +15,16 @@
  * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "types.h"
+#pragma once
+
 #include "platform.h"
 
-#include "pg/system.h"
 
-#include "target/common_pre.h"
+bool wiggleActive(void);
+bool wiggleEnabled(int wiggle);
 
+float wiggleGetAxis(int axis);
+void wiggleTrigger(int wiggle, int parmam);
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
-
-PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
-    .boardIdentifier = TARGET_BOARD_IDENTIFIER,
-    .pidProfileIndex = 0,
-    .activeRateProfile = 0,
-    .debug_mode = 0,
-    .debug_axis = 0,
-    .task_statistics = true,
-    .cpu_overclock = DEFAULT_CPU_OVERCLOCK,
-    .hseMhz = SYSTEM_HSE_VALUE,
-    .powerOnArmingGraceTime = 3,
-    .configurationState = CONFIGURATION_STATE_DEFAULTS_BARE,
-    .enableStickArming = false,
-    .enableStickCommands = false,
-);
-
+void wiggleUpdate(timeUs_t wiggleUpdate);
+void wiggleInit(void);
