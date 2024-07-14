@@ -1226,9 +1226,11 @@ static void INIT_CODE crsfInitNativeTelemetry(void)
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         if (telemetrySensorActive(id)) {
             telemetrySensor_t * sensor = crsfGetNativeSensor(id);
-            if (telemetryConfig()->telemetry_interval[i])
-                sensor->min_interval = telemetryConfig()->telemetry_interval[i];
-            telemetryScheduleAdd(sensor);
+            if (sensor) {
+                if (telemetryConfig()->telemetry_interval[i])
+                    sensor->min_interval = telemetryConfig()->telemetry_interval[i];
+                telemetryScheduleAdd(sensor);
+            }
         }
     }
 }
@@ -1241,11 +1243,13 @@ static void INIT_CODE crsfInitCustomTelemetry(void)
         sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
         if (telemetrySensorActive(id)) {
             telemetrySensor_t * sensor = crsfGetCustomSensor(id);
-            if (telemetryConfig()->telemetry_interval[i])
-                sensor->min_interval = telemetryConfig()->telemetry_interval[i];
-            if (sensor->max_interval > 1000)
-                sensor->max_interval += rand() % 100;
-            telemetryScheduleAdd(sensor);
+            if (sensor) {
+                if (telemetryConfig()->telemetry_interval[i])
+                    sensor->min_interval = telemetryConfig()->telemetry_interval[i];
+                if (sensor->max_interval > 1000)
+                    sensor->max_interval += rand() % 100;
+                telemetryScheduleAdd(sensor);
+            }
         }
     }
 }
