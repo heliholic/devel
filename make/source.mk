@@ -126,6 +126,7 @@ COMMON_SRC = \
             rx/sumh.c \
             rx/xbus.c \
             rx/fport.c \
+            rx/fbus.c \
             sensors/acceleration.c \
             sensors/acceleration_init.c \
             sensors/boardalignment.c \
@@ -272,6 +273,7 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             rx/sumd.c \
             rx/xbus.c \
             rx/fport.c \
+            rx/fbus.c \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/boardalignment.c \
