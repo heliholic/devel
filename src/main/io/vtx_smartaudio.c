@@ -706,7 +706,8 @@ bool vtxSmartAudioInit(void)
     if (portConfig) {
         portOptions_e portOptions = SERIAL_STOPBITS_2 | SERIAL_BIDIR_NOPULL;
 #if defined(USE_VTX_COMMON)
-        portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR | SERIAL_BIDIR_PP_PD : SERIAL_UNIDIR);
+        portOptions |= (vtxConfig()->serial_options & (SERIAL_BIDIR | SERIAL_PINSWAP));
+        portOptions |= (portOptions | SERIAL_BIDIR) ? SERIAL_BIDIR_PP_PD : 0;
 #else
         portOptions = SERIAL_BIDIR;
 #endif
