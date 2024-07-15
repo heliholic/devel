@@ -77,14 +77,14 @@ static uartDevice_t *uartFindDevice(uartPort_t *uartPort)
 }
 
 #if !(defined(STM32F4))
-static void uartConfigurePinSwap(uartPort_t *uartPort)
+static void uartConfigurePinSwap(uartPort_t *uartPort, bool swapped)
 {
     uartDevice_t *uartDevice = uartFindDevice(uartPort);
     if (!uartDevice) {
         return;
     }
 
-    if (uartDevice->pinSwap) {
+    if (uartDevice->pinSwap ^ swapped) {
         uartDevice->port.Handle.AdvancedInit.AdvFeatureInit |= UART_ADVFEATURE_SWAP_INIT;
         uartDevice->port.Handle.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
     }
@@ -119,7 +119,7 @@ void uartReconfigure(uartPort_t *uartPort)
 
     usartConfigurePinInversion(uartPort);
 #if !(defined(STM32F1) || defined(STM32F4))
-    uartConfigurePinSwap(uartPort);
+    uartConfigurePinSwap(uartPort, uartPort->port.options & SERIAL_PINSWAP);
 #endif
 
 #ifdef TARGET_USART_CONFIG

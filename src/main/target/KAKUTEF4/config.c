@@ -48,7 +48,7 @@ void targetConfiguration(void)
 #endif
     targetSerialPortFunctionConfig(targetSerialPortFunction, ARRAYLEN(targetSerialPortFunction));
     telemetryConfigMutable()->halfDuplex = 0;
-    telemetryConfigMutable()->telemetry_inverted = true;
+    telemetryConfigMutable()->serial_inverted = true;
 
     // Mark MAX7456 CS pin as OPU
     max7456ConfigMutable()->preInitOPU = true;

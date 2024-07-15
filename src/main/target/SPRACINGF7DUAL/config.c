@@ -77,7 +77,7 @@ void targetConfiguration(void)
 #ifdef USE_TELEMETRY
     targetSerialPortFunctionConfig(targetSerialPortFunction, ARRAYLEN(targetSerialPortFunction));
     // change telemetry settings
-    telemetryConfigMutable()->telemetry_inverted = 1;
+    telemetryConfigMutable()->serial_inverted = 1;
     telemetryConfigMutable()->halfDuplex = 1;
 #endif
 }

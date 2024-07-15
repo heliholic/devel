@@ -468,7 +468,14 @@ void freeFrSkyHubTelemetryPort(void)
 static void configureFrSkyHubTelemetryPort(void)
 {
     if (portConfig) {
-        frSkyHubPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY_HUB, NULL, NULL, FRSKY_HUB_BAUDRATE, FRSKY_HUB_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED);
+        frSkyHubPort = openSerialPort(
+            portConfig->identifier,
+            FUNCTION_TELEMETRY_FRSKY_HUB,
+            NULL, NULL,
+            FRSKY_HUB_BAUDRATE,
+            FRSKY_HUB_INITIAL_PORT_MODE,
+            rxConfig()->serial_options & (SERIAL_INVERTED | SERIAL_PINSWAP)
+        );
     }
 }
 

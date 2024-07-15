@@ -221,8 +221,16 @@ serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallb
 
     int pinCfgIndex = portIndex + RESOURCE_SOFT_OFFSET;
 
-    ioTag_t tagRx = serialPinConfig()->ioTagRx[pinCfgIndex];
-    ioTag_t tagTx = serialPinConfig()->ioTagTx[pinCfgIndex];
+    ioTag_t tagRx, tagTx;
+
+    if (options & SERIAL_PINSWAP) {
+        tagTx = serialPinConfig()->ioTagRx[pinCfgIndex];
+        tagRx = serialPinConfig()->ioTagTx[pinCfgIndex];
+    }
+    else {
+        tagRx = serialPinConfig()->ioTagRx[pinCfgIndex];
+        tagTx = serialPinConfig()->ioTagTx[pinCfgIndex];
+    }
 
     const timerHardware_t *timerTx = timerAllocate(tagTx, OWNER_SERIAL_TX, RESOURCE_INDEX(portIndex + RESOURCE_SOFT_OFFSET));
     const timerHardware_t *timerRx = (tagTx == tagRx) ? timerTx : timerAllocate(tagRx, OWNER_SERIAL_RX, RESOURCE_INDEX(portIndex + RESOURCE_SOFT_OFFSET));
