@@ -67,7 +67,7 @@ typedef enum
     TELEM_ESC1_BEC_VOLTAGE              = 25,
     TELEM_ESC1_BEC_CURRENT              = 26,
     TELEM_ESC1_STATUS                   = 27,
-    TELEM_ESC1_MODEL_ID                 = 28,
+    TELEM_ESC1_MODEL                    = 28,
 
     TELEM_ESC2_DATA                     = 29,
     TELEM_ESC2_VOLTAGE                  = 30,
@@ -81,7 +81,7 @@ typedef enum
     TELEM_ESC2_BEC_VOLTAGE              = 38,
     TELEM_ESC2_BEC_CURRENT              = 39,
     TELEM_ESC2_STATUS                   = 40,
-    TELEM_ESC2_MODEL_ID                 = 41,
+    TELEM_ESC2_MODEL                    = 41,
 
     TELEM_ESC_VOLTAGE                   = 42,
     TELEM_BEC_VOLTAGE                   = 43,
