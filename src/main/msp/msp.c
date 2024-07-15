@@ -797,7 +797,7 @@ static bool mspCommonProcessOutCommand(int16_t cmdMSP, sbuf_t *dst, mspPostProce
 #ifdef USE_ESC_SENSOR
     case MSP_ESC_SENSOR_CONFIG:
         sbufWriteU8(dst, escSensorConfig()->protocol);
-        sbufWriteU8(dst, escSensorConfig()->halfDuplex);
+        sbufWriteU16(dst, escSensorConfig()->serial_options);
         sbufWriteU16(dst, escSensorConfig()->update_hz);
         sbufWriteU16(dst, escSensorConfig()->current_offset);
         sbufWriteU16(dst, escSensorConfig()->hw4_current_offset);
@@ -1522,8 +1522,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
-        sbufWriteU8(dst, rxConfig()->serialrx_inverted);
-        sbufWriteU8(dst, rxConfig()->halfDuplex);
+        sbufWriteU16(dst, rxConfig()->serial_options);
         sbufWriteU16(dst, rxConfig()->rx_pulse_min);
         sbufWriteU16(dst, rxConfig()->rx_pulse_max);
 #ifdef USE_RX_SPI
@@ -1575,8 +1574,8 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         break;
 
     case MSP_TELEMETRY_CONFIG:
-        sbufWriteU8(dst, telemetryConfig()->telemetry_inverted);
-        sbufWriteU8(dst, telemetryConfig()->halfDuplex);
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
         sbufWriteU32(dst, 0);
         break;
 
@@ -2644,7 +2643,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #ifdef USE_ESC_SENSOR
     case MSP_SET_ESC_SENSOR_CONFIG:
         escSensorConfigMutable()->protocol = sbufReadU8(src);
-        escSensorConfigMutable()->halfDuplex = sbufReadU8(src);
+        escSensorConfigMutable()->serial_options = sbufReadU16(src);
         escSensorConfigMutable()->update_hz = sbufReadU16(src);
         escSensorConfigMutable()->current_offset = sbufReadU16(src);
         escSensorConfigMutable()->hw4_current_offset = sbufReadU16(src);
@@ -3012,8 +3011,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         // Make sure ELRS commands don't confuse us
         if (sbufBytesRemaining(src) >= 7) {
             rxConfigMutable()->serialrx_provider = sbufReadU8(src);
-            rxConfigMutable()->serialrx_inverted = sbufReadU8(src);
-            rxConfigMutable()->halfDuplex = sbufReadU8(src);
+            rxConfigMutable()->serial_options = sbufReadU16(src);
             rxConfigMutable()->rx_pulse_min = sbufReadU16(src);
             rxConfigMutable()->rx_pulse_max = sbufReadU16(src);
         }
@@ -3069,8 +3067,8 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         break;
 
     case MSP_SET_TELEMETRY_CONFIG:
-        telemetryConfigMutable()->telemetry_inverted = sbufReadU8(src);
-        telemetryConfigMutable()->halfDuplex = sbufReadU8(src);
+        sbufReadU8(src);
+        sbufReadU8(src);
         sbufReadU32(src);
         break;
 
