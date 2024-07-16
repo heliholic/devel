@@ -255,8 +255,15 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] =
     {"Vbec",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(VBEC)},
     {"Vbus",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(VBUS)},
 
-    {"Tmcu",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(TMCU)},
+    {"EscV",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(ESC_TELEM)},
+    {"EscI",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(ESC_TELEM)},
+    {"EscCap",     -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(ESC_TELEM)},
+    {"EscThr",     -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(ESC_TELEM)},
+    {"EscPwm",     -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(ESC_TELEM)},
+    {"EscRPM",     -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(ESC_TELEM)},
+
     {"Tesc",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(TESC)},
+    {"Tmcu",       -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),    .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB),  CONDITION(TMCU)},
 
     {"headspeed",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(HEADSPEED)},
     {"tailspeed",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),  .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB),  CONDITION(TAILSPEED)},
@@ -366,11 +373,18 @@ typedef struct blackboxMainState_s {
     uint16_t voltage;
     uint16_t current;
 
-    uint16_t vbec;
-    uint16_t vbus;
+    uint16_t bec_voltage;
+    uint16_t bus_voltage;
 
-    int16_t tmcu;
-    int16_t tesc;
+    uint16_t esc_voltage;
+    uint16_t esc_current;
+    uint16_t esc_capa;
+    int16_t esc_temp;
+    uint16_t esc_pwm;
+    uint16_t esc_thr;
+    uint32_t esc_rpm;
+
+    int16_t mcu_temp;
 
     uint16_t rssi;
 
@@ -547,7 +561,10 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case CONDITION(TMCU):
         return isFieldEnabled(FIELD_SELECT(TEMP));
     case CONDITION(TESC):
-        return featureIsEnabled(FEATURE_ESC_SENSOR) && isFieldEnabled(FIELD_SELECT(TEMP));
+        return featureIsEnabled(FEATURE_ESC_SENSOR) && (isFieldEnabled(FIELD_SELECT(TEMP)) || isFieldEnabled(FIELD_SELECT(ESC)));
+
+    case CONDITION(ESC_TELEM):
+        return featureIsEnabled(FEATURE_ESC_SENSOR) && isFieldEnabled(FIELD_SELECT(ESC));
 
     case CONDITION(MOTOR_1):
         return (getMotorCount() >= 1) && isFieldEnabled(FIELD_SELECT(MOTOR));
@@ -734,16 +751,24 @@ static void writeIntraframe(void)
         blackboxWriteUnsignedVB(blackboxCurrent->current);
     }
     if (testBlackboxCondition(CONDITION(VBEC))) {
-        blackboxWriteUnsignedVB(blackboxCurrent->vbec);
+        blackboxWriteUnsignedVB(blackboxCurrent->bec_voltage);
     }
     if (testBlackboxCondition(CONDITION(VBUS))) {
-        blackboxWriteUnsignedVB(blackboxCurrent->vbus);
+        blackboxWriteUnsignedVB(blackboxCurrent->bus_voltage);
     }
-    if (testBlackboxCondition(CONDITION(TMCU))) {
-        blackboxWriteSignedVB(blackboxCurrent->tmcu);
+    if (testBlackboxCondition(CONDITION(ESC_TELEM))) {
+        blackboxWriteSignedVB(blackboxCurrent->esc_voltage);
+        blackboxWriteSignedVB(blackboxCurrent->esc_current);
+        blackboxWriteSignedVB(blackboxCurrent->esc_capa);
+        blackboxWriteSignedVB(blackboxCurrent->esc_thr);
+        blackboxWriteSignedVB(blackboxCurrent->esc_pwm);
+        blackboxWriteSignedVB(blackboxCurrent->esc_rpm);
     }
     if (testBlackboxCondition(CONDITION(TESC))) {
-        blackboxWriteSignedVB(blackboxCurrent->tesc);
+        blackboxWriteSignedVB(blackboxCurrent->esc_temp);
+    }
+    if (testBlackboxCondition(CONDITION(TMCU))) {
+        blackboxWriteSignedVB(blackboxCurrent->mcu_temp);
     }
     if (testBlackboxCondition(CONDITION(HEADSPEED))) {
         blackboxWriteUnsignedVB(blackboxCurrent->headspeed);
@@ -913,17 +938,26 @@ static void writeInterframe(void)
     }
 
     if (testBlackboxCondition(CONDITION(VBEC))) {
-        blackboxWriteSignedVB((int32_t) blackboxCurrent->vbec - blackboxPrev->vbec);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->bec_voltage - blackboxPrev->bec_voltage);
     }
     if (testBlackboxCondition(CONDITION(VBUS))) {
-        blackboxWriteSignedVB((int32_t) blackboxCurrent->vbus - blackboxPrev->vbus);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->bus_voltage - blackboxPrev->bus_voltage);
     }
 
-    if (testBlackboxCondition(CONDITION(TMCU))) {
-        blackboxWriteSignedVB((int32_t) blackboxCurrent->tmcu - blackboxPrev->tmcu);
+    if (testBlackboxCondition(CONDITION(ESC_TELEM))) {
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_voltage - blackboxPrev->esc_voltage);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_current - blackboxPrev->esc_current);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_capa - blackboxPrev->esc_capa);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_thr - blackboxPrev->esc_thr);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_pwm - blackboxPrev->esc_pwm);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_rpm - blackboxPrev->esc_rpm);
     }
+
     if (testBlackboxCondition(CONDITION(TESC))) {
-        blackboxWriteSignedVB((int32_t) blackboxCurrent->tesc - blackboxPrev->tesc);
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->esc_temp - blackboxPrev->esc_temp);
+    }
+    if (testBlackboxCondition(CONDITION(TMCU))) {
+        blackboxWriteSignedVB((int32_t) blackboxCurrent->mcu_temp - blackboxPrev->mcu_temp);
     }
 
     if (testBlackboxCondition(CONDITION(HEADSPEED))) {
@@ -1208,17 +1242,31 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     voltageMeter_t meter;
     voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BEC, &meter);
-    blackboxCurrent->vbec = meter.voltage / 10;
+    blackboxCurrent->bec_voltage = meter.voltage / 10;
     voltageSensorADCRead(VOLTAGE_SENSOR_ADC_BUS, &meter);
-    blackboxCurrent->vbus = meter.voltage / 10;
+    blackboxCurrent->bus_voltage = meter.voltage / 10;
 
-    blackboxCurrent->tmcu = getCoreTemperatureCelsius();
+    blackboxCurrent->mcu_temp = getCoreTemperatureCelsius();
 
     const escSensorData_t *escData = getEscSensorData(ESC_SENSOR_COMBINED);
-    if (escData && escData->age <= ESC_BATTERY_AGE_MAX)
-        blackboxCurrent->tesc = escData->temperature / 10;
-    else
-        blackboxCurrent->tesc = 0;
+    if (escData && escData->age <= ESC_BATTERY_AGE_MAX) {
+        blackboxCurrent->esc_voltage = escData->voltage;
+        blackboxCurrent->esc_current = escData->current;
+        blackboxCurrent->esc_capa = escData->consumption;
+        blackboxCurrent->esc_temp = escData->temperature;
+        blackboxCurrent->esc_thr = escData->throttle;
+        blackboxCurrent->esc_pwm = escData->pwm;
+        blackboxCurrent->esc_rpm = escData->erpm;
+    }
+    else {
+        blackboxCurrent->esc_voltage = 0;
+        blackboxCurrent->esc_current = 0;
+        blackboxCurrent->esc_capa = 0;
+        blackboxCurrent->esc_temp = 0;
+        blackboxCurrent->esc_thr = 0;
+        blackboxCurrent->esc_pwm = 0;
+        blackboxCurrent->esc_rpm = 0;
+    }
 
     blackboxCurrent->headspeed = getHeadSpeed();
     blackboxCurrent->tailspeed = getTailSpeed();
