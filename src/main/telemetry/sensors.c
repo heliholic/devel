@@ -582,10 +582,7 @@ void INIT_CODE legacySensorInit(void)
     telemetry_legacy_sensors = 0;
 
     for (int i = 0; i < TELEM_SENSOR_SLOT_COUNT; i++) {
-        sensor_id_e id = telemetryConfig()->telemetry_sensors[i];
-        if (id) {
-            telemetry_legacy_sensors |= telemetryGetLegacySensor(id);
-        }
+        telemetry_legacy_sensors |= telemetryGetLegacySensor(telemetryConfig()->telemetry_sensors[i]);
     }
 }
 

@@ -174,8 +174,6 @@ void telemetryCheckState(void)
 
 void INIT_CODE telemetryInit(void)
 {
-    legacySensorInit();
-
 #ifdef USE_TELEMETRY_FRSKY_HUB
     initFrSkyHubTelemetry();
 #endif
