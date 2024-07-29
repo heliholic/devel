@@ -148,14 +148,12 @@ static void activateConfig(void)
     loadPidProfile();
     loadControlRateProfile();
 
-    initRcProcessing();
-    adjustmentRangeInit();
-
     pidInitProfile(currentPidProfile);
 
+    initRcProcessing();
     rcControlsInit();
-
     failsafeReset();
+
 #ifdef USE_ACC
     setAccelerationTrims(&accelerometerConfigMutable()->accZero);
     accInitFilters();
@@ -168,6 +166,8 @@ static void activateConfig(void)
 #endif
 
     initActiveBoxIds();
+
+    adjustmentRangeInit();
 }
 
 static void adjustFilterLimit(uint16_t *parm, uint16_t maxValue, uint16_t resetValue)
