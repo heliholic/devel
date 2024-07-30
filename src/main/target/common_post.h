@@ -87,6 +87,7 @@
 #undef USE_SERIALRX_SUMH
 #undef USE_SERIALRX_XBUS
 #undef USE_SERIALRX_FPORT
+#undef USE_SERIALRX_FBUS
 #endif
 
 #if !defined(USE_TELEMETRY)
@@ -146,7 +147,7 @@
 #undef USE_SPEKTRUM_CMS_TELEMETRY
 #endif
 
-#if defined(USE_SERIALRX_SBUS) || defined(USE_SERIALRX_FPORT)
+#if defined(USE_SERIALRX_SBUS) || defined(USE_SERIALRX_FPORT) || defined(USE_SERIALRX_FBUS)
 #define USE_SBUS_CHANNELS
 #endif
 

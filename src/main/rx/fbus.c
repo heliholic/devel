@@ -1,21 +1,18 @@
 /*
- * This file is part of INAV.
+ * This file is part of Rotorflight.
  *
- * INAV are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
+ * Rotorflight is free software. You can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * INAV is distributed in the hope that it
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * Rotorflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
+ * along with this software. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -53,23 +50,22 @@
 #include "rx/fbus.h"
 
 
-#define FBUS_MIN_TELEMETRY_RESPONSE_DELAY_US 500
-#define FBUS_MAX_TELEMETRY_RESPONSE_DELAY_US 3000
-#define FBUS_OTA_MAX_RESPONSE_TIME_US_DEFAULT 200
-#define FBUS_OTA_MIN_RESPONSE_DELAY_US_DEFAULT 50
-#define FBUS_MAX_TELEMETRY_AGE_MS 500
-#define FBUS_FC_COMMON_ID 0x1B
-#define FBUS_FC_MSP_ID 0x0D
-#define FBUS_BAUDRATE 115200
-#define FBUS_BAUDRATE 460800
-#define FBUS_PORT_OPTIONS (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
-#define FBUS_RX_TIMEOUT 120 // µs
-#define FBUS_CONTROL_FRAME_LENGTH 24
-#define FBUS_OTA_DATA_FRAME_LENGTH 32
-#define FBUS_DOWNLINK_FRAME_LENGTH 8
-#define FBUS_UPLINK_FRAME_LENGTH 8
+#define FBUS_MIN_TELEMETRY_RESPONSE_DELAY_US            500
+#define FBUS_MAX_TELEMETRY_RESPONSE_DELAY_US            3000
+#define FBUS_OTA_MAX_RESPONSE_TIME_US_DEFAULT           200
+#define FBUS_OTA_MIN_RESPONSE_DELAY_US_DEFAULT          50
+#define FBUS_MAX_TELEMETRY_AGE_US                       500000
+#define FBUS_FC_COMMON_ID                               0x1B
+#define FBUS_FC_MSP_ID                                  0x0D
+#define FBUS_BAUDRATE                                   460800
+#define FBUS_PORT_OPTIONS                               (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
+#define FBUS_RX_TIMEOUT                                 120 // µs
+#define FBUS_CONTROL_FRAME_LENGTH                       24
+#define FBUS_OTA_DATA_FRAME_LENGTH                      32
+#define FBUS_DOWNLINK_FRAME_LENGTH                      8
+#define FBUS_UPLINK_FRAME_LENGTH                        8
+#define FBUS_OTA_DATA_FRAME_BYTES                       32
 #define FBUS_TELEMETRY_MAX_CONSECUTIVE_TELEMETRY_FRAMES 2
-#define FBUS_OTA_DATA_FRAME_BYTES 32
 
 enum {
     DEBUG_FBUS_FRAME_INTERVAL = 0,
@@ -134,7 +130,7 @@ typedef struct {
     /*uint8_t phyID : 5;*/
     /*uint8_t phyXOR : 3;*/
     smartPortPayload_t telemetryData;
-} PACKED fbusDownlinkData_t;
+} __packed fbusDownlinkData_t;
 
 typedef struct {
     uint8_t type;
@@ -142,7 +138,7 @@ typedef struct {
         rcData_t rc;
         uint8_t ota[FBUS_OTA_DATA_FRAME_BYTES];
     };
-} PACKED fbusControlFrame_t;
+} __packed fbusControlFrame_t;
 
 typedef struct {
     uint8_t type;
@@ -163,7 +159,7 @@ typedef struct fbusBuffer_s {
 typedef struct {
     uint32_t size;
     uint8_t  crc;
-} PACKED firmwareUpdateHeader_t;
+} __packed firmwareUpdateHeader_t;
 
 static volatile fbusBuffer_t rxBuffer[NUM_RX_BUFFERS];
 static volatile uint8_t rxBufferWriteIndex = 0;
@@ -360,7 +356,7 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
 
                         case CFT_RC:
                             result = sbusChannelsDecode(rxRuntimeState, &frame->control.rc.channels);
-                            lqTrackerSet(rxRuntimeState->lqTracker, scaleRange(frame->control.rc.rssi, 0, 100, 0, RSSI_MAX_VALUE));
+                            // TODO lqTrackerSet(rxRuntimeState->lqTracker, scaleRange(frame->control.rc.rssi, 0, 100, 0, RSSI_MAX_VALUE));
                             frameReceivedTimestamp = currentTimeUs;
 #if defined(USE_TELEMETRY_SMARTPORT)
                             otaMode = false;
@@ -515,8 +511,8 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
     }
 #endif
 
-    if (frameReceivedTimestamp && (cmpTimeUs(currentTimeUs, frameReceivedTimestamp) > MS2US(FBUS_MAX_TELEMETRY_AGE_MS))) {
-        lqTrackerSet(rxRuntimeState->lqTracker, 0);
+    if (frameReceivedTimestamp && (cmpTimeUs(currentTimeUs, frameReceivedTimestamp) > FBUS_MAX_TELEMETRY_AGE_US)) {
+        // TODO lqTrackerSet(rxRuntimeState->lqTracker, 0);
         frameReceivedTimestamp = 0;
     }
 
@@ -651,8 +647,10 @@ bool fbusRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
         NULL,
         FBUS_BAUDRATE,
         MODE_RXTX,
-        FPORT_PORT_OPTIONS |
-          (rxConfig->serial_options & (SERIAL_INVERTED | SERIAL_BIDIR | SERIAL_PINSWAP))
+        FBUS_PORT_OPTIONS |
+        (rxConfig->serialrx_inverted ? SERIAL_INVERTED : SERIAL_NOT_INVERTED) |
+        (rxConfig->halfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR) |
+        (rxConfig->pinSwap ? SERIAL_PINSWAP : SERIAL_NOSWAP)
     );
 
     if (fbusPort) {
