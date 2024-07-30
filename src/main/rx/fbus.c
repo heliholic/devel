@@ -54,17 +54,24 @@
 #define FBUS_MAX_TELEMETRY_RESPONSE_DELAY_US            3000
 #define FBUS_OTA_MAX_RESPONSE_TIME_US_DEFAULT           200
 #define FBUS_OTA_MIN_RESPONSE_DELAY_US_DEFAULT          50
+
 #define FBUS_MAX_TELEMETRY_AGE_US                       500000
 #define FBUS_FC_COMMON_ID                               0x1B
 #define FBUS_FC_MSP_ID                                  0x0D
+
+#define FPORT2_BAUDRATE                                 115200
 #define FBUS_BAUDRATE                                   460800
 #define FBUS_PORT_OPTIONS                               (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
+
 #define FBUS_RX_TIMEOUT                                 120 // µs
+
 #define FBUS_CONTROL_FRAME_LENGTH                       24
 #define FBUS_OTA_DATA_FRAME_LENGTH                      32
 #define FBUS_DOWNLINK_FRAME_LENGTH                      8
 #define FBUS_UPLINK_FRAME_LENGTH                        8
+
 #define FBUS_OTA_DATA_FRAME_BYTES                       32
+
 #define FBUS_TELEMETRY_MAX_CONSECUTIVE_TELEMETRY_FRAMES 2
 
 enum {
@@ -246,18 +253,20 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
 
     lastRxByteTimestamp = currentTimeUs;
 
+    dprintf("0x%02X ", byte);
+
 #ifdef USE_TELEMETRY_SMARTPORT
     clearToSend = false;
 #endif
 
-    if ((state != FS_CONTROL_FRAME_START) && (timeSincePreviousRxByte > FBUS_RX_TIMEOUT)) {
+    if (state != FS_CONTROL_FRAME_START && timeSincePreviousRxByte > FBUS_RX_TIMEOUT) {
         state = FS_CONTROL_FRAME_START;
     }
 
     switch (state) {
 
         case FS_CONTROL_FRAME_START:
-            if ((byte == FBUS_CONTROL_FRAME_LENGTH) || (byte == FBUS_OTA_DATA_FRAME_LENGTH)) {
+            if (byte == FBUS_CONTROL_FRAME_LENGTH || byte == FBUS_OTA_DATA_FRAME_LENGTH) {
                 clearWriteBuffer();
                 writeBuffer(FT_CONTROL);
                 state = FS_CONTROL_FRAME_TYPE;
@@ -265,10 +274,9 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
             break;
 
         case FS_CONTROL_FRAME_TYPE:
-            if ((byte == CFT_RC) || ((byte >= CFT_OTA_START) && (byte <= CFT_OTA_STOP))) {
-                unsigned controlFrameType = byte;
-                writeBuffer(controlFrameType);
-                controlFrameSize = (controlFrameType == CFT_OTA_DATA ? FBUS_OTA_DATA_FRAME_LENGTH : FBUS_CONTROL_FRAME_LENGTH) + 2; // +2 = General frame type + CRC
+            if (byte == CFT_RC || (byte >= CFT_OTA_START && byte <= CFT_OTA_STOP)) {
+                writeBuffer(byte);
+                controlFrameSize = (byte == CFT_OTA_DATA ? FBUS_OTA_DATA_FRAME_LENGTH : FBUS_CONTROL_FRAME_LENGTH) + 2; // +2 = General frame type + CRC
                 state = FS_CONTROL_FRAME_DATA;
             } else {
                 state = FS_CONTROL_FRAME_START;
@@ -633,7 +641,7 @@ static bool fbusProcessFrame(const rxRuntimeState_t *rxRuntimeState)
 }
 
 
-bool fbusRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
+bool fbusRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState, bool isFBUS)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
 
@@ -656,7 +664,7 @@ bool fbusRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
         FUNCTION_RX_SERIAL,
         fbusDataReceive,
         NULL,
-        FBUS_BAUDRATE,
+        isFBUS ? FBUS_BAUDRATE : FPORT2_BAUDRATE,
         MODE_RXTX,
         FBUS_PORT_OPTIONS |
         (rxConfig->serialrx_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED) |

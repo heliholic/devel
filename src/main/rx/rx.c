@@ -235,8 +235,11 @@ static bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntime
         break;
 #endif
 #ifdef USE_SERIALRX_FBUS
+    case SERIALRX_FPORT2:
+        enabled = fbusRxInit(rxConfig, rxRuntimeState, false);
+        break;
     case SERIALRX_FBUS:
-        enabled = fbusRxInit(rxConfig, rxRuntimeState);
+        enabled = fbusRxInit(rxConfig, rxRuntimeState, true);
         break;
 #endif
     default:
