@@ -127,8 +127,6 @@ typedef struct {
 
 typedef struct {
     uint8_t phyID;
-    /*uint8_t phyID : 5;*/
-    /*uint8_t phyXOR : 3;*/
     smartPortPayload_t telemetryData;
 } __packed fbusDownlinkData_t;
 
@@ -146,7 +144,7 @@ typedef struct {
         fbusControlFrame_t control;
         fbusDownlinkData_t downlink;
     };
-} fbusFrame_t;
+} __packed fbusFrame_t;
 
 // RX frames ring buffer
 #define NUM_RX_BUFFERS 15
@@ -201,8 +199,10 @@ static volatile uint16_t frameErrors = 0;
 
 static void reportFrameError(uint8_t errorReason)
 {
-    UNUSED(errorReason);
     frameErrors++;
+
+    DEBUG_SET(DEBUG_FPORT, DEBUG_FBUS_FRAME_ERRORS, frameErrors);
+    DEBUG_SET(DEBUG_FPORT, DEBUG_FBUS_FRAME_LAST_ERROR, errorReason);
 }
 
 static void clearWriteBuffer(void)
