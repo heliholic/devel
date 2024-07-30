@@ -25,6 +25,7 @@
 #ifdef USE_SERIALRX_FBUS
 
 #include "build/debug.h"
+#include "build/dprintf.h"
 
 #include "common/maths.h"
 #include "common/utils.h"
@@ -248,7 +249,7 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
 
     lastRxByteTimestamp = currentTimeUs;
 
-    dprintf("0x%02X ", byte);
+    //dprintf("0x%02X ", byte);
 
 #ifdef USE_TELEMETRY_SMARTPORT
     clearToSend = false;
@@ -645,6 +646,8 @@ bool fbusRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
 
+    initDebugSerial(SERIAL_PORT_USART6, 921600);
+
     rxRuntimeState->channelData = sbusChannelData;
     sbusChannelsInit(rxConfig, rxRuntimeState);
 
@@ -677,6 +680,7 @@ bool fbusRxInit(const rxConfig_t *rxConfig, rxRuntimeState_t *rxRuntimeState)
         telemetryEnabled = initSmartPortTelemetryExternal(writeUplinkFrame);
 #endif
 
+        dprintf("FBUS init done\r\n");
     }
 
     return fbusPort != NULL;
