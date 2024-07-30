@@ -53,6 +53,7 @@
 
 #define FBUS_MIN_TELEMETRY_RESPONSE_DELAY_US            500
 #define FBUS_MAX_TELEMETRY_RESPONSE_DELAY_US            3000
+
 #define FBUS_OTA_MAX_RESPONSE_TIME_US_DEFAULT           200
 #define FBUS_OTA_MIN_RESPONSE_DELAY_US_DEFAULT          50
 
@@ -93,15 +94,15 @@ enum {
 };
 
 enum {
-    CFT_RC                  = 0xFF,
-    CFT_OTA_START           = 0xF0,
-    CFT_OTA_DATA            = 0xF1,
-    CFT_OTA_STOP            = 0xF2
+    FBUS_CONTROL_FRAME_TYPE_OTA_START   = 0xF0,
+    FBUS_CONTROL_FRAME_TYPE_OTA_DATA    = 0xF1,
+    FBUS_CONTROL_FRAME_TYPE_OTA_STOP    = 0xF2,
+    FBUS_CONTROL_FRAME_TYPE_CHANNELS    = 0xFF,
 };
 
 enum {
-    FT_CONTROL,
-    FT_DOWNLINK
+    FBUS_FRAME_TYPE_CONTROL,
+    FBUS_FRAME_TYPE_DOWNLINK,
 };
 
 typedef enum {
@@ -109,7 +110,7 @@ typedef enum {
     FS_CONTROL_FRAME_TYPE,
     FS_CONTROL_FRAME_DATA,
     FS_DOWNLINK_FRAME_START,
-    FS_DOWNLINK_FRAME_DATA
+    FS_DOWNLINK_FRAME_DATA,
 } frame_state_e;
 
 enum {
@@ -126,7 +127,11 @@ enum {
 typedef struct {
     sbusChannels_t channels;
     uint8_t rssi;
-} __packed rcData_t;
+} __packed fbusChannelData_t;
+
+typedef struct {
+    uint8_t data[FBUS_OTA_DATA_FRAME_BYTES];
+} __packed fbusOTAData_t;
 
 typedef struct {
     uint8_t phyID;
@@ -136,8 +141,8 @@ typedef struct {
 typedef struct {
     uint8_t type;
     union {
-        rcData_t rc;
-        uint8_t ota[FBUS_OTA_DATA_FRAME_BYTES];
+        fbusChannelData_t   rc;
+        fbusOTAData_t       ota;
     };
 } __packed fbusControlFrame_t;
 
@@ -216,6 +221,7 @@ static void clearWriteBuffer(void)
 static bool nextWriteBuffer(void)
 {
     const uint8_t nextWriteIndex = (rxBufferWriteIndex + 1) % NUM_RX_BUFFERS;
+
     if (nextWriteIndex != rxBufferReadIndex) {
         rxBufferWriteIndex = nextWriteIndex;
         clearWriteBuffer();
@@ -244,8 +250,8 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
     static volatile timeUs_t lastRxByteTimestamp = 0;
     static unsigned controlFrameSize;
 
-    const timeUs_t currentTimeUs = micros();
-    const timeUs_t timeSincePreviousRxByte = lastRxByteTimestamp ? currentTimeUs - lastRxByteTimestamp : 0;
+    const timeUs_t currentTimeUs = microsISR();
+    const timeUs_t timeSincePreviousRxByte = cmpTimeUs(currentTimeUs, lastRxByteTimestamp);
 
     lastRxByteTimestamp = currentTimeUs;
 
@@ -259,20 +265,21 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
         state = FS_CONTROL_FRAME_START;
     }
 
-    switch (state) {
-
+    switch (state)
+    {
         case FS_CONTROL_FRAME_START:
             if (byte == FBUS_CONTROL_FRAME_LENGTH || byte == FBUS_OTA_DATA_FRAME_LENGTH) {
                 clearWriteBuffer();
-                writeBuffer(FT_CONTROL);
+                writeBuffer(FBUS_FRAME_TYPE_CONTROL);
                 state = FS_CONTROL_FRAME_TYPE;
             }
             break;
 
         case FS_CONTROL_FRAME_TYPE:
-            if (byte == CFT_RC || (byte >= CFT_OTA_START && byte <= CFT_OTA_STOP)) {
+            if (byte == FBUS_CONTROL_FRAME_TYPE_CHANNELS || byte == FBUS_CONTROL_FRAME_TYPE_OTA_DATA ||
+                byte == FBUS_CONTROL_FRAME_TYPE_OTA_START || byte == FBUS_CONTROL_FRAME_TYPE_OTA_STOP) {
                 writeBuffer(byte);
-                controlFrameSize = (byte == CFT_OTA_DATA ? FBUS_OTA_DATA_FRAME_LENGTH : FBUS_CONTROL_FRAME_LENGTH) + 2; // +2 = General frame type + CRC
+                controlFrameSize = (byte == FBUS_CONTROL_FRAME_TYPE_OTA_DATA ? FBUS_OTA_DATA_FRAME_LENGTH : FBUS_CONTROL_FRAME_LENGTH) + 2; // +2 = General frame type + CRC
                 state = FS_CONTROL_FRAME_DATA;
             } else {
                 state = FS_CONTROL_FRAME_START;
@@ -289,7 +296,7 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
 
         case FS_DOWNLINK_FRAME_START:
             if (byte == FBUS_DOWNLINK_FRAME_LENGTH) {
-                writeBuffer(FT_DOWNLINK);
+                writeBuffer(FBUS_FRAME_TYPE_DOWNLINK);
                 state = FS_DOWNLINK_FRAME_DATA;
             } else {
                 state = FS_CONTROL_FRAME_START;
@@ -312,7 +319,6 @@ static void fbusDataReceive(uint16_t byte, void *callback_data)
         default:
             state = FS_CONTROL_FRAME_START;
             break;
-
     }
 }
 
@@ -324,11 +330,13 @@ static void writeUplinkFramePhyID(uint8_t phyID, const smartPortPayload_t *paylo
 
     uint16_t checksum = 0;
     frskyCheckSumStep(&checksum, phyID);
+
     uint8_t *data = (uint8_t *)payload;
     for (unsigned i = 0; i < sizeof(smartPortPayload_t); ++i, ++data) {
         serialWrite(fbusPort, *data);
         frskyCheckSumStep(&checksum, *data);
     }
+
     frskyCheckSumFini(&checksum);
     serialWrite(fbusPort, checksum);
 }
@@ -366,9 +374,9 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
         }
         else {
             switch (frame->type) {
-                case FT_CONTROL:
+                case FBUS_FRAME_TYPE_CONTROL:
                     switch (frame->control.type) {
-                        case CFT_RC:
+                        case FBUS_CONTROL_FRAME_TYPE_CHANNELS:
                             result = sbusChannelsDecode(rxRuntimeState, &frame->control.rc.channels);
                             // TODO lqTrackerSet(rxRuntimeState->lqTracker, scaleRange(frame->control.rc.rssi, 0, 100, 0, RSSI_MAX_VALUE));
                             frameReceivedTimestamp = currentTimeUs;
@@ -378,16 +386,16 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
                             break;
 
 #ifdef USE_TELEMETRY_SMARTPORT
-                        case CFT_OTA_START:
+                        case FBUS_CONTROL_FRAME_TYPE_OTA_START:
                         {
-                            uint8_t otaMinResponseDelayByte = frame->control.ota[0];
+                            uint8_t otaMinResponseDelayByte = frame->control.ota.data[0];
                             if ((otaMinResponseDelayByte > 0) && (otaMinResponseDelayByte <= 4)) {
                                 otaMinResponseDelay = otaMinResponseDelayByte * 100;
                             } else {
                                 otaMinResponseDelay = FBUS_OTA_MIN_RESPONSE_DELAY_US_DEFAULT;
                             }
 
-                            uint8_t otaMaxResponseTimeByte = frame->control.ota[1];
+                            uint8_t otaMaxResponseTimeByte = frame->control.ota.data[1];
                             if (otaMaxResponseTimeByte > 0) {
                                 otaMaxResponseTime = otaMaxResponseTimeByte * 100;
                             } else {
@@ -398,10 +406,10 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
                             break;
                         }
 
-                        case CFT_OTA_DATA:
+                        case FBUS_CONTROL_FRAME_TYPE_OTA_DATA:
                         {
                             if (otaMode) {
-                                memcpy(otaDataBuffer, frame->control.ota, sizeof(otaDataBuffer));
+                                memcpy(otaDataBuffer, frame->control.ota.data, sizeof(otaDataBuffer));
                                 otaGotData = true;
                             } else {
                                 reportFrameError(DEBUG_FBUS_ERROR_TYPE);
@@ -409,7 +417,7 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
                             break;
                         }
 
-                        case CFT_OTA_STOP:
+                        case FBUS_CONTROL_FRAME_TYPE_OTA_STOP:
                         {
                             if (!otaMode) {
                                 reportFrameError(DEBUG_FBUS_ERROR_TYPE);
@@ -425,7 +433,7 @@ static uint8_t fbusFrameStatus(rxRuntimeState_t *rxRuntimeState)
                     }
                     break;
 
-                case FT_DOWNLINK:
+                case FBUS_FRAME_TYPE_DOWNLINK:
 #ifdef USE_TELEMETRY_SMARTPORT
                     if (!telemetryEnabled) {
                         break;
