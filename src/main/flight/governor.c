@@ -93,6 +93,9 @@ typedef struct {
     // Maximum allowed throttle
     float           maxThrottle;
 
+    // Minimum throttle when PID active
+    float           minPIDThrottle;
+
     // Throttle handover level
     float           maxIdleThrottle;
 
@@ -887,11 +890,11 @@ static float govMode1Control(void)
     output = gov.pidSum;
 
     // Apply gov.C if output not saturated
-    if (!((output > gov.maxThrottle && gov.C > 0) || (output < GOV_MIN_THROTTLE_OUTPUT && gov.C < 0)))
+    if (!((output > gov.maxThrottle && gov.C > 0) || (output < gov.minPIDThrottle && gov.C < 0)))
         gov.I += gov.C;
 
     // Limit output
-    output = constrainf(output, GOV_MIN_THROTTLE_OUTPUT, gov.maxThrottle);
+    output = constrainf(output, gov.minPIDThrottle, gov.maxThrottle);
 
     return output;
 }
@@ -941,11 +944,11 @@ static float govMode2Control(void)
     output = gov.pidSum * pidGain;
 
     // Apply gov.C if output not saturated
-    if (!((output > gov.maxThrottle && gov.C > 0) || (output < GOV_MIN_THROTTLE_OUTPUT && gov.C < 0)))
+    if (!((output > gov.maxThrottle && gov.C > 0) || (output < gov.minPIDThrottle && gov.C < 0)))
         gov.I += gov.C;
 
     // Limit output
-    output = constrainf(output, GOV_MIN_THROTTLE_OUTPUT, gov.maxThrottle);
+    output = constrainf(output, gov.minPIDThrottle, gov.maxThrottle);
 
     return output;
 }
@@ -1009,6 +1012,7 @@ void governorInitProfile(const pidProfile_t *pidProfile)
         gov.FFExponent = pidProfile->governor.ff_exponent / 100.0f;
 
         gov.maxThrottle = pidProfile->governor.max_throttle / 100.0f;
+        gov.minPIDThrottle = pidProfile->governor.min_pid_throttle / 100.0f;
 
         gov.fullHeadSpeed = constrainf(pidProfile->governor.headspeed, 100, 50000);
 
