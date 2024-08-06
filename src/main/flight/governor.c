@@ -68,6 +68,11 @@
 // Nominal battery cell voltage
 #define GOV_NOMINAL_CELL_VOLTAGE        3.70f
 
+// PID term limits
+#define GOV_P_TERM_LIMIT                0.20f
+#define GOV_I_TERM_LIMIT                0.95f
+#define GOV_D_TERM_LIMIT                0.20f
+#define GOV_F_TERM_LIMIT                0.50f
 
 //// Internal Data
 
@@ -820,7 +825,7 @@ static void governorUpdateState(void)
 static void govPIDInit(void)
 {
     // PID limits
-    gov.P = constrainf(gov.P, -0.25f, 0.25f);
+    gov.P = constrainf(gov.P, -GOV_P_TERM_LIMIT, GOV_P_TERM_LIMIT);
 
     // Use gov.I to reach the target
     gov.I = gov.throttle - gov.P;
@@ -834,9 +839,9 @@ static float govPIDControl(void)
     float output;
 
     // PID limits
-    gov.P = constrainf(gov.P, -0.25f, 0.25f);
-    gov.I = constrainf(gov.I,      0, 0.95f);
-    gov.D = constrainf(gov.D, -0.25f, 0.25f);
+    gov.P = constrainf(gov.P, -GOV_P_TERM_LIMIT, GOV_P_TERM_LIMIT);
+    gov.I = constrainf(gov.I,                 0, GOV_I_TERM_LIMIT);
+    gov.D = constrainf(gov.D, -GOV_D_TERM_LIMIT, GOV_D_TERM_LIMIT);
 
     // Governor PID sum
     gov.pidSum = gov.P + gov.I + gov.D + gov.C;
@@ -862,9 +867,9 @@ static float govPIDControl(void)
 static void govMode1Init(void)
 {
     // PID limits
-    gov.P = constrainf(gov.P, -0.25f, 0.25f);
-    gov.D = constrainf(gov.D, -0.25f, 0.25f);
-    gov.F = constrainf(gov.F,      0, 0.50f);
+    gov.P = constrainf(gov.P, -GOV_P_TERM_LIMIT, GOV_P_TERM_LIMIT);
+    gov.D = constrainf(gov.D, -GOV_D_TERM_LIMIT, GOV_D_TERM_LIMIT);
+    gov.F = constrainf(gov.F,                 0, GOV_F_TERM_LIMIT);
 
     // Use gov.I to reach the target
     gov.I = gov.throttle - (gov.P + gov.D + gov.F);
@@ -878,10 +883,10 @@ static float govMode1Control(void)
     float output;
 
     // PID limits
-    gov.P = constrainf(gov.P, -0.25f, 0.25f);
-    gov.I = constrainf(gov.I,      0, 0.95f);
-    gov.D = constrainf(gov.D, -0.25f, 0.25f);
-    gov.F = constrainf(gov.F,      0, 0.50f);
+    gov.P = constrainf(gov.P, -GOV_P_TERM_LIMIT, GOV_P_TERM_LIMIT);
+    gov.I = constrainf(gov.I,                 0, GOV_I_TERM_LIMIT);
+    gov.D = constrainf(gov.D, -GOV_D_TERM_LIMIT, GOV_D_TERM_LIMIT);
+    gov.F = constrainf(gov.F,                 0, GOV_F_TERM_LIMIT);
 
     // Governor PIDF sum
     gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
@@ -913,9 +918,9 @@ static void govMode2Init(void)
     float pidTarget = gov.throttle / pidGain;
 
     // PID limits
-    gov.P = constrainf(gov.P, -0.25f, 0.25f);
-    gov.D = constrainf(gov.D, -0.25f, 0.25f);
-    gov.F = constrainf(gov.F,      0, 0.50f);
+    gov.P = constrainf(gov.P, -GOV_P_TERM_LIMIT, GOV_P_TERM_LIMIT);
+    gov.D = constrainf(gov.D, -GOV_D_TERM_LIMIT, GOV_D_TERM_LIMIT);
+    gov.F = constrainf(gov.F,                 0, GOV_F_TERM_LIMIT);
 
     // Use gov.I to reach the target
     gov.I = pidTarget - (gov.P + gov.D + gov.F);
@@ -932,10 +937,10 @@ static float govMode2Control(void)
     float pidGain = gov.nominalVoltage / gov.motorVoltage;
 
     // PID limits
-    gov.P = constrainf(gov.P, -0.25f, 0.25f);
-    gov.I = constrainf(gov.I,      0, 0.95f);
-    gov.D = constrainf(gov.D, -0.25f, 0.25f);
-    gov.F = constrainf(gov.F,      0, 0.50f);
+    gov.P = constrainf(gov.P, -GOV_P_TERM_LIMIT, GOV_P_TERM_LIMIT);
+    gov.I = constrainf(gov.I,                 0, GOV_I_TERM_LIMIT);
+    gov.D = constrainf(gov.D, -GOV_D_TERM_LIMIT, GOV_D_TERM_LIMIT);
+    gov.F = constrainf(gov.F,                 0, GOV_F_TERM_LIMIT);
 
     // Governor PIDF sum
     gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
