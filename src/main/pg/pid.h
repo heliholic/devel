@@ -90,6 +90,7 @@ typedef struct {
     uint8_t     collective_ff_weight;
     uint8_t     ff_exponent;
     uint8_t     max_throttle;
+    uint8_t     min_pid_throttle;
 } governorProfile_t;
 
 typedef struct {
