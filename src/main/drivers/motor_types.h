@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "common/time.h"
+#include "common/rtc.h"
 #include "drivers/io_types.h"
 
 #define ALL_MOTORS 255

@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "common/time.h"
+#include "common/rtc.h"
 
 void initMAVLinkTelemetry(void);
 void handleMAVLinkTelemetry(void);

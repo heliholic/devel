@@ -28,7 +28,7 @@ extern "C" {
     #include "blackbox/blackbox.h"
     #include "blackbox/blackbox_io.h"
 
-    #include "common/time.h"
+    #include "common/rtc.h"
     #include "common/vector.h"
 
     #include "config/config.h"
