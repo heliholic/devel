@@ -79,6 +79,9 @@ else
 endif
 endif
 
+.PHONY: all_targets
+all_targets: $(BASE_CONFIGS)
+
 $(BASE_CONFIGS):
 	@echo "Building target config $@"
 	$(V0) $(MAKE) fwo CONFIG=$@
