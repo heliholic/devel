@@ -63,10 +63,6 @@
 #include "flight/alt_hold.h"
 #include "flight/pos_hold.h"
 
-#if defined(USE_DYN_NOTCH_FILTER)
-#include "flight/dyn_notch_filter.h"
-#endif
-
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -467,10 +463,6 @@ if (isMotorProtocolDshot()) {
             ENABLE_ARMING_FLAG(WAS_ARMED_WITH_PREARM);
         }
         imuQuaternionHeadfreeOffsetSet();
-
-#if defined(USE_DYN_NOTCH_FILTER)
-        resetMaxFFT();
-#endif
 
         disarmAt = currentTimeUs + armingConfig()->auto_disarm_delay * 1000 * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
