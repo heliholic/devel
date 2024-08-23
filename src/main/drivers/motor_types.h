@@ -25,8 +25,6 @@
 #include "drivers/io_types.h"
 
 #define ALL_MOTORS 255
-#define MOTOR_OUTPUT_LIMIT_PERCENT_MIN 1
-#define MOTOR_OUTPUT_LIMIT_PERCENT_MAX 100
 
 typedef enum {
     MOTOR_PROTOCOL_FAMILY_UNKNOWN = 0,
