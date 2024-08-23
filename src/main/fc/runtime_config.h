@@ -88,7 +88,7 @@ typedef enum {
     POS_HOLD_MODE   = (1 << 5),
     HEADFREE_MODE   = (1 << 6),
 //    CHIRP_MODE     = (1 << 7),
-    PASSTHRU_MODE   = (1 << 8),
+//    PASSTHRU_MODE   = (1 << 8),
 //    RANGEFINDER_MODE= (1 << 9),
     FAILSAFE_MODE   = (1 << 10),
     GPS_RESCUE_MODE = (1 << 11)
@@ -109,7 +109,6 @@ extern uint16_t flightModeFlags;
    [BOXALTHOLD]     = LOG2(ALT_HOLD_MODE),               \
    [BOXPOSHOLD]     = LOG2(POS_HOLD_MODE),               \
    [BOXHEADFREE]    = LOG2(HEADFREE_MODE),               \
-   [BOXPASSTHRU]    = LOG2(PASSTHRU_MODE),               \
    [BOXFAILSAFE]    = LOG2(FAILSAFE_MODE),               \
    [BOXGPSRESCUE]   = LOG2(GPS_RESCUE_MODE),             \
 }                                                        \
