@@ -44,11 +44,6 @@
 #define GYRO_LPF1_DYN_MAX_HZ_DEFAULT 500
 #define GYRO_LPF2_HZ_DEFAULT 500
 
-#ifdef USE_YAW_SPIN_RECOVERY
-#define YAW_SPIN_RECOVERY_THRESHOLD_MIN 500
-#define YAW_SPIN_RECOVERY_THRESHOLD_MAX 1950
-#endif
-
 #define GYRO_IMU_DOWNSAMPLE_CUTOFF_HZ 200
 
 #define GYRO_MASK(x) BIT(x)
@@ -138,12 +133,6 @@ enum {
     DYN_LPF_PT3,
 };
 
-typedef enum {
-    YAW_SPIN_RECOVERY_OFF,
-    YAW_SPIN_RECOVERY_ON,
-    YAW_SPIN_RECOVERY_AUTO
-} yawSpinRecoveryMode_e;
-
 enum {
     FILTER_LPF1 = 0,
     FILTER_LPF2
@@ -167,9 +156,6 @@ typedef struct gyroConfig_s {
     // Lowpass primary/secondary
     uint8_t gyro_lpf1_type;
     uint8_t gyro_lpf2_type;
-
-    uint8_t yaw_spin_recovery;
-    int16_t yaw_spin_threshold;
 
     uint16_t gyroCalibrationDuration;   // Gyro calibration duration in 1/100 second
 
@@ -197,12 +183,8 @@ bool gyroIsCalibrationComplete(void);
 void gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 bool gyroOverflowDetected(void);
-bool gyroYawSpinDetected(void);
 uint16_t gyroAbsRateDps(int axis);
 #ifdef USE_DYN_LPF
 float dynThrottle(float throttle);
 void dynLpfGyroUpdate(float throttle);
-#endif
-#ifdef USE_YAW_SPIN_RECOVERY
-void initYawSpinRecovery(int maxYawRate);
 #endif
