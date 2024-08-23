@@ -104,15 +104,6 @@ typedef struct currentMeterESCState_s {
 } currentMeterESCState_t;
 
 //
-// MSP
-//
-
-typedef struct currentMeterMSPState_s {
-    int32_t mAhDrawn;           // milliampere hours drawn from the battery since start
-    int32_t amperage;           // current read by current sensor in centiampere (1/100th A)
-} currentMeterMSPState_t;
-
-//
 // Current Meter API
 //
 
@@ -130,11 +121,6 @@ void currentMeterESCInit(void);
 void currentMeterESCRefresh(int32_t lastUpdateAt);
 void currentMeterESCReadCombined(currentMeter_t *meter);
 void currentMeterESCReadMotor(uint8_t motorNumber, currentMeter_t *meter);
-
-void currentMeterMSPInit(void);
-void currentMeterMSPRefresh(timeUs_t currentTimeUs);
-void currentMeterMSPRead(currentMeter_t *meter);
-void currentMeterMSPSet(uint16_t amperage, uint16_t mAhDrawn);
 
 //
 // API for reading current meters by id.
