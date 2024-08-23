@@ -154,8 +154,6 @@ void setDefaultTestSettings(void)
     pidProfile->horizon_limit_degrees = 135;
     pidProfile->horizon_ignore_sticks = false;
     pidProfile->itermLimit = 150;
-    pidProfile->throttle_boost = 0;
-    pidProfile->throttle_boost_cutoff = 15;
     pidProfile->iterm_rotation = false;
     pidProfile->iterm_relax = ITERM_RELAX_OFF,
     pidProfile->iterm_relax_cutoff = 11,
