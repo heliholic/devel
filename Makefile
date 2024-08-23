@@ -47,6 +47,10 @@ SERIAL_DEVICE   ?= $(firstword $(wildcard /dev/ttyACM*) $(firstword $(wildcard /
 # Flash size (KB).  Some low-end chips actually have more flash than advertised, use this to override.
 FLASH_SIZE ?=
 
+# Number of jobs to run in parallel
+PARALLEL_JOBS 	?= 4
+
+
 ###############################################################################
 # Things that need to be maintained as the source changes
 #
@@ -81,8 +85,7 @@ endif
 
 # some targets use parallel build by default
 # MAKEFLAGS is valid only inside target, do not use this at parse phase
-DEFAULT_PARALLEL_JOBS 	:=    # all jobs in parallel (for backward compatibility)
-MAKE_PARALLEL 		     = $(if $(filter -j%, $(MAKEFLAGS)),$(EMPTY),-j$(DEFAULT_PARALLEL_JOBS))
+MAKE_PARALLEL 		     = $(if $(filter -j%, $(MAKEFLAGS)),$(EMPTY),-j$(PARALLEL_JOBS))
 
 # pre-build sanity checks
 include $(MAKE_SCRIPT_DIR)/checks.mk
@@ -90,6 +93,10 @@ include $(MAKE_SCRIPT_DIR)/checks.mk
 # basic target list
 PLATFORMS        := $(sort $(notdir $(patsubst /%,%, $(wildcard $(PLATFORM_DIR)/*))))
 BASE_TARGETS     := $(sort $(notdir $(patsubst %/,%,$(dir $(wildcard $(PLATFORM_DIR)/*/target/*/target.mk)))))
+
+# CI targets
+CI_EXCLUDED_TARGETS := $(sort $(notdir $(patsubst %/,%,$(dir $(wildcard $(PLATFORM_DIR)/*/target/*/.exclude)))))
+CI_TARGETS          := $(filter-out $(CI_EXCLUDED_TARGETS), $(BASE_TARGETS))
 
 # configure some directories that are relative to wherever ROOT_DIR is located
 TOOLS_DIR  ?= $(ROOT)/tools
@@ -125,11 +132,6 @@ include $(MAKE_SCRIPT_DIR)/config.mk
 
 # default xtal value
 HSE_VALUE       ?= 8000000
-
-CI_EXCLUDED_TARGETS := $(sort $(notdir $(patsubst %/,%,$(dir $(wildcard $(PLATFORM_DIR)/*/target/*/.exclude)))))
-CI_COMMON_TARGETS   := STM32F4DISCOVERY CRAZYBEEF4SX1280 CRAZYBEEF4FR MATEKF405TE AIRBOTG4AIO TBS_LUCID_FC IFLIGHT_BLITZ_F722 NUCLEOF446 SPRACINGH7EXTREME SPRACINGH7RF
-CI_TARGETS          := $(filter-out $(CI_EXCLUDED_TARGETS), $(BASE_TARGETS)) $(filter $(CI_COMMON_TARGETS), $(BASE_CONFIGS))
-PREVIEW_TARGETS     := MATEKF411 AIKONF4V2 AIRBOTG4AIO ZEEZF7V3 FOXEERF745V4_AIO KAKUTEH7 TBS_LUCID_FC SITL SPRACINGH7EXTREME SPRACINGH7RF
 
 TARGET_PLATFORM     := $(notdir $(patsubst %/,%,$(subst target/$(TARGET)/,, $(dir $(wildcard $(PLATFORM_DIR)/*/target/$(TARGET)/target.mk)))))
 TARGET_PLATFORM_DIR := $(PLATFORM_DIR)/$(TARGET_PLATFORM)
@@ -513,8 +515,12 @@ $(TARGET_OBJ_DIR)/%.o: %.S
 	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
 
-## all               : Build all currently built targets
-all: $(CI_TARGETS)
+## all               : Build all CI targets
+all: ci
+
+ci: $(CI_TARGETS)
+
+base: $(BASE_TARGETS)
 
 $(BASE_TARGETS):
 	$(V0) @echo "Building target $@" && \
@@ -549,9 +555,6 @@ $(CONFIGS_CLEAN):
 
 ## clean_all         : clean all targets
 clean_all: $(TARGETS_CLEAN) test_clean
-
-## preview           : build one target for each platform and execute make test
-preview: $(PREVIEW_TARGETS) test
 
 ## all_configs       : Build all configs
 all_configs: $(BASE_CONFIGS)
@@ -666,7 +669,6 @@ targets:
 	@echo "Default target:      $(TARGET)"
 	@echo "CI common targets:   $(CI_COMMON_TARGETS)"
 	@echo "CI excluded targets: $(CI_EXCLUDED_TARGETS)"
-	@echo "Preview targets:     $(PREVIEW_TARGETS)"
 
 targets-ci-print:
 	@echo $(CI_TARGETS)
