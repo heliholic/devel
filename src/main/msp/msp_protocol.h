@@ -202,14 +202,6 @@
 #define MSP_VTXTABLE_POWERLEVEL         138  // out message: VTX table powerLevel data
 #define MSP_MOTOR_TELEMETRY             139  // out message: Per-motor telemetry data (RPM, packet stats, ESC temp, etc.)
 
-// Simplified tuning commands (140-145)
-#define MSP_SIMPLIFIED_TUNING           140  // out message: Get simplified tuning values and enabled state
-#define MSP_SET_SIMPLIFIED_TUNING       141  // in message:  Set simplified tuning positions and apply calculated tuning
-#define MSP_CALCULATE_SIMPLIFIED_PID    142  // out message: Calculate PID values based on sliders without saving
-#define MSP_CALCULATE_SIMPLIFIED_GYRO   143  // out message: Calculate gyro filter values based on sliders without saving
-#define MSP_CALCULATE_SIMPLIFIED_DTERM  144  // out message: Calculate D term filter values based on sliders without saving
-#define MSP_VALIDATE_SIMPLIFIED_TUNING  145  // out message: Returns array of true/false showing which simplified tuning groups match values
-
 // Additional non-MultiWii commands (150-166)
 #define MSP_STATUS_EX                   150  // out message: Cycletime, errors_count, CPU load, sensor present etc
 #define MSP_UID                         160  // out message: Unique device ID
