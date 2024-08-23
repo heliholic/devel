@@ -59,14 +59,6 @@ void pgResetFn_mixerConfig(mixerConfig_t *mixerConfig)
 
     mixerConfig->yaw_motors_reversed = YAW_MOTORS_REVERSED;
 
-    mixerConfig->crashflip_motor_percent = 0;
-#ifdef USE_RACE_PRO
-    mixerConfig->crashflip_rate = 30;
-    mixerConfig->crashflip_auto_rearm = true;
-#else
-    mixerConfig->crashflip_rate = 0;
-    mixerConfig->crashflip_auto_rearm = false;
-#endif
     mixerConfig->mixer_type = MIXER_LEGACY;
 #ifdef USE_RPM_LIMIT
     mixerConfig->rpm_limit = false;

@@ -66,8 +66,6 @@
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
 
-const char CRASHFLIP_WARNING[] = ">CRASH FLIP<";
-
 #if defined(USE_ESC_SENSOR) || (defined(USE_DSHOT) && defined(USE_DSHOT_TELEMETRY))
 // ESC alarm character constants
 #define ESC_ALARM_CURRENT   'C'
@@ -254,19 +252,6 @@ void renderOsdWarning(char *warningText, bool *blinking, uint8_t *displayAttr)
         }
     }
 #endif
-
-    // Warn when in flip over after crash mode
-    if (osdWarnGetState(OSD_WARNING_CRASHFLIP) && IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
-        if (isCrashFlipModeActive()) { // if was armed in crashflip mode
-            tfp_sprintf(warningText, CRASHFLIP_WARNING);
-            *displayAttr = DISPLAYPORT_SEVERITY_WARNING;
-            return;
-        } else if (!ARMING_FLAG(ARMED)) { // if disarmed, but crashflip mode is activated (not allowed / can't happen)
-            tfp_sprintf(warningText, "CRASHFLIP SW");
-            *displayAttr = DISPLAYPORT_SEVERITY_INFO;
-            return;
-        }
-    }
 
     // RSSI
     if (osdWarnGetState(OSD_WARNING_RSSI) && (getRssiPercent() < osdConfig()->rssi_alarm)) {

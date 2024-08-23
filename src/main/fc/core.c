@@ -116,7 +116,6 @@ enum {
 enum {
     ARMING_DELAYED_DISARMED = 0,
     ARMING_DELAYED_NORMAL = 1,
-    ARMING_DELAYED_CRASHFLIP = 2,
 };
 
 #define GYRO_WATCHDOG_DELAY 80 //  delay for gyro sync
@@ -127,7 +126,6 @@ int16_t magHold;
 
 static FAST_DATA_ZERO_INIT uint8_t pidUpdateCounter;
 
-static bool crashFlipModeActive = false;
 static timeUs_t disarmAt;     // Time of automatic disarm when "Don't spin the motors when armed" is enabled and auto_disarm_delay is nonzero
 static int lastArmingDisabledReason = 0;
 static timeUs_t lastDisarmTimeUs;
@@ -223,27 +221,6 @@ void updateArmingStatus(void)
     if (ARMING_FLAG(ARMED)) {
         LED0_ON;
 
-#ifdef USE_DSHOT
-// --- handle crashFlip behaviours while armed ---
-if (crashFlipModeActive) {
-    if (!IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
-        // Pilot has reverted the crash flip switch while crashflip is active and craft is  armed
-        if (!mixerConfig()->crashflip_auto_rearm) {
-            // we are in manual re-arm mode:  block arming until manual re-arm:
-            setArmingDisabled(ARMING_DISABLED_CRASHFLIP); // block tryArm() until user disarms manually
-            clearWasLastDisarmUserRequested();
-            // tell disarm() that this was not a user generated disarm
-            // also clear the flag in rc_controls so that it will only be true when the pilot makes a new user manual disarm
-            disarm(DISARM_REASON_CRASHFLIP); // stop the motors, revert crashflipMode and set motor direction normal
-        } else {
-            // we are in auto re-arm mode, terminate crashflip mode and set motor direction normal
-            setMotorSpinDirection(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
-            crashFlipModeActive = false;
-        }
-    }
-}
-#endif // USE_DSHOT
-    } else {
         // arming switch on, but not yet armed; currently DISARMED
         // identify things that should delay, or prevent, arming, then arm
 
@@ -277,15 +254,6 @@ if (crashFlipModeActive) {
         hadRx = haveRx;
         }
 
-        if (getArmingDisableFlags() & ARMING_DISABLED_CRASHFLIP) {
-             // if, while disarmed, arming was blocked due to crashflip, eg in manual mode and the crashflip switch was reverted, watch for a manual user disarm
-             if (wasLastDisarmUserRequested()) {
-             // if there has been a new manual user disarm since the last time its flag was cleared, eg since the crashflip switch was reverted in manual mode
-                unsetArmingDisabled(ARMING_DISABLED_CRASHFLIP);
-                // clear the armingDisabled block to permit re-arming
-            }
-        }
-
         if (IS_RC_MODE_ACTIVE(BOXFAILSAFE)) {
             setArmingDisabled(ARMING_DISABLED_BOXFAILSAFE);
         } else {
@@ -310,7 +278,7 @@ if (crashFlipModeActive) {
             unsetArmingDisabled(ARMING_DISABLED_THROTTLE);
         }
 
-        if (!isUpright() && !IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
+        if (!isUpright()) {
             setArmingDisabled(ARMING_DISABLED_ANGLE);
         } else {
             unsetArmingDisabled(ARMING_DISABLED_ANGLE);
@@ -341,7 +309,7 @@ if (crashFlipModeActive) {
 #ifdef USE_GPS_RESCUE
         if (gpsRescueIsConfigured()) {
             if (gpsRescueConfig()->allowArmingWithoutFix || (STATE(GPS_FIX) && (gpsSol.numSat >= gpsRescueConfig()->minSats)) ||
-            ARMING_FLAG(WAS_EVER_ARMED) || IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
+                ARMING_FLAG(WAS_EVER_ARMED)) {
                 unsetArmingDisabled(ARMING_DISABLED_GPS);
             } else {
                 setArmingDisabled(ARMING_DISABLED_GPS);
@@ -388,10 +356,6 @@ if (crashFlipModeActive) {
         }
 
         if (!isUsingSticksForArming()) {
-            if (!IS_RC_MODE_ACTIVE(BOXARM)) {
-                unsetArmingDisabled(ARMING_DISABLED_CRASH_DETECTED);
-            }
-
             /* Ignore ARMING_DISABLED_CALIBRATING if we are going to calibrate gyro on first arm */
             bool ignoreGyro = armingConfig()->gyro_cal_on_first_arm
                 && !(getArmingDisableFlags() & ~(ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_CALIBRATING));
@@ -432,17 +396,9 @@ void disarm(flightLogDisarmReason_e reason)
     }
 
     if (ARMING_FLAG(ARMED)) {
-        if (!crashFlipModeActive) {
-            ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
-        }
+        ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
         DISABLE_ARMING_FLAG(ARMED); // disarm now
         lastDisarmTimeUs = micros();
-
-#ifdef USE_OSD
-        if (IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
-            osdSuppressStats(true);
-        }
-#endif
 
 #ifdef USE_BLACKBOX
         flightLogEvent_disarm_t eventData;
@@ -459,24 +415,16 @@ void disarm(flightLogDisarmReason_e reason)
         BEEP_OFF;
 
 #ifdef USE_PERSISTENT_STATS
-        if (!crashFlipModeActive) {
-            statsOnDisarm();
-        }
+        statsOnDisarm();
 #endif
-    // Terminate crashflip mode in any disarm
-    if (crashFlipModeActive) {
-        crashFlipModeActive = false;
-    }
 
         // always set motor direction to normal on disarming
 #ifdef USE_DSHOT
         setMotorSpinDirection(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
 #endif
 
-        // make disarming beeps, but not if ARMING_DISABLED (CRASH_DETECTED)
-        if (!(getArmingDisableFlags() & ARMING_DISABLED_CRASH_DETECTED)) {
-            beeper(BEEPER_DISARMING);
-        }
+        // make disarming beeps
+        beeper(BEEPER_DISARMING);
     }
 }
 
@@ -519,8 +467,7 @@ if (isMotorProtocolDshot()) {
     }
     #endif
 
-    crashFlipModeActive = IS_RC_MODE_ACTIVE(BOXCRASHFLIP);
-    setMotorSpinDirection(crashFlipModeActive ? DSHOT_CMD_SPIN_DIRECTION_REVERSED : DSHOT_CMD_SPIN_DIRECTION_NORMAL);
+    setMotorSpinDirection(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
 }
 #endif // USE_DSHOT
 
@@ -826,12 +773,6 @@ void processRxModes(timeUs_t currentTimeUs)
     }
 
     updateActivatedModes();
-
-#ifdef USE_DSHOT
-    if (crashFlipModeActive) {
-        beeper(BEEPER_CRASHFLIP_MODE);
-    }
-#endif
 
     if (!cliMode && !(IS_RC_MODE_ACTIVE(BOXPARALYZE) && !ARMING_FLAG(ARMED))) {
         processRcAdjustments(currentControlRateProfile);
@@ -1169,11 +1110,6 @@ FAST_CODE void taskMainPidLoop(timeUs_t currentTimeUs)
 
     DEBUG_SET(DEBUG_CYCLETIME, 0, getTaskDeltaTimeUs(TASK_SELF));
     DEBUG_SET(DEBUG_CYCLETIME, 1, getAverageSystemLoadPercent());
-}
-
-bool isCrashFlipModeActive(void)
-{
-    return crashFlipModeActive;
 }
 
 timeUs_t getLastDisarmTimeUs(void)
