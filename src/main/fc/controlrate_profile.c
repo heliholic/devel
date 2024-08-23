@@ -43,8 +43,6 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *controlRateConfig)
 {
     for (int i = 0; i < CONTROL_RATE_PROFILE_COUNT; i++) {
         RESET_CONFIG(controlRateConfig_t, &controlRateConfig[i],
-            .thrMid8 = 50,
-            .thrExpo8 = 0,
             .rates_type = RATES_TYPE_ACTUAL,
             .rcRates[FD_ROLL] = 7,
             .rcRates[FD_PITCH] = 7,
@@ -62,7 +60,6 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *controlRateConfig)
             .rate_limit[FD_YAW] = CONTROL_RATE_CONFIG_RATE_LIMIT_MAX,
             .profileName = { 0 },
             .quickRatesRcExpo = 0,
-            .thrHover8 = 50,
         );
     }
 }
