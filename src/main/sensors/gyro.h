@@ -166,8 +166,6 @@ typedef struct gyroConfig_s {
 
     uint8_t gyrosDetected; // What gyros should be shown as part of the cli status command.
     uint8_t gyro_lpf1_dyn_expo; // set the curve for dynamic gyro lowpass filter
-    uint8_t simplified_gyro_filter;
-    uint8_t simplified_gyro_filter_multiplier;
 
     uint8_t gyro_enabled_bitmask;
 } gyroConfig_t;

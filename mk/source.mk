@@ -77,7 +77,6 @@ COMMON_SRC = \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \
-            config/simplified_tuning.c \
             cli/cli.c \
             cli/settings.c \
             drivers/dshot.c \
@@ -466,7 +465,6 @@ SIZE_OPTIMISED_SRC += \
             config/config_eeprom.c \
             config/feature.c \
             config/config_streamer.c \
-            config/simplified_tuning.c \
             io/dashboard.c \
             io/serial.c \
             io/serial_4way.c \
