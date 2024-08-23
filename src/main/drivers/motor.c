@@ -38,8 +38,6 @@
 
 #include "drivers/time.h"
 
-#include "fc/rc_controls.h" // for flight3DConfig_t
-
 #include "sensors/battery.h"
 
 #include "motor.h"
@@ -212,7 +210,7 @@ static void checkMotorProtocol(const motorDevConfig_t *motorDevConfig)
 }
 
 // End point initialization is called from mixerInit before motorDevInit; can't use vtable...
-void motorInitEndpoints(const motorConfig_t *motorConfig, float outputLimit, float *outputLow, float *outputHigh, float *disarm, float *deadbandMotor3dHigh, float *deadbandMotor3dLow)
+void motorInitEndpoints(const motorConfig_t *motorConfig, float outputLimit, float *outputLow, float *outputHigh, float *disarm)
 {
     checkMotorProtocol(&motorConfig->dev);
 
@@ -220,12 +218,12 @@ void motorInitEndpoints(const motorConfig_t *motorConfig, float outputLimit, flo
         switch (motorGetProtocolFamily()) {
 #ifdef USE_PWM_OUTPUT
         case MOTOR_PROTOCOL_FAMILY_PWM:
-            analogInitEndpoints(motorConfig, outputLimit, outputLow, outputHigh, disarm, deadbandMotor3dHigh, deadbandMotor3dLow);
+            analogInitEndpoints(motorConfig, outputLimit, outputLow, outputHigh, disarm);
             break;
 #endif
 #ifdef USE_DSHOT
         case MOTOR_PROTOCOL_FAMILY_DSHOT:
-            dshotInitEndpoints(motorConfig, outputLimit, outputLow, outputHigh, disarm, deadbandMotor3dHigh, deadbandMotor3dLow);
+            dshotInitEndpoints(motorConfig, outputLimit, outputLow, outputHigh, disarm);
             break;
 #endif
         default:
@@ -277,9 +275,6 @@ void motorDevInit(unsigned motorCount)
 
 #if defined(USE_PWM_OUTPUT)
     uint16_t idlePulse = motorConfig()->mincommand;
-    if (featureIsEnabled(FEATURE_3D)) {
-        idlePulse = flight3DConfig()->neutral3d;
-    }
     if (motorConfig()->dev.motorProtocol == MOTOR_PROTOCOL_BRUSHED) {
         idlePulse = 0; // brushed motors
     }
