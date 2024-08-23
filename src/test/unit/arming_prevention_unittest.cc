@@ -1097,7 +1097,6 @@ extern "C" {
     void updateRcCommands(void) {}
     void applyAltHold(void) {}
     void resetYawAxis(void) {}
-    int16_t calculateThrottleAngleCorrection(uint8_t) { return 0; }
     void processRcCommand(void) {}
     void updateGpsStateForHomeAndHoldMode(void) {}
     void blackboxUpdate(timeUs_t) {}
