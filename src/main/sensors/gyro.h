@@ -38,10 +38,8 @@
 #include "pg/pg.h"
 
 #define LPF_MAX_HZ 1000 // so little filtering above 1000hz that if the user wants less delay, they must disable the filter
-#define DYN_LPF_MAX_HZ 1000
 
-#define GYRO_LPF1_DYN_MIN_HZ_DEFAULT 250
-#define GYRO_LPF1_DYN_MAX_HZ_DEFAULT 500
+#define GYRO_LPF1_HZ_DEFAULT 250
 #define GYRO_LPF2_HZ_DEFAULT 500
 
 #define GYRO_IMU_DOWNSAMPLE_CUTOFF_HZ 200
@@ -103,13 +101,6 @@ typedef struct gyro_s {
     bool useMultiGyroDebugging;
     flight_dynamics_index_t gyroDebugAxis;
 
-#ifdef USE_DYN_LPF
-    uint8_t dynLpfFilter;
-    uint16_t dynLpfMin;
-    uint16_t dynLpfMax;
-    uint8_t dynLpfCurveExpo;
-#endif
-
 #ifdef USE_GYRO_OVERFLOW_CHECK
     uint8_t overflowAxisMask;
 #endif
@@ -123,14 +114,6 @@ enum {
     GYRO_OVERFLOW_CHECK_NONE = 0,
     GYRO_OVERFLOW_CHECK_YAW,
     GYRO_OVERFLOW_CHECK_ALL_AXES
-};
-
-enum {
-    DYN_LPF_NONE = 0,
-    DYN_LPF_PT1,
-    DYN_LPF_BIQUAD,
-    DYN_LPF_PT2,
-    DYN_LPF_PT3,
 };
 
 enum {
@@ -159,13 +142,9 @@ typedef struct gyroConfig_s {
 
     uint16_t gyroCalibrationDuration;   // Gyro calibration duration in 1/100 second
 
-    uint16_t gyro_lpf1_dyn_min_hz;
-    uint16_t gyro_lpf1_dyn_max_hz;
-
     uint8_t gyro_filter_debug_axis;
 
     uint8_t gyrosDetected; // What gyros should be shown as part of the cli status command.
-    uint8_t gyro_lpf1_dyn_expo; // set the curve for dynamic gyro lowpass filter
 
     uint8_t gyro_enabled_bitmask;
 } gyroConfig_t;
@@ -182,7 +161,3 @@ void gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 bool gyroOverflowDetected(void);
 uint16_t gyroAbsRateDps(int axis);
-#ifdef USE_DYN_LPF
-float dynThrottle(float throttle);
-void dynLpfGyroUpdate(float throttle);
-#endif
