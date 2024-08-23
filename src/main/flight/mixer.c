@@ -349,13 +349,6 @@ static void applyMixToMotors(const float motorMix[MAX_SUPPORTED_MOTORS], motorMi
     // DEBUG_EZLANDING 0 is the ezLanding factor 2 is the throttle limit
 }
 
-static void applyMotorStop(void)
-{
-    for (int i = 0; i < mixerRuntime.motorCount; i++) {
-        motor[i] = mixerRuntime.disarmMotorOutput;
-    }
-}
-
 #ifdef USE_DYN_LPF
 static void updateDynLpfCutoffs(timeUs_t currentTimeUs, float throttle)
 {
@@ -604,17 +597,8 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         break;
     }
 
-    if (featureIsEnabled(FEATURE_MOTOR_STOP)
-        && ARMING_FLAG(ARMED)
-        && !mixerRuntime.feature3dEnabled
-        && !airmodeEnabled
-        && !FLIGHT_MODE(GPS_RESCUE_MODE | ALT_HOLD_MODE | POS_HOLD_MODE)   // disable motor_stop while GPS Rescue / Alt Hold / Pos Hold is active
-        && (rcData[THROTTLE] < rxConfig()->mincheck)) {
-        applyMotorStop();
-    } else {
-        // Apply the mix to motor endpoints
-        applyMixToMotors(motorMix, activeMixer);
-    }
+    // Apply the mix to motor endpoints
+    applyMixToMotors(motorMix, activeMixer);
 }
 
 float mixerGetThrottle(void)
