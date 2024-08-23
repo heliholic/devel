@@ -712,7 +712,6 @@ void init(void)
 #ifdef USE_SERVOS
     servosInit();
     if (isMixerUsingServos()) {
-        //pwm_params.useChannelForwarding = featureIsEnabled(FEATURE_CHANNEL_FORWARDING);
         servoDevInit(&servoConfig()->dev);
     }
     servosFilterInit();
