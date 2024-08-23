@@ -138,7 +138,6 @@ void setDefaultTestSettings(void)
 
     pidProfile->pidSumLimit = PIDSUM_LIMIT;        // 500
     pidProfile->pidSumLimitYaw = PIDSUM_LIMIT_YAW; // 400
-    pidProfile->yaw_lowpass_hz = 0;
     pidProfile->dterm_lpf1_static_hz = 100;
     pidProfile->dterm_lpf2_static_hz = 0;
     pidProfile->dterm_notch_hz = 260;
