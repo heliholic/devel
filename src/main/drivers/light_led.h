@@ -20,11 +20,8 @@
 
 #pragma once
 
-#include "pg/pg.h"
-#include "drivers/io_types.h"
 #include "common/utils.h"
-
-#define STATUS_LED_COUNT 3
+#include "pg/leds.h"
 
 // Helpful macros
 
@@ -48,13 +45,6 @@ static inline void ledToggle(int led) { UNUSED(led); }
 static inline void ledSet(int led, bool state) { UNUSED(led); UNUSED(state); }
 
 #else
-
-typedef struct statusLedConfig_s {
-    ioTag_t ioTags[STATUS_LED_COUNT];
-    uint8_t inversion;
-} statusLedConfig_t;
-
-PG_DECLARE(statusLedConfig_t, statusLedConfig);
 
 void ledInit(const statusLedConfig_t *statusLedConfig);
 void ledToggle(int led);

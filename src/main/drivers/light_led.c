@@ -32,7 +32,6 @@
 static IO_t leds[STATUS_LED_COUNT];
 static uint8_t ledInversion = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(statusLedConfig_t, statusLedConfig, PG_STATUS_LED_CONFIG, 0);
 
 PG_RESET_TEMPLATE(statusLedConfig_t, statusLedConfig,
     .ioTags = {
