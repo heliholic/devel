@@ -31,7 +31,7 @@
 
 #include "flight/pid.h"
 
-#include "pg/pg.h"
+#include "pg/gyro.h"
 
 #define LPF_MAX_HZ 1000 // so little filtering above 1000hz that if the user wants less delay, they must disable the filter
 
@@ -116,36 +116,6 @@ enum {
     FILTER_LPF1 = 0,
     FILTER_LPF2
 };
-
-typedef struct gyroConfig_s {
-    uint8_t gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
-    uint8_t gyro_hardware_lpf;                // gyro DLPF setting
-    uint8_t gyro_high_fsr;
-
-    uint16_t gyro_lpf1_static_hz;
-    uint16_t gyro_lpf2_static_hz;
-
-    uint16_t gyro_soft_notch_hz_1;
-    uint16_t gyro_soft_notch_cutoff_1;
-    uint16_t gyro_soft_notch_hz_2;
-    uint16_t gyro_soft_notch_cutoff_2;
-    int16_t gyro_offset_yaw;
-    uint8_t checkOverflow;
-
-    // Lowpass primary/secondary
-    uint8_t gyro_lpf1_type;
-    uint8_t gyro_lpf2_type;
-
-    uint16_t gyroCalibrationDuration;   // Gyro calibration duration in 1/100 second
-
-    uint8_t gyro_filter_debug_axis;
-
-    uint8_t gyrosDetected; // What gyros should be shown as part of the cli status command.
-
-    uint8_t gyro_enabled_bitmask;
-} gyroConfig_t;
-
-PG_DECLARE(gyroConfig_t, gyroConfig);
 
 void gyroUpdate(void);
 void gyroFiltering(timeUs_t currentTimeUs);
