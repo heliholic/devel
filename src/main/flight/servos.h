@@ -20,32 +20,9 @@
 
 #pragma once
 
-#include "pg/pg.h"
-#include "drivers/io_types.h"
+#include "platform.h"
+
 #include "drivers/servo_impl.h"
-
-#define MAX_SERVO_SPEED UINT8_MAX
-#define MAX_SERVO_BOXES 3
-
-typedef struct servoParam_s {
-    uint32_t reversedSources;               // the direction of servo movement for each input source of the servo mixer, bit set=inverted
-    int16_t min;                            // servo min
-    int16_t max;                            // servo max
-    int16_t middle;                         // servo middle
-    int8_t rate;                            // range [-125;+125] ; can be used to adjust a rate 0-125% and a direction
-} servoParam_t;
-
-PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
-
-typedef struct servoConfig_s {
-    servoDevConfig_t dev;
-} servoConfig_t;
-
-PG_DECLARE(servoConfig_t, servoConfig);
-
-typedef struct servoProfile_s {
-    servoParam_t servoConf[MAX_SUPPORTED_SERVOS];
-} servoProfile_t;
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
