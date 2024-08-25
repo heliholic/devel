@@ -25,29 +25,9 @@
 
 #include "platform.h"
 
-#include "pg/pg.h"
 #include "fc/rc_modes.h"
 
-#ifndef MAX_CHANNEL_ACTIVATION_CONDITION_COUNT
-#define MAX_CHANNEL_ACTIVATION_CONDITION_COUNT  10
-#endif
-
-STATIC_ASSERT(MAX_CHANNEL_ACTIVATION_CONDITION_COUNT <= 99, "MAX_CHANNEL_ACTIVATION_CONDITION_COUNT must be <= 99");
-
-typedef struct vtxChannelActivationCondition_s {
-    uint8_t auxChannelIndex;
-    uint8_t band;
-    uint8_t channel;
-    uint8_t power;
-    channelRange_t range;
-} vtxChannelActivationCondition_t;
-
-typedef struct vtxConfig_s {
-    vtxChannelActivationCondition_t vtxChannelActivationConditions[MAX_CHANNEL_ACTIVATION_CONDITION_COUNT];
-    uint8_t halfDuplex;
-} vtxConfig_t;
-
-PG_DECLARE(vtxConfig_t, vtxConfig);
+#include "pg/vtx.h"
 
 void vtxControlInit(void);
 void vtxControlInputPoll(void);
