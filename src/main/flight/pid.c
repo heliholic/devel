@@ -234,7 +234,8 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
 
     // Cross-coupling compensation
-    pid.cyclicCrossCouplingGain[FD_PITCH] = pidProfile->cyclic_cross_coupling_gain * mixerRotationSign() * -CROSS_COUPLING_SCALE;
+    const float hpf_gain = 15.0f / pidProfile->cyclic_cross_coupling_cutoff;
+    pid.cyclicCrossCouplingGain[FD_PITCH] = pidProfile->cyclic_cross_coupling_gain * mixerRotationSign() * -CROSS_COUPLING_SCALE * hpf_gain;
     pid.cyclicCrossCouplingGain[FD_ROLL]  = pid.cyclicCrossCouplingGain[FD_PITCH] * pidProfile->cyclic_cross_coupling_ratio / -100.0f;
 
     // Cross-coupling derivative filters
