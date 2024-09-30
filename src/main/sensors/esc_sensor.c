@@ -1437,16 +1437,16 @@ static void rrfsmSensorProcess(timeUs_t currentTimeUs)
  *
  *     - Serial protocol is 115200,8N1
  *     - Big-Endian byte order
- * 
+ *
  * Telemetry Frame Format
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
  *      0:      start byte (0x73)
  *      1:      0 <- command (0 == data, 0x60 == read esc info etc)
  *    2-3:      data length
- * 
+ *
  * Telemetry Data
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
- *    4-5:      Battery voltage x10mV [0-65535] 
+ *    4-5:      Battery voltage x10mV [0-65535]
  *    6-7:      Current x10mA [0-65535]
  *    8-9:      Capacity 1mAh [0-65535]
  *  10-11:      ERPM 10rpm [0-65535]
@@ -1457,7 +1457,7 @@ static void rrfsmSensorProcess(timeUs_t currentTimeUs)
  *     16:      BEC Voltage x100mV [0-255]
  *     17:      Status flag
  *     18:      Mode [0-255]
- * 
+ *
  *     19:      CRC8
  *     20:      end byte (0x65)
  */
@@ -1612,7 +1612,7 @@ static void flyBuildNextReq(void)
                 return;
             }
         }
-        
+
         // ...nothing pending, disconnect
         flyBuildReq(FLY_CMD_DISCONNECT_ESC, NULL, 0, FLY_PARAM_FRAME_PERIOD, FLY_PARAM_DISCONNECT_TIMEOUT);
     }
@@ -1715,7 +1715,7 @@ static bool flyDecodeReadResp(uint8_t paramPage)
 
     // clear invalid bit
     flyInvalidParamPages &= ~(1 << paramPage);
-    
+
     // make param payload available if all params cached
     if (flyInvalidParamPages == 0)
         paramPayloadLength = flyCalcParamBufferLength();
@@ -2236,7 +2236,7 @@ static serialReceiveCallbackPtr pl5SensorInit(bool bidirectional)
  *      4:      Length: Data length to read/write, does not include Data crc
  *              Requested data length in bytes should not be more than 32 bytes and should  be a multiple of 2 bytes
  *      5:      CRC: Header CRC. 0 value means that crc is not used. And no additional bytes for data crc
- * 
+ *
  * Regions
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
  * 0 – System region, read only
@@ -2704,14 +2704,14 @@ static serialReceiveCallbackPtr tribSensorInit(bool bidirectional)
         // request/response telemetry
         rrfsmBootDelayMs = TRIB_REQ_BOOT_DELAY;
         rrfsmStart = tribStart;
-    
+
         // enable ESC parameter reads and writes, reset
         escSig = ESC_SIG_TRIB;
         paramVer = 0 | TRIB_PARAM_CAP_RESET;
         paramCommit = tribParamCommit;
         tribInvalidateParams();
-        
-        // enable UNC setup FSM 
+
+        // enable UNC setup FSM
         rrfsmCrank = tribCrankUncSetup;
     }
     else {
@@ -3126,6 +3126,372 @@ static serialReceiveCallbackPtr oygeSensorInit(bool bidirectional)
 
 
 /*
+ * Graupner Telemetry
+ *
+ *    - Serial protocol 19200,8N1
+ *    - Little-Endian fields
+ *    - Frame length over data (23)
+ *    - Fault code bits:
+ *         0:  Motor locked protection
+ *         1:  Over-temp protection
+ *         2:  Input throttle error at startup
+ *         3:  Throttle signal lost
+ *         4:  Over-current error
+ *         5:  Low-voltage error
+ *         6:  Input-voltage error
+ *         7:  Motor connection error
+ *
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *    0-5:      Sync header (0xFE 0x01 0x00 0x03 0x30 0x5C)
+ *      6:      Data frame length (23)
+ *    7-8:      Data type 0x06 0x00
+ *      9:      Throttle value in %
+ *  10-11:      Unknown
+ *     12:      Fault code
+ *  13-14:      RPM in 10rpm steps
+ *  15-16:      Voltage in 0.1V
+ *  17-18:      Current in 0.1A
+ *     19:      ESC Temperature in °C
+ *     20:      BEC Temperature in °C
+ *     21:      Motor Temperature in °C
+ *     22:      BEC Voltage in 0.1V
+ *     23:      BEC Current in 0.1A
+ *  24-29:      Unused 0xFF
+ *  30-31:      CRC16 MODBUS
+ *
+ */
+
+#define GRAUPNER_MIN_FRAME_LENGTH                8
+#define GRAUPNER_BOOT_DELAY                      5000
+#define GRAUPNER_TELE_FRAME_TIMEOUT              500
+#define GRAUPNER_PARAM_FRAME_PERIOD              4
+#define GRAUPNER_PARAM_READ_TIMEOUT              100
+#define GRAUPNER_PARAM_WRITE_TIMEOUT             100
+
+#define GRAUPNER_PING_FRAME_PERIOD               480
+#define GRAUPNER_PING_TIMEOUT                    1600
+
+#define GRAUPNER_ERR                             0x80
+
+#define GRAUPNER_FRAME_TELE_TYPE                 0x5C30
+#define GRAUPNER_FRAME_TELE_LENGTH               32
+#define GRAUPNER_RESP_PING_TYPE                  0x242C
+#define GRAUPNER_RESP_PING_LENGTH                11
+#define GRAUPNER_RESP_DEVINFO_TYPE               0x252C
+#define GRAUPNER_RESP_DEVINFO_LENGTH             73
+#define GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH     48
+#define GRAUPNER_RESP_GETPARAMS_TYPE             0x0C30
+#define GRAUPNER_RESP_GETPARAMS_LENGTH           137
+#define GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH   31
+#define GRAUPNER_REQ_WRITEPARAMS_LENGTH          63
+#define GRAUPNER_RESP_WRITEPARAMS_TYPE           0x3835
+#define GRAUPNER_RESP_WRITEPARAMS_LENGTH         58
+#define GRAUPNER_RESP_WRITEPARAMS_ERR_LENGTH     9
+
+static uint8_t graupnerPing[] = { 0x1, 0xFD, 0x3, 0x3, 0x2C, 0x24, 0x0, 0x1, 0x60, 0x60 };
+static uint8_t graupnerDevInfoReq[] = { 0x01, 0xFD, 0x03, 0x03, 0x2C, 0x25, 0x00, 0x20, 0xF1, 0xB8 };
+static uint8_t graupnerGetParamsReq[] = { 0x1, 0xFD, 0x3, 0x3, 0x30, 0xC, 0x0, 0x40, 0x27, 0xC8 };
+static uint8_t graupnerWriteParamsReq[] = { 0x1, 0xFD, 0x3, 0x17, 0x35, 0x38, 0x0, 0x18, 0x35, 0x38, 0x0, 0x18, 0x30, 0x0 };
+
+typedef struct {
+    uint8_t  throttle;                  // Throttle value in %
+    uint8_t  reserved0[2];              // reserved
+    uint8_t  fault;                     // Fault code
+    uint16_t rpm;                       // RPM in 10rpm steps
+    uint16_t voltage;                   // Voltage in 0.1V
+    uint16_t current;                   // Current in 0.1A
+    uint8_t  temperature;               // ESC Temperature in °C
+    uint8_t  bec_temp;                  // BEC Temperature in °C
+    uint8_t  motor_temp;                // Motor Temperature in °C
+    uint8_t  bec_voltage;               // BEC Voltage in 0.1V
+    uint8_t  bec_current;               // BEC Current in 0.1A
+    uint8_t  reserved1[6];              // reserved
+} GraupnerTelemetryFrame_t;
+
+static bool graupnerCachedDevInfo = false;
+static bool graupnerCachedParams = false;
+static bool graupnerDirtyParams = false;
+
+static bool graupnerParamCommit(uint8_t cmd)
+{
+    if (cmd == 0) {
+        // info should never change
+        if (memcmp(paramPayload, paramUpdPayload, GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH) != 0)
+            return false;
+
+        // params dirty?
+        if (memcmp(paramPayload + GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH,
+            paramUpdPayload + GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH,
+            GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH) != 0) {
+            // set dirty flag, will schedule read
+            graupnerDirtyParams = true;
+            // clear cached flag, will schedule write
+            graupnerCachedParams = false;
+            // invalidate param payload - will be available again when params again cached (write response or re-read)
+            paramPayloadLength = 0;
+        }
+
+        return true;
+    }
+    else {
+        // unsupported command
+        return false;
+    }
+}
+
+static bool graupnerSignSendFrame(uint8_t len, uint16_t framePeriod, uint16_t frameTimeout)
+{
+    *(uint16_t*)(reqbuffer + len - 2) = calculateCRC16_MODBUS(reqbuffer, len - 2);
+
+    reqLength = len;
+
+    rrfsmFramePeriod = framePeriod;
+    rrfsmFrameTimeout = frameTimeout;
+
+    return true;
+}
+
+static bool graupnerCopySendFrame(void *req, uint8_t len, uint16_t framePeriod, uint16_t frameTimeout)
+{
+    if (len > REQUEST_BUFFER_SIZE)
+        return false;
+
+    memcpy(reqbuffer, req, len);
+    reqLength = len;
+
+    rrfsmFramePeriod = framePeriod;
+    rrfsmFrameTimeout = frameTimeout;
+
+    return true;
+}
+
+static void graupnerBuildNextReq(void)
+{
+    // schedule pending param write, schedule request...
+    if (graupnerDirtyParams) {
+        memset(reqbuffer, 0, GRAUPNER_REQ_WRITEPARAMS_LENGTH);
+        const uint8_t hdrlen = sizeof(graupnerWriteParamsReq);
+        memcpy(reqbuffer, graupnerWriteParamsReq, hdrlen);
+        memcpy(reqbuffer + hdrlen, paramUpdPayload + GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH, GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH);
+        graupnerSignSendFrame(GRAUPNER_REQ_WRITEPARAMS_LENGTH, GRAUPNER_PARAM_FRAME_PERIOD, GRAUPNER_PARAM_WRITE_TIMEOUT);
+    }
+    // ...or pending device info, schedule request...
+    else if (!graupnerCachedDevInfo) {
+        graupnerCopySendFrame(graupnerDevInfoReq, sizeof(graupnerDevInfoReq), GRAUPNER_PARAM_FRAME_PERIOD, GRAUPNER_PARAM_READ_TIMEOUT);
+    }
+    // ...or pending param read, schedule request...
+    else if (!graupnerCachedParams) {
+        graupnerCopySendFrame(graupnerGetParamsReq, sizeof(graupnerGetParamsReq), GRAUPNER_PARAM_FRAME_PERIOD, GRAUPNER_PARAM_READ_TIMEOUT);
+    }
+    // ...or nothing, schedule 480ms ping
+    else {
+        graupnerCopySendFrame(graupnerPing, sizeof(graupnerPing), GRAUPNER_PING_FRAME_PERIOD, GRAUPNER_PING_TIMEOUT);
+    }
+}
+
+static bool graupnerDecodeTeleFrame(timeUs_t currentTimeUs)
+{
+    const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 9);
+
+    // When throttle changes to zero, the last current reading is
+    // repeated until the motor has totally stopped.
+    uint16_t current = tele->current;
+    if (tele->throttle == 0)
+        current = 0;
+    setConsumptionCurrent(current * 0.1f);
+
+    escSensorData[0].id = ESC_SIG_PL5;
+    escSensorData[0].age = 0;
+    escSensorData[0].erpm = tele->rpm * 10;
+    escSensorData[0].throttle = tele->throttle * 10;
+    escSensorData[0].pwm = tele->throttle * 10;
+    escSensorData[0].voltage = tele->voltage * 100;
+    escSensorData[0].current = current * 100;
+    escSensorData[0].temperature = tele->temperature * 10;
+    escSensorData[0].temperature2 = tele->bec_temp * 10;
+    escSensorData[0].bec_voltage = tele->bec_voltage * 100;
+    escSensorData[0].bec_current = tele->bec_current * 100;
+    escSensorData[0].status = tele->fault;
+
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, tele->rpm * 10);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, tele->temperature * 10);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, tele->voltage * 10);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, tele->current * 10);
+
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, tele->rpm);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, tele->throttle);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tele->temperature);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, tele->voltage);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, tele->current);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tele->bec_voltage);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+    dataUpdateUs = currentTimeUs;
+
+    rrfsmFrameTimeout = GRAUPNER_TELE_FRAME_TIMEOUT;
+
+    // schedule next request (only if halfduplex)
+    if (paramMspActive && paramCommit != NULL)
+        graupnerBuildNextReq();
+
+    return true;
+}
+
+static bool graupnerDecodePingResp(void)
+{
+    graupnerBuildNextReq();
+
+    paramEscNeedRestart();
+
+    return true;
+}
+
+static bool graupnerDecodeGetDevInfoResp(void)
+{
+    // cache device info
+    memcpy(paramPayload, buffer + 7, GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH);
+    graupnerCachedDevInfo = true;
+
+    graupnerBuildNextReq();
+
+    return true;
+}
+
+static bool graupnerDecodeGetParamsResp(void)
+{
+    // cache parameters, payload complete
+    memcpy(paramPayload + GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH, buffer + 8, GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH);
+    graupnerCachedParams = true;
+
+    // make param payload available
+    paramPayloadLength = GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH + GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH;
+
+    graupnerBuildNextReq();
+
+    return true;
+}
+
+static bool graupnerDecodeWriteParamsResp(void)
+{
+    if ((buffer[3] & GRAUPNER_ERR) == 0) {
+        // success, cache parameters
+        memcpy(paramPayload + GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH, buffer + 9, GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH);
+        graupnerCachedParams = true;
+    }
+
+    // make param payload available
+    paramPayloadLength = GRAUPNER_RESP_DEVINFO_PAYLOAD_LENGTH + GRAUPNER_RESP_GETPARAMS_PAYLOAD_LENGTH;
+
+    // success or failure don't repeat
+    graupnerDirtyParams = false;
+
+    graupnerBuildNextReq();
+
+    return true;
+}
+
+static bool graupnerDecode(timeUs_t currentTimeUs)
+{
+    // check CRC
+    const uint16_t crc = *(uint16_t*)(buffer + rrfsmFrameLength - 2);
+    if (calculateCRC16_MODBUS(buffer, rrfsmFrameLength - 2) != crc)
+        return false;
+
+    // decode
+    const uint16_t type = *(uint16_t*)(buffer + 4);
+    switch(type) {
+        case GRAUPNER_FRAME_TELE_TYPE:
+            return graupnerDecodeTeleFrame(currentTimeUs);
+        case GRAUPNER_RESP_PING_TYPE:
+            return graupnerDecodePingResp();
+        case GRAUPNER_RESP_DEVINFO_TYPE:
+            return graupnerDecodeGetDevInfoResp();
+        case GRAUPNER_RESP_GETPARAMS_TYPE:
+            return graupnerDecodeGetParamsResp();
+        case GRAUPNER_RESP_WRITEPARAMS_TYPE:
+            return graupnerDecodeWriteParamsResp();
+        default:
+            return false;
+    }
+}
+
+static bool graupnerCrank(timeUs_t currentTimeUs)
+{
+    // Update consumption on each cycle vs each frame in decode
+    updateConsumption(currentTimeUs);
+
+    return true;
+}
+
+static int8_t graupnerAccept(uint16_t c)
+{
+    if (readBytes == 1) {
+        // frame signature
+        if (c != 0xFD && c != 0xFE)
+            return -1;
+    }
+    else if (readBytes == 6) {
+        // [3: version] [4-5: type]
+        uint8_t len = 0;
+        const uint16_t type = *(uint16_t*)(buffer + 4);
+        switch (type)
+        {
+            case GRAUPNER_FRAME_TELE_TYPE:
+                if (buffer[3] == 3)
+                    len = GRAUPNER_FRAME_TELE_LENGTH;
+                break;
+            case GRAUPNER_RESP_PING_TYPE:
+                if (buffer[3] == 3)
+                    len = GRAUPNER_RESP_PING_LENGTH;
+                break;
+            case GRAUPNER_RESP_DEVINFO_TYPE:
+                if (buffer[3] == 3)
+                    len = GRAUPNER_RESP_DEVINFO_LENGTH;
+                break;
+            case GRAUPNER_RESP_GETPARAMS_TYPE:
+                if (buffer[3] == 3)
+                    len = GRAUPNER_RESP_GETPARAMS_LENGTH;
+                break;
+            case GRAUPNER_RESP_WRITEPARAMS_TYPE:
+                if (buffer[3] == 0x17)
+                    len = GRAUPNER_RESP_WRITEPARAMS_LENGTH;
+                else if (buffer[3] == (GRAUPNER_ERR|0x17))
+                    len = GRAUPNER_RESP_WRITEPARAMS_ERR_LENGTH;
+                break;
+        }
+        if (len != 0) {
+            rrfsmFrameLength = len;
+            return 1;
+        }
+        return -1;
+    }
+    return 0;
+}
+
+static serialReceiveCallbackPtr graupnerSensorInit(bool bidirectional)
+{
+    rrfsmBootDelayMs = GRAUPNER_BOOT_DELAY;
+    rrfsmMinFrameLength = GRAUPNER_MIN_FRAME_LENGTH;
+    rrfsmAccept = graupnerAccept;
+    rrfsmDecode = graupnerDecode;
+    rrfsmCrank = graupnerCrank;
+
+    escSig = ESC_SIG_PL5;
+
+    // telemetry data only
+    rrfsmFrameTimeout = GRAUPNER_TELE_FRAME_TIMEOUT;
+
+    if (bidirectional) {
+        // enable parameter writes to ESC
+        paramCommit = graupnerParamCommit;
+    }
+
+    return rrfsmDataReceive;
+}
+
+
+/*
  * Raw Telemetry Data Recorder
  */
 
@@ -3243,6 +3609,10 @@ bool INIT_CODE escSensorInit(void)
             break;
         case ESC_SENSOR_PROTO_FLY:
             callback = flySensorInit(escHalfDuplex);
+            baudrate = 115200;
+            break;
+        case ESC_SENSOR_PROTO_GRAUPNER:
+            callback = graupnerSensorInit(escHalfDuplex);
             baudrate = 115200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
