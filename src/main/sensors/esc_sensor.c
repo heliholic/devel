@@ -27,6 +27,7 @@
 #include "config/config.h"
 
 #include "build/debug.h"
+#include "build/dprintf.h"
 
 #include "blackbox/blackbox.h"
 
@@ -109,6 +110,7 @@ enum {
 #define ESC_SIG_TRIB              0x53
 #define ESC_SIG_OPENYGE           0xA5
 #define ESC_SIG_FLY               0x73
+#define ESC_SIG_GRAUPNER          0xC0
 #define ESC_SIG_RESTART           0xFF
 
 static serialPort_t *escSensorPort = NULL;
@@ -1437,16 +1439,16 @@ static void rrfsmSensorProcess(timeUs_t currentTimeUs)
  *
  *     - Serial protocol is 115200,8N1
  *     - Big-Endian byte order
- * 
+ *
  * Telemetry Frame Format
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
  *      0:      start byte (0x73)
  *      1:      0 <- command (0 == data, 0x60 == read esc info etc)
  *    2-3:      data length
- * 
+ *
  * Telemetry Data
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
- *    4-5:      Battery voltage x10mV [0-65535] 
+ *    4-5:      Battery voltage x10mV [0-65535]
  *    6-7:      Current x10mA [0-65535]
  *    8-9:      Capacity 1mAh [0-65535]
  *  10-11:      ERPM 10rpm [0-65535]
@@ -1457,7 +1459,7 @@ static void rrfsmSensorProcess(timeUs_t currentTimeUs)
  *     16:      BEC Voltage x100mV [0-255]
  *     17:      Status flag
  *     18:      Mode [0-255]
- * 
+ *
  *     19:      CRC8
  *     20:      end byte (0x65)
  */
@@ -1612,7 +1614,7 @@ static void flyBuildNextReq(void)
                 return;
             }
         }
-        
+
         // ...nothing pending, disconnect
         flyBuildReq(FLY_CMD_DISCONNECT_ESC, NULL, 0, FLY_PARAM_FRAME_PERIOD, FLY_PARAM_DISCONNECT_TIMEOUT);
     }
@@ -1715,7 +1717,7 @@ static bool flyDecodeReadResp(uint8_t paramPage)
 
     // clear invalid bit
     flyInvalidParamPages &= ~(1 << paramPage);
-    
+
     // make param payload available if all params cached
     if (flyInvalidParamPages == 0)
         paramPayloadLength = flyCalcParamBufferLength();
@@ -2236,7 +2238,7 @@ static serialReceiveCallbackPtr pl5SensorInit(bool bidirectional)
  *      4:      Length: Data length to read/write, does not include Data crc
  *              Requested data length in bytes should not be more than 32 bytes and should  be a multiple of 2 bytes
  *      5:      CRC: Header CRC. 0 value means that crc is not used. And no additional bytes for data crc
- * 
+ *
  * Regions
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
  * 0 – System region, read only
@@ -2704,14 +2706,14 @@ static serialReceiveCallbackPtr tribSensorInit(bool bidirectional)
         // request/response telemetry
         rrfsmBootDelayMs = TRIB_REQ_BOOT_DELAY;
         rrfsmStart = tribStart;
-    
+
         // enable ESC parameter reads and writes, reset
         escSig = ESC_SIG_TRIB;
         paramVer = 0 | TRIB_PARAM_CAP_RESET;
         paramCommit = tribParamCommit;
         tribInvalidateParams();
-        
-        // enable UNC setup FSM 
+
+        // enable UNC setup FSM
         rrfsmCrank = tribCrankUncSetup;
     }
     else {
@@ -3126,6 +3128,215 @@ static serialReceiveCallbackPtr oygeSensorInit(bool bidirectional)
 
 
 /*
+ * Graupner Telemetry
+ *
+ *    - Serial protocol 19200,8N1
+ *    - Little-Endian fields
+ *    - Frame length 45 bytes
+ *    - Warning flags:
+ *          0:  Low voltage
+ *          1:  Temp limit exceeded
+ *          2:  Motor temp exceeded
+ *          3:  Max current exceeded
+ *          4:  RPM less than limit
+ *          5:  Capacity exceeded
+ *          6:  Current limit exceeded
+ *
+ * Frame Format
+ * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
+ *    0-1:      Sync header (0x7C 0x8C)
+ *      2:      Warning tone
+ *      3:      Sensor ID (0xC0)
+ *    4-5:      Warning flags
+ *    6-7:      Voltage
+ *    8-9:      Min Voltage
+ *  10-11:      Capacity
+ *     12:      Temperature
+ *     13:      Max temp
+ *  14-15:      Current
+ *  15-16:      Max Current
+ *  17-18:      RPM
+ *  19-20:      Max RPM
+ *    ...
+ *     43:      End byte (0x7D)
+ *     44:      CRC
+ *
+ */
+
+#define GRAUPNER_MIN_FRAME_LENGTH                45
+#define GRAUPNER_BOOT_DELAY                      5000
+#define GRAUPNER_TELE_FRAME_TIMEOUT              1000
+#define GRAUPNER_TELE_FRAME_PERIOD               200
+#define GRAUPNER_TELE_TIMEOUT                    1000
+
+static uint8_t graupnerTeleReq[] = { 0x80, 0x8C };
+
+typedef struct {
+    uint8_t     tone;
+    uint8_t     sensor;
+    uint16_t    flags;
+    uint16_t    voltage;
+    uint16_t    voltage_min;
+    uint16_t    capacity;
+    int8_t      temperature;
+    int8_t      temperature_max;
+    uint16_t    current;
+    uint16_t    current_max;
+    uint16_t    rpm;
+    uint16_t    rpm_max;
+} GraupnerTelemetryFrame_t;
+
+
+uint8_t graupnerCalculateCRC8(uint8_t *pData, uint16_t usLength)
+{
+    uint16_t usCnt;
+    uint8_t ucBit, ucResult = 0;
+
+    for (usCnt = 0; usCnt < usLength; usCnt++)
+    {
+        ucResult ^= pData[usCnt];
+
+        for (ucBit = 0; ucBit < 8; ucBit++)
+        {
+            if (ucResult & 0x80)
+            {
+                ucResult = (ucResult << 1) ^ 0x07;
+            }
+            else
+            {
+                ucResult <<= 1;
+            }
+        }
+    }
+    return ucResult;
+}
+
+static bool graupnerCopySendFrame(void *req, uint8_t len, uint16_t framePeriod, uint16_t frameTimeout)
+{
+    if (len > REQUEST_BUFFER_SIZE)
+        return false;
+
+    memcpy(reqbuffer, req, len);
+    reqLength = len;
+
+    rrfsmFramePeriod = framePeriod;
+    rrfsmFrameTimeout = frameTimeout;
+
+    return true;
+}
+
+static void graupnerBuildNextReq(void)
+{
+    dprintf("REQ\r\n");
+
+    graupnerCopySendFrame(graupnerTeleReq, sizeof(graupnerTeleReq), GRAUPNER_TELE_FRAME_PERIOD, GRAUPNER_TELE_TIMEOUT);
+}
+
+static bool graupnerDecodeTeleFrame(timeUs_t currentTimeUs)
+{
+    const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 2);
+
+    escSensorData[0].id = ESC_SIG_GRAUPNER;
+    escSensorData[0].age = 0;
+    escSensorData[0].erpm = tele->rpm * 10;
+    //escSensorData[0].throttle = tele->throttle * 10;
+    //escSensorData[0].pwm = tele->pwm * 10;
+    escSensorData[0].voltage = tele->voltage * 100;
+    escSensorData[0].current = tele->current * 100;
+    escSensorData[0].consumption = tele->capacity * 10;
+    escSensorData[0].temperature = tele->temperature * 10;
+    //escSensorData[0].temperature2 = tele->bec_temp * 10;
+    //escSensorData[0].bec_voltage = tele->bec_voltage * 100;
+    //escSensorData[0].bec_current = tele->bec_current * 100;
+    escSensorData[0].status = tele->flags;
+
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, tele->rpm * 10);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, tele->temperature * 10);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, tele->voltage * 100);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, tele->current * 100);
+
+    //DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, tele->rpm);
+    //DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, tele->throttle);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tele->temperature);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, tele->voltage);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, tele->current);
+    //DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tele->bec_voltage);
+    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
+
+    dataUpdateUs = currentTimeUs;
+
+    graupnerBuildNextReq();
+
+    return true;
+}
+
+static bool graupnerDecode(timeUs_t currentTimeUs)
+{
+    //const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 2);
+
+    dprintf("DECODE %d\r\n", rrfsmFrameLength);
+
+    //if (graupnerCalculateCRC8(buffer + 2, rrfsmFrameLength - 3) != tele->crc)
+    //    return false;
+
+    return graupnerDecodeTeleFrame(currentTimeUs);
+}
+
+static int8_t graupnerAccept(uint16_t c)
+{
+    //dprintf("0x%02X ", c);
+
+    if (readBytes == 1) {
+        // frame signature
+        if (c != 0x7C)
+            return -1;
+    }
+    else if (readBytes == 2) {
+        // frame signature
+        if (c != 0x8C)
+            return -1;
+    }
+    else if (readBytes == 4) {
+        // sensor id
+        if (c != 0xC0)
+            return -1;
+    }
+    else if (readBytes == 44) {
+        // end byte
+        if (c != 0x7D)
+            return -1;
+    }
+
+    return 0;
+}
+
+static bool graupnerStart(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    graupnerBuildNextReq();
+    return true;
+}
+
+static serialReceiveCallbackPtr graupnerSensorInit(bool bidirectional)
+{
+    if (!bidirectional)
+        return NULL;
+
+    rrfsmBootDelayMs = GRAUPNER_BOOT_DELAY;
+    rrfsmMinFrameLength = GRAUPNER_MIN_FRAME_LENGTH;
+    rrfsmAccept = graupnerAccept;
+    rrfsmDecode = graupnerDecode;
+    rrfsmCrank = NULL;
+    rrfsmStart = graupnerStart;
+
+    escSig = ESC_SIG_GRAUPNER;
+
+    return rrfsmDataReceive;
+}
+
+
+/*
  * Raw Telemetry Data Recorder
  */
 
@@ -3181,6 +3392,9 @@ void escSensorProcess(timeUs_t currentTimeUs)
             case ESC_SENSOR_PROTO_FLY:
                 rrfsmSensorProcess(currentTimeUs);
                 break;
+            case ESC_SENSOR_PROTO_GRAUPNER:
+                rrfsmSensorProcess(currentTimeUs);
+                break;
             case ESC_SENSOR_PROTO_RECORD:
                 recordSensorProcess(currentTimeUs);
                 break;
@@ -3203,6 +3417,8 @@ bool INIT_CODE escSensorInit(void)
     serialReceiveCallbackPtr callback = NULL;
     portOptions_e options = 0;
     uint32_t baudrate = 0;
+
+    initDebugSerial(SERIAL_PORT_USART6, 921600);
 
     if (!portConfig) {
         return false;
@@ -3244,6 +3460,10 @@ bool INIT_CODE escSensorInit(void)
         case ESC_SENSOR_PROTO_FLY:
             callback = flySensorInit(escHalfDuplex);
             baudrate = 115200;
+            break;
+        case ESC_SENSOR_PROTO_GRAUPNER:
+            callback = graupnerSensorInit(escHalfDuplex);
+            baudrate = 19200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
             baudrate = baudRates[portConfig->telemetry_baudrateIndex];
