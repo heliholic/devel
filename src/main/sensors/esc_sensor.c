@@ -3176,7 +3176,7 @@ static serialReceiveCallbackPtr oygeSensorInit(bool bidirectional)
 #define GRAUPNER_TELE_FRAME_PERIOD               100
 #define GRAUPNER_TELE_TIMEOUT                    500
 
-static uint8_t graupnerPing[] = { 0x80, 0x8C };
+static uint8_t graupnerTeleReq[] = { 0x80, 0x8C };
 
 typedef struct {
     uint8_t     tone;
@@ -3252,7 +3252,7 @@ static bool graupnerCopySendFrame(void *req, uint8_t len, uint16_t framePeriod, 
 
 static void graupnerBuildNextReq(void)
 {
-    graupnerCopySendFrame(graupnerPing, sizeof(graupnerPing), GRAUPNER_TELE_FRAME_PERIOD, GRAUPNER_TELE_TIMEOUT);
+    graupnerCopySendFrame(graupnerTeleReq, sizeof(graupnerTeleReq), GRAUPNER_TELE_FRAME_PERIOD, GRAUPNER_TELE_TIMEOUT);
 }
 
 static bool graupnerDecodeTeleFrame(timeUs_t currentTimeUs)
@@ -3298,6 +3298,8 @@ static bool graupnerDecode(timeUs_t currentTimeUs)
 {
     const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 2);
 
+    blackboxLogCustomData(buffer, rrfsmFrameLength);
+
     if (graupnerCalculateCRC8(buffer + 2, rrfsmFrameLength - 3) != tele->crc)
         return false;
 
@@ -3321,8 +3323,6 @@ static int8_t graupnerAccept(uint16_t c)
         if (c != 0x7D)
             return -1;
     }
-
-    rrfsmFrameLength = 45;
 
     return 0;
 }
@@ -3470,7 +3470,7 @@ bool INIT_CODE escSensorInit(void)
             break;
         case ESC_SENSOR_PROTO_GRAUPNER:
             callback = graupnerSensorInit(escHalfDuplex);
-            baudrate = 115200;
+            baudrate = 19200;
             break;
         case ESC_SENSOR_PROTO_RECORD:
             baudrate = baudRates[portConfig->telemetry_baudrateIndex];
