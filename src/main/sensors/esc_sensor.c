@@ -3134,6 +3134,13 @@ static serialReceiveCallbackPtr oygeSensorInit(bool bidirectional)
  *    - Little-Endian fields
  *    - Frame length 45 bytes
  *    - Warning flags:
+ *          0:  Low voltage
+ *          1:  Temp limit exceeded
+ *          2:  Motor temp exceeded
+ *          3:  Max current exceeded
+ *          4:  RPM less than limit
+ *          5:  Capacity exceeded
+ *          6:  Current limit exceeded
  *
  * Frame Format
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――
@@ -3143,29 +3150,14 @@ static serialReceiveCallbackPtr oygeSensorInit(bool bidirectional)
  *    4-5:      Warning flags
  *    6-7:      Voltage
  *    8-9:      Min Voltage
- *  10-11:      Current
- *  12-13:      Max Current
- *     14:      Temperature
- *     15:      Max temp
- *  16-17:      RPM
- *  18-19:      Capacity
- *  20-21:      Speed
- *  22-23:      Max Speed
- *     24:      PWM
- *     25:      Throttle
- *     26:      BEC Voltage
- *     27:      Min BEC Voltage
- *  28-29:      BEC Current
- *  30-31:      BEC current Max
- *     32:      BEC Temperature
- *     33:      Max BEC Temperature
- *     34:      Motor Temperature
- *     35:      Max Motor Temperature
- *  36-37:      Secondary RPM
- *     38:      Timing
- *     39:      Advanced timing
- *     40:      Motor number of highest current
- *  41-42:      Highest motor current
+ *  10-11:      Capacity
+ *     12:      Temperature
+ *     13:      Max temp
+ *  14-15:      Current
+ *  15-16:      Max Current
+ *  17-18:      RPM
+ *  19-20:      Max RPM
+ *    ...
  *     43:      End byte (0x7D)
  *     44:      CRC
  *
@@ -3173,9 +3165,9 @@ static serialReceiveCallbackPtr oygeSensorInit(bool bidirectional)
 
 #define GRAUPNER_MIN_FRAME_LENGTH                45
 #define GRAUPNER_BOOT_DELAY                      5000
-#define GRAUPNER_TELE_FRAME_TIMEOUT              5000
-#define GRAUPNER_TELE_FRAME_PERIOD               500
-#define GRAUPNER_TELE_TIMEOUT                    5000
+#define GRAUPNER_TELE_FRAME_TIMEOUT              1000
+#define GRAUPNER_TELE_FRAME_PERIOD               200
+#define GRAUPNER_TELE_TIMEOUT                    1000
 
 static uint8_t graupnerTeleReq[] = { 0x80, 0x8C };
 
@@ -3185,24 +3177,13 @@ typedef struct {
     uint16_t    flags;
     uint16_t    voltage;
     uint16_t    voltage_min;
+    uint16_t    capacity;
+    int8_t      temperature;
+    int8_t      temperature_max;
     uint16_t    current;
     uint16_t    current_max;
-    int8_t      temperature;
-    int8_t      max_temp;
     uint16_t    rpm;
-    uint16_t    capacity;
-    uint8_t     __reserved1[4];
-    uint8_t     pwm;
-    uint8_t     throttle;
-    uint8_t     bec_voltage;
-    uint8_t     min_bec_voltage;
-    uint16_t    bec_current;
-    uint16_t    max_bec_current;
-    int8_t      bec_temp;
-    int8_t      max_bec_temp;
-    uint8_t     __reserved2[9];
-    uint8_t     end;
-    uint8_t     crc;
+    uint16_t    rpm_max;
 } GraupnerTelemetryFrame_t;
 
 
@@ -3246,6 +3227,8 @@ static bool graupnerCopySendFrame(void *req, uint8_t len, uint16_t framePeriod, 
 
 static void graupnerBuildNextReq(void)
 {
+    dprintf("REQ\r\n");
+
     graupnerCopySendFrame(graupnerTeleReq, sizeof(graupnerTeleReq), GRAUPNER_TELE_FRAME_PERIOD, GRAUPNER_TELE_TIMEOUT);
 }
 
@@ -3256,32 +3239,31 @@ static bool graupnerDecodeTeleFrame(timeUs_t currentTimeUs)
     escSensorData[0].id = ESC_SIG_GRAUPNER;
     escSensorData[0].age = 0;
     escSensorData[0].erpm = tele->rpm * 10;
-    escSensorData[0].throttle = tele->throttle * 10;
-    escSensorData[0].pwm = tele->pwm * 10;
-    escSensorData[0].voltage = tele->voltage * 10;
-    escSensorData[0].current = tele->current * 10;
+    //escSensorData[0].throttle = tele->throttle * 10;
+    //escSensorData[0].pwm = tele->pwm * 10;
+    escSensorData[0].voltage = tele->voltage * 100;
+    escSensorData[0].current = tele->current * 100;
+    escSensorData[0].consumption = tele->capacity * 10;
     escSensorData[0].temperature = tele->temperature * 10;
-    escSensorData[0].temperature2 = tele->bec_temp * 10;
-    escSensorData[0].bec_voltage = tele->bec_voltage * 100;
-    escSensorData[0].bec_current = tele->bec_current * 100;
+    //escSensorData[0].temperature2 = tele->bec_temp * 10;
+    //escSensorData[0].bec_voltage = tele->bec_voltage * 100;
+    //escSensorData[0].bec_current = tele->bec_current * 100;
     escSensorData[0].status = tele->flags;
 
     DEBUG(ESC_SENSOR, DEBUG_ESC_1_RPM, tele->rpm * 10);
     DEBUG(ESC_SENSOR, DEBUG_ESC_1_TEMP, tele->temperature * 10);
-    DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, tele->voltage * 10);
-    DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, tele->current * 10);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_VOLTAGE, tele->voltage * 100);
+    DEBUG(ESC_SENSOR, DEBUG_ESC_1_CURRENT, tele->current * 100);
 
-    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, tele->rpm);
-    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, tele->throttle);
+    //DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_RPM, tele->rpm);
+    //DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_PWM, tele->throttle);
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_TEMP, tele->temperature);
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_VOLTAGE, tele->voltage);
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_CURRENT, tele->current);
-    DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tele->bec_voltage);
+    //DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_EXTRA, tele->bec_voltage);
     DEBUG(ESC_SENSOR_DATA, DEBUG_DATA_AGE, 0);
 
     dataUpdateUs = currentTimeUs;
-
-    rrfsmFrameTimeout = GRAUPNER_TELE_FRAME_TIMEOUT;
 
     graupnerBuildNextReq();
 
@@ -3292,7 +3274,7 @@ static bool graupnerDecode(timeUs_t currentTimeUs)
 {
     //const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 2);
 
-    blackboxLogCustomData(buffer, rrfsmFrameLength);
+    dprintf("DECODE %d\r\n", rrfsmFrameLength);
 
     //if (graupnerCalculateCRC8(buffer + 2, rrfsmFrameLength - 3) != tele->crc)
     //    return false;
@@ -3302,6 +3284,8 @@ static bool graupnerDecode(timeUs_t currentTimeUs)
 
 static int8_t graupnerAccept(uint16_t c)
 {
+    //dprintf("0x%02X ", c);
+
     if (readBytes == 1) {
         // frame signature
         if (c != 0x7C)
@@ -3310,6 +3294,11 @@ static int8_t graupnerAccept(uint16_t c)
     else if (readBytes == 2) {
         // frame signature
         if (c != 0x8C)
+            return -1;
+    }
+    else if (readBytes == 4) {
+        // sensor id
+        if (c != 0xC0)
             return -1;
     }
     else if (readBytes == 44) {
@@ -3321,6 +3310,14 @@ static int8_t graupnerAccept(uint16_t c)
     return 0;
 }
 
+static bool graupnerStart(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    graupnerBuildNextReq();
+    return true;
+}
+
 static serialReceiveCallbackPtr graupnerSensorInit(bool bidirectional)
 {
     if (!bidirectional)
@@ -3328,10 +3325,10 @@ static serialReceiveCallbackPtr graupnerSensorInit(bool bidirectional)
 
     rrfsmBootDelayMs = GRAUPNER_BOOT_DELAY;
     rrfsmMinFrameLength = GRAUPNER_MIN_FRAME_LENGTH;
-    rrfsmFrameTimeout = GRAUPNER_TELE_FRAME_TIMEOUT;
     rrfsmAccept = graupnerAccept;
     rrfsmDecode = graupnerDecode;
     rrfsmCrank = NULL;
+    rrfsmStart = graupnerStart;
 
     escSig = ESC_SIG_GRAUPNER;
 
@@ -3421,11 +3418,11 @@ bool INIT_CODE escSensorInit(void)
     portOptions_e options = 0;
     uint32_t baudrate = 0;
 
+    initDebugSerial(SERIAL_PORT_USART6, 921600);
+
     if (!portConfig) {
         return false;
     }
-
-    initDebugSerial(SERIAL_PORT_USART6, 921600);
 
     options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED |
         (escHalfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR) |
