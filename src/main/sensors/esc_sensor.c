@@ -27,6 +27,7 @@
 #include "config/config.h"
 
 #include "build/debug.h"
+#include "build/dprintf.h"
 
 #include "blackbox/blackbox.h"
 
@@ -3190,8 +3191,7 @@ typedef struct {
     int8_t      max_temp;
     uint16_t    rpm;
     uint16_t    capacity;
-    uint16_t    speed;
-    uint16_t    max_speed;
+    uint8_t     __reserved1[4];
     uint8_t     pwm;
     uint8_t     throttle;
     uint8_t     bec_voltage;
@@ -3200,13 +3200,7 @@ typedef struct {
     uint16_t    max_bec_current;
     int8_t      bec_temp;
     int8_t      max_bec_temp;
-    int8_t      motor_temp;
-    int8_t      max_motor_temp;
-    uint16_t    rpm2;
-    uint8_t     timing;
-    uint8_t     advanced_timing;
-    uint8_t     motor_nr;
-    uint16_t    max_motor_current;
+    uint8_t     __reserved2[9];
     uint8_t     end;
     uint8_t     crc;
 } GraupnerTelemetryFrame_t;
@@ -3296,12 +3290,12 @@ static bool graupnerDecodeTeleFrame(timeUs_t currentTimeUs)
 
 static bool graupnerDecode(timeUs_t currentTimeUs)
 {
-    const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 2);
+    //const GraupnerTelemetryFrame_t *tele = (GraupnerTelemetryFrame_t*)(buffer + 2);
 
     blackboxLogCustomData(buffer, rrfsmFrameLength);
 
-    if (graupnerCalculateCRC8(buffer + 2, rrfsmFrameLength - 3) != tele->crc)
-        return false;
+    //if (graupnerCalculateCRC8(buffer + 2, rrfsmFrameLength - 3) != tele->crc)
+    //    return false;
 
     return graupnerDecodeTeleFrame(currentTimeUs);
 }
@@ -3430,6 +3424,8 @@ bool INIT_CODE escSensorInit(void)
     if (!portConfig) {
         return false;
     }
+
+    initDebugSerial(SERIAL_PORT_USART6, 921600);
 
     options = SERIAL_STOPBITS_1 | SERIAL_PARITY_NO | SERIAL_NOT_INVERTED |
         (escHalfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR) |
