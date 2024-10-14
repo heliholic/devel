@@ -166,6 +166,7 @@ typedef struct {
     float           yawWeight;
     float           cyclicWeight;
     float           collectiveWeight;
+    uint8_t         FFSource;
     filter_t        FFFilter;
 
     // Tail Torque Assist
@@ -435,14 +436,23 @@ static void govUpdateData(void)
         gov.requestRatio = 0;
     }
 
-    // Calculate feedforward from collective deflection
-    float collectiveFF = gov.collectiveWeight * getCollectiveDeflectionAbs();
+    float collectiveFF, cyclicFF, yawFF;
 
-    // Calculate feedforward from cyclic deflection
-    float cyclicFF = gov.cyclicWeight * getCyclicDeflection();
+    if (gov.FFSource) {
+        const pidAxisData_t * data = pidGetAxisData();
+        const float roll = data[ROLL].setPoint / 300.0;
+        const float pitch = data[PITCH].setPoint / 300.0;
+        const float cyclic = sqrtf(sq(roll) + sq(pitch));
+        cyclicFF = gov.cyclicWeight * cyclic;
+        collectiveFF = gov.collectiveWeight * pidGetCollective();
+    }
+    else {
+        cyclicFF = gov.cyclicWeight * getCyclicDeflection();
+        collectiveFF = gov.collectiveWeight * getCollectiveDeflectionAbs();
+    }
 
     // Calculate feedforward from yaw deflection
-    float yawFF = gov.yawWeight * getYawDeflectionAbs();
+    yawFF = gov.yawWeight * getYawDeflectionAbs();
 
     // Angle-of-attack vs. FeedForward curve
     float totalFF = collectiveFF + cyclicFF + yawFF;
@@ -1055,6 +1065,8 @@ void governorInitProfile(const pidProfile_t *pidProfile)
         gov.cyclicWeight = pidProfile->governor.cyclic_ff_weight / 100.0f;
         gov.collectiveWeight = pidProfile->governor.collective_ff_weight / 100.0f;
 
+        gov.FFSource = pidProfile->governor.ff_source;
+
         gov.maxThrottle = pidProfile->governor.max_throttle / 100.0f;
         gov.minThrottle = pidProfile->governor.min_throttle / 100.0f;
 
@@ -1160,7 +1172,7 @@ void governorInit(const pidProfile_t *pidProfile)
         lowpassFilterInit(&gov.motorCurrentFilter, LPF_DAMPED, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.motorRPMFilter, LPF_DAMPED, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.TTAFilter, LPF_DAMPED, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
-        lowpassFilterInit(&gov.FFFilter, LPF_DAMPED, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.FFFilter, governorConfig()->gov_ff_filter_type, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
 
         governorInitProfile(pidProfile);
     }
