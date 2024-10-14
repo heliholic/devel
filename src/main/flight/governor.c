@@ -166,6 +166,7 @@ typedef struct {
     float           yawWeight;
     float           cyclicWeight;
     float           collectiveWeight;
+    float           FFExponent;
     uint8_t         FFSource;
     filter_t        FFFilter;
 
@@ -348,6 +349,11 @@ static inline float idleMap(float throttle)
     return constrainf(throttle, 0, gov.maxIdleThrottle);
 }
 
+static inline float angleDrag(float angle)
+{
+    return pow_approx(angle, gov.FFExponent);
+}
+
 static inline void govChangeState(govState_e futureState)
 {
     gov.state = futureState;
@@ -455,7 +461,7 @@ static void govUpdateData(void)
     yawFF = gov.yawWeight * getYawDeflectionAbs();
 
     // Angle-of-attack vs. FeedForward curve
-    float totalFF = collectiveFF + cyclicFF + yawFF;
+    float totalFF = angleDrag(collectiveFF + cyclicFF) + angleDrag(yawFF);
 
     // Filtered FeedForward
     totalFF = filterApply(&gov.FFFilter, totalFF);
@@ -1066,6 +1072,7 @@ void governorInitProfile(const pidProfile_t *pidProfile)
         gov.collectiveWeight = pidProfile->governor.collective_ff_weight / 100.0f;
 
         gov.FFSource = pidProfile->governor.ff_source;
+        gov.FFExponent = pidProfile->governor.ff_exponent / 100.0f;
 
         gov.maxThrottle = pidProfile->governor.max_throttle / 100.0f;
         gov.minThrottle = pidProfile->governor.min_throttle / 100.0f;

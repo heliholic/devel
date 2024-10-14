@@ -1190,6 +1190,7 @@ const clivalue_t valueTable[] = {
     { "gov_cyclic_ff_weight",       VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.cyclic_ff_weight) },
     { "gov_collective_ff_weight",   VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_ff_weight) },
     { "gov_ff_source",              VAR_UINT8  |  PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_PRECOMP_SOURCE }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.ff_source) },
+    { "gov_ff_exponent",            VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 25, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.ff_exponent) },
     { "gov_max_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.max_throttle) },
     { "gov_min_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.min_throttle) },
 
