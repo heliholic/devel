@@ -65,6 +65,8 @@ typedef struct {
     float           tailCenterTrim;
     float           tailMotorIdle;
     int8_t          tailMotorDirection;
+    float           tailMotorExponent;
+    float           tailPitchExponent;
 
     float           swashTrim[3];
 
@@ -308,10 +310,24 @@ static float mixerCollectiveCorrection(float SC)
 
 static void mixerUpdateMotorizedTail(void)
 {
+    // Variable pitch tail
+    if (mixerIsTailMode(TAIL_MODE_VARIABLE)) {
+        // Yaw input value
+        float yaw = mixer.input[MIXER_IN_STABILIZED_YAW];
+
+        // Add curve
+        yaw = copysignf(pow_approx(fabsf(yaw), mixer.tailPitchExponent), yaw);
+
+        // Replace yaw value
+        mixer.input[MIXER_IN_STABILIZED_YAW] = yaw;
+    }
     // Motorized tail control
-    if (mixerIsTailMode(TAIL_MODE_MOTORIZED)) {
+    else if (mixerIsTailMode(TAIL_MODE_MOTORIZED)) {
         // Yaw input value - positive is against torque
-        const float yaw = mixer.input[MIXER_IN_STABILIZED_YAW] * mixerRotationSign();
+        float yaw = mixer.input[MIXER_IN_STABILIZED_YAW] * mixerRotationSign();
+
+        // Add curve
+        yaw = copysignf(pow_approx(fabsf(yaw), mixer.tailMotorExponent), yaw);
 
         // Add center trim
         float throttle = yaw + mixer.tailCenterTrim;
@@ -579,6 +595,8 @@ void INIT_CODE mixerInitConfig(void)
 
     mixer.tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
     mixer.tailCenterTrim = mixerConfig()->tail_center_trim / 1000.0f;
+    mixer.tailMotorExponent = mixerConfig()->tail_motor_exponent / 100.0f;
+    mixer.tailPitchExponent = mixerConfig()->tail_pitch_exponent / 100.0f;
 }
 
 static void INIT_CODE setMapping(uint8_t in, uint8_t out)
