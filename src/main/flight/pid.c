@@ -223,6 +223,7 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     firstOrderHPFInit(&pid.precomp.collDynamicFilter, 100.0f / constrainf(pidProfile->yaw_collective_dynamic_decay, 1, 250), pid.freq);
 
     // Tail/yaw precomp
+    pid.precomp.yawFFCurve = pidProfile->yaw_precomp_curve;
     pid.precomp.yawFFGain = pidProfile->yaw_collective_ff_gain / 100.0f;
     pid.precomp.yawCyclicFFGain = pidProfile->yaw_cyclic_ff_gain / 100.0f;
     pid.precomp.yawCollectiveDynamicGain = pidProfile->yaw_collective_dynamic_gain / 100.0f;
@@ -383,10 +384,36 @@ static void pidApplyCollective(void)
     pid.collective = collective / 1000;
 }
 
-static inline float angleDrag(float a)
+static inline float angleDrag(float x, uint8_t curve)
 {
-  // Keep it simple
-  return a * a;
+  float y;
+
+  switch (curve) {
+    case 3:
+      {
+        float x2 = x*x; float x4 = x2*x2; float x5 = x4*x;
+        y = x * (x * (x5  + 3) + 1);
+      }
+      break;
+    case 2:
+      {
+        float x2 = x*x;
+        y = x * (x * (x2 + 3) + 1);
+      }
+      break;
+    case 1:
+      {
+        y = x * x;
+      }
+      break;
+    default:
+      {
+        y = x;
+      }
+      break;
+  }
+
+  return y;
 }
 
 static void pidApplyPrecomp(void)
@@ -410,7 +437,7 @@ static void pidApplyPrecomp(void)
       pid.precomp.yawCyclicFFGain * cyclicDeflection;
 
     // Drag estimate
-    const float totalDrag = angleDrag(totalPrecomp) * pid.precomp.yawFFGain;
+    const float totalDrag = angleDrag(totalPrecomp, pid.precomp.yawFFCurve) * pid.precomp.yawFFGain;
 
     // Apply filter
     const float yawPrecomp = filterApply(&pid.precomp.yawPrecompFilter, totalDrag) * masterGain;
