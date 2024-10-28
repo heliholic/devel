@@ -84,6 +84,8 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .yaw_collective_ff_gain = 30,
         .yaw_collective_dynamic_gain = 0,
         .yaw_collective_dynamic_decay = 25,
+        .yaw_torq_precomp_gain = 0,
+        .yaw_torq_precomp_cutoff = 20,
         .pitch_collective_ff_gain = 0,
         .cyclic_cross_coupling_gain = 50,
         .cyclic_cross_coupling_ratio = 0,
