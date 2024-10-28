@@ -82,8 +82,9 @@ typedef struct {
     filter_t yawPrecompFilter;
     order1Filter_t collDynamicFilter;
 
-    float yawFFGain;
+    uint8_t yawFFCurve;
 
+    float yawFFGain;
     float yawCyclicFFGain;
     float yawCollectiveDynamicGain;
 
