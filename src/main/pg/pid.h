@@ -161,6 +161,7 @@ typedef struct pidProfile_s {
     uint8_t             yaw_cw_stop_gain;
     uint8_t             yaw_ccw_stop_gain;
 
+    uint8_t             yaw_precomp_curve;
     uint8_t             yaw_precomp_cutoff;
     uint8_t             yaw_precomp_filter_type;
 
