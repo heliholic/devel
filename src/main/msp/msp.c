@@ -1806,8 +1806,8 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->yaw_precomp_cutoff);
         sbufWriteU8(dst, currentPidProfile->yaw_cyclic_ff_gain);
         sbufWriteU8(dst, currentPidProfile->yaw_collective_ff_gain);
-        sbufWriteU8(dst, currentPidProfile->yaw_collective_dynamic_gain);
-        sbufWriteU8(dst, currentPidProfile->yaw_collective_dynamic_decay);
+        sbufWriteU8(dst, currentPidProfile->yaw_inertia_precomp_gain);
+        sbufWriteU8(dst, currentPidProfile->yaw_inertia_precomp_cutoff);
         sbufWriteU8(dst, currentPidProfile->pitch_collective_ff_gain);
         /* Angle mode */
         sbufWriteU8(dst, currentPidProfile->angle.level_strength);
@@ -2607,8 +2607,8 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         currentPidProfile->yaw_precomp_cutoff = sbufReadU8(src);
         currentPidProfile->yaw_cyclic_ff_gain = sbufReadU8(src);
         currentPidProfile->yaw_collective_ff_gain = sbufReadU8(src);
-        currentPidProfile->yaw_collective_dynamic_gain = sbufReadU8(src);
-        currentPidProfile->yaw_collective_dynamic_decay = sbufReadU8(src);
+        currentPidProfile->yaw_inertia_precomp_gain = sbufReadU8(src);
+        currentPidProfile->yaw_inertia_precomp_cutoff = sbufReadU8(src);
         currentPidProfile->pitch_collective_ff_gain = sbufReadU8(src);
         /* Angle mode */
         currentPidProfile->angle.level_strength = sbufReadU8(src);
