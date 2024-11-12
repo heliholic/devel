@@ -223,12 +223,12 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     firstOrderHPFInit(&pid.precomp.collDynamicFilter, 100.0f / constrainf(pidProfile->yaw_collective_dynamic_decay, 1, 250), pid.freq);
 
     // RPM change filter
-    //firstOrderHPFInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_torq_precomp_cutoff / 10.0f, pid.freq);
+    //firstOrderHPFInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_torque_precomp_cutoff / 10.0f, pid.freq);
     firstOrderHPFInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_collective_dynamic_decay / 10.0f, pid.freq);
 
     // Tail/yaw precomp
     pid.precomp.yawFFCurve = pidProfile->yaw_precomp_curve;
-    pid.precomp.yawTorqueGain = pidProfile->yaw_collective_dynamic_gain / 100.0f; //pidProfile->yaw_torq_precomp_gain / 100.0f;
+    pid.precomp.yawTorqueGain = pidProfile->yaw_collective_dynamic_gain / 100.0f; //pidProfile->yaw_torque_precomp_gain / 100.0f;
     pid.precomp.yawFFGain = pidProfile->yaw_collective_ff_gain / 100.0f;
     pid.precomp.yawCyclicFFGain = pidProfile->yaw_cyclic_ff_gain / 100.0f;
     pid.precomp.yawCollectiveDynamicGain = 0; //pidProfile->yaw_collective_dynamic_gain / 100.0f;
