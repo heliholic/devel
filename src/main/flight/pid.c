@@ -388,7 +388,7 @@ static void pidApplyCollective(void)
     pid.collective = collective / 1000;
 }
 
-static inline float angleDrag(float x, uint8_t curve)
+static inline float dragCoeff(float x, uint8_t curve)
 {
   float y;
 
@@ -450,12 +450,12 @@ static void pidApplyPrecomp(void)
       pid.precomp.yawCyclicFFGain * fabsf(cyclicDeflection);
 
     // Drag estimate
-    const float mainDrag = angleDrag(mainDeflection, pid.precomp.yawFFCurve) * pid.precomp.yawFFGain;
+    const float mainDrag = dragCoeff(mainDeflection, pid.precomp.yawFFCurve) * pid.precomp.yawFFGain;
 
     // Apply filter
     const float mainPrecomp = filterApply(&pid.precomp.yawPrecompFilter, mainDrag);
 
-    // Total
+    // Total precomp with direction
     const float totalPrecomp = (mainPrecomp + torquePrecomp) * masterGain;
 
     // Add to YAW feedforward
