@@ -80,7 +80,7 @@ typedef struct {
 typedef struct {
 
     filter_t yawPrecompFilter;
-    difFilter_t yawTorqFilter;
+    order1Filter_t yawTorqFilter;
     order1Filter_t collDynamicFilter;
 
     uint8_t yawFFCurve;

@@ -223,8 +223,8 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     firstOrderHPFInit(&pid.precomp.collDynamicFilter, 100.0f / constrainf(pidProfile->yaw_collective_dynamic_decay, 1, 250), pid.freq);
 
     // RPM change filter
-    //difFilterInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_torq_precomp_cutoff / 10.0f, pid.freq);
-    difFilterInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_collective_dynamic_decay / 10.0f, pid.freq);
+    //firstOrderHPFInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_torq_precomp_cutoff / 10.0f, pid.freq);
+    firstOrderHPFInit(&pid.precomp.yawTorqFilter, pidProfile->yaw_collective_dynamic_decay / 10.0f, pid.freq);
 
     // Tail/yaw precomp
     pid.precomp.yawFFCurve = pidProfile->yaw_precomp_curve;
@@ -436,11 +436,15 @@ static void pidApplyPrecomp(void)
 
   //// Main rotor momentum precomp
 
+    // Normalised effective rotor speed
+    //const float rotorSpeed = getHeadSpeedf() / 3000;
+    const float rotorSpeed = (getHeadSpeedf() + mixerRotationSign() * getSetpoint(YAW) / 6) / 3000;
+
     // Headspeed derivative
-    const float rpmChange = difFilterApply(&pid.precomp.yawTorqFilter, getHeadSpeedf() / 3000);
+    const float speedChange = firstOrderFilterApply(&pid.precomp.yawTorqFilter, rotorSpeed);
 
     // Main rotor momentum change precomp
-    const float torquePrecomp = rpmChange * pid.precomp.yawTorqueGain;
+    const float torquePrecomp = speedChange * pid.precomp.yawTorqueGain;
 
 
   //// Collective-to-Yaw Precomp
@@ -469,7 +473,7 @@ static void pidApplyPrecomp(void)
     DEBUG(YAW_PRECOMP, 3, collectiveDeflection * 1000);
     DEBUG(YAW_PRECOMP, 4, cyclicDeflection * 1000);
     DEBUG(YAW_PRECOMP, 5, collectiveImpulse * 1000);
-    DEBUG(YAW_PRECOMP, 6, rpmChange * 1000);
+    DEBUG(YAW_PRECOMP, 6, speedChange * 1000);
     DEBUG(YAW_PRECOMP, 7, torquePrecomp * 1000);
 
 
