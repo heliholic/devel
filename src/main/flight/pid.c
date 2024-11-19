@@ -219,9 +219,6 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // Collective/cyclic deflection lowpass filters
     lowpassFilterInit(&pid.precomp.yawPrecompFilter, pidProfile->yaw_precomp_filter_type, pidProfile->yaw_precomp_cutoff, pid.freq, 0);
 
-    // Collective dynamic filter
-    firstOrderHPFInit(&pid.precomp.collDynamicFilter, 100.0f / constrainf(pidProfile->yaw_collective_dynamic_decay, 1, 250), pid.freq);
-
     // RPM change filter
     //difFilterInit(&pid.precomp.yawInertiaFilter, pidProfile->yaw_inertia_precomp_cutoff / 10.0f, pid.freq);
     difFilterInit(&pid.precomp.yawInertiaFilter, pidProfile->yaw_collective_dynamic_decay / 10.0f, pid.freq);
@@ -231,7 +228,6 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pid.precomp.yawInertiaGain = pidProfile->yaw_collective_dynamic_gain / 100.0f; //pidProfile->yaw_inertia_precomp_gain / 100.0f;
     pid.precomp.yawFFGain = pidProfile->yaw_collective_ff_gain / 100.0f;
     pid.precomp.yawCyclicFFGain = pidProfile->yaw_cyclic_ff_gain / 100.0f;
-    pid.precomp.yawCollectiveDynamicGain = 0; //pidProfile->yaw_collective_dynamic_gain / 100.0f;
 
     // Pitch precomp
     pid.precomp.pitchCollectiveFFGain = pidProfile->pitch_collective_ff_gain / 500.0f;
@@ -430,9 +426,6 @@ static void pidApplyPrecomp(void)
     const float collectiveDeflection = getCollectiveDeflection();
     const float cyclicDeflection = getCyclicDeflection();
 
-    // Collective impulse
-    const float collectiveImpulse = firstOrderFilterApply(&pid.precomp.collDynamicFilter, collectiveDeflection);
-
 
   //// Main rotor intertia precomp
 
@@ -451,7 +444,6 @@ static void pidApplyPrecomp(void)
 
     // Equivalent Average main rotor deflection
     const float mainDeflection = fabsf(collectiveDeflection) +
-      pid.precomp.yawCollectiveDynamicGain * fabsf(collectiveImpulse) +
       pid.precomp.yawCyclicFFGain * fabsf(cyclicDeflection);
 
     // Drag estimate
@@ -472,7 +464,6 @@ static void pidApplyPrecomp(void)
     DEBUG(YAW_PRECOMP, 2, mainDeflection * 1000);
     DEBUG(YAW_PRECOMP, 3, collectiveDeflection * 1000);
     DEBUG(YAW_PRECOMP, 4, cyclicDeflection * 1000);
-    DEBUG(YAW_PRECOMP, 5, collectiveImpulse * 1000);
     DEBUG(YAW_PRECOMP, 6, speedChange * 1000);
     DEBUG(YAW_PRECOMP, 7, torquePrecomp * 1000);
 
