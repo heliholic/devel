@@ -2009,6 +2009,7 @@ static mspResult_e mspFcProcessOutCommandWithArg(mspDescriptor_t srcDesc, int16_
     switch (cmdMSP) {
 #ifdef USE_RPM_FILTER
     case MSP_RPM_FILTER:
+#if 0
         {
             const range_t axis_range = { 0, RPM_FILTER_AXIS_COUNT - 1 };
             const range_t bank_range = { 0, RPM_FILTER_NOTCH_COUNT - 1 };
@@ -2019,6 +2020,11 @@ static mspResult_e mspFcProcessOutCommandWithArg(mspDescriptor_t srcDesc, int16_
             sbufWriteU16(dst, rpmFilterConfig()->custom.notch_center[axis][bank]);
             sbufWriteU8(dst, rpmFilterConfig()->custom.notch_q[axis][bank]);
         }
+#else
+        for (int i = 0; i < 16 * 6; i++) {
+            sbufWriteU8(dst, 0);
+        }
+#endif
         break;
 #endif
 
@@ -2558,6 +2564,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 
 #ifdef USE_RPM_FILTER
     case MSP_SET_RPM_FILTER:
+#if 0
         {
             uint8_t axis = sbufReadU8(src);
             uint8_t bank = sbufReadU8(src);
@@ -2570,6 +2577,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         }
         validateAndFixRPMFilterConfig();
         gyroInitFilters();
+#endif
         break;
 #endif
 
