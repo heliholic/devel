@@ -40,12 +40,16 @@
 #include "rpm_filter.h"
 
 // Number of banks to update in one cycle
-#define RPM_UPDATE_BANK_COUNT       5
+#define RPM_UPDATE_BANK_COUNT       1
 
 // Number of predefined presets
 #define RPM_FILTER_PRESET_COUNT     3
 
-// RPM Filter Presets
+// Notch side-bands: 10000 * 2% / Q(x10)
+#define LNC(Q)    (-2000 / (Q))
+#define RNC(Q)    ( 2000 / (Q))
+
+// RPM Filter Preset
 static const rpmNotchConfig_t rpmFilterPreset[RPM_FILTER_PRESET_COUNT] =
 {
     // Low vibration preset
@@ -56,50 +60,50 @@ static const rpmNotchConfig_t rpmFilterPreset[RPM_FILTER_PRESET_COUNT] =
             { 11, 12, 21, },
         },
         .notch_center = {
-            { 0, 0, 0, },
-            { 0, 0, 0, },
-            { 0, 0, 0, },
+            { 0, },
+            { 0, },
+            { 0, },
         },
         .notch_q = {
-            { 100,  50, 50, },
-            { 100,  50, 50, },
-            { 100,  50, 50, },
+            { 80, 40, 50, },
+            { 80, 40, 50, },
+            { 80, 40, 50, },
         },
     },
     // Typical vibration preset
     {
         .notch_source = {
-            { 11, 12, 13, 14, 21, },
-            { 11, 12, 13, 14, 21, },
-            { 11, 12, 13, 14, 21, },
+            { 11, 12, 13, 14, 21, 22, },
+            { 11, 12, 13, 14, 21, 22, },
+            { 11, 12, 13, 14, 21, 22, },
         },
         .notch_center = {
-            { 0, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 0, },
+            { 0, },
+            { 0, },
+            { 0, },
         },
         .notch_q = {
-            { 80, 50, 80, 80, 50, },
-            { 80, 50, 80, 80, 50, },
-            { 80, 50, 80, 80, 50, },
+            { 60, 30, 80, 60, 50, 50, },
+            { 60, 30, 80, 60, 50, 50, },
+            { 80, 40, 80, 80, 50, 50, },
         },
     },
     // High vibration preset
     {
         .notch_source = {
-            { 11, 12, 13, 14, 15, 21, 22, 10 },
-            { 11, 12, 13, 14, 15, 21, 22, 10 },
-            { 11, 12, 13, 14, 15, 21, 22, 10 },
+            { 11, 12, 12, 12, 13, 14, 15, 16, 21, 22, 10 },
+            { 11, 12, 12, 12, 13, 14, 15, 16, 21, 22, 10 },
+            { 11, 12, 12, 12, 13, 14, 21, 22, 10 },
         },
         .notch_center = {
-            { 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 0, 0, 0, 0, },
+            { 0, 0, LNC(40), RNC(40), 0, },
+            { 0, 0, LNC(40), RNC(40), 0, },
+            { 0, 0, LNC(40), RNC(40), 0, },
         },
         .notch_q = {
-            { 50, 30, 80, 80, 80, 50, 80, 80 },
-            { 50, 30, 80, 80, 80, 50, 80, 80 },
-            { 80, 50, 80, 80, 80, 50, 80, 80 },
+            { 50, 40, 40, 40, 80, 60, 80, 80, 50, 50, 80 },
+            { 50, 40, 40, 40, 80, 60, 80, 80, 50, 50, 80 },
+            { 80, 40, 40, 40, 80, 80, 50, 80, 80 },
         },
     },
 };
