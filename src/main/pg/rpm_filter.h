@@ -20,7 +20,7 @@
 #include "pg/pg.h"
 
 #define RPM_FILTER_AXIS_COUNT    3
-#define RPM_FILTER_NOTCH_COUNT   10
+#define RPM_FILTER_NOTCH_COUNT   16
 
 typedef struct
 {
