@@ -1506,9 +1506,17 @@ static char *blackboxGetStartDateTime(char *buf)
 #define BLACKBOX_PRINT_HEADER_LINE(name, format, ...) case __COUNTER__: \
                                                 blackboxPrintfHeaderLine(name, format, __VA_ARGS__); \
                                                 break;
+#define BLACKBOX_PRINT_HEADER_LINE_ARRAY(name, count, array) case __COUNTER__: { \
+                                                char *ptr = buf; \
+                                                for (int i=0; i<(count); i++) { \
+                                                    if (i > 0) *ptr++ = ','; \
+                                                    ptr += tfp_sprintf(ptr, "%d", array[i]); \
+                                                } \
+                                                blackboxPrintfHeaderLine(name, buf); \
+                                                break; }
 #define BLACKBOX_PRINT_HEADER_LINE_CUSTOM(...) case __COUNTER__: \
-                                                    {__VA_ARGS__}; \
-                                               break;
+                                                {__VA_ARGS__}; \
+                                                break;
 #endif
 
 /**
