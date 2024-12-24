@@ -34,6 +34,14 @@ typedef struct {
     uint16_t                    start_index;
     uint16_t                    sensor_count;
     telemetrySensor_t *         sensors;
+
+    int32_t                     max_level;
+    int32_t                     min_level;
+    int32_t                     quanta;
+
+    bool                        use_excess;
+    uint32_t                    excess_level;
+    telemetrySensor_t *         excess_sensor;
 } telemetryScheduler_t;
 
 
@@ -51,5 +59,5 @@ telemetrySensor_t * telemetryScheduleNext(void);
 void telemetryScheduleAdd(telemetrySensor_t * sensor);
 void telemetryScheduleUpdate(timeUs_t currentTime);
 void telemetryScheduleCommit(telemetrySensor_t * sensor);
-void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count);
+void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count, bool use_excess);
 
