@@ -173,14 +173,18 @@ typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetrySensor_t *sensor);
 
 struct telemetrySensor_s {
 
-    uint16_t                telid;
-    uint32_t                tcode;
+    uint16_t                index;
+    uint16_t                senid;
+    uint32_t                appid;
 
-    uint16_t                min_interval;
-    uint16_t                max_interval;
+    uint16_t                fast_weight;
+    uint16_t                slow_weight;
+    uint16_t                fast_interval;
+    uint16_t                slow_interval;
 
     bool                    active;
     bool                    update;
+
     int                     bucket;
     int                     value;
 
