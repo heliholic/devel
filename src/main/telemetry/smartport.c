@@ -102,7 +102,7 @@ static void smartPortSensorEncodeAttitude(__unused telemetrySensor_t *sensor, sm
 
 static void smartPortSensorEncodeKnots(__unused telemetrySensor_t *sensor, smartPortPayload_t *payload)
 {
-    const uint32_t mknots = lrintf(gpsSol.groundSpeed * 194.384f);
+    const uint32_t mknots = gpsSol.groundSpeed * 19438UL / 1000;
 
     payload->data = mknots;
 }
