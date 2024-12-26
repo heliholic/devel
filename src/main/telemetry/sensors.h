@@ -190,7 +190,7 @@ typedef struct {
 
 typedef struct telemetrySensor_s telemetrySensor_t;
 
-typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetrySensor_t *sensor);
+typedef void (*telemetryEncode_f)(telemetrySensor_t *sensor, void *ptr);
 
 struct telemetrySensor_s {
 
