@@ -167,6 +167,28 @@ typedef enum
 } sensor_id_e;
 
 
+/** Sensor Config **/
+
+typedef struct {
+    /* Battery telemetry */
+    int    batVoltageScale;
+    int    batCurrentScale;
+
+    /* ESC telemetry */
+    int    escVoltageScale;
+    int    escCurrentScale;
+    int    becVoltageScale;
+    int    becCurrentScale;
+    int    escTempScale;
+
+    /* Attitude & Accel */
+    int    attitudeScale;
+    int    accelScale;
+
+} telemetrySensorConfig_t;
+
+extern telemetrySensorConfig_t telemetrySensorConfig;
+
 typedef struct telemetrySensor_s telemetrySensor_t;
 
 typedef void (*telemetryEncode_f)(telemetrySensor_t *sensor, void *ptr);
