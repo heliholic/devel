@@ -59,18 +59,34 @@
 #include "telemetry/sensors.h"
 
 
+/** Sensor configuration **/
+
+telemetrySensorConfig_t telemetrySensorConfig =
+{
+    .batVoltageScale        = 10,
+    .batCurrentScale        = 10,
+    .escVoltageScale        = 10,
+    .escCurrentScale        = 10,
+    .becVoltageScale        = 10,
+    .becCurrentScale        = 10,
+    .escTempScale           = 10,
+    .attitudeScale          = 100,
+    .accelScale             = 100,
+};
+
+
 /** Sensor functions **/
 
 static int getVoltage(voltageMeterId_e id)
 {
     voltageMeter_t voltage;
-    return voltageMeterRead(id, &voltage) ? voltage.voltage / 10 : 0;
+    return voltageMeterRead(id, &voltage) ? voltage.voltage / telemetrySensorConfig.batVoltageScale : 0;
 }
 
 static int getCurrent(currentMeterId_e id)
 {
     currentMeter_t current;
-    return currentMeterRead(id, &current) ? current.current / 10: 0;
+    return currentMeterRead(id, &current) ? current.current / telemetrySensorConfig.batCurrentScale : 0;
 }
 
 static int getEscSensorValue(uint8_t motor, uint8_t id)
@@ -80,9 +96,9 @@ static int getEscSensorValue(uint8_t motor, uint8_t id)
     if (data) {
         switch (id) {
             case 1:
-                return data->voltage / 10;
+                return data->voltage / telemetrySensorConfig.escVoltageScale;
             case 2:
-                return data->current / 10;
+                return data->current / telemetrySensorConfig.escCurrentScale;
             case 3:
                 return data->consumption;
             case 4:
@@ -92,13 +108,13 @@ static int getEscSensorValue(uint8_t motor, uint8_t id)
             case 6:
                 return data->throttle;
             case 7:
-                return data->temperature / 10;
+                return data->temperature / telemetrySensorConfig.escTempScale;
             case 8:
-                return data->temperature2 / 10;
+                return data->temperature2 / telemetrySensorConfig.escTempScale;
             case 9:
-                return data->bec_voltage / 10;
+                return data->bec_voltage / telemetrySensorConfig.becVoltageScale;
             case 10:
-                return data->bec_current / 10;
+                return data->bec_current / telemetrySensorConfig.becCurrentScale;
             case 11:
                 return data->status;
             case 12:
@@ -235,20 +251,20 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ATTITUDE:
             return millis();
         case TELEM_ATTITUDE_PITCH:
-            return attitude.values.pitch / 10;
+            return 10 * (int)attitude.values.pitch / telemetrySensorConfig.attitudeScale;
         case TELEM_ATTITUDE_ROLL:
-            return attitude.values.roll / 10;
+            return 10 * (int)attitude.values.roll / telemetrySensorConfig.attitudeScale;
         case TELEM_ATTITUDE_YAW:
-            return attitude.values.yaw / 10;
+            return 10 * (int)attitude.values.yaw / telemetrySensorConfig.attitudeScale;
 
         case TELEM_ACCEL:
             return millis();
         case TELEM_ACCEL_X:
-            return lrintf(acc.accADC[0] * acc.dev.acc_1G_rec * 10);
+            return lrintf(1000 * acc.accADC[0] * acc.dev.acc_1G_rec / telemetrySensorConfig.accelScale);
         case TELEM_ACCEL_Y:
-            return lrintf(acc.accADC[1] * acc.dev.acc_1G_rec * 10);
+            return lrintf(1000 * acc.accADC[1] * acc.dev.acc_1G_rec / telemetrySensorConfig.accelScale);
         case TELEM_ACCEL_Z:
-            return lrintf(acc.accADC[2] * acc.dev.acc_1G_rec * 10);
+            return lrintf(1000 * acc.accADC[2] * acc.dev.acc_1G_rec / telemetrySensorConfig.accelScale);
 
         case TELEM_GPS:
             return millis();
