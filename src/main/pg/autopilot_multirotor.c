@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#ifndef USE_WING
-
 #include "flight/autopilot.h"
 
 #include "pg/pg.h"
@@ -48,5 +46,3 @@ PG_RESET_TEMPLATE(autopilotConfig_t, autopilotConfig,
     .positionCutoff = 80,
     .maxAngle = 50,
 );
-
-#endif // !USE_WING
