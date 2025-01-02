@@ -53,7 +53,6 @@ void initRcProcessing(void);
 rcSmoothingFilter_t *getRcSmoothingData(void);
 
 float getMaxRcRate(int axis);
-float getFeedforward(int axis);
 
 void updateRcRefreshRate(timeUs_t currentTimeUs, bool rxReceivingSignal);
 float getCurrentRxRateHz(void);

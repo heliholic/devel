@@ -84,29 +84,6 @@ enum {
     THROTTLE_FLAG = 1 << THROTTLE,
 };
 
-#ifdef USE_FEEDFORWARD
-static feedforwardData_t feedforwardData;
-
-static float feedforwardSmoothed[3];
-static float feedforwardRaw[3];
-static uint16_t feedforwardAveraging;
-typedef struct laggedMovingAverageCombined_s {
-    laggedMovingAverage_t filter;
-    float buf[4];
-} laggedMovingAverageCombined_t;
-laggedMovingAverageCombined_t  feedforwardDeltaAvg[XYZ_AXIS_COUNT];
-
-static pt1Filter_t feedforwardYawHoldLpf;
-
-float getFeedforward(int axis)
-{
-#ifdef USE_RC_SMOOTHING_FILTER
-    return rxConfig()->rc_smoothing ? feedforwardSmoothed[axis] : feedforwardRaw[axis];
-#else
-    return feedforwardRaw[axis];
-#endif
-}
-#endif // USE_FEEDFORWARD
 #ifdef USE_RC_SMOOTHING_FILTER
 static FAST_DATA_ZERO_INIT rcSmoothingFilter_t rcSmoothingData;
 static float rcDeflectionSmoothed[3];
@@ -359,19 +336,6 @@ static FAST_CODE_NOINLINE void rcSmoothingSetFilterCutoffs(rcSmoothingFilter_t *
     DEBUG_SET(DEBUG_RC_SMOOTHING, 1, lrintf(smoothedRxRateHz));  // Rx Rate to use when updating cutoffs
 }
 
-#ifdef USE_FEEDFORWARD
-static FAST_CODE_NOINLINE void updateFeedforwardFilters(const pidRuntime_t *pid) {
-    float pt1K = pt1FilterGainFromDelay(pid->feedforwardSmoothFactor, 1.0f / smoothedRxRateHz);
-    for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-        pt1FilterUpdateCutoff(&feedforwardData.filterSetpointSpeed[axis], pt1K);
-        pt1FilterUpdateCutoff(&feedforwardData.filterSetpointDelta[axis], pt1K);
-    }
-    DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 6, lrintf(pt1K * 1000.0f));
-    DEBUG_SET(DEBUG_RC_SMOOTHING, 4, lrintf(pt1K * 1000.0f));
-    DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 7, lrintf(smoothedRxRateHz));
-}
-#endif
-
 static FAST_CODE void processRcSmoothingFilter(void)
 {
     static FAST_DATA_ZERO_INIT float rxDataToSmooth[4];
@@ -396,7 +360,6 @@ static FAST_CODE void processRcSmoothingFilter(void)
         *dst = pt3FilterApply(&rcSmoothingData.filterSetpoint[i], rxDataToSmooth[i]);
     }
     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
-        feedforwardSmoothed[axis] = pt3FilterApply(&rcSmoothingData.filterFeedforward[axis], feedforwardRaw[axis]);
         // Horizon mode smoothing of rcDeflection on pitch and roll to provide a smooth angle element
         rcDeflectionSmoothed[axis] = FLIGHT_MODE(HORIZON_MODE) && axis < FD_YAW
             ? pt3FilterApply(&rcSmoothingData.filterRcDeflection[axis], rcDeflection[axis])
@@ -404,139 +367,6 @@ static FAST_CODE void processRcSmoothingFilter(void)
     }
 }
 #endif // USE_RC_SMOOTHING_FILTER
-
-#ifdef USE_FEEDFORWARD
-static FAST_CODE_NOINLINE void calculateFeedforward(const pidRuntime_t *pid, flight_dynamics_index_t axis)
-{
-    const float rxInterval = currentRxIntervalUs * 1e-6f; // seconds
-    const float rcCommandDelta = rcCommand[axis] - feedforwardData.prevRcCommand[axis];
-    float rcCommandDeltaAbs = fabsf(rcCommandDelta);
-    const bool isDuplicate = rcCommandDeltaAbs == 0;
-    const float setpoint = rawSetpoint[axis];
-    const float setpointDelta = setpoint - feedforwardData.prevSetpoint[axis];
-
-    feedforwardData.prevRcCommand[axis] = rcCommand[axis];
-    feedforwardData.prevSetpoint[axis] = setpoint;
-
-    float rxRate = currentRxRateHz;
-
-    float setpointSpeed = 0.0f;
-    float setpointSpeedUnsmoothed = 0.0f;
-    float setpointSpeedDelta = 0.0f;
-    float feedforward = 0.0f;
-
-    if (pid->feedforwardInterpolate) {
-        // for Rx links which send frequent duplicate data packets, sometimes on one axis, use a per-axis duplicate test
-        float prevRxInterval = feedforwardData.prevRxInterval[axis];
-        // extrapolate setpointSpeed when a duplicate is detected, to minimise steps in feedforward
-        if (!isDuplicate) {
-            // movement!
-            // but, if the packet before this was also a duplicate,
-            // calculate setpointSpeed over the last two intervals
-            if (feedforwardData.isPrevPacketDuplicate[axis]) {
-                // Adjust rxRate if previous packet was duplicate
-                rxRate = 1.0f / (rxInterval + prevRxInterval);
-            }
-            setpointSpeed = setpointDelta * rxRate;
-        } else {
-            // no movement
-            if (!feedforwardData.isPrevPacketDuplicate[axis]) {
-                // extrapolate a replacement setpointSpeed value for the first duplicate after normal movement
-                // but not when about to hit max deflection
-                if (fabsf(setpoint) < 0.90f * maxRcRate[axis]) {
-                    // this is a single packet duplicate, and we assume that it is of approximately normal duration
-                    // hence no multiplication of prevSetpointSpeedDelta by rxInterval / prevRxInterval
-                    setpointSpeed = feedforwardData.prevSetpointSpeed[axis] + feedforwardData.prevSetpointSpeedDelta[axis];
-                    // pretend that there was stick movement also, to hold the same jitter value
-                    rcCommandDeltaAbs = feedforwardData.prevRcCommandDeltaAbs[axis];
-                }
-            } else {
-                // for second and all subsequent duplicates...
-                // force setpoint speed to zero
-                setpointSpeed = 0.0f;
-                // zero the acceleration by setting previous speed to zero
-                // feedforward will smoothly decay and be attenuated by the jitter reduction value for zero rcCommandDelta
-                feedforwardData.prevSetpointSpeed[axis] = 0.0f;
-            }
-        }
-        feedforwardData.prevRxInterval[axis] = rxInterval;
-    } else {
-        setpointSpeed = setpointDelta * currentRxRateHz;
-    }
-    feedforwardData.isPrevPacketDuplicate[axis] = isDuplicate;
-
-    // Jitter attenuation factor calculation
-    float jitterAttenuator = ((rcCommandDeltaAbs + feedforwardData.prevRcCommandDeltaAbs[axis]) * 0.5f + 1.0f) * pid->feedforwardJitterFactorInv;
-    jitterAttenuator = MIN(jitterAttenuator, 1.0f);
-    feedforwardData.prevRcCommandDeltaAbs[axis] = rcCommandDeltaAbs;
-
-    setpointSpeedUnsmoothed = setpointSpeed;
-
-    // Smooth the setpointSpeed value
-    setpointSpeed = pt1FilterApply(&feedforwardData.filterSetpointSpeed[axis], setpointSpeed);
-
-    // Calculate setpointDelta from smoothed setpoint speed
-    setpointSpeedDelta = setpointSpeed - feedforwardData.prevSetpointSpeed[axis];
-    feedforwardData.prevSetpointSpeed[axis] = setpointSpeed;
-
-    // Smooth the setpointDelta (2nd order smoothing)
-    setpointSpeedDelta = pt1FilterApply(&feedforwardData.filterSetpointDelta[axis], setpointSpeedDelta);
-    feedforwardData.prevSetpointSpeedDelta[axis] = setpointSpeedDelta;
-
-    // Calculate feedforward boost
-    const float feedforwardBoost = setpointSpeedDelta * rxRate * pid->feedforwardBoostFactor;
-    feedforward = setpointSpeed;
-
-    if (axis == FD_ROLL || axis == FD_PITCH) {
-        feedforward += feedforwardBoost;
-        feedforward *= jitterAttenuator;
-        if (pid->feedforwardMaxRateLimit && feedforward * setpoint > 0.0f) {
-            const float limit = (maxRcRate[axis] - fabsf(setpoint)) * pid->feedforwardMaxRateLimit;
-            feedforward = (limit > 0.0f) ? constrainf(feedforward, -limit, limit) : 0.0f;
-        }
-    } else {
-        feedforward *= jitterAttenuator;
-        const float gain = pt1FilterGainFromDelay(pid->feedforwardYawHoldTime, rxInterval);
-        pt1FilterUpdateCutoff(&feedforwardYawHoldLpf, gain);
-        const float setpointLpfYaw = pt1FilterApply(&feedforwardYawHoldLpf, setpoint);
-        const float feedforwardYawHold = pid->feedforwardYawHoldGain * (setpoint - setpointLpfYaw);
-        DEBUG_SET(DEBUG_FEEDFORWARD, 6, lrintf(feedforward * 0.01f));         // basic yaw ff without hold
-        DEBUG_SET(DEBUG_FEEDFORWARD, 7, lrintf(feedforwardYawHold * 0.01f));  // with yaw ff hold element
-        feedforward += feedforwardYawHold;
-    }
-
-    // Apply feedforward transition if configured
-    const bool useTransition = (pid->feedforwardTransition != 0.0f) && (rcDeflectionAbs[axis] < pid->feedforwardTransition);
-    if (useTransition) {
-        feedforward *= rcDeflectionAbs[axis] * pid->feedforwardTransitionInv;
-    }
-
-    if (axis == gyro.gyroDebugAxis) {
-        DEBUG_SET(DEBUG_FEEDFORWARD, 0, lrintf(setpoint));
-        DEBUG_SET(DEBUG_FEEDFORWARD, 1, lrintf(setpointSpeed * 0.01f));
-        DEBUG_SET(DEBUG_FEEDFORWARD, 2, lrintf(feedforwardBoost * 0.01f));
-        DEBUG_SET(DEBUG_FEEDFORWARD, 3, lrintf(rcCommandDeltaAbs * 10.0f));
-        DEBUG_SET(DEBUG_FEEDFORWARD, 4, lrintf(jitterAttenuator * 100.0f));
-        DEBUG_SET(DEBUG_FEEDFORWARD, 5, (int16_t)(feedforwardData.isPrevPacketDuplicate[axis]));
-        // 6 and 7 used for feedforward yaw hold logging
-
-        DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 0, lrintf(jitterAttenuator * 100.0f)); // jitter attenuation factor in percent
-        DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 1, lrintf(maxRcRate[axis]));           // max Setpoint rate (badly named)
-        DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 2, lrintf(setpoint));                  // setpoint used for FF, unsmoothed
-        DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 3, lrintf(feedforward * 0.01f));       // un-smoothed final feedforward
-        DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 4, lrintf(setpointSpeedUnsmoothed * 0.01f));
-        DEBUG_SET(DEBUG_FEEDFORWARD_LIMIT, 5, lrintf(setpointSpeed * 0.01f));      // compare to 4 to check ff smoothing
-        // 6 for feedforward pt1K, 7 for smoothedRxRateHz
-    }
-
-    // Final smoothing if configured
-    if (feedforwardAveraging) {
-        feedforward = laggedMovingAverageUpdate(&feedforwardDeltaAvg[axis].filter, feedforward);
-    }
-
-    feedforwardRaw[axis] = feedforward;
-}
-#endif // USE_FEEDFORWARD
 
 bool shouldUpdateSmoothing(void)
 {
@@ -602,10 +432,6 @@ FAST_CODE void processRcCommand(void)
         updateSmoothing = shouldUpdateSmoothing();
 
         if (updateSmoothing) {
-#ifdef USE_FEEDFORWARD
-            // update FF smoothing
-            updateFeedforwardFilters(&pidRuntime);
-#endif
 #ifdef USE_RC_SMOOTHING_FILTER
             if (rxConfig()->rc_smoothing) {
                 rcSmoothingSetFilterCutoffs(&rcSmoothingData);
@@ -650,10 +476,6 @@ FAST_CODE void processRcCommand(void)
 
             rawSetpoint[axis] = constrainf(angleRate, -1.0f * currentControlRateProfile->rate_limit[axis], 1.0f * currentControlRateProfile->rate_limit[axis]);
             DEBUG_SET(DEBUG_ANGLERATE, axis, angleRate);
-
-#ifdef USE_FEEDFORWARD
-            calculateFeedforward(&pidRuntime, axis);
-#endif // USE_FEEDFORWARD
 
             // log the smoothed Rx Rate from non-outliers, this will not show the steps every three valid packets
             DEBUG_SET(DEBUG_RX_TIMING, 5, lrintf(smoothedRxRateHz));
@@ -757,21 +579,8 @@ void initRcProcessing(void)
     rcSmoothingData.throttleCutoffFrequency = rcSmoothingData.throttleCutoffSetting;
 #endif
 
-#ifdef USE_FEEDFORWARD
-    updateFeedforwardFilters(&pidRuntime);
-    feedforwardAveraging = pidRuntime.feedforwardAveraging;
-    pt1FilterInit(&feedforwardYawHoldLpf, 0.0f);
-#endif // USE_FEEDFORWARD
-
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         maxRcRate[i] = applyRates(i, 1.0f, 1.0f);
-#ifdef USE_FEEDFORWARD
-        feedforwardSmoothed[i] = 0.0f;
-        feedforwardRaw[i] = 0.0f;
-        if (feedforwardAveraging) {
-            laggedMovingAverageInit(&feedforwardDeltaAvg[i].filter, feedforwardAveraging + 1, (float *)&feedforwardDeltaAvg[i].buf[0]);
-        }
-#endif // USE_FEEDFORWARD
     }
 }
 
