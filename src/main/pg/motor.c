@@ -59,10 +59,8 @@ void pgResetFn_motorConfig(motorConfig_t *motorConfig)
     motorConfig->dev.motorPwmRate = BRUSHED_MOTORS_PWM_RATE;
     motorConfig->dev.motorProtocol = MOTOR_PROTOCOL_BRUSHED;
     motorConfig->dev.useContinuousUpdate = true;
-    motorConfig->motorIdle = 700; // historical default minThrottle for brushed was 1070
 #else
     motorConfig->dev.motorPwmRate = BRUSHLESS_MOTORS_PWM_RATE;
-    motorConfig->motorIdle = 550;
 #if !defined(USE_DSHOT) && defined(USE_PWM_OUTPUT)
     motorConfig->dev.motorProtocol = MOTOR_PROTOCOL_PWM;
     motorConfig->dev.useContinuousUpdate = true;

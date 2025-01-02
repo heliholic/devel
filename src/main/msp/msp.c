@@ -1818,7 +1818,7 @@ case MSP_NAME:
         sbufWriteU8(dst, motorConfig()->dev.useContinuousUpdate);
         sbufWriteU8(dst, motorConfig()->dev.motorProtocol);
         sbufWriteU16(dst, motorConfig()->dev.motorPwmRate);
-        sbufWriteU16(dst, motorConfig()->motorIdle);
+        sbufWriteU16(dst, 0); // was motorConfig()->motorIdle
         sbufWriteU8(dst, 0); // DEPRECATED: gyro_use_32kHz
         sbufWriteU8(dst, motorConfig()->dev.motorInversion);
         sbufWriteU8(dst, 0); // deprecated gyro_to_use
@@ -2975,7 +2975,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         motorConfigMutable()->dev.motorProtocol = sbufReadU8(src);
         motorConfigMutable()->dev.motorPwmRate = sbufReadU16(src);
         if (sbufBytesRemaining(src) >= 2) {
-            motorConfigMutable()->motorIdle = sbufReadU16(src);
+            sbufReadU16(src); // was motorConfigMutable()->motorIdle
         }
         if (sbufBytesRemaining(src)) {
             sbufReadU8(src); // DEPRECATED: gyro_use_32khz

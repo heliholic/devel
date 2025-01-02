@@ -31,7 +31,7 @@
 FAST_DATA_ZERO_INIT pwmOutputPort_t pwmMotors[MAX_SUPPORTED_MOTORS];
 FAST_DATA_ZERO_INIT uint8_t pwmMotorCount;
 
-void analogInitEndpoints(const motorConfig_t *motorConfig, float outputLimit, float *outputLow, float *outputHigh, float *disarm, float *deadbandMotor3dHigh, float *deadbandMotor3dLow)
+void analogInitEndpoints(__unused const motorConfig_t *motorConfig, float outputLimit, float *outputLow, float *outputHigh, float *disarm, float *deadbandMotor3dHigh, float *deadbandMotor3dLow)
 {
     if (featureIsEnabled(FEATURE_3D)) {
         const float outputLimitOffset = (flight3DConfig()->limit3d_high - flight3DConfig()->limit3d_low) * (1 - outputLimit) / 2;
@@ -41,10 +41,8 @@ void analogInitEndpoints(const motorConfig_t *motorConfig, float outputLimit, fl
         *deadbandMotor3dHigh = flight3DConfig()->deadband3d_high;
         *deadbandMotor3dLow = flight3DConfig()->deadband3d_low;
     } else {
-        *disarm = motorConfig->mincommand;
-        const float minThrottle = motorConfig->mincommand + motorConfig->motorIdle * 0.1f;
-        *outputLow = minThrottle;
-        *outputHigh = motorConfig->maxthrottle - ((motorConfig->maxthrottle - minThrottle) * (1 - outputLimit));
+        *outputLow = motorConfig->mincommand;
+        *outputHigh = motorConfig->maxthrottle - ((motorConfig->maxthrottle - motorConfig->mincommand) * (1 - outputLimit));
     }
 }
 
