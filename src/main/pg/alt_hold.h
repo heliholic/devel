@@ -21,4 +21,14 @@
 
 #pragma once
 
-#include "pg/alt_hold_multirotor.h"
+#include <stdint.h>
+
+#include "pg/pg.h"
+
+typedef struct altHoldConfig_s {
+    uint8_t climbRate;
+    uint8_t deadband;
+} altHoldConfig_t;
+
+PG_DECLARE(altHoldConfig_t, altHoldConfig);
+
