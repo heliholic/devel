@@ -417,7 +417,6 @@ pid_unittest_SRC :=  \
 		$(USER_DIR)/pg/pg.c
 
 pid_unittest_DEFINES := \
-		USE_ITERM_RELAX= \
 		USE_RC_SMOOTHING_FILTER= \
 
 rcdevice_unittest_DEFINES := \
