@@ -251,8 +251,6 @@
 #define MSP_MODE_RANGES_EXTRA           238  // out message: Extra mode range data
 #define MSP_SET_ACC_TRIM                239  // in message:  Set acc angle trim values
 #define MSP_ACC_TRIM                    240  // out message: Get acc angle trim values
-#define MSP_SERVO_MIX_RULES             241  // out message: Get servo mixer configuration
-#define MSP_SET_SERVO_MIX_RULE          242  // in message:  Set servo mixer configuration
 #define MSP_SET_PASSTHROUGH             245  // in message:  Set passthrough to peripherals
 #define MSP_SET_RTC                     246  // in message:  Set the RTC clock
 #define MSP_RTC                         247  // out message: Get the RTC clock
