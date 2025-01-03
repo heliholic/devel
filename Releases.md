@@ -1,3 +1,62 @@
+# 4.4.0
+
+This is the _the Official Release_ of the Rotorflight 2.1.0 firmware.
+
+**NOTE** The firmware for RF 2.1.0 uses version number 4.4.0.
+
+## Downloads
+
+The download locations are:
+
+- [Rotorflight Configurator](https://github.com/rotorflight/rotorflight-configurator/releases/tag/release/2.1.0)
+- [Rotorflight Blackbox](https://github.com/rotorflight/rotorflight-blackbox/releases/tag/release/2.1.0)
+- [Lua Scripts for EdgeTx and OpenTx](https://github.com/rotorflight/rotorflight-lua-scripts/releases/tag/release/2.1.0)
+- [Lua Scripts for FrSky Ethos](https://github.com/rotorflight/rotorflight-lua-ethos/releases/tag/release/2.1.0)
+- [Lua Suite for FrSky Ethos](https://github.com/rotorflight/rotorflight-lua-ethos-suite/releases/tag/release/2.1.0)
+
+
+## Notes
+
+- Rotorflight setup instructions can be found on the RF website [www.rotorflight.org](https://www.rotorflight.org/).
+
+- RF 2.1 *is* backward compatible with RF 2.0. You *can* load your configuration _dump_ from RF 2.0 into 2.1.
+
+- If updating from RF1, please setup your helicopter from scratch. Follow the instructions on the website!
+
+- As always, please double check your configuration on the bench before flying!
+
+## Changes from 4.3.0
+
+- Add Custom ELRS telemetry
+- Add Swashplate indications
+- Add FrSky FBUS support
+- Add SBUS2 support
+- Add SBUS output support
+- Add Graupner ESC telemetry
+- Add ESC telemetry and programming for FlyRotor ESC
+- Add ESC telemetry to Blackbox
+- Add Tx/Rx pinswap options for serial ports
+- Add RPM (freq) input edge and pull parameters
+- Add model_id and MSP_PILOT_CONFIG for Lua integration
+- Add more SmartPort sensors
+- Add gov_min_throttle for nitro
+- Improved PID defaults
+- Improved Rates defaults
+- Improved Cyclic Cross-Coupling
+- Improved Govnernor precomps
+- Improved Rates acceleration and response filter
+- Improved BB headers
+- Fix adjfunction initilisation bug
+- Fix RPM filter update rate calculation
+- Fix lost S.Port telemetry issue
+- Fix beep on disarm
+- Better battery voltage filtering
+- Add Adjustments for ACC trims
+- Various CMS fixes
+
+
+***
+
 # 4.4.0-RC3
 
 This is the _third Release Candidate_ of the Rotorflight 2.1 firmware.
