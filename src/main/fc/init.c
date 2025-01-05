@@ -403,6 +403,7 @@ void init(void)
 #endif
 
     debugMode = systemConfig()->debug_mode;
+    debugAxis = systemConfig()->debug_axis;
 
 #ifdef TARGET_PREINIT
     targetPreInit();
