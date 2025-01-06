@@ -82,6 +82,7 @@ COMMON_SRC = \
             build/main.c \
             build/build_config.c \
             build/debug.c \
+            build/hardfaults.c \
             build/version.c \
             common/bitarray.c \
             common/colorconversion.c \
@@ -141,7 +142,6 @@ COMMON_SRC = \
             drivers/timer_common.c \
             fc/board_info.c \
             fc/dispatch.c \
-            fc/hardfaults.c \
             fc/tasks.c \
             fc/runtime_config.c \
             fc/stats.c \
