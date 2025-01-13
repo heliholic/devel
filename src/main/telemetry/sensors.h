@@ -167,6 +167,27 @@ typedef enum
 } sensor_id_e;
 
 
+/** Sensor Config **/
+
+typedef struct {
+    /* Battery telemetry divisors */
+    int    batVoltageScale;
+    int    batCurrentScale;
+
+    /* ESC telemetry divisors */
+    int    escVoltageScale;
+    int    escCurrentScale;
+    int    escTempScale;
+    int    becVoltageScale;
+    int    becCurrentScale;
+    int    becTempScale;
+
+    /* Attitude & Accel float multipliers */
+    float  attitudeMult;
+    float  accelMult;
+
+} telemetrySensorConfig_t;
+
 typedef struct telemetrySensor_s telemetrySensor_t;
 
 typedef void (*telemetryEncode_f)(sbuf_t *buf, telemetrySensor_t *sensor);
@@ -191,6 +212,8 @@ struct telemetrySensor_s {
 int telemetrySensorValue(sensor_id_e id);
 bool telemetrySensorActive(sensor_id_e id);
 
+void telemetrySetConfig(const telemetrySensorConfig_t * config);
+const telemetrySensorConfig_t * telemetryGetConfig(void);
 
 /** Legacy sensors **/
 

@@ -1328,6 +1328,20 @@ static void INIT_CODE crsfInitCustomTelemetry(void)
     }
 }
 
+static const telemetrySensorConfig_t crsfTelemetrySensorConfig =
+{
+    .batVoltageScale    = 10,
+    .batCurrentScale    = 10,
+    .escVoltageScale    = 10,
+    .escCurrentScale    = 10,
+    .escTempScale       = 10,
+    .becVoltageScale    = 10,
+    .becCurrentScale    = 10,
+    .becTempScale       = 10,
+    .attitudeMult       = 0.1f,
+    .accelMult          = 10,
+};
+
 void INIT_CODE initCrsfTelemetry(void)
 {
     crsfTelemetryState = !crsfRxIsActive() ? TELEMETRY_STATE_OFF :
@@ -1346,6 +1360,8 @@ void INIT_CODE initCrsfTelemetry(void)
 #if defined(USE_CRSF_V3)
         crsfHeartBeatRateBucket = 0;
 #endif
+
+        telemetrySetConfig(&crsfTelemetrySensorConfig);
 
         if (crsfTelemetryState == TELEMETRY_STATE_NATIVE) {
             crsfInitNativeTelemetry();
