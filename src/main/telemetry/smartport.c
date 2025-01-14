@@ -115,16 +115,22 @@ static void smartPortSensorEncodeKnots(__unused telemetrySensor_t *sensor, smart
 
 static void smartPortSensorEncodeLat(__unused telemetrySensor_t *sensor, smartPortPayload_t *payload)
 {
-    const uint32_t lat = (gpsSol.llh.lat * 6 / 100) & 0x7FFFFFFF;
+    uint32_t lat = abs(gpsSol.llh.lat) * 6 / 100;
+
+    if (gpsSol.llh.lat < 0)
+        lat |= BIT(30);
 
     payload->data = lat;
 }
 
 static void smartPortSensorEncodeLon(__unused telemetrySensor_t *sensor, smartPortPayload_t *payload)
 {
-    const uint32_t lon = (gpsSol.llh.lon * 6 / 100) | 0x80000000;
+    uint32_t lon = abs(gpsSol.llh.lon) * 6 / 100;
 
-    payload->data = lon;
+    if (gpsSol.llh.lon < 0)
+        lon |= BIT(30);
+
+    payload->data = lon | BIT(31);
 }
 
 static void smartPortSensorEncodeHeading(__unused telemetrySensor_t *sensor, smartPortPayload_t *payload)
