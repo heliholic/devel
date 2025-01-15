@@ -210,7 +210,7 @@ static telemetrySensor_t smartportTelemetrySensors[] =
     TLM_SENSOR(ACCEL_Y,                 0x0710,   100,  3000,   1,  10,   INT),
     TLM_SENSOR(ACCEL_Z,                 0x0720,   100,  3000,   1,  10,   INT),
 
-    TLM_SENSOR(GPS_SATS,                0x0880,   500,  3000,   1,  10,   INT),
+    TLM_SENSOR(GPS_SATS,                0x0860,   500,  3000,   1,  10,   INT),
     TLM_SENSOR(GPS_COORD,               0x0800,   100,  3000,   1,  10,   Lat),
     TLM_SENSOR(GPS_COORD,               0x0800,   100,  3000,   1,  10,   Lon),
     TLM_SENSOR(GPS_ALTITUDE,            0x0820,   100,  3000,   1,  10,   INT),
