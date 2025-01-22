@@ -43,6 +43,8 @@
 #include "platform.h"
 
 #include "build/debug.h"
+#include "build/dprintf.h"
+
 #include "common/printf.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
@@ -796,59 +798,71 @@ void flashfsInit(void)
 
 #ifdef USE_FLASH_TOOLS
 
+static const int bufferSize = 32;
+static uint8_t buffer[32];
+
+static uint8_t vIncrement = 137;
+
+
 void flashfsFillEntireFlash(void)
 {
+    dprintf("flashfsEraseCompletely\r\n");
+
     flashfsEraseCompletely();
-    while(flashfsState != FLASHFS_IDLE) {
+    while (flashfsState != FLASHFS_IDLE)
         flashfsEraseAsync();
-    }
+
+    dprintf("flashfsInit\r\n");
     flashfsInit();
 
+    uint32_t testLimit = flashfsGetSize();
+    dprintf("flashfsGetSize() = %d\r\n", testLimit);
+
     uint32_t address = 0;
-    flashfsSeekPhysical(address);
+    uint8_t value = 0;
 
-    const int bufferSize = 32;
-    char buffer[bufferSize + 1];
-
-    const uint32_t testLimit = flashfsGetSize();
-
-    for (address = 0; address < testLimit; address += bufferSize) {
-        tfp_sprintf(buffer, "%08x >> **0123456789ABCDEF**", address);
-        flashfsWrite((uint8_t*)buffer, strlen(buffer));
+    while (address < testLimit) {
+        for (int i = 0; i < bufferSize; i++) {
+            buffer[i] = value;
+            value += vIncrement;
+        }
+        flashfsSeekPhysical(address);
+        flashfsWrite(buffer, bufferSize);
         flashfsFlushSync();
+
+        address += bufferSize;
     }
+
     flashfsClose();
+    dprintf("\r\nflashfsClose()\r\n");
 }
 
 bool flashfsVerifyEntireFlash(void)
 {
-    flashfsInit();
-    uint32_t address = 0;
-
-    const int bufferSize = 32;
-    char buffer[bufferSize + 1];
+    dprintf("flashfsVerifyEntireFlash()\r\n");
 
     uint32_t testLimit = flashfsGetSize();
-#ifdef USE_FLASHFS_LOOP
-    testLimit -= flashGeometry->pageSize + FLASHFS_WRITE_BUFFER_SIZE;
-#endif
-    char expectedBuffer[bufferSize + 1];
+    dprintf("flashfsGetSize() = %d\r\n", testLimit);
 
-    flashfsSeekPhysical(0);
+    uint32_t failures = 0;
+    uint32_t address = 0;
+    uint8_t value = 0;
 
-    int verificationFailures = 0;
-    for (address = 0; address < testLimit; address += bufferSize) {
-        tfp_sprintf(expectedBuffer, "%08x >> **0123456789ABCDEF**", address);
-
-        memset(buffer, 0, sizeof(buffer));
-        int bytesRead = flashfsReadPhysical(address, (uint8_t *)buffer, bufferSize);
-
-        int result = strncmp(buffer, expectedBuffer, bufferSize);
-        if (result != 0 || bytesRead != bufferSize) {
-            verificationFailures++;
+    while (address < testLimit) {
+        int bytesRead = flashfsReadPhysical(address, buffer, bufferSize);
+        for (int i = 0; i < bytesRead; i++) {
+            if (buffer[i] != value) {
+                failures++;
+                dprintf("FAIL @%08X %02X <> %02X\r\n", address + i, buffer[i], value);
+            }
+            value += vIncrement;
         }
+        address += bytesRead;
     }
-    return verificationFailures == 0;
+
+    dprintf("\r\nFailures: %d\r\n", failures);
+
+    return failures == 0;
 }
 #endif // USE_FLASH_TOOLS
 
