@@ -56,7 +56,6 @@ COMMON_SRC = \
             build/debug.c \
             build/version.c \
             common/bitarray.c \
-            common/chirp.c \
             common/colorconversion.c \
             common/crc.c \
             common/encoding.c \
