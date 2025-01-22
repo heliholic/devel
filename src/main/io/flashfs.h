@@ -20,7 +20,7 @@
 
 #pragma once
 
-#define FLASHFS_WRITE_BUFFER_SIZE 256
+#define FLASHFS_WRITE_BUFFER_SIZE 512
 #define FLASHFS_WRITE_BUFFER_USABLE (FLASHFS_WRITE_BUFFER_SIZE - 1)
 
 void flashfsEraseCompletely(void);
