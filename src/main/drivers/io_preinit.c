@@ -49,6 +49,7 @@ void ioPreinitByIO(const IO_t io, uint8_t iocfg, ioPreinitPinState_e init)
         break;
     default:
         // Do nothing
+        break;
     }
 }
 
