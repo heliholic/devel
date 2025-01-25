@@ -120,7 +120,7 @@ static const emfat_entry_t entriesPredefined[] =
 #ifdef USE_EMFAT_README
     { "readme.txt",   false, 0,           1,  0,      README_SIZE,     1024*1024,      (long)readme_file,  CMA,  memory_read_proc,  NULL, { 0 } },
 #endif
-    { FC_FIRMWARE_IDENTIFIER "_ALL.BBL", 0,     0,           1,  0,      0,               0,              0,                  CMA,  bblog_read_proc,   NULL, { 0 } },
+    { "BLACKBOX.BBL", false, 0,           1,  0,      0,               0,              0,                  CMA,  bblog_read_proc,   NULL, { 0 } },
     { "PADDING.TXT",  0,     ATTR_HIDDEN, 1,  0,      0,               0,              0,                  CMA,  NULL,              NULL, { 0 } },
 };
 
@@ -218,18 +218,19 @@ static void emfat_add_log(emfat_entry_t *entry, int number, uint32_t offset,
                           uint32_t size)
 {
     static char logNames[1 + EMFAT_MAX_LOG_ENTRY]
-                        [4 + MAX_NAME_LENGTH + 1 + 1 + 9 + 6 + 4 + 1];
+                        [MAX_NAME_LENGTH + 1 + 3 + 1 + 8 + 1 + 6 + 1 + 3 + 1];
 
     if (entry->cma_time[0] == cmaTime) {
         // Unrecognized timestamp
-        tfp_sprintf(logNames[number], FC_FIRMWARE_IDENTIFIER "%s_%03d.bbl",
+        tfp_sprintf(logNames[number], "%s_%03d.bbl",
                     craft_name,
                     number + 1);
     } else {
         // Recognized timestamp, create a meaningful filename.
         tfp_sprintf(logNames[number],
-                    FC_FIRMWARE_IDENTIFIER "%s_%04d%02d%02d_%02d%02d%02d.bbl",
+                    "%s_%03d_%04d%02d%02d_%02d%02d%02d.bbl",
                     craft_name,
+                    number + 1,
                     emfat_decode_year(entry->cma_time[0]),
                     emfat_decode_month(entry->cma_time[0]),
                     emfat_decode_day(entry->cma_time[0]),
@@ -372,12 +373,8 @@ void emfat_init_files(void)
     }
 
 #ifdef USE_FLASHFS
-    if (pilotConfig()->name[0]) {
-        tfp_sprintf(craft_name, "_%s", pilotConfig()->name);
-        legalize_filename(craft_name);
-    } else {
-        craft_name[0] = 0;
-    }
+    strcpy(craft_name, pilotConfig()->name[0] ? pilotConfig()->name : "RTFL");
+    legalize_filename(craft_name);
 
     flashInit(flashConfig());
     flashfsInit();
@@ -414,6 +411,6 @@ void emfat_init_files(void)
         emfat_set_entry_cma(entry);
     }
 
-    emfat_init(&emfat, "RTFL       ", entries);
+    emfat_init(&emfat, "Rotorflight", entries);
     LED0_OFF;
 }
