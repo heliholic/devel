@@ -43,6 +43,10 @@
 #include "platform.h"
 
 #include "build/debug.h"
+#include "build/dprintf.h"
+
+#include "blackbox/blackbox.h"
+
 #include "common/printf.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
@@ -134,9 +138,26 @@ static bool flashfsBufferIsEmpty(void)
     return bufferTail == bufferHead;
 }
 
+uint32_t flashfsGetHeadAddress()
+{
+    return headAddress;
+}
+
+uint32_t flashfsGetTailAddress()
+{
+    return tailAddress;
+}
+
+static void flashfsSetHeadAddress(uint32_t address)
+{
+    headAddress = address;
+    dprintf("head: %08X tail: %08X\r\n", headAddress, tailAddress);
+}
+
 static void flashfsSetTailAddress(uint32_t address)
 {
     tailAddress = address;
+    dprintf("head: %08X tail: %08X\r\n", headAddress, tailAddress);
 }
 
 void flashfsEraseCompletely(void)
@@ -155,7 +176,7 @@ void flashfsEraseCompletely(void)
 
     flashfsClearBuffer();
 
-    headAddress = 0;
+    flashfsSetHeadAddress(0);
     flashfsSetTailAddress(0);
 }
 
@@ -516,17 +537,20 @@ void flashfsEraseAsync(void)
                 // We immediately set the head before erase is completed.
                 // This should be fine since write will be blocked until this
                 // state is cleared.
-                headAddress =
-                    flashfsAddressShift(headAddress, flashGeometry->sectorSize);
+                flashfsSetHeadAddress(flashfsAddressShift(headAddress, flashGeometry->sectorSize));
                 LED1_TOGGLE;
             } else {
                 flashfsState = FLASHFS_IDLE;
                 LED1_OFF;
             }
         } else if (flashfsState == FLASHFS_ROLLING_ERASE_PENDING) {
+            {
+                flightLogEventData_t data;
+                data.string.buffer = "ROLLING_ERASE";
+                blackboxLogEvent(FLIGHT_LOG_EVENT_CUSTOM_STRING, &data);
+            }
             flashEraseSector(headAddress);
-            headAddress =
-                flashfsAddressShift(headAddress, flashGeometry->sectorSize);
+            flashfsSetHeadAddress(flashfsAddressShift(headAddress, flashGeometry->sectorSize));
             flashfsState = FLASHFS_ROLLING_ERASING;
             LED1_TOGGLE;
         } else if (flashfsState == FLASHFS_ROLLING_ERASING) {
@@ -687,23 +711,33 @@ int flashfsIdentifyStartOfFreeSpace(void)
     int mid;
     int result = right;
 
+    dprintf("headAddress: %08X\r\n", headAddress);
+    dprintf("tailAddress: %08X\r\n", tailAddress);
+
     while (left < right) {
         mid = (left + right) / 2;
 
+        dprintf("TEST L:%d R:%d M:%d ", left, right, mid);
+
         uint32_t address = flashfsAddressShift(headAddress, mid * pageSize);
         if (flashfsIsPageErased(address)) {
+            dprintf("EMPTY\r\n");
             /* This empty page might be the leftmost empty page in the volume, but we'll need to continue the
              * search leftwards to find out:
              */
             result = mid;
-
             right = mid;
         } else {
+            dprintf("INUSE\r\n");
             left = mid + 1;
         }
     }
 
-    return flashfsAddressShift(headAddress, result * pageSize);
+    uint32_t address = flashfsAddressShift(headAddress, result * pageSize);
+
+    dprintf("FREE %d\r\n", result);
+
+    return address;
 }
 
 /**
@@ -785,7 +819,7 @@ void flashfsInit(void)
     flashfsSize = FLASH_PARTITION_SECTOR_COUNT(flashPartition) * flashGeometry->sectorSize;
 
 #ifdef USE_FLASHFS_LOOP
-    headAddress = flashfsIdentifyStartOfUsedSpace();
+    flashfsSetHeadAddress(flashfsIdentifyStartOfUsedSpace());
 #endif
 
     // Start the file pointer off at the beginning of free space so caller can start writing immediately
@@ -796,59 +830,146 @@ void flashfsInit(void)
 
 #ifdef USE_FLASH_TOOLS
 
+static const int bufferSize = 256;
+static uint8_t buffer[256];
+
+
 void flashfsFillEntireFlash(void)
 {
+    dprintf("flashfsFillEntireFlash()\r\n");
+
+    uint32_t testLimit = flashfsGetSize();
+    dprintf("flashfs size = %d\r\n", testLimit);
+
+    dprintf("flashfs erase\r\n");
+
     flashfsEraseCompletely();
-    while(flashfsState != FLASHFS_IDLE) {
+    while (flashfsState != FLASHFS_IDLE)
         flashfsEraseAsync();
-    }
+
+    dprintf("flashfs erase done\r\n");
+
     flashfsInit();
 
     uint32_t address = 0;
-    flashfsSeekPhysical(address);
 
-    const int bufferSize = 32;
-    char buffer[bufferSize + 1];
+    dprintf("flashfs write zeros\r\n");
 
-    const uint32_t testLimit = flashfsGetSize();
+    memset(buffer, 0, sizeof(buffer));
 
-    for (address = 0; address < testLimit; address += bufferSize) {
-        tfp_sprintf(buffer, "%08x >> **0123456789ABCDEF**", address);
-        flashfsWrite((uint8_t*)buffer, strlen(buffer));
+    while (address < testLimit - 1000000) {
+        flashfsSeekPhysical(address);
+        flashfsWrite(buffer, bufferSize);
         flashfsFlushSync();
+
+        address += bufferSize;
     }
+
+    dprintf("flashfs write zeros done\r\n");
+
     flashfsClose();
 }
 
 bool flashfsVerifyEntireFlash(void)
 {
-    flashfsInit();
-    uint32_t address = 0;
-
-    const int bufferSize = 32;
-    char buffer[bufferSize + 1];
+    dprintf("flashfsVerifyEntireFlash()\r\n");
 
     uint32_t testLimit = flashfsGetSize();
-#ifdef USE_FLASHFS_LOOP
-    testLimit -= flashGeometry->pageSize + FLASHFS_WRITE_BUFFER_SIZE;
-#endif
-    char expectedBuffer[bufferSize + 1];
+    dprintf("flashfs size = %d\r\n", testLimit);
 
-    flashfsSeekPhysical(0);
+    dprintf("flashfs erase\r\n");
 
-    int verificationFailures = 0;
-    for (address = 0; address < testLimit; address += bufferSize) {
-        tfp_sprintf(expectedBuffer, "%08x >> **0123456789ABCDEF**", address);
+    flashfsEraseCompletely();
+    while (flashfsState != FLASHFS_IDLE)
+        flashfsEraseAsync();
 
-        memset(buffer, 0, sizeof(buffer));
-        int bytesRead = flashfsReadPhysical(address, (uint8_t *)buffer, bufferSize);
+    dprintf("flashfs erase done\r\n");
+    flashfsInit();
 
-        int result = strncmp(buffer, expectedBuffer, bufferSize);
-        if (result != 0 || bytesRead != bufferSize) {
-            verificationFailures++;
+    uint32_t failures = 0;
+    uint32_t address = 0;
+    uint8_t value = 0;
+
+    dprintf("flashfs verify erase\r\n");
+
+    while (address < testLimit) {
+        int bytesRead = flashfsReadPhysical(address, buffer, bufferSize);
+        for (int i = 0; i < bytesRead; i++) {
+            if (((address + i) & 0xFFFF) == 0) {
+                dprintf("E 0x%08X\r\n", address + i);
+            }
+            if (buffer[i] != 0xff) {
+                failures++;
+                dprintf("FAIL @%08X %02X <> %02X\r\n", address + i, buffer[i], 0xff);
+            }
         }
+        address += bytesRead;
     }
-    return verificationFailures == 0;
+
+    dprintf("** Erase failures: %d\r\n", failures);
+
+    address = 0;
+
+    dprintf("flashfs write pattern\r\n");
+
+    while (address < testLimit) {
+        if ((address & 0xFFFF) == 0) {
+            dprintf("W 0x%08X\r\n", address);
+        }
+        for (int i = 0; i < bufferSize; i += 4) {
+            buffer[i + 0] = ((address + i) >>  0) & 0xff;
+            buffer[i + 1] = ((address + i) >>  8) & 0xff;
+            buffer[i + 2] = ((address + i) >> 16) & 0xff;
+            buffer[i + 3] = ((address + i) >> 24) & 0xff;
+        }
+        flashfsSeekPhysical(address);
+        flashfsWrite(buffer, bufferSize);
+        flashfsFlushSync();
+
+        address += bufferSize;
+    }
+
+    dprintf("flashfs write pattern done\r\n");
+
+    failures = 0;
+    address = 0;
+    value = 0;
+
+    dprintf("flashfs verify pattern\r\n");
+
+    while (address < testLimit) {
+        int bytesRead = flashfsReadPhysical(address, buffer, bufferSize);
+        for (int i = 0; i < bytesRead; i++) {
+            if (((address + i) & 0xFFFF) == 0) {
+                dprintf("V 0x%08X\r\n", address + i);
+            }
+            switch ((address + i) & 3) {
+                case 0:
+                    value = (address + i) >> 0;
+                    break;
+                case 1:
+                    value = (address + i) >> 8;
+                    break;
+                case 2:
+                    value = (address + i) >> 16;
+                    break;
+                case 3:
+                    value = (address + i) >> 24;
+                    break;
+            }
+            if (buffer[i] != value) {
+                failures++;
+                dprintf("FAIL @%08X %02X <> %02X\r\n", address + i, buffer[i], value);
+            }
+        }
+        address += bytesRead;
+    }
+
+    dprintf("** Verify Failures: %d\r\n", failures);
+
+    flashfsClose();
+
+    return failures == 0;
 }
 #endif // USE_FLASH_TOOLS
 
@@ -873,12 +994,3 @@ void flashfsLoopInitialErase()
 }
 #endif
 
-uint32_t flashfsGetHeadAddress()
-{
-    return headAddress;
-}
-
-uint32_t flashfsGetTailAddress()
-{
-    return tailAddress;
-}

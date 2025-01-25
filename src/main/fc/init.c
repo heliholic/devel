@@ -30,6 +30,7 @@
 #include "build/build_config.h"
 #include "build/debug.h"
 #include "build/debug_pin.h"
+#include "build/dprintf.h"
 
 #include "cms/cms.h"
 #include "cms/cms_types.h"
@@ -724,6 +725,10 @@ void init(void)
     }
     LED0_OFF;
     LED1_OFF;
+
+
+    initDebugSerial(SERIAL_PORT_USART3, 921600);
+
 
     imuInit();
 
