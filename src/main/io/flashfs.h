@@ -30,7 +30,7 @@ uint32_t flashfsGetSize(void);
 uint32_t flashfsGetOffset(void);
 uint32_t flashfsGetWriteBufferFreeSpace(void);
 uint32_t flashfsGetWriteBufferSize(void);
-int flashfsIdentifyStartOfFreeSpace(void);
+
 struct flashGeometry_s;
 const struct flashGeometry_s* flashfsGetGeometry(void);
 
@@ -57,8 +57,7 @@ void flashfsFillEntireFlash(void);
 bool flashfsVerifyEntireFlash(void);
 
 #ifdef USE_FLASHFS_LOOP
-void flashfsLoopInitialErase();
-
-uint32_t flashfsGetHeadAddress();
-uint32_t flashfsGetTailAddress();
+void flashfsLoopInitialErase(void);
+uint32_t flashfsGetHeadAddress(void);
+uint32_t flashfsGetTailAddress(void);
 #endif
