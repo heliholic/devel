@@ -8,17 +8,17 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2015 by Sergey Fetisov <fsenok@gmail.com>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,6 +35,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "pg/pilot.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,8 +45,12 @@ struct emfat_entry_s;
 typedef void (*emfat_readcb_t)(uint8_t *dest, int size, uint32_t offset, struct emfat_entry_s *entry);
 typedef void (*emfat_writecb_t)(const uint8_t *data, int size, uint32_t offset, struct emfat_entry_s *entry);
 
+// RTFL_002_20251012_141213.bbl
+//     1234567890123456789012345
+#define EMFAT_MAX_NAME_LENGTH  (MAX_NAME_LENGTH + 25)
+
 typedef struct emfat_entry_s {
-    const char     *name;
+    char            name[EMFAT_MAX_NAME_LENGTH];
     bool            dir;
     uint8_t         attr;
     int             level;
