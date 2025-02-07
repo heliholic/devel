@@ -47,6 +47,9 @@
 #define SP_MAX_DN_CUTOFF                    0.5f
 
 #define SP_BOOST_SCALE                   0.1e-4f
+#define DYNAMIC_DEADBAND_SCALE             1e-4f
+#define DYNAMIC_DEADBAND_LIMIT             0.70f
+#define DYNAMIC_DEADBAND_LPF_CUTOFF        6.0f
 
 typedef struct
 {
@@ -70,10 +73,21 @@ typedef struct
 
     float boostGain[4];
     difFilter_t boostFilter[4];
+
+    float dynamicDeadbandGain;
+    difFilter_t dynamicDeadbandFilter;
+    float dynamicDeadband;
+    filter_t dynamicDeadbandLPF;
 } setpointData_t;
 
 static FAST_DATA_ZERO_INIT setpointData_t sp;
 
+#ifdef UNIT_TEST
+float getDynamicDeadband(void)
+{
+    return sp.dynamicDeadband;
+}
+#endif
 
 float getSetpoint(int axis)
 {
@@ -143,6 +157,9 @@ INIT_CODE void setpointInitProfile(void)
         sp.boostGain[i] = currentControlRateProfile->setpoint_boost[i] * SP_BOOST_SCALE;
         difFilterUpdate(&sp.boostFilter[i], currentControlRateProfile->setpoint_boost_cutoff[i], pidGetPidFrequency());
     }
+
+    sp.dynamicDeadbandGain = currentControlRateProfile->dynamic_deadband_gain * DYNAMIC_DEADBAND_SCALE;
+    difFilterUpdate(&sp.dynamicDeadbandFilter, currentControlRateProfile->dynamic_deadband_cutoff, pidGetPidFrequency());
 }
 
 INIT_CODE void setpointInit(void)
@@ -157,13 +174,28 @@ INIT_CODE void setpointInit(void)
         lowpassFilterInit(&sp.smoothingFilter[i], LPF_PT3, SP_SMOOTHING_FILTER_MAX_HZ, pidGetPidFrequency(), LPF_UPDATE);
         difFilterInit(&sp.boostFilter[i], currentControlRateProfile->setpoint_boost_cutoff[i], pidGetPidFrequency());
     }
-
+    lowpassFilterInit(&sp.dynamicDeadbandLPF, LPF_1ST_ORDER, DYNAMIC_DEADBAND_LPF_CUTOFF, pidGetPidFrequency(), LPF_UPDATE);
+    difFilterInit(&sp.dynamicDeadbandFilter, currentControlRateProfile->dynamic_deadband_cutoff, pidGetPidFrequency());
     setpointInitProfile();
+}
+
+void updateDynamicYawDeadband(float deflection)
+{
+    sp.dynamicDeadband =
+        fabsf(difFilterApply(&sp.dynamicDeadbandFilter, deflection) *
+              sp.dynamicDeadbandGain * 5.0f);
+
+    sp.dynamicDeadband = filterApply(&sp.dynamicDeadbandLPF, sp.dynamicDeadband);
+
+    sp.dynamicDeadband =
+        constrainf(sp.dynamicDeadband, 0, DYNAMIC_DEADBAND_LIMIT);
 }
 
 void setpointUpdate(void)
 {
     float deflection[4];
+    float data;
+    float range;
 
     for (int axis = 0; axis < 4; axis++) {
         deflection[axis] = getRcDeflection(axis);
@@ -199,6 +231,17 @@ void setpointUpdate(void)
         // rcCommand[YAW] CW direction is positive, while gyro[YAW] is negative
         if (axis == FD_YAW)
             SP = -SP;
+
+        if (axis == FD_YAW) {
+            updateDynamicYawDeadband(SP);
+            data = fapplyDeadband(SP, sp.dynamicDeadband);
+            range = 1.0f - sp.dynamicDeadband;
+
+            // Deflection range is -1..1
+            SP = limitf(data / range, 1.0f);
+
+            DEBUG_AXIS(SETPOINT, axis, 1, sp.dynamicDeadband * 1000);
+        }
 
         SP = filterApply(&sp.smoothingFilter[axis], SP);
         DEBUG_AXIS(SETPOINT, axis, 2, SP * 1000);
