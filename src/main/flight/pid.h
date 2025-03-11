@@ -101,6 +101,8 @@ typedef struct pid_s {
 
     uint8_t errorRotation;
 
+    uint8_t dragEqMode;
+
     float errorDecayRateGround;
     float errorDecayRateCyclic;
     float errorDecayLimitCyclic;

@@ -151,6 +151,9 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     // PID algorithm
     pid.pidMode = pidProfile->pid_mode;
 
+    // Drag equation
+    pid.dragEqMode = pidProfile->drag_mode;
+
     // Roll axis
     pid.coef[PID_ROLL].Kp = ROLL_P_TERM_SCALE * pidProfile->pid[PID_ROLL].P;
     pid.coef[PID_ROLL].Ki = ROLL_I_TERM_SCALE * pidProfile->pid[PID_ROLL].I;
@@ -415,13 +418,29 @@ static inline float dragCoef(float x)
    *   - 2nd order approx: x^2
    *   - 1st order approx: x
    *
-   * The 7th order is closest to simulation results, but would cause excessive
+   * The 7th order is closest to simulation results, but could cause excessive
    * yaw deflection at high collective angles (>14deg).
    *
    * The second order approx is accurate up to 12deg, and doesn't cause issues
    * with excessive yaw or saturation.
    */
-  return x * x;
+
+  const float x2 = x * x;
+  const float x4 = x2 * x2;
+  const float x6 = x4 * x2;
+
+  switch (pid.dragEqMode) {
+      case 4:
+          return x * (x6 + 3*x + 1) / 5;
+      case 3:
+          return x * (x4 + 3*x + 1) / 5;
+      case 2:
+          return x*x;
+      case 1:
+          return x;
+      default:
+          return 0;
+  }
 }
 
 static void pidApplyPrecomp(void)

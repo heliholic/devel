@@ -1127,6 +1127,8 @@ const clivalue_t valueTable[] = {
 
     { "error_rotation",             VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_PID_PROFILE, offsetof(pidProfile_t, error_rotation) },
 
+    { "drag_mode",                 VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 4 }, PG_PID_PROFILE, offsetof(pidProfile_t, drag_mode) },
+
     { "error_limit",                VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 3, PG_PID_PROFILE, offsetof(pidProfile_t, error_limit) },
     { "offset_limit",               VAR_UINT8  | PROFILE_VALUE | MODE_ARRAY, .config.array.length = 2, PG_PID_PROFILE, offsetof(pidProfile_t, offset_limit) },
 
