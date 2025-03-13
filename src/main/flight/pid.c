@@ -879,7 +879,7 @@ static void pidApplyYawMode3(void)
   //// Feedforward
 
     // Calculate F component
-    pid.data[axis].F = pid.coef[axis].Kf * setpoint;
+    pid.data[axis].F = pid.coef[axis].Kf * setpoint * stopGain;
 
 
   //// Feedforward Boost (FF Derivative)
@@ -1196,7 +1196,7 @@ static void pidApplyYawMode4(void)
     const bool saturation = (pidAxisSaturated(axis) && pid.data[axis].axisError * itermErrorRate > 0);
 
     // I-term change
-    const float itermDelta = saturation ? 0 : itermErrorRate * pid.dT * pid.coef[axis].Ki;
+    const float itermDelta = saturation ? 0 : itermErrorRate * pid.dT * pid.coef[axis].Ki * stopGain;
 
     // Calculate I-component
     pid.data[axis].axisError = limitf(pid.data[axis].axisError + itermDelta, pid.errorLimit[axis] * pid.coef[axis].Ki);
