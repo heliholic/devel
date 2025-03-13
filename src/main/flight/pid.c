@@ -261,6 +261,8 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     acroTrainerInit(pidProfile);
 #endif
     rescueInitProfile(pidProfile);
+
+    pidResetAxisErrors();
 }
 
 void INIT_CODE pidInit(const pidProfile_t *pidProfile)
