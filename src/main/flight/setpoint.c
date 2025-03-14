@@ -187,11 +187,14 @@ INIT_CODE void setpointInit(void)
 
 static void applyYawDynamicRange(float setpoint)
 {
-    float factor = difFilterApply(&sp.yawDynamicDeadbandDiff, setpoint);
-    factor = pt1FilterApply(&sp.yawDynamicDeadbandLPF, fabsf(factor));
+    const float spdiff = difFilterApply(&sp.yawDynamicDeadbandDiff, setpoint);
+    const float factor = pt1FilterApply(&sp.yawDynamicDeadbandLPF, fabsf(spdiff));
 
-    sp.yawDynamicCeiling = constrainf(factor  * sp.yawDynamicCeilingGain, 0, DYNAMIC_DEADBAND_LIMIT);
-    sp.yawDynamicDeadband = constrainf(factor  * sp.yawDynamicDeadbandGain, 0, DYNAMIC_DEADBAND_LIMIT);
+    const float cfactor = copysignf(factor, setpoint * spdiff);
+    const float dfactor = copysignf(factor, -setpoint * spdiff);
+
+    sp.yawDynamicCeiling = constrainf(cfactor * sp.yawDynamicCeilingGain, 0, DYNAMIC_DEADBAND_LIMIT);
+    sp.yawDynamicDeadband = constrainf(dfactor * sp.yawDynamicDeadbandGain, 0, DYNAMIC_DEADBAND_LIMIT);
 }
 
 void setpointUpdate(void)
