@@ -457,8 +457,8 @@ static void pidApplyPrecomp(void)
   //// Main rotor intertia precomp
 
     // Normalised effective rotor speed
-    //const float rotorSpeed = getHeadSpeedf() / 3000;
-    const float rotorSpeed = (getHeadSpeedf() + mixerRotationSign() * pidGetSetpoint(FD_YAW) / 6) / 3000;
+    const float rotorSpeed = getHeadSpeedf() / 3000;
+    //const float rotorSpeed = (getHeadSpeedf() + mixerRotationSign() * pidGetSetpoint(FD_YAW) / 6) / 3000;
 
     // Rotorspeed derivative
     const float speedFiltered = filterApply(&pid.precomp.headspeedFilter, rotorSpeed);
