@@ -24,12 +24,11 @@
 #include "flight/pid.h"
 
 typedef enum {
-    GM_OFF = 0,
-    GM_PASSTHROUGH,
-    GM_STANDARD,
-    GM_MODE1,
-    GM_MODE2,
-} govMode_e;
+    GT_NONE = 0,
+    GT_EXTERNAL,
+    GT_ELECTRIC,
+    GT_NITRO,
+} govType_e;
 
 typedef enum {
     GS_THROTTLE_OFF,
@@ -42,6 +41,11 @@ typedef enum {
     GS_AUTOROTATION,
     GS_AUTOROTATION_BAILOUT,
 } govState_e;
+
+enum {
+    GF_PRECOMP      = BIT(0),
+    GF_VOLT_CORR    = BIT(1),
+};
 
 
 void governorInit(const pidProfile_t *pidProfile);

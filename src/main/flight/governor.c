@@ -50,9 +50,6 @@
 // Throttle mapping in IDLE state
 #define GOV_THROTTLE_OFF_LIMIT          0.05f
 
-// Throttle limits for spoolup
-#define GOV_MAX_SPOOLUP_THROTTLE        0.95f
-
 // Headspeed quality levels
 #define GOV_HS_DETECT_DELAY             200
 #define GOV_HS_DETECT_RATIO             0.05f
@@ -76,8 +73,8 @@
 
 typedef struct {
 
-    // Governor mode (GM_ enum)
-    govMode_e       mode;
+    // Governor type
+    govType_e       type;
 
     // State machine
     govState_e      state;
@@ -99,9 +96,10 @@ typedef struct {
     // Minimum throttle when PID active
     float           minThrottle;
 
-    // Throttle handover level
+    // Spoolup throttle levels
     float           maxIdleThrottle;
     float           minSpoolupThrottle;
+    float           maxSpoolupThrottle;
 
     // Current headspeed
     float           actualHeadSpeed;
@@ -426,7 +424,7 @@ static void govUpdateData(void)
 
     // Calculate request ratio (HS or throttle)
     if (gov.throttleInput > 0) {
-        if (gov.mode > GM_PASSTHROUGH)
+        if (gov.type >= GT_ELECTRIC)
             gov.requestRatio = gov.actualHeadSpeed / gov.requestedHeadSpeed;
         else
             gov.requestRatio = gov.throttle / gov.throttleInput;
@@ -451,12 +449,12 @@ static void govUpdateData(void)
     totalFF = filterApply(&gov.FFFilter, totalFF);
 
     // Tail Torque Assist
-    if (mixerMotorizedTail() && gov.TTAGain != 0) {
+    if (gov.TTAGain > 0) {
         float YAW = mixerGetInput(MIXER_IN_STABILIZED_YAW);
         float TTA = filterApply(&gov.TTAFilter, YAW) * getSpoolUpRatio() * gov.TTAGain;
         float headroom = 0;
 
-        if (gov.mode > GM_PASSTHROUGH)
+        if (gov.type == GT_ELECTRIC)
             headroom = 2 * fmaxf(1.0f + gov.TTALimit - gov.fullHeadSpeedRatio, 0);
         else
             headroom = gov.TTALimit;
@@ -849,11 +847,11 @@ static float govSpoolUpControl(void)
     output = gov.pidSum;
 
     // Apply gov.C if output not saturated
-    if (!((output > GOV_MAX_SPOOLUP_THROTTLE && gov.C > 0) || (output < gov.minSpoolupThrottle && gov.C < 0)))
+    if (!((output > gov.maxSpoolupThrottle && gov.C > 0) || (output < gov.minSpoolupThrottle && gov.C < 0)))
         gov.I += gov.C;
 
     // Limit output
-    output = constrainf(output, gov.minSpoolupThrottle, GOV_MAX_SPOOLUP_THROTTLE);
+    output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
 
     return output;
 }
@@ -1050,11 +1048,17 @@ void governorInitProfile(const pidProfile_t *pidProfile)
         gov.Ld = pidProfile->governor.d_limit / 100.0f;
         gov.Lf = pidProfile->governor.f_limit / 100.0f;
 
-        gov.TTAGain   = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
-        gov.TTALimit  = pidProfile->governor.tta_limit / 100.0f;
+        if (pidProfile->governor.tta_gain) {
+            gov.TTAGain   = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
+            gov.TTALimit  = pidProfile->governor.tta_limit / 100.0f;
 
-        if (gov.mode >= GM_STANDARD)
-            gov.TTAGain /= gov.K * gov.Kp;
+            if (gov.mode >= GM_STANDARD)
+                gov.TTAGain /= gov.K * gov.Kp;
+        }
+        else {
+            gov.TTAGain   = 0;
+            gov.TTALimit  = 0;
+        }
 
         gov.yawWeight = pidProfile->governor.yaw_ff_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_ff_weight / 100.0f;
@@ -1080,55 +1084,48 @@ void governorInit(const pidProfile_t *pidProfile)
     // Must have at least one motor
     if (getMotorCount() > 0)
     {
-        gov.mode  = governorConfig()->gov_mode;
+        gov.type  = governorConfig()->gov_type;
         gov.state = GS_THROTTLE_OFF;
 
         // Check RPM input
-        if (gov.mode >= GM_STANDARD) {
+        if (gov.type >= GT_ELECTRIC) {
             if (!isMotorFastRpmSourceActive(0)) {
                 setArmingDisabled(ARMING_DISABLED_GOVERNOR);
                 setArmingDisabled(ARMING_DISABLED_RPM_SIGNAL);
-                gov.mode = GM_OFF;
+                gov.type = GT_NONE;
             }
         }
 
         // Check Voltage input
-        if (gov.mode >= GM_MODE2) {
+        if (gov.flags &  GF_VOLT_CORR) {
             if (!isBatteryVoltageConfigured()) {
                 setArmingDisabled(ARMING_DISABLED_GOVERNOR);
-                gov.mode = GM_OFF;
+                gov.type = GT_NONE;
             }
         }
 
         // Mode specific handler functions
-        switch (gov.mode) {
-            case GM_PASSTHROUGH:
+        switch (gov.type) {
+            case GT_EXTERNAL:
                 govStateUpdate = governorUpdatePassthrough;
                 govSpoolupInit = NULL;
                 govSpoolupCalc = NULL;
                 govActiveInit  = NULL;
                 govActiveCalc  = NULL;
                 break;
-            case GM_STANDARD:
+            case GT_ELECTRIC:
                 govStateUpdate = governorUpdateState;
                 govSpoolupInit = govSpoolUpInit;
                 govSpoolupCalc = govSpoolUpControl;
                 govActiveInit  = govPIDInit;
                 govActiveCalc  = govPIDControl;
                 break;
-            case GM_MODE1:
+            case GT_NITRO:
                 govStateUpdate = governorUpdateState;
                 govSpoolupInit = govSpoolUpInit;
                 govSpoolupCalc = govSpoolUpControl;
                 govActiveInit  = govMode1Init;
                 govActiveCalc  = govMode1Control;
-                break;
-            case GM_MODE2:
-                govStateUpdate = governorUpdateState;
-                govSpoolupInit = govSpoolUpInit;
-                govSpoolupCalc = govSpoolUpControl;
-                govActiveInit  = govMode2Init;
-                govActiveCalc  = govMode2Control;
                 break;
             default:
                 break;
@@ -1157,6 +1154,7 @@ void governorInit(const pidProfile_t *pidProfile)
 
         gov.maxIdleThrottle = constrain(governorConfig()->gov_handover_throttle, 10, 50) / 100.0f;
         gov.minSpoolupThrottle = constrain(governorConfig()->gov_spoolup_min_throttle, 0, 50) / 100.0f;
+        gov.maxSpoolupThrottle = constrain(governorConfig()->gov_spoolup_max_throttle, 50, 100) / 100.0f;
 
         const float diff_cutoff = governorConfig()->gov_rpm_filter ?
             constrainf(governorConfig()->gov_rpm_filter, 1, 50) : 20;

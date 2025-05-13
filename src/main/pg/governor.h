@@ -23,7 +23,8 @@
 #include "pg/pg.h"
 
 typedef struct governorConfig_s {
-    uint8_t  gov_mode;
+    uint8_t  gov_type;
+    uint8_t  gov_flags;
     uint16_t gov_startup_time;
     uint16_t gov_spoolup_time;
     uint16_t gov_tracking_time;
@@ -33,12 +34,13 @@ typedef struct governorConfig_s {
     uint16_t gov_autorotation_timeout;
     uint16_t gov_autorotation_bailout_time;
     uint16_t gov_autorotation_min_entry_time;
+    uint8_t  gov_spoolup_min_throttle;
+    uint8_t  gov_spoolup_max_throttle;
     uint8_t  gov_handover_throttle;
     uint8_t  gov_pwr_filter;
     uint8_t  gov_rpm_filter;
     uint8_t  gov_tta_filter;
     uint8_t  gov_ff_filter;
-    uint8_t  gov_spoolup_min_throttle;
 } governorConfig_t;
 
 PG_DECLARE(governorConfig_t, governorConfig);
