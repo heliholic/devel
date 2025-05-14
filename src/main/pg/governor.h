@@ -24,7 +24,6 @@
 
 typedef struct governorConfig_s {
     uint8_t  gov_type;
-    uint8_t  gov_flags;
     uint16_t gov_startup_time;
     uint16_t gov_spoolup_time;
     uint16_t gov_tracking_time;
