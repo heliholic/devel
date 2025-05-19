@@ -47,9 +47,6 @@
 #include "flight/pid.h"
 
 
-// Throttle mapping in IDLE state
-#define GOV_THROTTLE_OFF_LIMIT          0.05f
-
 // Headspeed quality levels
 #define GOV_HS_DETECT_DELAY             200
 #define GOV_HS_DETECT_RATIO             0.05f
@@ -94,11 +91,11 @@ typedef struct {
     bool            throttleInputOff;
     float           throttlePrevInput;
 
-    // Spoolup-to-active point
-    float           handoverThrottle;
-
-    // Idle throttle
+    // Idle throttle level
     float           idleThrottle;
+
+    // Handover level
+    float           handoverThrottle;
 
     // Spoolup throttle levels
     float           minSpoolupThrottle;
@@ -190,14 +187,12 @@ typedef struct {
 
     // Headspeed change rates
     float           headSpeedSpoolupRate;
-    float           headSpeedBailoutRate;
     float           headSpeedRecoveryRate;
     float           headSpeedTrackingRate;
 
     // Throttle change rates
     float           throttleStartupRate;
     float           throttleSpoolupRate;
-    float           throttleBailoutRate;
     float           throttleRecoveryRate;
     float           throttleTrackingRate;
 
@@ -210,19 +205,14 @@ static FAST_DATA_ZERO_INIT govData_t gov;
 
 typedef void  (*govStateFn)(void);
 typedef void  (*govInitFn)(void);
-typedef float (*govCalcFn)(float arg);
+typedef float (*govCtrlFn)(float arg);
 
 static FAST_DATA_ZERO_INIT govStateFn  govStateUpdate;
 
-static FAST_DATA_ZERO_INIT govCalcFn   govIdleCalc;
+static FAST_DATA_ZERO_INIT govCtrlFn   govIdleControl;
 
 static FAST_DATA_ZERO_INIT govInitFn   govSpoolupInit;
-static FAST_DATA_ZERO_INIT govCalcFn   govSpoolupCalc;
-
-static FAST_DATA_ZERO_INIT govInitFn   govActiveInit;
-static FAST_DATA_ZERO_INIT govCalcFn   govActiveCalc;
-
-static FAST_DATA_ZERO_INIT govCalcFn   govFallbackCalc;
+static FAST_DATA_ZERO_INIT govCtrlFn   govSpoolupControl;
 
 
 //// Prototypes
@@ -259,12 +249,13 @@ float getFullHeadSpeedRatio(void)
         {
             case GOV_STATE_ACTIVE:
             case GOV_STATE_RECOVERY:
-            case GOV_STATE_SPOOLING_UP:
+            case GOV_STATE_SPOOLUP:
             case GOV_STATE_THROTTLE_LOW:
-            case GOV_STATE_LOST_HEADSPEED:
+            case GOV_STATE_FALLBACK:
             case GOV_STATE_AUTOROTATION:
-            case GOV_STATE_AUTOROTATION_BAILOUT:
+            case GOV_STATE_BAILOUT:
                 return gov.fullHeadSpeedRatio;
+
             default:
                 return 1.0f;
         }
@@ -289,11 +280,11 @@ float getSpoolUpRatio(void)
 
             case GOV_STATE_ACTIVE:
             case GOV_STATE_RECOVERY:
-            case GOV_STATE_LOST_HEADSPEED:
-            case GOV_STATE_AUTOROTATION_BAILOUT:
+            case GOV_STATE_FALLBACK:
+            case GOV_STATE_BAILOUT:
                 return 1.0f;
 
-            case GOV_STATE_SPOOLING_UP:
+            case GOV_STATE_SPOOLUP:
                 return gov.requestRatio;
         }
         return 0;
@@ -315,12 +306,12 @@ bool isSpooledUp(void)
         {
             case GOV_STATE_ACTIVE:
             case GOV_STATE_AUTOROTATION:
-            case GOV_STATE_AUTOROTATION_BAILOUT:
+            case GOV_STATE_BAILOUT:
                 return true;
 
             case GOV_STATE_RECOVERY:
-            case GOV_STATE_SPOOLING_UP:
-            case GOV_STATE_LOST_HEADSPEED:
+            case GOV_STATE_SPOOLUP:
+            case GOV_STATE_FALLBACK:
                 return (gov.throttleOutput > 0.333f);
 
             case GOV_STATE_THROTTLE_OFF:
@@ -340,17 +331,6 @@ bool isSpooledUp(void)
 
 //// Internal functions
 
-static void govChangeState(govState_e futureState)
-{
-    gov.state = futureState;
-    gov.stateEntryTime = millis();
-}
-
-static long govStateTime(void)
-{
-    return cmp32(millis(),gov.stateEntryTime);
-}
-
 static void govDebugStats(void)
 {
     DEBUG(GOVERNOR, 0, gov.requestedHeadSpeed);
@@ -363,6 +343,16 @@ static void govDebugStats(void)
     DEBUG(GOVERNOR, 7, gov.F * 1000);
 }
 
+static inline void govChangeState(govState_e futureState)
+{
+    gov.state = futureState;
+    gov.stateEntryTime = millis();
+}
+
+static inline long govStateTime(void)
+{
+    return cmp32(millis(),gov.stateEntryTime);
+}
 
 static void govGetInputThrottle(void)
 {
@@ -371,9 +361,6 @@ static void govGetInputThrottle(void)
 
     // Throttle modes
     switch (gov.throttleMode) {
-        case GOV_THROTTLE_PASSTHRU:
-            break;
-
         case GOV_THROTTLE_3POS:
             if (throttle < 0.333f) {
                 throttle = 0;
@@ -413,7 +400,7 @@ static void govActiveUpdate(void)
     gov.fullHeadSpeedRatio = gov.currentHeadSpeed / gov.fullHeadSpeed;
 
     // Update headspeed target
-    gov.requestedHeadSpeed = gov.throttleInput * gov.fullHeadSpeed;
+    gov.requestedHeadSpeed = (gov.throttleMode == GOV_THROTTLE_HSPID) ? gov.throttleInput * gov.fullHeadSpeed : gov.fullHeadSpeed;
 
     // Detect stuck motor / startup problem
     const bool rpmError = ((gov.fullHeadSpeedRatio < GOV_HS_INVALID_RATIO || motorRPM < 10) && gov.throttleOutput > GOV_HS_INVALID_THROTTLE);
@@ -426,14 +413,12 @@ static void govActiveUpdate(void)
 
     // Evaluate RPM signal quality
     if (!gov.motorRPMError && motorRPM > 0 && gov.fullHeadSpeedRatio > GOV_HS_DETECT_RATIO) {
-        if (!gov.motorRPMDetectTime) {
+        if (!gov.motorRPMDetectTime)
             gov.motorRPMDetectTime = millis();
-        }
     }
     else {
-        if (gov.motorRPMDetectTime) {
+        if (gov.motorRPMDetectTime)
             gov.motorRPMDetectTime = 0;
-        }
     }
 
     // Headspeed is present if RPM is stable long enough
@@ -524,7 +509,7 @@ static void govActiveUpdate(void)
 
 
 /*
- * Throttle passthrough with rampup limits and extra stats.
+ * Throttle passthrough with ramp up limits and extra stats.
  */
 
 static void governorUpdateExternal(void)
@@ -553,15 +538,15 @@ static void governorUpdateExternal(void)
                 govMain = govPrev = slewUpLimit(govPrev, gov.throttleInput, gov.throttleStartupRate);
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.throttleInput > gov.handoverThrottle)
-                    govChangeState(GOV_STATE_SPOOLING_UP);
+                else if (gov.throttleOutput > gov.handoverThrottle)
+                    govChangeState(GOV_STATE_SPOOLUP);
                 break;
 
-            // Follow the throttle, with a limited rampup rate.
+            // Follow the throttle, with a limited ramp up rate.
             //  -- If NO throttle, move to THROTTLE_OFF
             //  -- If 0% < throttle < handover, stay in spoolup
             //  -- Once throttle > handover and not ramping up, move to ACTIVE
-            case GOV_STATE_SPOOLING_UP:
+            case GOV_STATE_SPOOLUP:
                 govMain = govPrev = slewUpLimit(govPrev, gov.throttleInput, gov.throttleSpoolupRate);
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
@@ -594,34 +579,12 @@ static void governorUpdateExternal(void)
                 govMain = govPrev = 0;
                 if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_RECOVERY);
-                else if (govStateTime() > gov.zeroThrottleTimeout)
-                    govChangeState(GOV_STATE_THROTTLE_OFF);
-                break;
-
-            // Follow throttle with high(er) ramp rate.
-            //  -- If throttle is > handover, move to AUTOROTATION_BAILOUT
-            //  -- If timer expires, move to IDLE
-            case GOV_STATE_AUTOROTATION:
-                govMain = govPrev = slewUpLimit(govPrev, gov.throttleInput, gov.throttleTrackingRate);
-                if (gov.throttleInputOff)
-                    govChangeState(GOV_STATE_THROTTLE_LOW);
-                else if (gov.throttleInput > gov.handoverThrottle)
-                    govChangeState(GOV_STATE_AUTOROTATION_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
-                    govChangeState(GOV_STATE_THROTTLE_IDLE);
-                break;
-
-            // Follow the throttle, with a high(er) ramp rate.
-            //  -- Once throttle is not ramping up any more, move to ACTIVE
-            //  -- If throttle < handover, move back to AUTO
-            case GOV_STATE_AUTOROTATION_BAILOUT:
-                govMain = govPrev = slewUpLimit(govPrev, gov.throttleInput, gov.throttleBailoutRate);
-                if (gov.throttleInputOff)
-                    govChangeState(GOV_STATE_THROTTLE_LOW);
-                else if (gov.throttleInput < gov.handoverThrottle)
-                    govChangeState(GOV_STATE_AUTOROTATION);
-                else if (govMain >= gov.throttleInput)
-                    govChangeState(GOV_STATE_ACTIVE);
+                else if (govStateTime() > gov.zeroThrottleTimeout) {
+                    if (gov.throttleInputOff)
+                        govChangeState(GOV_STATE_THROTTLE_OFF);
+                    else
+                        govChangeState(GOV_STATE_THROTTLE_IDLE);
+                }
                 break;
 
             // Follow the throttle, with a high(er) ramp rate.
@@ -633,6 +596,32 @@ static void governorUpdateExternal(void)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
+                else if (govMain >= gov.throttleInput)
+                    govChangeState(GOV_STATE_ACTIVE);
+                break;
+
+            // Follow throttle with high(er) ramp rate.
+            //  -- If throttle is > handover, move to AUTOROTATION_BAILOUT
+            //  -- If timer expires, move to IDLE
+            case GOV_STATE_AUTOROTATION:
+                govMain = govPrev = slewUpLimit(govPrev, gov.throttleInput, gov.throttleTrackingRate);
+                if (gov.throttleInputOff)
+                    govChangeState(GOV_STATE_THROTTLE_LOW);
+                else if (gov.throttleInput > gov.handoverThrottle)
+                    govChangeState(GOV_STATE_BAILOUT);
+                else if (govStateTime() > gov.autoTimeout)
+                    govChangeState(GOV_STATE_THROTTLE_IDLE);
+                break;
+
+            // Follow the throttle, with a high(er) ramp rate.
+            //  -- Once throttle is not ramping up any more, move to ACTIVE
+            //  -- If throttle < handover, move back to AUTO
+            case GOV_STATE_BAILOUT:
+                govMain = govPrev = slewUpLimit(govPrev, gov.throttleInput, gov.throttleRecoveryRate);
+                if (gov.throttleInputOff)
+                    govChangeState(GOV_STATE_THROTTLE_LOW);
+                else if (gov.throttleInput < gov.handoverThrottle)
+                    govChangeState(GOV_STATE_AUTOROTATION);
                 else if (govMain >= gov.throttleInput)
                     govChangeState(GOV_STATE_ACTIVE);
                 break;
@@ -666,7 +655,7 @@ static inline void govEnterSpoolupState(govState_e state)
 static inline void govEnterActiveState(govState_e state)
 {
     govChangeState(state);
-    govActiveInit();
+    govPIDInit();
 }
 
 static float governorUpdateThrottle(void)
@@ -679,28 +668,28 @@ static float governorUpdateThrottle(void)
             throttle = 0;
             break;
         case GOV_STATE_THROTTLE_IDLE:
-            throttle =  govIdleCalc(gov.throttleStartupRate);
+            throttle = govIdleControl(gov.throttleStartupRate);
             break;
-        case GOV_STATE_SPOOLING_UP:
-            throttle = govSpoolupCalc(gov.throttleSpoolupRate);
+        case GOV_STATE_SPOOLUP:
+            throttle = govSpoolupControl(gov.throttleSpoolupRate);
             break;
         case GOV_STATE_ACTIVE:
-            throttle = govActiveCalc(gov.throttleTrackingRate);
+            throttle = govPIDControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_FALLBACK:
-            throttle = govFallbackCalc(gov.throttleTrackingRate);
+            throttle = govFallbackControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_THROTTLE_LOW:
-            throttle = govIdleCalc(gov.throttleTrackingRate);
+            throttle = govIdleControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_RECOVERY:
-            throttle = govSpoolupCalc(gov.throttleRecoveryRate);
+            throttle = govSpoolupControl(gov.throttleRecoveryRate);
             break;
         case GOV_STATE_AUTOROTATION:
-            throttle = govIdleCalc(gov.throttleTrackingRate);
+            throttle = govIdleControl(gov.throttleTrackingRate);
             break;
-        case GOV_STATE_AUTOROTATION_BAILOUT:
-            throttle = govSpoolupCalc(gov.throttleBailoutRate);
+        case GOV_STATE_BAILOUT:
+            throttle = govSpoolupControl(gov.throttleRecoveryRate);
             break;
         default:
             break;
@@ -731,8 +720,8 @@ static void governorUpdateState(void)
             case GOV_STATE_THROTTLE_IDLE:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
-                    govEnterSpoolupState(GOV_STATE_SPOOLING_UP);
+                else if (gov.throttleOutput > gov.handoverThrottle && gov.motorRPMPresent)
+                    govEnterSpoolupState(GOV_STATE_SPOOLUP);
                 break;
 
             // Ramp up throttle until headspeed target is reached
@@ -741,20 +730,20 @@ static void governorUpdateState(void)
             //  -- If throttle < handover, move back to IDLE
             //  -- If no headspeed detected, move to IDLE
             //  -- If NO throttle, move to THROTTLE_OFF
-            case GOV_STATE_SPOOLING_UP:
+            case GOV_STATE_SPOOLUP:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.throttleInput < gov.handoverThrottle)
-                    govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || govMain > 0.95f)
+                else if (gov.throttleInput < gov.handoverThrottle)
+                    govChangeState(GOV_STATE_THROTTLE_IDLE);
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState(GOV_STATE_ACTIVE);
                 break;
 
             // Governor active, maintain headspeed
             //  -- If NO throttle, move to ZERO_THROTTLE
-            //  -- If no headspeed signal, move to LOST_HEADSPEED
+            //  -- If no headspeed signal, move to FALLBACK
             //  -- If throttle < handover, move to AUTOROTATION or IDLE
             case GOV_STATE_ACTIVE:
                 if (gov.throttleInputOff)
@@ -776,11 +765,11 @@ static void governorUpdateState(void)
             case GOV_STATE_FALLBACK:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
+                else if (gov.throttleInput < gov.handoverThrottle)
+                    govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMPresent) {
                     if (gov.throttleInput > gov.handoverThrottle)
                         govEnterSpoolupState(GOV_STATE_RECOVERY);
-                    else
-                        govChangeState(GOV_STATE_THROTTLE_IDLE);
                 }
                 break;
 
@@ -788,7 +777,7 @@ static void governorUpdateState(void)
             //  -- When throttle and *headspeed* returns, move to RECOVERY
             //  -- When timer expires, move to IDLE
             case GOV_STATE_THROTTLE_LOW:
-                if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
+                if (gov.throttleOutput > gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_RECOVERY);
                 else if (govStateTime() > gov.zeroThrottleTimeout) {
                     if (gov.throttleInputOff)
@@ -798,9 +787,9 @@ static void governorUpdateState(void)
                 }
                 break;
 
-            // Ramp up throttle until target headspeed is reached, with fast(er) rampup.
+            // Ramp up throttle until target headspeed is reached, with fast(er) ramp up.
             //  -- If NO throttle, move to ZERO_THROTTLE
-            //  -- If no headspeed detected, move to LOST_HEADSPEED
+            //  -- If no headspeed detected, move to FALLBACK
             //  -- If throttle < handover, move to IDLE
             //  -- If throttle reaches 95%, move to ACTIVE
             //  -- Once 99% headspeed reached, move to ACTIVE
@@ -808,14 +797,14 @@ static void governorUpdateState(void)
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_LOST_HEADSPEED);
+                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || govMain > gov.maxActiveThrottle * 0.99f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState(GOV_STATE_ACTIVE);
                 break;
 
-            // Throttle passthrough with rampup limit
+            // Throttle passthrough with ramp up limit
             //  -- If NO throttle, move to ZERO_THROTTLE
             //  -- If throttle > handover, move to AUTOROTATION_BAILOUT
             //  -- If timer expires, move to IDLE
@@ -823,26 +812,26 @@ static void governorUpdateState(void)
             case GOV_STATE_AUTOROTATION:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
-                    govEnterSpoolupState(GOV_STATE_AUTOROTATION_BAILOUT);
+                else if (gov.throttleOutput > gov.handoverThrottle && gov.motorRPMPresent)
+                    govEnterSpoolupState(GOV_STATE_BAILOUT);
                 else if (govStateTime() > gov.autoTimeout)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
-            // Ramp up throttle until target headspeed is reached, with fast(er) rampup.
+            // Ramp up throttle until target headspeed is reached, with fast(er) ramp up.
             //  -- If NO throttle, move to ZERO_THROTTLE
-            //  -- If no headspeed detected, move to LOST_HEADSPEED
+            //  -- If no headspeed detected, move to FALLBACK
             //  -- If throttle < handover, move back to AUTOROTATION
             //  -- If throttle reaches 95%, move to ACTIVE
             //  -- Once 99% headspeed reached, move to ACTIVE
-            case GOV_STATE_AUTOROTATION_BAILOUT:
+            case GOV_STATE_BAILOUT:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_LOST_HEADSPEED);
-                else if (gov.throttleInput <= gov.handoverThrottle)
+                    govChangeState(GOV_STATE_FALLBACK);
+                else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_AUTOROTATION);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || govMain > gov.maxActiveThrottle * 0.99f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState(GOV_STATE_ACTIVE);
                 break;
 
@@ -855,11 +844,14 @@ static void governorUpdateState(void)
 
     // Get throttle
     gov.throttleOutput = governorUpdateThrottle();
+
+    // Set debug
+    govDebugStats();
 }
 
 
 /*
- * Throttle rampup controller
+ * Throttle ramp up controller
  */
 
 static float govThrottleStartupControl(float rate)
@@ -878,7 +870,7 @@ static float govThrottleStartupControl(float rate)
 
 
 /*
- * Throttle rampup controller
+ * Throttle ramp up controller
  */
 
  static void govThrottleSpoolUpInit(void)
@@ -901,7 +893,7 @@ static float govThrottleStartupControl(float rate)
 
 
  /*
- * Headspeed PI rampup controller
+ * Headspeed PI ramp up controller
  */
 
 static void govHeadspeedSpoolUpInit(void)
@@ -1041,7 +1033,7 @@ void governorUpdate(void)
     else
     {
         // Straight passthrough
-        gov.throttleOutput = gov.throttleInputOff ? 0 : gov.throttleInput;
+        gov.throttleOutput = gov.throttleInput;
     }
 }
 
@@ -1067,7 +1059,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             gov.TTAGain   = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
             gov.TTALimit  = pidProfile->governor.tta_limit / 100.0f;
 
-            if (gov.govType  == GOV_TYPE_ELECTRIC)
+            if (gov.govType == GOV_TYPE_ELECTRIC)
                 gov.TTAGain /= gov.K * gov.Kp;
         }
         else {
@@ -1088,7 +1080,6 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.headSpeedSpoolupRate  = gov.throttleSpoolupRate  * gov.fullHeadSpeed;
         gov.headSpeedTrackingRate = gov.throttleTrackingRate * gov.fullHeadSpeed;
         gov.headSpeedRecoveryRate = gov.throttleRecoveryRate * gov.fullHeadSpeed;
-        gov.headSpeedBailoutRate  = gov.throttleBailoutRate  * gov.fullHeadSpeed;
 
         gov.motorRPMGlitchDelta = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_DELTA;
         gov.motorRPMGlitchLimit = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_LIMIT;
@@ -1100,7 +1091,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
     // Must have at least one motor
     if (getMotorCount() > 0)
     {
-        gov.govType   = governorConfig()->gov_type;
+        gov.govType = governorConfig()->gov_type;
         gov.state = GOV_STATE_THROTTLE_OFF;
 
         // Check RPM input
@@ -1117,17 +1108,13 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             case GOV_TYPE_EXTERNAL:
                 govStateUpdate = governorUpdateExternal;
                 govSpoolupInit = NULL;
-                govSpoolupCalc = NULL;
-                govActiveInit  = NULL;
-                govActiveCalc  = NULL;
+                govSpoolupControl = NULL;
                 break;
             case GOV_TYPE_ELECTRIC:
             case GOV_TYPE_NITRO:
                 govStateUpdate = governorUpdateState;
                 govSpoolupInit = govSpoolUpInit;
-                govSpoolupCalc = govSpoolUpControl;
-                govActiveInit  = govPIDInit;
-                govActiveCalc  = govPIDControl;
+                govSpoolupControl = govSpoolUpControl;
                 break;
             default:
                 break;
@@ -1135,8 +1122,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
         gov.mainGearRatio = getMainGearRatio();
 
-        gov.autoEnabled  = (governorConfig()->gov_autorotation_timeout > 0 &&
-                           governorConfig()->gov_autorotation_bailout_time > 0);
+        gov.autoEnabled  = governorConfig()->gov_autorotation_timeout > 0;
         gov.autoTimeout  = governorConfig()->gov_autorotation_timeout * 100;
         gov.autoMinEntry = governorConfig()->gov_autorotation_min_entry_time * 100;
 
@@ -1144,12 +1130,10 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
         gov.throttleSpoolupRate  = govCalcRate(governorConfig()->gov_spoolup_time, 1, 600);
         gov.throttleTrackingRate = govCalcRate(governorConfig()->gov_tracking_time, 1, 100);
         gov.throttleRecoveryRate = govCalcRate(governorConfig()->gov_recovery_time, 1, 100);
-        gov.throttleBailoutRate  = govCalcRate(governorConfig()->gov_autorotation_bailout_time, 1, 100);
 
         gov.headSpeedSpoolupRate  = gov.throttleSpoolupRate  * gov.fullHeadSpeed;
         gov.headSpeedTrackingRate = gov.throttleTrackingRate * gov.fullHeadSpeed;
         gov.headSpeedRecoveryRate = gov.throttleRecoveryRate * gov.fullHeadSpeed;
-        gov.headSpeedBailoutRate  = gov.throttleBailoutRate  * gov.fullHeadSpeed;
 
         gov.zeroThrottleTimeout  = governorConfig()->gov_zero_throttle_timeout * 100;
 
