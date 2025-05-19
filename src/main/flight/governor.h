@@ -33,8 +33,8 @@ typedef enum {
 typedef enum {
     GOV_THROTTLE_PASSTHRU = 0,
     GOV_THROTTLE_3POS,
-    GOV_THROTTLE_STICK,
-    GOV_THROTTLE_HSPID,
+    GOV_THROTTLE_DIRECT,
+    GOV_THROTTLE_PIDCTRL,
 } govThrMode_e;
 
 typedef enum {

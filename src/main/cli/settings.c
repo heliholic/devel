@@ -926,7 +926,7 @@ const clivalue_t valueTable[] = {
     { "collective_tilt_correction_neg", VAR_INT8 | MASTER_VALUE,  .config.minmax = { -100, 100 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, collective_tilt_correction_neg) },
 
 // PG_GOVERNOR_CONFIG
-    { "gov_mode",                   VAR_UINT8  |  MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_MODE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_mode) },
+    { "gov_type",                   VAR_UINT8  |  MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_MODE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_type) },
     { "gov_startup_time",           VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_startup_time) },
     { "gov_spoolup_time",           VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_spoolup_time) },
     { "gov_tracking_time",          VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tracking_time) },
@@ -940,7 +940,6 @@ const clivalue_t valueTable[] = {
     { "gov_rpm_filter",             VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_rpm_filter) },
     { "gov_tta_filter",             VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tta_filter) },
     { "gov_ff_filter",              VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_ff_filter) },
-    { "gov_spoolup_min_throttle",   VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 50 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_spoolup_min_throttle) },
 
 // PG_CONTROLRATE_PROFILES
 #ifdef USE_PROFILE_NAMES
@@ -1185,9 +1184,9 @@ const clivalue_t valueTable[] = {
     { "gov_f_limit",                VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.f_limit) },
     { "gov_tta_gain",               VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.tta_gain) },
     { "gov_tta_limit",              VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.tta_limit) },
-    { "gov_yaw_ff_weight",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.yaw_ff_weight) },
-    { "gov_cyclic_ff_weight",       VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.cyclic_ff_weight) },
-    { "gov_collective_ff_weight",   VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_ff_weight) },
+    { "gov_yaw_weight",             VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.yaw_weight) },
+    { "gov_cyclic_weight",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.cyclic_weight) },
+    { "gov_collective_weight",      VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_weight) },
     { "gov_max_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.max_throttle) },
     { "gov_min_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.min_throttle) },
 

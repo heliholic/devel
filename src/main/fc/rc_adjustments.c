@@ -369,10 +369,10 @@ static int getAdjustmentValue(adjustmentFunc_e adjFunc)
             value = currentPidProfile->governor.tta_gain;
             break;
         case ADJUSTMENT_GOV_CYCLIC_FF:
-            value = currentPidProfile->governor.cyclic_ff_weight;
+            value = currentPidProfile->governor.cyclic_weight;
             break;
         case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            value = currentPidProfile->governor.collective_ff_weight;
+            value = currentPidProfile->governor.collective_weight;
             break;
         case ADJUSTMENT_PITCH_B_GAIN:
             value = currentPidProfile->pid[PID_PITCH].B;
@@ -608,10 +608,10 @@ static void setAdjustmentValue(adjustmentFunc_e adjFunc, int value)
             currentPidProfile->governor.tta_gain = value;
             break;
         case ADJUSTMENT_GOV_CYCLIC_FF:
-            currentPidProfile->governor.cyclic_ff_weight = value;
+            currentPidProfile->governor.cyclic_weight = value;
             break;
         case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            currentPidProfile->governor.collective_ff_weight = value;
+            currentPidProfile->governor.collective_weight = value;
             break;
         case ADJUSTMENT_PITCH_B_GAIN:
             currentPidProfile->pid[PID_PITCH].B = value;

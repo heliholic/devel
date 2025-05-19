@@ -1895,9 +1895,9 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->governor.f_gain);
         sbufWriteU8(dst, currentPidProfile->governor.tta_gain);
         sbufWriteU8(dst, currentPidProfile->governor.tta_limit);
-        sbufWriteU8(dst, currentPidProfile->governor.yaw_ff_weight);
-        sbufWriteU8(dst, currentPidProfile->governor.cyclic_ff_weight);
-        sbufWriteU8(dst, currentPidProfile->governor.collective_ff_weight);
+        sbufWriteU8(dst, currentPidProfile->governor.yaw_weight);
+        sbufWriteU8(dst, currentPidProfile->governor.cyclic_weight);
+        sbufWriteU8(dst, currentPidProfile->governor.collective_weight);
         sbufWriteU8(dst, currentPidProfile->governor.max_throttle);
         sbufWriteU8(dst, currentPidProfile->governor.min_throttle);
         break;
@@ -1998,7 +1998,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 #endif
 
     case MSP_GOVERNOR_CONFIG:
-        sbufWriteU8(dst, governorConfig()->gov_mode);
+        sbufWriteU8(dst, governorConfig()->gov_type);
         sbufWriteU16(dst, governorConfig()->gov_startup_time);
         sbufWriteU16(dst, governorConfig()->gov_spoolup_time);
         sbufWriteU16(dst, governorConfig()->gov_tracking_time);
@@ -2013,7 +2013,6 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, governorConfig()->gov_rpm_filter);
         sbufWriteU8(dst, governorConfig()->gov_tta_filter);
         sbufWriteU8(dst, governorConfig()->gov_ff_filter);
-        sbufWriteU8(dst, governorConfig()->gov_spoolup_min_throttle);
         break;
 
     default:
@@ -2724,9 +2723,9 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         currentPidProfile->governor.f_gain = sbufReadU8(src);
         currentPidProfile->governor.tta_gain = sbufReadU8(src);
         currentPidProfile->governor.tta_limit = sbufReadU8(src);
-        currentPidProfile->governor.yaw_ff_weight = sbufReadU8(src);
-        currentPidProfile->governor.cyclic_ff_weight = sbufReadU8(src);
-        currentPidProfile->governor.collective_ff_weight = sbufReadU8(src);
+        currentPidProfile->governor.yaw_weight = sbufReadU8(src);
+        currentPidProfile->governor.cyclic_weight = sbufReadU8(src);
+        currentPidProfile->governor.collective_weight = sbufReadU8(src);
         currentPidProfile->governor.max_throttle = sbufReadU8(src);
         if (sbufBytesRemaining(src) >= 1) {
             currentPidProfile->governor.min_throttle = sbufReadU8(src);
@@ -3458,7 +3457,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #endif
 
     case MSP_SET_GOVERNOR_CONFIG:
-        governorConfigMutable()->gov_mode = sbufReadU8(src);
+        governorConfigMutable()->gov_type = sbufReadU8(src);
         governorConfigMutable()->gov_startup_time = sbufReadU16(src);
         governorConfigMutable()->gov_spoolup_time = sbufReadU16(src);
         governorConfigMutable()->gov_tracking_time = sbufReadU16(src);
@@ -3473,9 +3472,6 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         governorConfigMutable()->gov_rpm_filter = sbufReadU8(src);
         governorConfigMutable()->gov_tta_filter = sbufReadU8(src);
         governorConfigMutable()->gov_ff_filter = sbufReadU8(src);
-        if (sbufBytesRemaining(src) >= 1) {
-            governorConfigMutable()->gov_spoolup_min_throttle = sbufReadU8(src);
-        }
         break;
 
     default:
