@@ -630,7 +630,7 @@ static void governorUpdateExternalState(void)
                 break;
 
             // Follow throttle with high(er) ramp rate.
-            //  -- If throttle is > handover, move to AUTOROTATION_BAILOUT
+            //  -- If throttle is > handover, move to BAILOUT
             //  -- If timer expires, move to IDLE
             case GOV_STATE_AUTOROTATION:
                 if (gov.throttleInputOff)
@@ -691,6 +691,7 @@ static float governorUpdateThrottle(void)
     switch (gov.state)
     {
         case GOV_STATE_THROTTLE_OFF:
+        case GOV_STATE_THROTTLE_LOW:
             throttle = 0;
             break;
         case GOV_STATE_THROTTLE_IDLE:
@@ -705,7 +706,6 @@ static float governorUpdateThrottle(void)
         case GOV_STATE_FALLBACK:
             throttle = govFallbackControl(gov.throttleTrackingRate);
             break;
-        case GOV_STATE_THROTTLE_LOW:
         case GOV_STATE_AUTOROTATION:
             throttle = govThrottleStartupControl(gov.throttleTrackingRate);
             break;
@@ -755,9 +755,9 @@ static void governorUpdateState(void)
             case GOV_STATE_SPOOLUP:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.throttleInput < gov.handoverThrottle)
+                    govChangeState(GOV_STATE_THROTTLE_IDLE);
+                else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState(GOV_STATE_ACTIVE);
@@ -799,8 +799,8 @@ static void governorUpdateState(void)
             //  -- When throttle and *headspeed* returns, move to RECOVERY
             //  -- When timer expires, move to IDLE
             case GOV_STATE_THROTTLE_LOW:
-                if (gov.throttleOutput > gov.handoverThrottle && gov.motorRPMPresent)
-                    govEnterSpoolupState(GOV_STATE_RECOVERY);
+                if (!gov.throttleInputOff)
+                    govChangeState(GOV_STATE_RECOVERY);
                 else if (govStateTime() > gov.zeroThrottleTimeout) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
@@ -818,17 +818,17 @@ static void governorUpdateState(void)
             case GOV_STATE_RECOVERY:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
-                else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
+                else if (gov.motorRPMError)
+                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState(GOV_STATE_ACTIVE);
                 break;
 
             // Throttle passthrough with ramp up limit
             //  -- If NO throttle, move to ZERO_THROTTLE
-            //  -- If throttle > handover, move to AUTOROTATION_BAILOUT
+            //  -- If throttle > handover, move to BAILOUT
             //  -- If timer expires, move to IDLE
             //  -- Map throttle to motor output
             case GOV_STATE_AUTOROTATION:
@@ -849,10 +849,10 @@ static void governorUpdateState(void)
             case GOV_STATE_BAILOUT:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
-                else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_AUTOROTATION);
+                else if (gov.motorRPMError)
+                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState(GOV_STATE_ACTIVE);
                 break;
