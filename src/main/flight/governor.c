@@ -433,7 +433,7 @@ static void govActiveUpdate(void)
 
     // Calculate request ratio (HS or throttle)
     if (gov.throttleInput > 0) {
-        if (gov.govType  == GOV_TYPE_EXTERNAL)
+        if (gov.govType == GOV_TYPE_EXTERNAL)
             gov.requestRatio = gov.throttleOutput / gov.throttleInput;
         else
             gov.requestRatio = gov.currentHeadSpeed / gov.requestedHeadSpeed;
@@ -501,7 +501,6 @@ static void govActiveUpdate(void)
     gov.P = gov.K * gov.Kp * newError;
     gov.C = gov.K * gov.Ki * newError * pidGetDT();
     gov.D = gov.K * gov.Kd * newDiff;
-
 }
 
 
@@ -1005,11 +1004,8 @@ static float govPIDControl(float rate)
 
 static void govFallbackInit(void)
 {
-    // Normalized battery voltage gain
-    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
-
     // Expected PID output
-    float pidTarget = gov.throttleOutput / pidGain;
+    float pidTarget = gov.throttleOutput / gov.vCompGain;
 
     // PID limits
     gov.P = 0;
@@ -1026,9 +1022,6 @@ static void govFallbackInit(void)
 
 static float govFallbackControl(float __unused rate)
 {
-    // Normalized battery voltage gain
-    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
-
     // PID limits
     gov.P = 0;
     gov.D = 0;
@@ -1040,7 +1033,7 @@ static float govFallbackControl(float __unused rate)
     gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
 
     // Generate throttle signal
-    float output = gov.pidSum * pidGain;
+    float output = gov.pidSum * gov.vCompGain;
 
     // Limit output
     output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
@@ -1082,9 +1075,9 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govType)
     {
-        gov.hsAdjustmentEnabled = pidProfile->governor.flags & GOV_FLAG_HS_ADJUST;
+        gov.hsAdjustmentEnabled = pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE;
         gov.pidSpoolupEnabled = pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP;
-        gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLT_CORR) &&
+        gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) &&
             gov.govType == GOV_TYPE_ELECTRIC && isBatteryVoltageConfigured();
         gov.precompEnabled = pidProfile->governor.flags & GOV_FLAG_PRECOMP;
 

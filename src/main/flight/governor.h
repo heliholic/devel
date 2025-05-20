@@ -43,12 +43,13 @@ typedef enum {
 } govState_e;
 
 enum {
-    GOV_FLAG_PRECOMP        = BIT(0),
-    GOV_FLAG_VOLT_CORR      = BIT(1),
-    GOV_FLAG_PID_SPOOLUP    = BIT(2),
-    GOV_FLAG_HS_ADJUST      = BIT(3),
-    GOV_FLAG_3POS_THROTTLE  = BIT(4),
-    GOV_FLAG_THR_IN_PIDSUM  = BIT(5),
+    GOV_FLAG_PRECOMP            = BIT(0),
+    GOV_FLAG_FALLBACK_PRECOMP   = BIT(1),
+    GOV_FLAG_VOLTAGE_COMP       = BIT(2),
+    GOV_FLAG_PID_SPOOLUP        = BIT(3),
+    GOV_FLAG_HS_ON_THROTTLE     = BIT(4),
+    GOV_FLAG_3POS_THROTTLE      = BIT(5),
+    GOV_FLAG_THR_IN_PIDSUM      = BIT(6),
 };
 
 
