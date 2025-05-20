@@ -1014,10 +1014,41 @@ static float govPIDControl(float rate)
  * No-RPM fallback controller
  */
 
+static void govFallbackInit(void)
+{
+    // Normalized battery voltage gain
+    float pidGain = gov.vCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
+
+    // Expected PID output
+    float pidTarget = gov.throttleOutput / pidGain;
+
+    // PID limits
+    gov.P = 0;
+    gov.D = 0;
+    gov.C = 0;
+    gov.F = constrainf(gov.F,       0, gov.Lf);
+
+    // Use gov.I to reach the target
+    gov.I = pidTarget - (gov.P + gov.D + gov.F);
+
+    // Limited range
+    gov.I = constrainf(gov.I, 0, gov.Li);
+}
+
 static float govFallbackControl(float __unused rate)
 {
     // Normalized battery voltage gain
     float pidGain = gov.vCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
+
+    // PID limits
+    gov.P = 0;
+    gov.D = 0;
+    gov.C = 0;
+    gov.F = constrainf(gov.F,       0, gov.Lf);
+    gov.I = constrainf(gov.I,       0, gov.Li);
+
+    // Governor PIDF sum
+    gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
 
     // Generate throttle signal
     float output = gov.pidSum * pidGain;
