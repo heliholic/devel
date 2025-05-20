@@ -176,8 +176,8 @@ typedef struct {
 
     // Tail Torque Assist
     float           TTAAdd;
-    float           TTAGain;
-    float           TTALimit;
+    float           ttaGain;
+    float           ttaLimit;
     filter_t        TTAFilter;
 
     // Autorotation
@@ -357,26 +357,20 @@ static inline long govStateTime(void)
 
 static void govGetInputThrottle(void)
 {
-    float throttle = getThrottle();
     bool throloff = (getThrottleStatus() == THROTTLE_LOW);
+    float throttle = getThrottle();
 
-    // Throttle modes
-    switch (gov.throttleMode) {
-        case GOV_THROTTLE_3POS:
-            if (throttle < 0.333f) {
-                throttle = 0;
-                throloff = true;
-            }
-            else if (throttle < 0.666f) {
-                throttle = gov.idleThrottle;
-            }
-            else {
-                throttle = 1.0f;
-            }
-            break;
-
-        default:
-            break;
+    if (gov.throttleMode == GOV_THROTTLE_3POS) {
+        if (throttle < 0.333f) {
+            throttle = 0;
+            throloff = true;
+        }
+        else if (throttle < 0.666f) {
+            throttle = gov.idleThrottle;
+        }
+        else {
+            throttle = 1.0f;
+        }
     }
 
     gov.throttleInput = throttle;
@@ -473,13 +467,13 @@ static void govActiveUpdate(void)
     // Tail Torque Assist
     if (gov.ttaEnabled) {
         float YAW = mixerGetInput(MIXER_IN_STABILIZED_YAW);
-        float TTA = filterApply(&gov.TTAFilter, YAW) * getSpoolUpRatio() * gov.TTAGain;
+        float TTA = filterApply(&gov.TTAFilter, YAW) * getSpoolUpRatio() * gov.ttaGain;
         float headroom = 0;
 
         if (gov.govType  == GOV_TYPE_ELECTRIC)
-            headroom = 2 * fmaxf(1.0f + gov.TTALimit - gov.fullHeadSpeedRatio, 0);
+            headroom = 2 * fmaxf(1.0f + gov.ttaLimit - gov.fullHeadSpeedRatio, 0);
         else
-            headroom = gov.TTALimit;
+            headroom = gov.ttaLimit;
 
         gov.TTAAdd = constrainf(TTA, 0, headroom);
 
@@ -1015,6 +1009,11 @@ static float govPIDControl(float rate)
     return output;
 }
 
+
+/*
+ * No-RPM fallback controller
+ */
+
 static float govFallbackControl(float __unused rate)
 {
     // Normalized battery voltage gain
@@ -1044,7 +1043,7 @@ static inline float govCalcRate(uint16_t param, uint16_t min, uint16_t max)
 void governorUpdate(void)
 {
     // Governor is active
-    if (gov.govType )
+    if (gov.govType)
     {
         // Update internal data
         govActiveUpdate();
@@ -1074,10 +1073,10 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.Ld = pidProfile->governor.d_limit / 100.0f;
         gov.Lf = pidProfile->governor.f_limit / 100.0f;
 
-        gov.vCompEnabled = ((pidProfile->governor.flags & GOV_FLAG_VOLT_CORR) && gov.govType > GOV_TYPE_EXTERNAL && isBatteryVoltageConfigured());
-        gov.precompEnabled = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
+        gov.vCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLT_CORR) && gov.govType == GOV_TYPE_ELECTRIC && isBatteryVoltageConfigured();
+        gov.precompEnabled = pidProfile->governor.flags & GOV_FLAG_PRECOMP;
 
-        if (pidProfile->governor.throttle_mode == GOV_THROTTLE_PIDCTRL) {
+        if (gov.govType == GOV_TYPE_ELECTRIC && pidProfile->governor.throttle_mode == GOV_THROTTLE_PIDCTRL) {
             govSpoolupInit = govHeadspeedSpoolUpInit;
             govSpoolupControl = govHeadspeedSpoolUpControl;
         }
@@ -1087,15 +1086,17 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         }
 
         if (pidProfile->governor.tta_gain) {
-            gov.TTAGain   = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
-            gov.TTALimit  = pidProfile->governor.tta_limit / 100.0f;
+            gov.ttaGain = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
+            gov.ttaLimit = pidProfile->governor.tta_limit / 100.0f;
+            gov.ttaEnabled = true;
 
             if (gov.govType == GOV_TYPE_ELECTRIC)
-                gov.TTAGain /= gov.K * gov.Kp;
+                gov.ttaGain /= gov.K * gov.Kp;
         }
         else {
-            gov.TTAGain   = 0;
-            gov.TTALimit  = 0;
+            gov.ttaGain = 0;
+            gov.ttaLimit = 0;
+            gov.ttaEnabled = false;
         }
 
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
@@ -1122,19 +1123,18 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
     // Must have at least one motor
     if (getMotorCount() > 0)
     {
-        gov.govType = governorConfig()->gov_type;
         gov.state = GOV_STATE_THROTTLE_OFF;
 
-        // Check RPM input
+        gov.govType = governorConfig()->gov_type;
+
         if (gov.govType > GOV_TYPE_EXTERNAL) {
             if (!isMotorFastRpmSourceActive(0)) {
                 setArmingDisabled(ARMING_DISABLED_GOVERNOR);
                 setArmingDisabled(ARMING_DISABLED_RPM_SIGNAL);
-                gov.govType  = GOV_TYPE_NONE;
+                gov.govType = GOV_TYPE_NONE;
             }
         }
 
-        // Mode specific handler functions
         if (gov.govType == GOV_TYPE_EXTERNAL)
             govStateUpdate = governorUpdateExternalState;
         else
@@ -1159,14 +1159,14 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
         gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
-        const float diff_cutoff = governorConfig()->gov_rpm_filter ?
-            constrainf(governorConfig()->gov_rpm_filter, 1, 50) : 10;
+        const float diff_cutoff = governorConfig()->gov_hs_filter ?
+            constrainf(governorConfig()->gov_hs_filter, 1, 50) : 10;
 
         difFilterInit(&gov.differentiator, diff_cutoff, gyro.targetRateHz);
 
         lowpassFilterInit(&gov.motorVoltageFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.motorCurrentFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
-        lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
+        lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_hs_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.TTAFilter, LPF_PT2, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
         lowpassFilterInit(&gov.FFFilter, LPF_PT2, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
 
