@@ -99,11 +99,11 @@ typedef struct {
     // Handover level
     float           handoverThrottle;
 
-    // Spoolup throttle levels
+    // Startup/spoolup throttle levels
     float           minSpoolupThrottle;
     float           maxSpoolupThrottle;
 
-    // Gov Active throttle limits
+    // Active throttle limits
     float           minActiveThrottle;
     float           maxActiveThrottle;
 
@@ -219,12 +219,14 @@ static FAST_DATA_ZERO_INIT govCtrlFn   govSpoolupControl;
 
 static void govPIDInit(void);
 static float govPIDControl(float rate);
+
 static void govFallbackInit(void);
 static float govFallbackControl(float rate);
-static float govThrottleStartupControl(float rate);
 
-static void governorUpdateState(void);
+static float govThrottleSpoolupControl(float rate);
+
 static void governorUpdateExternalState(void);
+static void governorUpdateElectricState(void);
 
 
 //// Access functions
@@ -685,7 +687,7 @@ static inline void govEnterFallbackState(void)
     govFallbackInit();
 }
 
-static float governorUpdateThrottle(void)
+static float governorUpdateElectricThrottle(void)
 {
     float throttle = 0;
 
@@ -696,7 +698,7 @@ static float governorUpdateThrottle(void)
             throttle = 0;
             break;
         case GOV_STATE_THROTTLE_IDLE:
-            throttle = govThrottleStartupControl(gov.throttleStartupRate);
+            throttle = govThrottleSpoolupControl(gov.throttleStartupRate);
             break;
         case GOV_STATE_SPOOLUP:
             throttle = govSpoolupControl(gov.throttleSpoolupRate);
@@ -708,7 +710,7 @@ static float governorUpdateThrottle(void)
             throttle = govFallbackControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_AUTOROTATION:
-            throttle = govThrottleStartupControl(gov.throttleTrackingRate);
+            throttle = govThrottleSpoolupControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_RECOVERY:
         case GOV_STATE_BAILOUT:
@@ -721,7 +723,7 @@ static float governorUpdateThrottle(void)
     return throttle;
 }
 
-static void governorUpdateState(void)
+static void governorUpdateElectricState(void)
 {
     // Handle DISARM separately for SAFETY!
     if (!ARMING_FLAG(ARMED)) {
@@ -743,7 +745,7 @@ static void governorUpdateState(void)
             case GOV_STATE_THROTTLE_IDLE:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.throttleOutput > gov.handoverThrottle && gov.motorRPMPresent)
+                else if (gov.throttleOutput >= gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_SPOOLUP);
                 break;
 
@@ -835,7 +837,7 @@ static void governorUpdateState(void)
             case GOV_STATE_AUTOROTATION:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
-                else if (gov.throttleOutput > gov.handoverThrottle && gov.motorRPMPresent)
+                else if (gov.throttleOutput >= gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_BAILOUT);
                 else if (govStateTime() > gov.autoTimeout)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -866,29 +868,10 @@ static void governorUpdateState(void)
     }
 
     // Get throttle
-    gov.throttleOutput = governorUpdateThrottle();
+    gov.throttleOutput = governorUpdateElectricThrottle();
 
     // Set debug
     govDebugStats();
-}
-
-
-/*
- * Throttle ramp up controller
- */
-
-static float govThrottleStartupControl(float rate)
-{
-    // Update headspeed target
-    gov.targetHeadSpeed = gov.currentHeadSpeed;
-
-    // Throttle value
-    float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
-
-    // Limit output
-    output = constrainf(output, gov.idleThrottle, gov.handoverThrottle);
-
-    return output;
 }
 
 
@@ -1186,7 +1169,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
         if (gov.govType == GOV_TYPE_EXTERNAL)
             govStateUpdate = governorUpdateExternalState;
         else
-            govStateUpdate = governorUpdateState;
+            govStateUpdate = governorUpdateElectricState;
 
         gov.mainGearRatio = getMainGearRatio();
 
