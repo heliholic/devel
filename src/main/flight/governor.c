@@ -879,7 +879,7 @@ static float govThrottleStartupControl(float rate)
     float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
 
     // Limit output
-    output = constrainf(output, 0, gov.handoverThrottle);
+    output = constrainf(output, gov.idleThrottle, gov.handoverThrottle);
 
     return output;
 }
@@ -1084,6 +1084,11 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             govSpoolupInit = govThrottleSpoolUpInit;
             govSpoolupControl = govThrottleSpoolupControl;
         }
+
+        gov.minSpoolupThrottle = 0;
+        gov.maxSpoolupThrottle = 0;
+        gov.minActiveThrottle = 0;
+        gov.maxActiveThrottle = 0;
 
         if (pidProfile->governor.tta_gain) {
             gov.ttaGain = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
