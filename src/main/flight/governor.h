@@ -31,13 +31,6 @@ typedef enum {
 } govType_e;
 
 typedef enum {
-    GOV_THROTTLE_PASSTHRU = 0,
-    GOV_THROTTLE_3POS,
-    GOV_THROTTLE_DIRECT,
-    GOV_THROTTLE_PIDCTRL,
-} govThrMode_e;
-
-typedef enum {
     GOV_STATE_THROTTLE_OFF,
     GOV_STATE_THROTTLE_LOW,
     GOV_STATE_THROTTLE_IDLE,
@@ -50,8 +43,12 @@ typedef enum {
 } govState_e;
 
 enum {
-    GOV_FLAG_PRECOMP      = BIT(0),
-    GOV_FLAG_VOLT_CORR    = BIT(1),
+    GOV_FLAG_PRECOMP        = BIT(0),
+    GOV_FLAG_VOLT_CORR      = BIT(1),
+    GOV_FLAG_PID_SPOOLUP    = BIT(2),
+    GOV_FLAG_HS_ADJUST      = BIT(3),
+    GOV_FLAG_3POS_THROTTLE  = BIT(4),
+    GOV_FLAG_THR_IN_PIDSUM  = BIT(5),
 };
 
 
