@@ -219,6 +219,7 @@ static FAST_DATA_ZERO_INIT govCtrlFn   govSpoolupControl;
 
 static void govPIDInit(void);
 static float govPIDControl(float rate);
+static void govFallbackInit(void);
 static float govFallbackControl(float rate);
 static float govThrottleStartupControl(float rate);
 
@@ -672,10 +673,16 @@ static inline void govEnterSpoolupState(govState_e state)
     govSpoolupInit();
 }
 
-static inline void govEnterActiveState(govState_e state)
+static inline void govEnterActiveState(void)
 {
-    govChangeState(state);
+    govChangeState(GOV_STATE_ACTIVE);
     govPIDInit();
+}
+
+static inline void govEnterFallbackState(void)
+{
+    govChangeState(GOV_STATE_FALLBACK);
+    govFallbackInit();
 }
 
 static float governorUpdateThrottle(void)
@@ -754,7 +761,7 @@ static void governorUpdateState(void)
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
-                    govEnterActiveState(GOV_STATE_ACTIVE);
+                    govEnterActiveState();
                 break;
 
             // Governor active, maintain headspeed
@@ -765,7 +772,7 @@ static void governorUpdateState(void)
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_FALLBACK);
+                    govEnterFallbackState();
                 else if (gov.throttleInput < gov.handoverThrottle) {
                     if (gov.autoEnabled && govStateTime() > gov.autoMinEntry)
                         govChangeState(GOV_STATE_AUTOROTATION);
@@ -815,9 +822,9 @@ static void governorUpdateState(void)
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_FALLBACK);
+                    govEnterFallbackState();
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
-                    govEnterActiveState(GOV_STATE_ACTIVE);
+                    govEnterActiveState();
                 break;
 
             // Throttle passthrough with ramp up limit
@@ -846,9 +853,9 @@ static void governorUpdateState(void)
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_AUTOROTATION);
                 else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_FALLBACK);
+                    govEnterFallbackState();
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
-                    govEnterActiveState(GOV_STATE_ACTIVE);
+                    govEnterActiveState();
                 break;
 
             // Should not be here
