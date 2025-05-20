@@ -1076,19 +1076,24 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.vCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLT_CORR) && gov.govType == GOV_TYPE_ELECTRIC && isBatteryVoltageConfigured();
         gov.precompEnabled = pidProfile->governor.flags & GOV_FLAG_PRECOMP;
 
-        if (gov.govType == GOV_TYPE_ELECTRIC && pidProfile->governor.throttle_mode == GOV_THROTTLE_PIDCTRL) {
-            govSpoolupInit = govHeadspeedSpoolUpInit;
-            govSpoolupControl = govHeadspeedSpoolUpControl;
-        }
-        else {
-            govSpoolupInit = govThrottleSpoolUpInit;
-            govSpoolupControl = govThrottleSpoolupControl;
-        }
+        gov.minSpoolupThrottle = pidProfile->governor.idle_throttle;
+        gov.maxSpoolupThrottle = pidProfile->governor.max_throttle;
+        gov.minActiveThrottle = pidProfile->governor.min_throttle;
+        gov.maxActiveThrottle = pidProfile->governor.max_throttle;
 
-        gov.minSpoolupThrottle = 0;
-        gov.maxSpoolupThrottle = 0;
-        gov.minActiveThrottle = 0;
-        gov.maxActiveThrottle = 0;
+        govSpoolupInit = govThrottleSpoolUpInit;
+        govSpoolupControl = govThrottleSpoolupControl;
+
+        switch (gov.govType) {
+            case GOV_TYPE_ELECTRIC:
+                if (pidProfile->governor.throttle_mode == GOV_THROTTLE_PIDCTRL) {
+                    govSpoolupInit = govHeadspeedSpoolUpInit;
+                    govSpoolupControl = govHeadspeedSpoolUpControl;
+                }
+                break;
+            default:
+                break;
+        }
 
         if (pidProfile->governor.tta_gain) {
             gov.ttaGain = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
