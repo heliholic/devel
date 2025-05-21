@@ -79,7 +79,8 @@ typedef struct {
     bool            threePosThrottleEnabled;
     bool            voltageCompEnabled;
     bool            precompEnabled;
-    bool            autoEnabled;
+    bool            fallbackPrecompEnabled;
+    bool            autoRotationEnabled;
     bool            ttaEnabled;
 
     // State machine
@@ -93,6 +94,9 @@ typedef struct {
     float           throttleInput;
     bool            throttleInputOff;
     float           throttlePrevInput;
+
+    // Fallback base throttle
+    float           baseThrottle;
 
     // Idle throttle level
     float           idleThrottle;
@@ -213,12 +217,11 @@ static FAST_DATA_ZERO_INIT govCtrlFn   govSpoolupControl;
 
 //// Prototypes
 
+static void govVoidInit(void);
 static void govPIDInit(void);
+
 static float govPIDControl(float rate);
-
-static void govFallbackInit(void);
 static float govFallbackControl(float rate);
-
 static float govThrottleSpoolupControl(float rate);
 
 static void governorUpdateExternalState(void);
@@ -591,7 +594,7 @@ static void governorUpdateExternalState(void)
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoEnabled && govStateTime() > gov.autoMinEntry)
+                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -682,7 +685,6 @@ static inline void govEnterActiveState(void)
 static inline void govEnterFallbackState(void)
 {
     govChangeState(GOV_STATE_FALLBACK);
-    govFallbackInit();
 }
 
 static void governorUpdateElectricThrottle(void)
@@ -774,7 +776,7 @@ static void governorUpdateElectricState(void)
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoEnabled && govStateTime() > gov.autoMinEntry)
+                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -877,7 +879,7 @@ static void governorUpdateElectricState(void)
  * Throttle ramp up controller
  */
 
- static void govThrottleSpoolUpInit(void)
+ static void govVoidInit(void)
  {
  }
 
@@ -999,38 +1001,16 @@ static float govPIDControl(float rate)
 
 
 /*
- * No-RPM fallback controller
+ * Fallback controller - Base throttle + precomp
  */
-
-static void govFallbackInit(void)
-{
-    // Expected PID output
-    float pidTarget = gov.throttleOutput / gov.vCompGain;
-
-    // PID limits
-    gov.P = 0;
-    gov.D = 0;
-    gov.C = 0;
-    gov.F = constrainf(gov.F,       0, gov.Lf);
-
-    // Use gov.I to reach the target
-    gov.I = pidTarget - (gov.P + gov.D + gov.F);
-
-    // Limited range
-    gov.I = constrainf(gov.I, 0, gov.Li);
-}
 
 static float govFallbackControl(float __unused rate)
 {
-    // PID limits
-    gov.P = 0;
-    gov.D = 0;
-    gov.C = 0;
-    gov.F = constrainf(gov.F,       0, gov.Lf);
-    gov.I = constrainf(gov.I,       0, gov.Li);
+    // Precomp limits
+    gov.F = constrainf(gov.F, 0, gov.Lf);
 
-    // Governor PIDF sum
-    gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
+    // Governor "PID sum"
+    gov.pidSum = gov.baseThrottle + gov.fallbackPrecompEnabled ? gov.F : 0;
 
     // Generate throttle signal
     float output = gov.pidSum * gov.vCompGain;
@@ -1105,7 +1085,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             govSpoolupControl = govHeadspeedSpoolUpControl;
         }
         else {
-            govSpoolupInit = govThrottleSpoolUpInit;
+            govSpoolupInit = govVoidInit;
             govSpoolupControl = govThrottleSpoolupControl;
         }
 
@@ -1168,7 +1148,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
         gov.mainGearRatio = getMainGearRatio();
 
-        gov.autoEnabled  = governorConfig()->gov_autorotation_timeout > 0;
+        gov.autoRotationEnabled  = governorConfig()->gov_autorotation_timeout > 0;
         gov.autoTimeout  = governorConfig()->gov_autorotation_timeout * 100;
         gov.autoMinEntry = governorConfig()->gov_autorotation_min_entry_time * 100;
 

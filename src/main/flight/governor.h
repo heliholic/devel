@@ -49,7 +49,7 @@ enum {
     GOV_FLAG_PID_SPOOLUP        = BIT(3),
     GOV_FLAG_HS_ON_THROTTLE     = BIT(4),
     GOV_FLAG_3POS_THROTTLE      = BIT(5),
-    GOV_FLAG_THR_IN_PIDSUM      = BIT(6),
+    GOV_FLAG_PID_WITH_THROTTLE  = BIT(6),
 };
 
 
