@@ -140,11 +140,9 @@ typedef struct {
     float           motorRPMGlitchLimit;
     uint32_t        motorRPMDetectTime;
 
-    // Battery voltage & current
+    // Battery voltage
     float           motorVoltage;
     filter_t        motorVoltageFilter;
-    float           motorCurrent;
-    filter_t        motorCurrentFilter;
 
     // Nominal battery voltage
     float           nominalVoltage;
@@ -448,7 +446,6 @@ static void govDataUpdate(void)
 
     // Voltage & current filters
     gov.motorVoltage = filterApply(&gov.motorVoltageFilter, getBatteryVoltageSample() * 0.01f);
-    gov.motorCurrent = filterApply(&gov.motorCurrentFilter, getBatteryCurrentSample() * 0.01f);
 
     // Voltage compensation gain
     gov.voltageCompGain = (gov.voltageCompEnabled && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
@@ -1451,7 +1448,6 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             difFilterInit(&gov.differentiator, diff_cutoff, gyro.targetRateHz);
 
             lowpassFilterInit(&gov.motorVoltageFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
-            lowpassFilterInit(&gov.motorCurrentFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.TTAFilter, LPF_PT2, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.precompFilter, LPF_PT2, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
