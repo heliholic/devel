@@ -180,7 +180,7 @@ typedef struct {
     float           yawWeight;
     float           cyclicWeight;
     float           collectiveWeight;
-    filter_t        FFFilter;
+    filter_t        precompFilter;
 
     // Tail Torque Assist
     float           TTAAdd;
@@ -479,7 +479,7 @@ static void govDataUpdate(void)
         float totalFF = collectiveFF + cyclicFF + yawFF;
 
         // Filtered FeedForward
-        totalFF = filterApply(&gov.FFFilter, totalFF);
+        totalFF = filterApply(&gov.precompFilter, totalFF);
 
         // F-term
         gov.F = gov.K * gov.Kf * totalFF;
@@ -1454,7 +1454,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             lowpassFilterInit(&gov.motorCurrentFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.TTAFilter, LPF_PT2, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
-            lowpassFilterInit(&gov.FFFilter, LPF_PT2, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
+            lowpassFilterInit(&gov.precompFilter, LPF_PT2, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
 
             governorInitProfile(pidProfile);
         }
