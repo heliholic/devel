@@ -515,7 +515,157 @@ static void govDataUpdate(void)
 
 
 /*
- * Throttle passthrough with ramp up limits
+ * Void init function
+ */
+
+static void govVoidInit(void) { }
+
+
+/*
+ * Throttle ramp up controller
+ */
+
+ static float govThrottleSpoolupControl(float rate)
+ {
+     // Update headspeed target
+     gov.targetHeadSpeed = gov.currentHeadSpeed;
+
+     // Throttle value
+     float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
+
+     // Limit output
+     output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+
+     return output;
+ }
+
+
+/*
+ * Headspeed PI ramp up controller
+ */
+
+static void govHeadspeedSpoolUpInit(void)
+{
+    // Expected PID output
+    float pidTarget = gov.throttleOutput;
+
+    // PID limits
+    gov.P = constrainf(gov.P, -GOV_SPOOLUP_P_LIMIT, GOV_SPOOLUP_P_LIMIT);
+
+    // Use gov.I to reach the target
+    gov.I = pidTarget - gov.P;
+
+    // Limited range
+    gov.I = constrainf(gov.I, 0, gov.Li);
+}
+
+static float govHeadspeedSpoolUpControl(float rate)
+{
+    // Update headspeed target
+    gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
+
+    // PID limits
+    gov.P = constrainf(gov.P, -GOV_SPOOLUP_P_LIMIT, GOV_SPOOLUP_P_LIMIT);
+    gov.I = constrainf(gov.I, 0, gov.Li);
+    gov.D = 0;
+    gov.F = 0;
+
+    // Governor PI sum
+    gov.pidSum = gov.P + gov.I + gov.C;
+
+    // Throttle value
+    float output = gov.pidSum;
+
+    // Apply gov.C if output not saturated
+    if (!((output > gov.maxSpoolupThrottle && gov.C > 0) || (output < gov.minSpoolupThrottle && gov.C < 0)))
+        gov.I += gov.C;
+
+    // Limit output
+    output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+
+    return output;
+}
+
+
+/*
+ * Full PIDF controller
+ */
+
+static void govPIDInit(void)
+{
+    // Normalized battery voltage gain
+    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
+
+    // Expected PID output
+    float pidTarget = gov.throttleOutput / pidGain;
+
+    // PID limits
+    gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
+    gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
+    gov.F = constrainf(gov.F,       0, gov.Lf);
+
+    // Use gov.I to reach the target
+    gov.I = pidTarget - (gov.P + gov.D + gov.F);
+
+    // Limited range
+    gov.I = constrainf(gov.I, 0, gov.Li);
+}
+
+static float govPIDControl(float rate)
+{
+    // Update headspeed target
+    gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
+
+    // Normalized battery voltage gain
+    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
+
+    // PID limits
+    gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
+    gov.I = constrainf(gov.I,       0, gov.Li);
+    gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
+    gov.F = constrainf(gov.F,       0, gov.Lf);
+
+    // Governor PIDF sum
+    gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
+
+    // Generate throttle signal
+    float output = gov.pidSum * pidGain;
+
+    // Apply gov.C if output not saturated
+    if (!((output > gov.maxActiveThrottle && gov.C > 0) || (output < gov.minActiveThrottle && gov.C < 0)))
+        gov.I += gov.C;
+
+    // Limit output
+    output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
+
+    return output;
+}
+
+
+/*
+ * Fallback controller - Base throttle + precomp
+ */
+
+static float govFallbackControl(float __unused rate)
+{
+    // Precomp limits
+    gov.F = constrainf(gov.F, 0, gov.Lf);
+
+    // Governor "PID sum"
+    gov.pidSum = gov.baseThrottle + (gov.fallbackPrecompEnabled ? gov.F : 0);
+
+    // Generate throttle signal
+    float output = gov.pidSum * gov.voltageCompGain;
+
+    // Limit output
+    output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
+
+    return output;
+}
+
+
+/*
+ * External throttle control (governor)
  */
 
 static void governorUpdateExternalThrottle(void)
@@ -695,7 +845,7 @@ static void governorUpdateExternalState(void)
 
 
 /*
- * State machine for electric speed control
+ * Electric motor speed control
  */
 
 static inline void govEnterSpoolupState(govState_e state)
@@ -924,7 +1074,7 @@ static void governorUpdateElectricState(void)
 
 
 /*
- * State machine for Nitro speed control
+ * Nitro/I.C. speed control
  */
 
 static void governorUpdateNitroThrottle(void)
@@ -1135,162 +1285,6 @@ static void governorUpdateNitroState(void)
 }
 
 
- /*
- * Throttle ramp up controller
- */
-
- static void govVoidInit(void)
- {
- }
-
- static float govThrottleSpoolupControl(float rate)
- {
-     // Update headspeed target
-     gov.targetHeadSpeed = gov.currentHeadSpeed;
-
-     // Throttle value
-     float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
-
-     // Limit output
-     output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
-
-     return output;
- }
-
-
- /*
- * Headspeed PI ramp up controller
- */
-
-static void govHeadspeedSpoolUpInit(void)
-{
-    // Expected PID output
-    float pidTarget = gov.throttleOutput;
-
-    // PID limits
-    gov.P = constrainf(gov.P, -GOV_SPOOLUP_P_LIMIT, GOV_SPOOLUP_P_LIMIT);
-
-    // Use gov.I to reach the target
-    gov.I = pidTarget - gov.P;
-
-    // Limited range
-    gov.I = constrainf(gov.I, 0, gov.Li);
-}
-
-static float govHeadspeedSpoolUpControl(float rate)
-{
-    // Update headspeed target
-    gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
-
-    // PID limits
-    gov.P = constrainf(gov.P, -GOV_SPOOLUP_P_LIMIT, GOV_SPOOLUP_P_LIMIT);
-    gov.I = constrainf(gov.I, 0, gov.Li);
-    gov.D = 0;
-    gov.F = 0;
-
-    // Governor PI sum
-    gov.pidSum = gov.P + gov.I + gov.C;
-
-    // Throttle value
-    float output = gov.pidSum;
-
-    // Apply gov.C if output not saturated
-    if (!((output > gov.maxSpoolupThrottle && gov.C > 0) || (output < gov.minSpoolupThrottle && gov.C < 0)))
-        gov.I += gov.C;
-
-    // Limit output
-    output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
-
-    return output;
-}
-
-
-/*
- * Full PIDF controller
- */
-
-static void govPIDInit(void)
-{
-    // Normalized battery voltage gain
-    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
-
-    // Expected PID output
-    float pidTarget = gov.throttleOutput / pidGain;
-
-    // PID limits
-    gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
-    gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
-    gov.F = constrainf(gov.F,       0, gov.Lf);
-
-    // Use gov.I to reach the target
-    gov.I = pidTarget - (gov.P + gov.D + gov.F);
-
-    // Limited range
-    gov.I = constrainf(gov.I, 0, gov.Li);
-}
-
-static float govPIDControl(float rate)
-{
-    // Update headspeed target
-    gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
-
-    // Normalized battery voltage gain
-    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
-
-    // PID limits
-    gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
-    gov.I = constrainf(gov.I,       0, gov.Li);
-    gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
-    gov.F = constrainf(gov.F,       0, gov.Lf);
-
-    // Governor PIDF sum
-    gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
-
-    // Generate throttle signal
-    float output = gov.pidSum * pidGain;
-
-    // Apply gov.C if output not saturated
-    if (!((output > gov.maxActiveThrottle && gov.C > 0) || (output < gov.minActiveThrottle && gov.C < 0)))
-        gov.I += gov.C;
-
-    // Limit output
-    output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
-
-    return output;
-}
-
-
-/*
- * Fallback controller - Base throttle + precomp
- */
-
-static float govFallbackControl(float __unused rate)
-{
-    // Precomp limits
-    gov.F = constrainf(gov.F, 0, gov.Lf);
-
-    // Governor "PID sum"
-    gov.pidSum = gov.baseThrottle + (gov.fallbackPrecompEnabled ? gov.F : 0);
-
-    // Generate throttle signal
-    float output = gov.pidSum * gov.voltageCompGain;
-
-    // Limit output
-    output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
-
-    return output;
-}
-
-
-static inline float govCalcRate(uint16_t param, uint16_t min, uint16_t max)
-{
-    if (param)
-        return 10 * pidGetDT() / constrain(param,min,max);
-    else
-        return 0;
-}
-
-
 //// Interface functions
 
 void governorUpdate(void)
@@ -1310,6 +1304,7 @@ void governorUpdate(void)
         gov.throttleOutput = gov.throttleInput;
     }
 }
+
 
 void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
@@ -1377,6 +1372,14 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.motorRPMGlitchDelta = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_DELTA;
         gov.motorRPMGlitchLimit = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_LIMIT;
     }
+}
+
+static inline float govCalcRate(uint16_t param, uint16_t min, uint16_t max)
+{
+    if (param)
+        return 10 * pidGetDT() / constrain(param,min,max);
+    else
+        return 0;
 }
 
 void INIT_CODE governorInit(const pidProfile_t *pidProfile)
