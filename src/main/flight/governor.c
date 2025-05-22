@@ -73,6 +73,9 @@ typedef struct {
     // Governor type
     govType_e       govType;
 
+    // Master governor enable
+    bool            govEnabled;
+
     // Governor features
     bool            threePosThrottleEnabled;
     bool            hsAdjustmentEnabled;
@@ -350,8 +353,10 @@ static void govDebugStats(void)
 
 static inline void govChangeState(govState_e futureState)
 {
-    gov.state = futureState;
-    gov.stateEntryTime = millis();
+    if (gov.state != futureState) {
+        gov.state = futureState;
+        gov.stateEntryTime = millis();
+    }
 }
 
 static inline long govStateTime(void)
@@ -381,7 +386,7 @@ static void govGetInputThrottle(void)
     gov.throttleInputOff = throloff;
 }
 
-static void govActiveUpdate(void)
+static void govDataUpdate(void)
 {
     // Calculate effective throttle
     govGetInputThrottle();
@@ -510,7 +515,7 @@ static void govActiveUpdate(void)
 
 
 /*
- * Throttle passthrough with ramp up limits and extra stats.
+ * Throttle passthrough with ramp up limits
  */
 
 static void governorUpdateExternalThrottle(void)
@@ -561,6 +566,12 @@ static void governorUpdateExternalState(void)
         govChangeState(GOV_STATE_THROTTLE_OFF);
     }
     else {
+        // Handle governor master ON/OFF here
+        if (!gov.govEnabled) {
+            if (gov.state != GOV_STATE_DIRECT)
+                govChangeState(GOV_STATE_DIRECT);
+        }
+
         switch (gov.state)
         {
             // Throttle is OFF
@@ -656,6 +667,19 @@ static void governorUpdateExternalState(void)
                     govChangeState(GOV_STATE_ACTIVE);
                 break;
 
+            // Governor disabled: Direct throttle to output
+            //  -- If enabled, move back to approriate state
+            case GOV_STATE_DIRECT:
+                if (gov.govEnabled) {
+                    if (gov.throttleInputOff)
+                        govChangeState(GOV_STATE_THROTTLE_OFF);
+                    else if (gov.throttleInput > gov.handoverThrottle)
+                        govChangeState(GOV_STATE_SPOOLUP);
+                    else
+                        govChangeState(GOV_STATE_THROTTLE_IDLE);
+                }
+                break;
+
             // Should not be here
             default:
                 govChangeState(GOV_STATE_THROTTLE_OFF);
@@ -738,11 +762,16 @@ static void governorUpdateElectricState(void)
         govChangeState(GOV_STATE_THROTTLE_OFF);
     }
     else {
+        // Handle governor master ON/OFF here
+        if (!gov.govEnabled) {
+            if (gov.state != GOV_STATE_DIRECT)
+                govChangeState(GOV_STATE_DIRECT);
+        }
+
         switch (gov.state)
         {
             // Throttle is OFF
             case GOV_STATE_THROTTLE_OFF:
-                gov.targetHeadSpeed = 0;
                 if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
@@ -866,6 +895,19 @@ static void governorUpdateElectricState(void)
                     govEnterFallbackState();
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState();
+                break;
+
+            // Governor disabled: Direct throttle to output
+            //  -- If enabled, move back to approriate state
+            case GOV_STATE_DIRECT:
+                if (gov.govEnabled) {
+                    if (gov.throttleInputOff)
+                        govChangeState(GOV_STATE_THROTTLE_OFF);
+                    else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
+                        govEnterSpoolupState(GOV_STATE_SPOOLUP);
+                    else
+                        govChangeState(GOV_STATE_THROTTLE_IDLE);
+                }
                 break;
 
             // Should not be here
@@ -933,11 +975,16 @@ static void governorUpdateNitroState(void)
         govChangeState(GOV_STATE_THROTTLE_OFF);
     }
     else {
+        // Handle governor master ON/OFF here
+        if (!gov.govEnabled) {
+            if (gov.state != GOV_STATE_DIRECT)
+                govChangeState(GOV_STATE_DIRECT);
+        }
+
         switch (gov.state)
         {
             // Throttle is OFF
             case GOV_STATE_THROTTLE_OFF:
-                gov.targetHeadSpeed = 0;
                 if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
@@ -1061,6 +1108,19 @@ static void governorUpdateNitroState(void)
                     govEnterFallbackState();
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState();
+                break;
+
+            // Governor disabled: Direct throttle to output
+            //  -- If enabled, move back to approriate state
+            case GOV_STATE_DIRECT:
+                if (gov.govEnabled) {
+                    if (gov.throttleInputOff)
+                        govChangeState(GOV_STATE_THROTTLE_OFF);
+                    else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
+                        govEnterSpoolupState(GOV_STATE_SPOOLUP);
+                    else
+                        govChangeState(GOV_STATE_THROTTLE_IDLE);
+                }
                 break;
 
             // Should not be here
@@ -1242,7 +1302,7 @@ void governorUpdate(void)
     if (gov.govType)
     {
         // Update internal data
-        govActiveUpdate();
+        govDataUpdate();
 
         // Run state machine
         govStateUpdate();
