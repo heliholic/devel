@@ -83,6 +83,7 @@ typedef struct {
     bool            voltageCompEnabled;
     bool            precompEnabled;
     bool            fallbackPrecompEnabled;
+    bool            directPrecompEnabled;
     bool            autoRotationEnabled;
     bool            ttaEnabled;
 
@@ -287,8 +288,8 @@ float getSpoolUpRatio(void)
         switch (gov.state)
         {
             case GOV_STATE_THROTTLE_OFF:
-            case GOV_STATE_THROTTLE_IDLE:
             case GOV_STATE_THROTTLE_LOW:
+            case GOV_STATE_THROTTLE_IDLE:
             case GOV_STATE_AUTOROTATION:
                 return 0;
 
@@ -331,8 +332,8 @@ bool isSpooledUp(void)
                 return (gov.throttleOutput > 0.333f);
 
             case GOV_STATE_THROTTLE_OFF:
-            case GOV_STATE_THROTTLE_IDLE:
             case GOV_STATE_THROTTLE_LOW:
+            case GOV_STATE_THROTTLE_IDLE:
                 return false;
         }
         return false;
@@ -396,8 +397,6 @@ static void govGetInputThrottle(void)
 
 static void govDataUpdate(void)
 {
-    gov.govEnabled = true;
-
     // Calculate effective throttle
     govGetInputThrottle();
 
@@ -421,7 +420,7 @@ static void govDataUpdate(void)
     const bool rpmError = ((gov.fullHeadSpeedRatio < GOV_HS_INVALID_RATIO || motorRPM < 10) && gov.throttleOutput > GOV_HS_INVALID_THROTTLE);
 
     // Detect RPM glitches
-    const bool rpmGlitch = (motorRPM - filteredRPM > gov.motorRPMGlitchDelta || motorRPM > gov.motorRPMGlitchLimit);
+    const bool rpmGlitch = (fabsf(motorRPM - filteredRPM) > gov.motorRPMGlitchDelta || motorRPM > gov.motorRPMGlitchLimit);
 
     // Error cases
     gov.motorRPMError = rpmError || rpmGlitch;
@@ -444,7 +443,7 @@ static void govDataUpdate(void)
     // Battery state - zero when battery unplugged
     gov.nominalVoltage = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
 
-    // Voltage & current filters
+    // Filtered voltage
     gov.motorVoltage = filterApply(&gov.motorVoltageFilter, getBatteryVoltageSample() * 0.01f);
 
     // Voltage compensation gain
@@ -463,23 +462,29 @@ static void govDataUpdate(void)
 
     // All precomps and feedforwards
     if (gov.precompEnabled) {
-        // Calculate feedforward from collective deflection
-        const float collectiveFF = gov.collectiveWeight * getCollectiveDeflectionAbs();
+        if (gov.directPrecompEnabled) {
+            // Use throttle input directly as F-term
+            gov.F = gov.throttleInput;
+        }
+        else {
+            // Calculate feedforward from collective deflection
+            const float collectiveFF = gov.collectiveWeight * getCollectiveDeflectionAbs();
 
-        // Calculate feedforward from cyclic deflection
-        const float cyclicFF = gov.cyclicWeight * getCyclicDeflection();
+            // Calculate feedforward from cyclic deflection
+            const float cyclicFF = gov.cyclicWeight * getCyclicDeflection();
 
-        // Calculate feedforward from yaw deflection
-        const float yawFF = gov.yawWeight * getYawDeflectionAbs();
+            // Calculate feedforward from yaw deflection
+            const float yawFF = gov.yawWeight * getYawDeflectionAbs();
 
-        // Total feedforward / precomp
-        float totalFF = collectiveFF + cyclicFF + yawFF;
+            // Total feedforward / precomp
+            float totalFF = collectiveFF + cyclicFF + yawFF;
 
-        // Filtered FeedForward
-        totalFF = filterApply(&gov.precompFilter, totalFF);
+            // Filtered FeedForward
+            totalFF = filterApply(&gov.precompFilter, totalFF);
 
-        // F-term
-        gov.F = gov.K * gov.Kf * totalFF;
+            // F-term
+            gov.F = gov.K * gov.Kf * totalFF;
+        }
     }
     else {
         gov.F = 0;
@@ -602,11 +607,8 @@ static float govHeadspeedSpoolUpControl(float rate)
 
 static void govPIDInit(void)
 {
-    // Normalized battery voltage gain
-    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
-
     // Expected PID output
-    float pidTarget = gov.throttleOutput / pidGain;
+    float pidTarget = gov.throttleOutput / gov.voltageCompGain;
 
     // PID limits
     gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
@@ -625,9 +627,6 @@ static float govPIDControl(float rate)
     // Update headspeed target
     gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
 
-    // Normalized battery voltage gain
-    float pidGain = gov.voltageCompEnabled ? gov.nominalVoltage / gov.motorVoltage : 1;
-
     // PID limits
     gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
     gov.I = constrainf(gov.I,       0, gov.Li);
@@ -638,7 +637,7 @@ static float govPIDControl(float rate)
     gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
 
     // Generate throttle signal
-    float output = gov.pidSum * pidGain;
+    float output = gov.pidSum * gov.voltageCompGain;
 
     // Apply gov.C if output not saturated
     if (!((output > gov.maxActiveThrottle && gov.C > 0) || (output < gov.minActiveThrottle && gov.C < 0)))
@@ -1325,6 +1324,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
         gov.precompEnabled = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
         gov.fallbackPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP) && gov.precompEnabled;
+        gov.directPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_DIRECT_PRECOMP) && gov.precompEnabled;
 
         gov.K  = pidProfile->governor.gain / 100.0f;
         gov.Kp = pidProfile->governor.p_gain / 10.0f;

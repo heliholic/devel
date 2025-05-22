@@ -46,11 +46,11 @@ typedef enum {
 enum {
     GOV_FLAG_PRECOMP            = BIT(0),
     GOV_FLAG_FALLBACK_PRECOMP   = BIT(1),
-    GOV_FLAG_VOLTAGE_COMP       = BIT(2),
-    GOV_FLAG_PID_SPOOLUP        = BIT(3),
-    GOV_FLAG_HS_ON_THROTTLE     = BIT(4),
-    GOV_FLAG_3POS_THROTTLE      = BIT(5),
-    GOV_FLAG_PID_WITH_THROTTLE  = BIT(6),
+    GOV_FLAG_DIRECT_PRECOMP     = BIT(2),
+    GOV_FLAG_VOLTAGE_COMP       = BIT(3),
+    GOV_FLAG_PID_SPOOLUP        = BIT(4),
+    GOV_FLAG_HS_ON_THROTTLE     = BIT(5),
+    GOV_FLAG_3POS_THROTTLE      = BIT(6),
 };
 
 

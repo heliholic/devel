@@ -1174,6 +1174,7 @@ const clivalue_t valueTable[] = {
 
     { "gov_precomp_enabled",        VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_voltage_comp_enabled",   VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_VOLTAGE_COMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_direct_precomp_enabled", VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_DIRECT_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_pid_spoolup_enabled",    VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PID_SPOOLUP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_hs_on_throttle",         VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_HS_ON_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_three_pos_throttle",     VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_3POS_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
