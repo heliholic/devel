@@ -40,6 +40,7 @@ typedef enum {
     GOV_STATE_FALLBACK,
     GOV_STATE_AUTOROTATION,
     GOV_STATE_BAILOUT,
+    GOV_STATE_DIRECT,
 } govState_e;
 
 enum {
