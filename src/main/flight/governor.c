@@ -568,8 +568,7 @@ static void governorUpdateExternalState(void)
     else {
         // Handle governor master ON/OFF here
         if (!gov.govEnabled) {
-            if (gov.state != GOV_STATE_DIRECT)
-                govChangeState(GOV_STATE_DIRECT);
+            govChangeState(GOV_STATE_DIRECT);
         }
 
         switch (gov.state)
@@ -764,8 +763,7 @@ static void governorUpdateElectricState(void)
     else {
         // Handle governor master ON/OFF here
         if (!gov.govEnabled) {
-            if (gov.state != GOV_STATE_DIRECT)
-                govChangeState(GOV_STATE_DIRECT);
+            govChangeState(GOV_STATE_DIRECT);
         }
 
         switch (gov.state)
@@ -977,8 +975,7 @@ static void governorUpdateNitroState(void)
     else {
         // Handle governor master ON/OFF here
         if (!gov.govEnabled) {
-            if (gov.state != GOV_STATE_DIRECT)
-                govChangeState(GOV_STATE_DIRECT);
+            govChangeState(GOV_STATE_DIRECT);
         }
 
         switch (gov.state)
