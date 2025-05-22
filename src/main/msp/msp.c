@@ -1998,7 +1998,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
 #endif
 
     case MSP_GOVERNOR_CONFIG:
-        sbufWriteU8(dst, governorConfig()->gov_type);
+        sbufWriteU8(dst, governorConfig()->gov_mode);
         sbufWriteU16(dst, governorConfig()->gov_startup_time);
         sbufWriteU16(dst, governorConfig()->gov_spoolup_time);
         sbufWriteU16(dst, governorConfig()->gov_tracking_time);
@@ -3457,7 +3457,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
 #endif
 
     case MSP_SET_GOVERNOR_CONFIG:
-        governorConfigMutable()->gov_type = sbufReadU8(src);
+        governorConfigMutable()->gov_mode = sbufReadU8(src);
         governorConfigMutable()->gov_startup_time = sbufReadU16(src);
         governorConfigMutable()->gov_spoolup_time = sbufReadU16(src);
         governorConfigMutable()->gov_tracking_time = sbufReadU16(src);

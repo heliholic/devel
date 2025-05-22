@@ -28,7 +28,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(governorConfig_t, governorConfig, PG_GOVERNOR_CONFIG, 0);
 
 PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
-    .gov_type = 0,
+    .gov_mode = 0,
     .gov_startup_time = 200,
     .gov_spoolup_time = 100,
     .gov_tracking_time = 20,

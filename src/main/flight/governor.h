@@ -24,11 +24,11 @@
 #include "flight/pid.h"
 
 typedef enum {
-    GOV_TYPE_NONE = 0,
-    GOV_TYPE_EXTERNAL,
-    GOV_TYPE_ELECTRIC,
-    GOV_TYPE_NITRO,
-} govType_e;
+    GOV_MODE_NONE = 0,
+    GOV_MODE_EXTERNAL,
+    GOV_MODE_ELECTRIC,
+    GOV_MODE_NITRO,
+} govMode_e;
 
 typedef enum {
     GOV_STATE_THROTTLE_OFF,

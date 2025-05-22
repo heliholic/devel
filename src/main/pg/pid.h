@@ -77,9 +77,8 @@ typedef struct {
 } pidTrainerMode_t;
 
 typedef struct {
-    uint16_t    flags;
+    uint32_t    flags;
     uint16_t    headspeed;
-    uint8_t     throttle_mode;
     uint8_t     idle_throttle;
     uint8_t     base_throttle;
     uint8_t     min_throttle;

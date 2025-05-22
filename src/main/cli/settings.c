@@ -468,7 +468,7 @@ static const char * const lookupTableTailMode[] = {
 };
 
 static const char * const lookupTableGovernorMode[] = {
-    "OFF", "PASSTHROUGH", "STANDARD", "MODE1", "MODE2",
+    "OFF", "EXTERNAL", "ELECTRIC", "NITRO",
 };
 
 const char * const lookupTableErrorRelaxType[] = {
@@ -926,7 +926,7 @@ const clivalue_t valueTable[] = {
     { "collective_tilt_correction_neg", VAR_INT8 | MASTER_VALUE,  .config.minmax = { -100, 100 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, collective_tilt_correction_neg) },
 
 // PG_GOVERNOR_CONFIG
-    { "gov_type",                   VAR_UINT8  |  MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_MODE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_type) },
+    { "gov_mode",                   VAR_UINT8  |  MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_MODE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_mode) },
     { "gov_startup_time",           VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_startup_time) },
     { "gov_spoolup_time",           VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_spoolup_time) },
     { "gov_tracking_time",          VAR_UINT16 |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tracking_time) },
@@ -1172,6 +1172,12 @@ const clivalue_t valueTable[] = {
     { "rescue_max_sp_accel",        VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 10000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_setpoint_accel) },
     { "rescue_max_collective",      VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_collective) },
 
+    { "gov_precomp_enabled",        VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_voltage_comp_enabled",   VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_VOLTAGE_COMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_pid_spoolup_enabled",    VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PID_SPOOLUP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_hs_on_throttle",         VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_HS_ON_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_three_pos_throttle",     VAR_UINT32 | MASTER_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_3POS_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+
     { "gov_headspeed",              VAR_UINT16 |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 50000 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.headspeed) },
     { "gov_gain",                   VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.gain) },
     { "gov_p_gain",                 VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.p_gain) },
@@ -1189,6 +1195,8 @@ const clivalue_t valueTable[] = {
     { "gov_collective_weight",      VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_weight) },
     { "gov_max_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.max_throttle) },
     { "gov_min_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.min_throttle) },
+    { "gov_idle_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.idle_throttle) },
+    { "gov_base_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_throttle) },
 
 // PG_TELEMETRY_CONFIG
 #ifdef USE_TELEMETRY

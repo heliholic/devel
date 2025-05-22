@@ -71,7 +71,7 @@
 typedef struct {
 
     // Governor type
-    govType_e       govType;
+    govMode_e       govMode;
 
     // Master governor enable
     bool            govEnabled;
@@ -210,7 +210,7 @@ static FAST_DATA_ZERO_INIT govData_t gov;
 
 typedef void  (*govStateFn)(void);
 typedef void  (*govInitFn)(void);
-typedef float (*govCtrlFn)(float arg);
+typedef float (*govCtrlFn)(float rate);
 
 static FAST_DATA_ZERO_INIT govStateFn  govStateUpdate;
 
@@ -250,7 +250,7 @@ float getTTAIncrease(void)
 
 float getFullHeadSpeedRatio(void)
 {
-    if (gov.govType  > GOV_TYPE_EXTERNAL) {
+    if (gov.govMode > GOV_MODE_EXTERNAL) {
         switch (gov.state)
         {
             case GOV_STATE_ACTIVE:
@@ -275,7 +275,7 @@ float getSpoolUpRatio(void)
     if (!ARMING_FLAG(ARMED))
         return 0;
 
-    if (gov.govType ) {
+    if (gov.govMode ) {
         switch (gov.state)
         {
             case GOV_STATE_THROTTLE_OFF:
@@ -308,7 +308,7 @@ bool isSpooledUp(void)
     if (!ARMING_FLAG(ARMED))
         return false;
 
-    if (gov.govType ) {
+    if (gov.govMode ) {
         switch (gov.state)
         {
             case GOV_STATE_ACTIVE:
@@ -443,7 +443,7 @@ static void govDataUpdate(void)
 
     // Calculate request ratio (HS or throttle)
     if (gov.throttleInput > 0) {
-        if (gov.govType == GOV_TYPE_EXTERNAL)
+        if (gov.govMode == GOV_MODE_EXTERNAL)
             gov.requestRatio = gov.throttleOutput / gov.throttleInput;
         else
             gov.requestRatio = gov.currentHeadSpeed / gov.requestedHeadSpeed;
@@ -482,7 +482,7 @@ static void govDataUpdate(void)
         float TTA = filterApply(&gov.TTAFilter, YAW) * getSpoolUpRatio() * gov.ttaGain;
         float headroom = 0;
 
-        if (gov.govType  == GOV_TYPE_ELECTRIC)
+        if (gov.govMode  == GOV_MODE_ELECTRIC)
             headroom = 2 * fmaxf(1.0f + gov.ttaLimit - gov.fullHeadSpeedRatio, 0);
         else
             headroom = gov.ttaLimit;
@@ -1290,7 +1290,7 @@ static void governorUpdateNitroState(void)
 void governorUpdate(void)
 {
     // Governor is active
-    if (gov.govType)
+    if (gov.govMode)
     {
         // Update internal data
         govDataUpdate();
@@ -1308,12 +1308,12 @@ void governorUpdate(void)
 
 void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
-    if (gov.govType)
+    if (gov.govMode)
     {
         gov.threePosThrottleEnabled = (pidProfile->governor.flags & GOV_FLAG_3POS_THROTTLE);
         gov.hsAdjustmentEnabled = (pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE) && !gov.threePosThrottleEnabled;
-        gov.pidSpoolupEnabled = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govType == GOV_TYPE_ELECTRIC);
-        gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govType == GOV_TYPE_ELECTRIC) && isBatteryVoltageConfigured();
+        gov.pidSpoolupEnabled = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govMode == GOV_MODE_ELECTRIC);
+        gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
         gov.precompEnabled = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
         gov.fallbackPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP) && gov.precompEnabled;
 
@@ -1351,7 +1351,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             gov.ttaLimit = pidProfile->governor.tta_limit / 100.0f;
             gov.ttaEnabled = true;
 
-            if (gov.govType == GOV_TYPE_ELECTRIC)
+            if (gov.govMode == GOV_MODE_ELECTRIC)
                 gov.ttaGain /= gov.K * gov.Kp;
         }
         else {
@@ -1389,32 +1389,32 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
     {
         gov.state = GOV_STATE_THROTTLE_OFF;
 
-        gov.govType = governorConfig()->gov_type;
+        gov.govMode = governorConfig()->gov_mode;
 
-        if (gov.govType > GOV_TYPE_EXTERNAL) {
+        if (gov.govMode > GOV_MODE_EXTERNAL) {
             if (!isMotorFastRpmSourceActive(0)) {
                 setArmingDisabled(ARMING_DISABLED_GOVERNOR);
                 setArmingDisabled(ARMING_DISABLED_RPM_SIGNAL);
-                gov.govType = GOV_TYPE_NONE;
+                gov.govMode = GOV_MODE_NONE;
             }
         }
 
-        switch (gov.govType)
+        switch (gov.govMode)
         {
-            case GOV_TYPE_EXTERNAL:
+            case GOV_MODE_EXTERNAL:
                 govStateUpdate = governorUpdateExternalState;
                 break;
-            case GOV_TYPE_ELECTRIC:
+            case GOV_MODE_ELECTRIC:
                 govStateUpdate = governorUpdateElectricState;
                 break;
-            case GOV_TYPE_NITRO:
+            case GOV_MODE_NITRO:
                 govStateUpdate = governorUpdateNitroState;
                 break;
             default:
                 break;
         }
 
-        if (gov.govType)
+        if (gov.govMode)
         {
             gov.mainGearRatio = getMainGearRatio();
 
