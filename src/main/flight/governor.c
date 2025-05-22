@@ -73,10 +73,10 @@ typedef struct {
     // Governor type
     govType_e       govType;
 
-    // Features
+    // Governor features
+    bool            threePosThrottleEnabled;
     bool            hsAdjustmentEnabled;
     bool            pidSpoolupEnabled;
-    bool            threePosThrottleEnabled;
     bool            voltageCompEnabled;
     bool            precompEnabled;
     bool            fallbackPrecompEnabled;
@@ -147,7 +147,7 @@ typedef struct {
     float           nominalVoltage;
 
     // Voltage compensation gain
-    float           vCompGain;
+    float           voltageCompGain;
 
     // PID terms
     float           P;
@@ -434,7 +434,7 @@ static void govActiveUpdate(void)
     gov.motorCurrent = filterApply(&gov.motorCurrentFilter, getBatteryCurrentSample() * 0.01f);
 
     // Voltage compensation gain
-    gov.vCompGain = (gov.voltageCompEnabled && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
+    gov.voltageCompGain = (gov.voltageCompEnabled && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
 
     // Calculate request ratio (HS or throttle)
     if (gov.throttleInput > 0) {
@@ -1213,10 +1213,10 @@ static float govFallbackControl(float __unused rate)
     gov.F = constrainf(gov.F, 0, gov.Lf);
 
     // Governor "PID sum"
-    gov.pidSum = gov.baseThrottle + gov.fallbackPrecompEnabled ? gov.F : 0;
+    gov.pidSum = gov.baseThrottle + (gov.fallbackPrecompEnabled ? gov.F : 0);
 
     // Generate throttle signal
-    float output = gov.pidSum * gov.vCompGain;
+    float output = gov.pidSum * gov.voltageCompGain;
 
     // Limit output
     output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
@@ -1260,10 +1260,10 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
     {
         gov.threePosThrottleEnabled = (pidProfile->governor.flags & GOV_FLAG_3POS_THROTTLE);
         gov.hsAdjustmentEnabled = (pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE) && !gov.threePosThrottleEnabled;
-        gov.pidSpoolupEnabled = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && !gov.hsAdjustmentEnabled;
+        gov.pidSpoolupEnabled = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govType == GOV_TYPE_ELECTRIC);
         gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govType == GOV_TYPE_ELECTRIC) && isBatteryVoltageConfigured();
         gov.precompEnabled = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
-        gov.fallbackPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP);
+        gov.fallbackPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP) && gov.precompEnabled;
 
         gov.K  = pidProfile->governor.gain / 100.0f;
         gov.Kp = pidProfile->governor.p_gain / 10.0f;
@@ -1277,6 +1277,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.Lf = pidProfile->governor.f_limit / 100.0f;
 
         gov.idleThrottle = pidProfile->governor.idle_throttle / 100.0f;
+        gov.baseThrottle = pidProfile->governor.base_throttle / 100.0f;
 
         gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
         gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
@@ -1313,6 +1314,8 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.fullHeadSpeed = constrainf(pidProfile->governor.headspeed, 100, 50000);
         gov.fullHeadSpeedRatio = 1;
+
+        gov.requestedHeadSpeed = gov.fullHeadSpeed;
 
         gov.motorRPMGlitchDelta = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_DELTA;
         gov.motorRPMGlitchLimit = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_LIMIT;
