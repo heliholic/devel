@@ -233,6 +233,16 @@ static void governorUpdateElectricState(void);
 
 //// Access functions
 
+bool getGovernerEnabled(void)
+{
+    return gov.govEnabled;
+}
+
+void setGovernorEnabled(bool enabled)
+{
+    gov.govEnabled = enabled && gov.govMode;
+}
+
 int getGovernorState(void)
 {
     return gov.state;
@@ -1312,8 +1322,6 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govMode)
     {
-        gov.govEnabled = true;
-
         gov.threePosThrottleEnabled = (pidProfile->governor.flags & GOV_FLAG_3POS_THROTTLE);
         gov.hsAdjustmentEnabled = (pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE) && !gov.threePosThrottleEnabled;
         gov.pidSpoolupEnabled = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govMode == GOV_MODE_ELECTRIC);
@@ -1420,6 +1428,8 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
         if (gov.govMode)
         {
+            gov.govEnabled = true;
+
             gov.mainGearRatio = getMainGearRatio();
 
             gov.autoRotationEnabled  = governorConfig()->gov_autorotation_timeout > 0;

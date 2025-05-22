@@ -59,6 +59,9 @@ void governorInitProfile(const pidProfile_t *pidProfile);
 
 void governorUpdate(void);
 
+bool getGovernerEnabled(void);
+void setGovernorEnabled(bool enabled);
+
 int getGovernorState(void);
 
 float getGovernorOutput(void);
