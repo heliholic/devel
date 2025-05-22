@@ -39,7 +39,7 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
     .gov_autorotation_min_entry_time = 50,
     .gov_handover_throttle = 20,
     .gov_pwr_filter = 5,
-    .gov_hs_filter = 10,
+    .gov_rpm_filter = 10,
     .gov_tta_filter = 0,
     .gov_ff_filter = 5,
 );

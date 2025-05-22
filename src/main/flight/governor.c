@@ -1435,14 +1435,14 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
-            const float diff_cutoff = governorConfig()->gov_hs_filter ?
-                constrainf(governorConfig()->gov_hs_filter, 1, 50) : 10;
+            const float diff_cutoff = governorConfig()->gov_rpm_filter ?
+                constrainf(governorConfig()->gov_rpm_filter, 1, 50) : 10;
 
             difFilterInit(&gov.differentiator, diff_cutoff, gyro.targetRateHz);
 
             lowpassFilterInit(&gov.motorVoltageFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.motorCurrentFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
-            lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_hs_filter, gyro.targetRateHz, 0);
+            lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.TTAFilter, LPF_PT2, governorConfig()->gov_tta_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.FFFilter, LPF_PT2, governorConfig()->gov_ff_filter, gyro.targetRateHz, 0);
 
