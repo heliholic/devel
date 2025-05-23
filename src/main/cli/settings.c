@@ -1172,12 +1172,12 @@ const clivalue_t valueTable[] = {
     { "rescue_max_sp_accel",        VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 10000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_setpoint_accel) },
     { "rescue_max_collective",      VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_collective) },
 
-    { "gov_use_precomp",            VAR_UINT16 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_voltage_comp",       VAR_UINT16 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_VOLTAGE_COMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_direct_precomp",     VAR_UINT16 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_DIRECT_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_pid_spoolup",        VAR_UINT16 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PID_SPOOLUP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_hs_on_throttle",     VAR_UINT16 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_HS_ON_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_three_pos_throttle", VAR_UINT16 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_3POS_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_precomp",            VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_voltage_comp",       VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_VOLTAGE_COMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_direct_precomp",     VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_DIRECT_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_pid_spoolup",        VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PID_SPOOLUP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_hs_on_throttle",     VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_HS_ON_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_three_pos_throttle", VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_3POS_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
 
     { "gov_headspeed",              VAR_UINT16 |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 50000 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.headspeed) },
     { "gov_gain",                   VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.gain) },
