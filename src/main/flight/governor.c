@@ -1344,7 +1344,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
 
         gov.minSpoolupThrottle = gov.idleThrottle;
-        gov.maxSpoolupThrottle = gov.maxActiveThrottle;
+        gov.maxSpoolupThrottle = gov.maxActiveThrottle * 0.95f;
 
         if (gov.pidSpoolupEnabled) {
             govSpoolupInit = govHeadspeedSpoolUpInit;
