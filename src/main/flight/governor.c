@@ -536,22 +536,41 @@ static void govVoidInit(void) { }
 
 
 /*
+ * Motor start up controller
+ */
+
+ static float govStartupControl(float rate)
+{
+    // Update headspeed target
+    gov.targetHeadSpeed = gov.currentHeadSpeed;
+
+    // Throttle value
+    float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
+
+    // Limit output
+    output = constrainf(output, gov.idleThrottle, gov.handoverThrottle);
+
+    return output;
+}
+
+
+/*
  * Throttle ramp up controller
  */
 
- static float govThrottleSpoolupControl(float rate)
- {
-     // Update headspeed target
-     gov.targetHeadSpeed = gov.currentHeadSpeed;
+static float govThrottleSpoolupControl(float rate)
+{
+    // Update headspeed target
+    gov.targetHeadSpeed = gov.currentHeadSpeed;
 
-     // Throttle value
-     float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
+    // Throttle value
+    float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
 
-     // Limit output
-     output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+    // Limit output
+    output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
 
-     return output;
- }
+    return output;
+}
 
 
 /*
@@ -884,7 +903,7 @@ static void governorUpdateElectricThrottle(void)
             throttle = 0;
             break;
         case GOV_STATE_THROTTLE_IDLE:
-            throttle = govThrottleSpoolupControl(gov.throttleStartupRate);
+            throttle = govStartupControl(gov.throttleStartupRate);
             break;
         case GOV_STATE_SPOOLUP:
             throttle = govSpoolupControl(gov.throttleSpoolupRate);
