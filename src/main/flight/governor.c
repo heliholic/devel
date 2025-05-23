@@ -974,7 +974,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1186,7 +1186,7 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1363,7 +1363,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
 
         gov.minSpoolupThrottle = gov.idleThrottle;
-        gov.maxSpoolupThrottle = gov.maxActiveThrottle * 0.95f;
+        gov.maxSpoolupThrottle = gov.maxActiveThrottle;
 
         if (gov.pidSpoolupEnabled) {
             govSpoolupInit = govHeadspeedSpoolUpInit;
