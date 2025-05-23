@@ -77,13 +77,13 @@ typedef struct {
     bool            govEnabled;
 
     // Governor features
-    bool            threePosThrottleEnabled;
-    bool            hsAdjustmentEnabled;
-    bool            pidSpoolupEnabled;
-    bool            voltageCompEnabled;
-    bool            precompEnabled;
-    bool            fallbackPrecompEnabled;
-    bool            directPrecompEnabled;
+    bool            useThreePosThrottle;
+    bool            useHsAdjustment;
+    bool            usePidSpoolup;
+    bool            useVoltageComp;
+    bool            usePrecomp;
+    bool            useFallbackPrecomp;
+    bool            useDirectPrecomp;
     bool            autoRotationEnabled;
     bool            ttaEnabled;
 
@@ -378,7 +378,7 @@ static void govGetInputThrottle(void)
     bool throloff = (getThrottleStatus() == THROTTLE_LOW);
     float throttle = getThrottle();
 
-    if (gov.threePosThrottleEnabled) {
+    if (gov.useThreePosThrottle) {
         if (throttle < 0.333f) {
             throttle = 0;
             throloff = true;
@@ -413,7 +413,7 @@ static void govDataUpdate(void)
     gov.fullHeadSpeedRatio = gov.currentHeadSpeed / gov.fullHeadSpeed;
 
     // Update headspeed target
-    if (gov.hsAdjustmentEnabled)
+    if (gov.useHsAdjustment)
         gov.requestedHeadSpeed = gov.throttleInput * gov.fullHeadSpeed;
 
     // Detect stuck motor / startup problem
@@ -447,7 +447,7 @@ static void govDataUpdate(void)
     gov.motorVoltage = filterApply(&gov.motorVoltageFilter, getBatteryVoltageSample() * 0.01f);
 
     // Voltage compensation gain
-    gov.voltageCompGain = (gov.voltageCompEnabled && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
+    gov.voltageCompGain = (gov.useVoltageComp && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
 
     // Calculate request ratio (HS or throttle)
     if (gov.throttleInput > 0) {
@@ -461,8 +461,8 @@ static void govDataUpdate(void)
     }
 
     // All precomps and feedforwards
-    if (gov.precompEnabled) {
-        if (gov.directPrecompEnabled) {
+    if (gov.usePrecomp) {
+        if (gov.useDirectPrecomp) {
             // Use throttle input directly as F-term
             gov.F = gov.throttleInput;
         }
@@ -679,7 +679,7 @@ static float govFallbackControl(float __unused rate)
     gov.F = constrainf(gov.F, 0, gov.Lf);
 
     // Governor "PID sum"
-    gov.pidSum = gov.baseThrottle + (gov.fallbackPrecompEnabled ? gov.F : 0);
+    gov.pidSum = gov.baseThrottle + (gov.useFallbackPrecomp ? gov.F : 0);
 
     // Generate throttle signal
     float output = gov.pidSum * gov.voltageCompGain;
@@ -1335,13 +1335,13 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govMode)
     {
-        gov.threePosThrottleEnabled = (pidProfile->governor.flags & GOV_FLAG_3POS_THROTTLE);
-        gov.hsAdjustmentEnabled = (pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE) && !gov.threePosThrottleEnabled;
-        gov.pidSpoolupEnabled = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govMode == GOV_MODE_ELECTRIC);
-        gov.voltageCompEnabled = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
-        gov.precompEnabled = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
-        gov.fallbackPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP) && gov.precompEnabled;
-        gov.directPrecompEnabled = (pidProfile->governor.flags & GOV_FLAG_DIRECT_PRECOMP) && gov.precompEnabled;
+        gov.useThreePosThrottle = (pidProfile->governor.flags & GOV_FLAG_3POS_THROTTLE);
+        gov.useHsAdjustment = (pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE) && !gov.useThreePosThrottle;
+        gov.usePidSpoolup = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govMode == GOV_MODE_ELECTRIC);
+        gov.useVoltageComp = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
+        gov.usePrecomp = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
+        gov.useFallbackPrecomp = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP) && gov.usePrecomp;
+        gov.useDirectPrecomp = (pidProfile->governor.flags & GOV_FLAG_DIRECT_PRECOMP) && gov.usePrecomp;
 
         gov.K  = pidProfile->governor.gain / 100.0f;
         gov.Kp = pidProfile->governor.p_gain / 10.0f;
@@ -1363,7 +1363,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.minSpoolupThrottle = gov.idleThrottle;
         gov.maxSpoolupThrottle = gov.maxActiveThrottle;
 
-        if (gov.pidSpoolupEnabled) {
+        if (gov.usePidSpoolup) {
             govSpoolupInit = govHeadspeedSpoolUpInit;
             govSpoolupControl = govHeadspeedSpoolUpControl;
         }
