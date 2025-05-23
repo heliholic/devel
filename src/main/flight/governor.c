@@ -974,7 +974,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
                     govEnterActiveState();
                 break;
 
@@ -1004,10 +1004,8 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.motorRPMPresent) {
-                    if (gov.throttleInput > gov.handoverThrottle)
-                        govEnterSpoolupState(GOV_STATE_RECOVERY);
-                }
+                else if (gov.motorRPMPresent)
+                    govEnterSpoolupState(GOV_STATE_RECOVERY);
                 break;
 
             // Throttle is off or low. If it is a mistake, give a chance to recover
@@ -1037,7 +1035,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
                     govEnterActiveState();
                 break;
 
@@ -1068,7 +1066,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_AUTOROTATION);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
                     govEnterActiveState();
                 break;
 
@@ -1186,7 +1184,7 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
                     govEnterActiveState();
                 break;
 
