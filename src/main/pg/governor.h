@@ -28,7 +28,7 @@ typedef struct governorConfig_s {
     uint16_t gov_spoolup_time;
     uint16_t gov_tracking_time;
     uint16_t gov_recovery_time;
-    uint16_t gov_zero_throttle_timeout;
+    uint16_t gov_low_throttle_timeout;
     uint16_t gov_lost_headspeed_timeout;
     uint16_t gov_autorotation_timeout;
     uint16_t gov_autorotation_min_entry_time;

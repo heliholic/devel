@@ -192,7 +192,7 @@ typedef struct {
     long            autoTimeout;
 
     // Timeouts
-    long            zeroThrottleTimeout;
+    long            lowThrottleTimeout;
 
     // Throttle change rates
     float           throttleStartupRate;
@@ -799,7 +799,7 @@ static void governorUpdateExternalState(void)
             case GOV_STATE_THROTTLE_LOW:
                 if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_RECOVERY);
-                else if (govStateTime() > gov.zeroThrottleTimeout) {
+                else if (govStateTime() > gov.lowThrottleTimeout) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
                     else
@@ -1014,7 +1014,7 @@ static void governorUpdateElectricState(void)
             case GOV_STATE_THROTTLE_LOW:
                 if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govChangeState(GOV_STATE_RECOVERY);
-                else if (govStateTime() > gov.zeroThrottleTimeout) {
+                else if (govStateTime() > gov.lowThrottleTimeout) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
                     else
@@ -1224,7 +1224,7 @@ static void governorUpdateNitroState(void)
             case GOV_STATE_THROTTLE_LOW:
                 if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govChangeState(GOV_STATE_RECOVERY);
-                else if (govStateTime() > gov.zeroThrottleTimeout) {
+                else if (govStateTime() > gov.lowThrottleTimeout) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
                     else
@@ -1453,7 +1453,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             gov.throttleTrackingRate = govCalcRate(governorConfig()->gov_tracking_time, 1, 100);
             gov.throttleRecoveryRate = govCalcRate(governorConfig()->gov_recovery_time, 1, 100);
 
-            gov.zeroThrottleTimeout  = governorConfig()->gov_zero_throttle_timeout * 100;
+            gov.lowThrottleTimeout  = governorConfig()->gov_low_throttle_timeout * 100;
 
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
