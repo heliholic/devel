@@ -724,9 +724,9 @@ static void governorUpdateExternalThrottle(void)
     switch (gov.state)
     {
         case GOV_STATE_THROTTLE_OFF:
-        case GOV_STATE_THROTTLE_LOW:
             throttle = 0;
             break;
+        case GOV_STATE_THROTTLE_LOW:
         case GOV_STATE_THROTTLE_IDLE:
             throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleStartupRate);
             break;
@@ -821,12 +821,8 @@ static void governorUpdateExternalState(void)
             case GOV_STATE_THROTTLE_LOW:
                 if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_RECOVERY);
-                else if (govStateTime() > gov.lowThrottleTimeout) {
-                    if (gov.throttleInputOff)
-                        govChangeState(GOV_STATE_THROTTLE_OFF);
-                    else
-                        govChangeState(GOV_STATE_THROTTLE_IDLE);
-                }
+                else if (govStateTime() > gov.lowThrottleTimeout)
+                    govChangeState(GOV_STATE_THROTTLE_OFF);
                 break;
 
             // Follow the throttle, with a high(er) ramp rate.
