@@ -1356,8 +1356,8 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.usePidSpoolup = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govMode == GOV_MODE_ELECTRIC);
         gov.useVoltageComp = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
         gov.usePrecomp = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
+        gov.useDirectPrecomp = (pidProfile->governor.flags & GOV_FLAG_DIRECT_PRECOMP) && gov.usePrecomp && !gov.useHsAdjustment;
         gov.useFallbackPrecomp = (pidProfile->governor.flags & GOV_FLAG_FALLBACK_PRECOMP) && gov.usePrecomp;
-        gov.useDirectPrecomp = (pidProfile->governor.flags & GOV_FLAG_DIRECT_PRECOMP) && gov.usePrecomp;
 
         gov.K  = pidProfile->governor.gain / 100.0f;
         gov.Kp = pidProfile->governor.p_gain / 10.0f;
