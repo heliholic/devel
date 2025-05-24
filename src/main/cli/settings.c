@@ -1198,6 +1198,7 @@ const clivalue_t valueTable[] = {
     { "gov_min_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.min_throttle) },
     { "gov_idle_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.idle_throttle) },
     { "gov_base_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_throttle) },
+    { "gov_auto_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.auto_throttle) },
 
 // PG_TELEMETRY_CONFIG
 #ifdef USE_TELEMETRY

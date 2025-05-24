@@ -105,6 +105,9 @@ typedef struct {
     // Idle throttle level
     float           idleThrottle;
 
+    // Autorotation throttle level
+    float           autoThrottle;
+
     // Handover level
     float           handoverThrottle;
 
@@ -539,7 +542,7 @@ static void govVoidInit(void) { }
  * Motor start up controller
  */
 
- static float govStartupControl(float rate)
+ static float govThrottleStartupControl(float rate)
 {
     // Update headspeed target
     gov.targetHeadSpeed = gov.currentHeadSpeed;
@@ -568,6 +571,25 @@ static float govThrottleSpoolupControl(float rate)
 
     // Limit output
     output = constrainf(output, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+
+    return output;
+}
+
+
+/*
+ * Autorotation throttle controller
+ */
+
+ static float govThrottleAutorotationControl(float rate)
+{
+    // Update headspeed target
+    gov.targetHeadSpeed = gov.currentHeadSpeed;
+
+    // Throttle value
+    float output = slewUpLimit(gov.throttleOutput, gov.throttleInput, rate);
+
+    // Limit output
+    output = constrainf(output, gov.autoThrottle, gov.handoverThrottle);
 
     return output;
 }
@@ -903,7 +925,7 @@ static void governorUpdateElectricThrottle(void)
             break;
         case GOV_STATE_THROTTLE_LOW:
         case GOV_STATE_THROTTLE_IDLE:
-            throttle = govStartupControl(gov.throttleStartupRate);
+            throttle = govThrottleStartupControl(gov.throttleStartupRate);
             break;
         case GOV_STATE_SPOOLUP:
             throttle = govSpoolupControl(gov.throttleSpoolupRate);
@@ -915,7 +937,7 @@ static void governorUpdateElectricThrottle(void)
             throttle = govFallbackControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_AUTOROTATION:
-            throttle = govThrottleSpoolupControl(gov.throttleTrackingRate);
+            throttle = govThrottleAutorotationControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_RECOVERY:
         case GOV_STATE_BAILOUT:
@@ -1113,7 +1135,7 @@ static void governorUpdateNitroThrottle(void)
             break;
         case GOV_STATE_THROTTLE_LOW:
         case GOV_STATE_THROTTLE_IDLE:
-            throttle = govStartupControl(gov.throttleStartupRate);
+            throttle = govThrottleStartupControl(gov.throttleStartupRate);
             break;
         case GOV_STATE_SPOOLUP:
             throttle = govThrottleSpoolupControl(gov.throttleSpoolupRate);
@@ -1125,7 +1147,7 @@ static void governorUpdateNitroThrottle(void)
             throttle = govFallbackControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_AUTOROTATION:
-            throttle = govThrottleSpoolupControl(gov.throttleTrackingRate);
+            throttle = govThrottleAutorotationControl(gov.throttleTrackingRate);
             break;
         case GOV_STATE_RECOVERY:
         case GOV_STATE_BAILOUT:
@@ -1354,6 +1376,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.idleThrottle = pidProfile->governor.idle_throttle / 100.0f;
         gov.baseThrottle = pidProfile->governor.base_throttle / 100.0f;
+        gov.autoThrottle = pidProfile->governor.auto_throttle / 100.0f;
 
         gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
         gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;

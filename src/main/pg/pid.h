@@ -81,6 +81,7 @@ typedef struct {
     uint16_t    headspeed;
     uint8_t     idle_throttle;
     uint8_t     base_throttle;
+    uint8_t     auto_throttle;
     uint8_t     min_throttle;
     uint8_t     max_throttle;
     uint8_t     gain;
