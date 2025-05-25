@@ -105,7 +105,13 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .rescue.max_collective = 500,
         .rescue.max_setpoint_rate = 300,
         .rescue.max_setpoint_accel = 3000,
+        .governor.flags = 0,
         .governor.headspeed = 1000,
+        .governor.idle_throttle = 0,
+        .governor.base_throttle = 0,
+        .governor.auto_throttle = 0,
+        .governor.max_throttle = 100,
+        .governor.min_throttle = 10,
         .governor.gain = 40,
         .governor.p_gain = 40,
         .governor.i_gain = 50,
@@ -117,10 +123,10 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .governor.f_limit = 50,
         .governor.tta_gain = 0,
         .governor.tta_limit = 20,
-        .governor.cyclic_ff_weight = 10,
-        .governor.collective_ff_weight = 100,
-        .governor.max_throttle = 100,
-        .governor.min_throttle = 10,
+        .governor.yaw_weight = 10,
+        .governor.cyclic_weight = 10,
+        .governor.collective_weight = 50,
+        .governor.precomp_curve = 0,
     );
 }
 
