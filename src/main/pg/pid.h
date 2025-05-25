@@ -77,7 +77,13 @@ typedef struct {
 } pidTrainerMode_t;
 
 typedef struct {
+    uint32_t    flags;
     uint16_t    headspeed;
+    uint8_t     idle_throttle;
+    uint8_t     base_throttle;
+    uint8_t     auto_throttle;
+    uint8_t     min_throttle;
+    uint8_t     max_throttle;
     uint8_t     gain;
     uint8_t     p_gain;
     uint8_t     i_gain;
@@ -89,11 +95,10 @@ typedef struct {
     uint8_t     f_limit;
     uint8_t     tta_gain;
     uint8_t     tta_limit;
-    uint8_t     yaw_ff_weight;
-    uint8_t     cyclic_ff_weight;
-    uint8_t     collective_ff_weight;
-    uint8_t     max_throttle;
-    uint8_t     min_throttle;
+    uint8_t     yaw_weight;
+    uint8_t     cyclic_weight;
+    uint8_t     collective_weight;
+    uint8_t     precomp_curve;
 } governorProfile_t;
 
 typedef struct {
