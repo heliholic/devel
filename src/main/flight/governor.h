@@ -24,30 +24,49 @@
 #include "flight/pid.h"
 
 typedef enum {
-    GM_OFF = 0,
-    GM_PASSTHROUGH,
-    GM_STANDARD,
-    GM_MODE1,
-    GM_MODE2,
+    GOV_MODE_NONE = 0,
+    GOV_MODE_EXTERNAL,
+    GOV_MODE_ELECTRIC,
+    GOV_MODE_NITRO,
 } govMode_e;
 
 typedef enum {
-    GS_THROTTLE_OFF,
-    GS_THROTTLE_IDLE,
-    GS_SPOOLING_UP,
-    GS_RECOVERY,
-    GS_ACTIVE,
-    GS_ZERO_THROTTLE,
-    GS_LOST_HEADSPEED,
-    GS_AUTOROTATION,
-    GS_AUTOROTATION_BAILOUT,
+    GOV_STATE_THROTTLE_OFF,
+    GOV_STATE_THROTTLE_IDLE,
+    GOV_STATE_SPOOLUP,
+    GOV_STATE_RECOVERY,
+    GOV_STATE_ACTIVE,
+    GOV_STATE_THROTTLE_LOW,
+    GOV_STATE_FALLBACK,
+    GOV_STATE_AUTOROTATION,
+    GOV_STATE_BAILOUT,
+    GOV_STATE_DIRECT,
 } govState_e;
 
+enum {
+    GOV_FLAG_PRECOMP            = BIT(0),
+    GOV_FLAG_DIRECT_PRECOMP     = BIT(1),
+    GOV_FLAG_VOLTAGE_COMP       = BIT(2),
+    GOV_FLAG_PID_SPOOLUP        = BIT(3),
+    GOV_FLAG_HS_ON_THROTTLE     = BIT(4),
+    GOV_FLAG_3POS_THROTTLE      = BIT(5),
+};
+
+typedef enum {
+    GOV_DRAG_LINEAR = 0,
+    GOV_DRAG_SEMI_QUADRATIC,
+    GOV_DRAG_QUADRATIC,
+    GOV_DRAG_SEMI_CUBIC,
+    GOV_DRAG_CUBIC,
+} govDragCurve_e;
 
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);
 
 void governorUpdate(void);
+
+bool getGovernerEnabled(void);
+void setGovernorEnabled(bool enabled);
 
 int getGovernorState(void);
 
