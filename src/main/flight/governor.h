@@ -44,21 +44,22 @@ typedef enum {
 } govState_e;
 
 enum {
-    GOV_FLAG_PRECOMP            = BIT(0),
-    GOV_FLAG_DIRECT_PRECOMP     = BIT(1),
-    GOV_FLAG_VOLTAGE_COMP       = BIT(2),
-    GOV_FLAG_PID_SPOOLUP        = BIT(3),
-    GOV_FLAG_HS_ON_THROTTLE     = BIT(4),
-    GOV_FLAG_3POS_THROTTLE      = BIT(5),
+    GOV_FLAG_PRECOMP,
+    GOV_FLAG_FALLBACK_PRECOMP,
+    GOV_FLAG_DIRECT_PRECOMP,
+    GOV_FLAG_VOLTAGE_COMP,
+    GOV_FLAG_PID_SPOOLUP,
+    GOV_FLAG_HS_ON_THROTTLE,
+    GOV_FLAG_3POS_THROTTLE,
 };
 
 typedef enum {
-    GOV_DRAG_LINEAR = 0,
-    GOV_DRAG_SEMI_QUADRATIC,
-    GOV_DRAG_QUADRATIC,
-    GOV_DRAG_SEMI_CUBIC,
-    GOV_DRAG_CUBIC,
-} govDragCurve_e;
+    GOV_CURVE_LINEAR = 0,
+    GOV_CURVE_SEMI_QUADRATIC,
+    GOV_CURVE_QUADRATIC,
+    GOV_CURVE_SEMI_CUBIC,
+    GOV_CURVE_CUBIC,
+} govCurve_e;
 
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);
