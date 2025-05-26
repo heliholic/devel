@@ -426,6 +426,9 @@ static float dragCurve(float angle)
 
 static void govDataUpdate(void)
 {
+    // Get governor mode flags
+    gov.govEnabled = !IS_RC_MODE_ACTIVE(BOXGOVERNORDISABLE);
+
     // Calculate effective throttle
     govGetInputThrottle();
 
