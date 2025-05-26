@@ -82,6 +82,7 @@ typedef struct {
     bool            usePidSpoolup;
     bool            useVoltageComp;
     bool            usePrecomp;
+    bool            useFallbackPrecomp;
     bool            useDirectPrecomp;
     bool            autoRotationEnabled;
     bool            ttaEnabled;
@@ -178,7 +179,7 @@ typedef struct {
     float           Lf;
 
     // Feedforward
-    govDragCurve_e  dragCurve;
+    govCurve_e      precompCurve;
     float           yawWeight;
     float           cyclicWeight;
     float           collectiveWeight;
@@ -348,6 +349,16 @@ bool isSpooledUp(void)
     return false;
 }
 
+bool isAutorotation(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXAUTOROTATION);
+}
+
+bool isGovDisabled(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXGOVERNORDISABLE);
+}
+
 
 //// Internal functions
 
@@ -398,24 +409,24 @@ static void govGetInputThrottle(void)
     gov.throttleInputOff = throloff;
 }
 
-static float dragCurve(float angle)
+static float precompCurve(float angle)
 {
     float drag = 0;
 
-    switch (gov.dragCurve) {
-        case GOV_DRAG_LINEAR:
+    switch (gov.precompCurve) {
+        case GOV_CURVE_LINEAR:
             drag = angle;
             break;
-        case GOV_DRAG_SEMI_QUADRATIC:
+        case GOV_CURVE_SEMI_QUADRATIC:
             drag = angle * sqrtf(angle);
             break;
-        case GOV_DRAG_QUADRATIC:
+        case GOV_CURVE_QUADRATIC:
             drag = angle * angle;
             break;
-        case GOV_DRAG_SEMI_CUBIC:
+        case GOV_CURVE_SEMI_CUBIC:
             drag = angle * angle * sqrtf(angle);
             break;
-        case GOV_DRAG_CUBIC:
+        case GOV_CURVE_CUBIC:
             drag = angle * angle * angle;
             break;
     }
@@ -425,6 +436,9 @@ static float dragCurve(float angle)
 
 static void govDataUpdate(void)
 {
+    // Get governor flags
+    gov.govEnabled = !isGovDisabled();
+
     // Calculate effective throttle
     govGetInputThrottle();
 
@@ -505,7 +519,7 @@ static void govDataUpdate(void)
             const float yawFF = gov.yawWeight * getYawDeflectionAbs();
 
             // Total feedforward / precomp
-            float totalFF = dragCurve(collectiveFF + cyclicFF + yawFF);
+            float totalFF = precompCurve(collectiveFF + cyclicFF + yawFF);
 
             // Filtered FeedForward
             totalFF = filterApply(&gov.precompFilter, totalFF);
@@ -722,11 +736,14 @@ static float govPIDControl(float rate)
 
 static float govFallbackControl(float __unused rate)
 {
+    // Precomp limits
+    gov.F = constrainf(gov.F, 0, gov.Lf);
+
     // Governor "PID sum"
-    gov.pidSum = 0;
+    gov.pidSum = gov.baseThrottle + (gov.useFallbackPrecomp ? gov.F : 0);
 
     // Generate throttle signal
-    float output = gov.baseThrottle * gov.voltageCompGain;
+    float output = gov.pidSum * gov.voltageCompGain;
 
     // Limit output
     output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
@@ -830,7 +847,7 @@ static void governorUpdateExternalState(void)
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
+                    if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -867,7 +884,7 @@ static void governorUpdateExternalState(void)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput > gov.handoverThrottle)
                     govChangeState(GOV_STATE_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
+                else if (!isAutorotation())
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -884,7 +901,7 @@ static void governorUpdateExternalState(void)
                 break;
 
             // Governor disabled: Direct throttle to output
-            //  -- If enabled, move back to approriate state
+            //  -- If governor enabled, move back to approriate state
             case GOV_STATE_DIRECT:
                 if (gov.govEnabled) {
                     if (gov.throttleInputOff)
@@ -1014,7 +1031,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.9f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1028,7 +1045,7 @@ static void governorUpdateElectricState(void)
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
+                    if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -1075,7 +1092,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.9f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1089,7 +1106,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
+                else if (!isAutorotation())
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -1106,12 +1123,12 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_AUTOROTATION);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.9f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
             // Governor disabled: Direct throttle to output
-            //  -- If enabled, move back to approriate state
+            //  -- If governor enabled, move back to approriate state
             case GOV_STATE_DIRECT:
                 if (gov.govEnabled) {
                     if (gov.throttleInputOff)
@@ -1224,7 +1241,7 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.9f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1238,7 +1255,7 @@ static void governorUpdateNitroState(void)
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
+                    if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -1285,7 +1302,7 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.9f || gov.throttleOutput > gov.maxActiveThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1299,7 +1316,7 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
+                else if (!isAutorotation())
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -1316,12 +1333,12 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_AUTOROTATION);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.9f || gov.throttleOutput > gov.maxActiveThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxActiveThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
             // Governor disabled: Direct throttle to output
-            //  -- If enabled, move back to approriate state
+            //  -- If governor enabled, move back to approriate state
             case GOV_STATE_DIRECT:
                 if (gov.govEnabled) {
                     if (gov.throttleInputOff)
@@ -1373,12 +1390,12 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govMode)
     {
-        gov.useThreePosThrottle = (pidProfile->governor.flags & GOV_FLAG_3POS_THROTTLE);
-        gov.useHsAdjustment = (pidProfile->governor.flags & GOV_FLAG_HS_ON_THROTTLE) && !gov.useThreePosThrottle;
-        gov.usePidSpoolup = (pidProfile->governor.flags & GOV_FLAG_PID_SPOOLUP) && (gov.govMode == GOV_MODE_ELECTRIC);
-        gov.useVoltageComp = (pidProfile->governor.flags & GOV_FLAG_VOLTAGE_COMP) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
-        gov.usePrecomp = (pidProfile->governor.flags & GOV_FLAG_PRECOMP);
-        gov.useDirectPrecomp = (pidProfile->governor.flags & GOV_FLAG_DIRECT_PRECOMP) && gov.usePrecomp && !gov.useHsAdjustment;
+        gov.useThreePosThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE));
+        gov.useHsAdjustment = (pidProfile->governor.flags & BIT(GOV_FLAG_HS_ON_THROTTLE)) && !gov.useThreePosThrottle;
+        gov.usePidSpoolup = (pidProfile->governor.flags & BIT(GOV_FLAG_PID_SPOOLUP)) && (gov.govMode == GOV_MODE_ELECTRIC);
+        gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
+        gov.usePrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_PRECOMP));
+        gov.useDirectPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_DIRECT_PRECOMP)) && gov.usePrecomp && !gov.useHsAdjustment;
 
         gov.K  = pidProfile->governor.gain / 100.0f;
         gov.Kp = pidProfile->governor.p_gain / 10.0f;
@@ -1424,7 +1441,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             gov.ttaEnabled = false;
         }
 
-        gov.dragCurve = pidProfile->governor.drag_curve;
+        gov.precompCurve = pidProfile->governor.precomp_curve;
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
         gov.collectiveWeight = pidProfile->governor.collective_weight / 100.0f;
@@ -1484,10 +1501,6 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             gov.govEnabled = true;
 
             gov.mainGearRatio = getMainGearRatio();
-
-            gov.autoRotationEnabled  = governorConfig()->gov_autorotation_timeout > 0;
-            gov.autoTimeout  = governorConfig()->gov_autorotation_timeout * 100;
-            gov.autoMinEntry = governorConfig()->gov_autorotation_min_entry_time * 100;
 
             gov.throttleStartupRate  = govCalcRate(governorConfig()->gov_startup_time, 1, 600);
             gov.throttleSpoolupRate  = govCalcRate(governorConfig()->gov_spoolup_time, 1, 600);
