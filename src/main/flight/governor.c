@@ -82,6 +82,7 @@ typedef struct {
     bool            usePidSpoolup;
     bool            useVoltageComp;
     bool            usePrecomp;
+    bool            useFallbackPrecomp;
     bool            useDirectPrecomp;
     bool            autoRotationEnabled;
     bool            ttaEnabled;
@@ -722,11 +723,14 @@ static float govPIDControl(float rate)
 
 static float govFallbackControl(float __unused rate)
 {
+    // Precomp limits
+    gov.F = constrainf(gov.F, 0, gov.Lf);
+
     // Governor "PID sum"
-    gov.pidSum = 0;
+    gov.pidSum = gov.baseThrottle + (gov.useFallbackPrecomp ? gov.F : 0);
 
     // Generate throttle signal
-    float output = gov.baseThrottle * gov.voltageCompGain;
+    float output = gov.pidSum * gov.voltageCompGain;
 
     // Limit output
     output = constrainf(output, gov.minActiveThrottle, gov.maxActiveThrottle);
