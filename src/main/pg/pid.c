@@ -123,6 +123,10 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .governor.f_limit = 50,
         .governor.tta_gain = 0,
         .governor.tta_limit = 20,
+        .governor.yaw_weight = 10,
+        .governor.cyclic_weight = 10,
+        .governor.collective_weight = 50,
+        .governor.precomp_curve = 0,
     );
 }
 

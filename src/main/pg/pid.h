@@ -95,10 +95,10 @@ typedef struct {
     uint8_t     f_limit;
     uint8_t     tta_gain;
     uint8_t     tta_limit;
-    uint8_t     drag_curve;
     uint8_t     yaw_weight;
     uint8_t     cyclic_weight;
     uint8_t     collective_weight;
+    uint8_t     precomp_curve;
 } governorProfile_t;
 
 typedef struct {

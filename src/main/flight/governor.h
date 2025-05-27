@@ -54,12 +54,12 @@ enum {
 };
 
 typedef enum {
-    GOV_DRAG_LINEAR = 0,
-    GOV_DRAG_SEMI_QUADRATIC,
-    GOV_DRAG_QUADRATIC,
-    GOV_DRAG_SEMI_CUBIC,
-    GOV_DRAG_CUBIC,
-} govDragCurve_e;
+    GOV_CURVE_LINEAR = 0,
+    GOV_CURVE_SEMI_QUADRATIC,
+    GOV_CURVE_QUADRATIC,
+    GOV_CURVE_SEMI_CUBIC,
+    GOV_CURVE_CUBIC,
+} govCurve_e;
 
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);

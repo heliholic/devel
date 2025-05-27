@@ -179,7 +179,7 @@ typedef struct {
     float           Lf;
 
     // Feedforward
-    govDragCurve_e  dragCurve;
+    govCurve_e      precompCurve;
     float           yawWeight;
     float           cyclicWeight;
     float           collectiveWeight;
@@ -399,24 +399,24 @@ static void govGetInputThrottle(void)
     gov.throttleInputOff = throloff;
 }
 
-static float dragCurve(float angle)
+static float precompCurve(float angle)
 {
     float drag = 0;
 
-    switch (gov.dragCurve) {
-        case GOV_DRAG_LINEAR:
+    switch (gov.precompCurve) {
+        case GOV_CURVE_LINEAR:
             drag = angle;
             break;
-        case GOV_DRAG_SEMI_QUADRATIC:
+        case GOV_CURVE_SEMI_QUADRATIC:
             drag = angle * sqrtf(angle);
             break;
-        case GOV_DRAG_QUADRATIC:
+        case GOV_CURVE_QUADRATIC:
             drag = angle * angle;
             break;
-        case GOV_DRAG_SEMI_CUBIC:
+        case GOV_CURVE_SEMI_CUBIC:
             drag = angle * angle * sqrtf(angle);
             break;
-        case GOV_DRAG_CUBIC:
+        case GOV_CURVE_CUBIC:
             drag = angle * angle * angle;
             break;
     }
@@ -509,7 +509,7 @@ static void govDataUpdate(void)
             const float yawFF = gov.yawWeight * getYawDeflectionAbs();
 
             // Total feedforward / precomp
-            float totalFF = dragCurve(collectiveFF + cyclicFF + yawFF);
+            float totalFF = precompCurve(collectiveFF + cyclicFF + yawFF);
 
             // Filtered FeedForward
             totalFF = filterApply(&gov.precompFilter, totalFF);
@@ -1431,7 +1431,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             gov.ttaEnabled = false;
         }
 
-        gov.dragCurve = pidProfile->governor.drag_curve;
+        gov.precompCurve = pidProfile->governor.precomp_curve;
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
         gov.collectiveWeight = pidProfile->governor.collective_weight / 100.0f;
