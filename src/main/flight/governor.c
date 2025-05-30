@@ -436,7 +436,7 @@ static float precompCurve(float angle)
 
 static void govDataUpdate(void)
 {
-    // Get governor mode flags
+    // Get governor flags
     gov.govEnabled = !isGovDisabled();
 
     // Calculate effective throttle
