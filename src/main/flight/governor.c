@@ -354,6 +354,11 @@ bool isAutorotation(void)
     return IS_RC_MODE_ACTIVE(BOXAUTOROTATION);
 }
 
+bool isGovDisabled(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXGOVERNORDISABLE);
+}
+
 
 //// Internal functions
 
@@ -432,7 +437,7 @@ static float precompCurve(float angle)
 static void govDataUpdate(void)
 {
     // Get governor mode flags
-    gov.govEnabled = !IS_RC_MODE_ACTIVE(BOXGOVERNORDISABLE);
+    gov.govEnabled = !isGovDisabled();
 
     // Calculate effective throttle
     govGetInputThrottle();
@@ -896,7 +901,7 @@ static void governorUpdateExternalState(void)
                 break;
 
             // Governor disabled: Direct throttle to output
-            //  -- If enabled, move back to approriate state
+            //  -- If governor enabled, move back to approriate state
             case GOV_STATE_DIRECT:
                 if (gov.govEnabled) {
                     if (gov.throttleInputOff)
@@ -1123,7 +1128,7 @@ static void governorUpdateElectricState(void)
                 break;
 
             // Governor disabled: Direct throttle to output
-            //  -- If enabled, move back to approriate state
+            //  -- If governor enabled, move back to approriate state
             case GOV_STATE_DIRECT:
                 if (gov.govEnabled) {
                     if (gov.throttleInputOff)
@@ -1333,7 +1338,7 @@ static void governorUpdateNitroState(void)
                 break;
 
             // Governor disabled: Direct throttle to output
-            //  -- If enabled, move back to approriate state
+            //  -- If governor enabled, move back to approriate state
             case GOV_STATE_DIRECT:
                 if (gov.govEnabled) {
                     if (gov.throttleInputOff)
