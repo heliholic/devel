@@ -349,6 +349,11 @@ bool isSpooledUp(void)
     return false;
 }
 
+bool isAutorotation(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXAUTOROTATION);
+}
+
 
 //// Internal functions
 
@@ -837,7 +842,7 @@ static void governorUpdateExternalState(void)
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
+                    if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -874,7 +879,7 @@ static void governorUpdateExternalState(void)
                     govChangeState(GOV_STATE_THROTTLE_LOW);
                 else if (gov.throttleInput > gov.handoverThrottle)
                     govChangeState(GOV_STATE_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
+                else if (!isAutorotation())
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -1035,7 +1040,7 @@ static void governorUpdateElectricState(void)
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
+                    if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -1096,7 +1101,7 @@ static void governorUpdateElectricState(void)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
+                else if (!isAutorotation())
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -1245,7 +1250,7 @@ static void governorUpdateNitroState(void)
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
                 else if (gov.throttleInput < gov.handoverThrottle) {
-                    if (gov.autoRotationEnabled && govStateTime() > gov.autoMinEntry)
+                    if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
                     else
                         govChangeState(GOV_STATE_THROTTLE_IDLE);
@@ -1306,7 +1311,7 @@ static void governorUpdateNitroState(void)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterSpoolupState(GOV_STATE_BAILOUT);
-                else if (govStateTime() > gov.autoTimeout)
+                else if (!isAutorotation())
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -1491,10 +1496,6 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             gov.govEnabled = true;
 
             gov.mainGearRatio = getMainGearRatio();
-
-            gov.autoRotationEnabled  = governorConfig()->gov_autorotation_timeout > 0;
-            gov.autoTimeout  = governorConfig()->gov_autorotation_timeout * 100;
-            gov.autoMinEntry = governorConfig()->gov_autorotation_min_entry_time * 100;
 
             gov.throttleStartupRate  = govCalcRate(governorConfig()->gov_startup_time, 1, 600);
             gov.throttleSpoolupRate  = govCalcRate(governorConfig()->gov_spoolup_time, 1, 600);

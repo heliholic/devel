@@ -102,6 +102,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT] =
     BOXITEM(BOXBEEPERMUTE, "BEEPER MUTE", 52),
     BOXITEM(BOXRESCUE, "RESCUE", 53),
     BOXITEM(BOXGOVERNORDISABLE, "GOVERNOR DISABLE", 54),
+    BOXITEM(BOXAUTOROTATION, "AUTOROTATION", 55),
 };
 
 // mask of enabled IDs, calculated on startup based on enabled features. boxId_e is used as bit index
