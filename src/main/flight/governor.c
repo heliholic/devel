@@ -954,8 +954,8 @@ static void govUpdateGovernedState(void)
                 break;
 
             // Ramp up throttle until headspeed target is reached
-            //  -- Once 95% headspeed reached, move to ACTIVE
-            //  -- If throttle reaches 95% before headspeed target, also move to ACTIVE
+            //  -- Once 99% headspeed reached, move to ACTIVE
+            //  -- If throttle reaches 99% before headspeed target, also move to ACTIVE
             //  -- If throttle < handover, move back to IDLE
             //  -- If no headspeed detected, move to IDLE
             //  -- If NO throttle, move to THROTTLE_OFF
@@ -966,7 +966,7 @@ static void govUpdateGovernedState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1018,8 +1018,8 @@ static void govUpdateGovernedState(void)
             //  -- If NO throttle, move to THROTTLE_OFF
             //  -- If no headspeed detected, move to IDLE
             //  -- If throttle < handover, move to IDLE
-            //  -- If throttle reaches 95%, move to ACTIVE
-            //  -- Once 95% headspeed reached, move to ACTIVE
+            //  -- If throttle reaches 99%, move to ACTIVE
+            //  -- Once 99% headspeed reached, move to ACTIVE
             case GOV_STATE_RECOVERY:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
@@ -1027,7 +1027,7 @@ static void govUpdateGovernedState(void)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
@@ -1049,8 +1049,8 @@ static void govUpdateGovernedState(void)
             //  -- If NO throttle, move to THROTTLE_CUT
             //  -- If no headspeed detected, move to FALLBACK
             //  -- If throttle < handover, move back to AUTOROTATION
-            //  -- If throttle reaches 95%, move to ACTIVE
-            //  -- Once 95% headspeed reached, move to ACTIVE
+            //  -- If throttle reaches 99%, move to ACTIVE
+            //  -- Once 99% headspeed reached, move to ACTIVE
             case GOV_STATE_BAILOUT:
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_CUT);
@@ -1058,7 +1058,7 @@ static void govUpdateGovernedState(void)
                     govChangeState(GOV_STATE_AUTOROTATION);
                 else if (gov.motorRPMError)
                     govEnterFallbackState();
-                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.95f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.95f)
+                else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
 
