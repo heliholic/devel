@@ -115,8 +115,8 @@ bool checkCrsfTelemetryState(void)
 
 static inline size_t crsfLinkFrameSlots(size_t bytes)
 {
-    // Telemetry data is send in 5 byte slots, with 1 slot overhead
-    return (bytes + 9) / 5;
+    // Telemetry data is send in 5 byte slots
+    return (bytes + 4) / 5;
 }
 
 static inline void crsfTelemetryRateConsume(size_t slots)
