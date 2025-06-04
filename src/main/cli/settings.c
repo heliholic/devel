@@ -937,6 +937,7 @@ const clivalue_t valueTable[] = {
     { "gov_rpm_filter",             VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_rpm_filter) },
     { "gov_tta_filter",             VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tta_filter) },
     { "gov_ff_filter",              VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_ff_filter) },
+    { "gov_d_cutoff",               VAR_UINT8  |  MASTER_VALUE,  .config.minmaxUnsigned = { 1, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_d_cutoff) },
 
 // PG_CONTROLRATE_PROFILES
 #ifdef USE_PROFILE_NAMES

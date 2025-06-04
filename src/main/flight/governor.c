@@ -1221,10 +1221,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
-            const float diff_cutoff = governorConfig()->gov_rpm_filter ?
-                constrainf(governorConfig()->gov_rpm_filter, 1, 50) : 10;
-
-            difFilterInit(&gov.differentiator, diff_cutoff, gyro.targetRateHz);
+            difFilterInit(&gov.differentiator, governorConfig()->gov_d_cutoff / 10.0f, gyro.targetRateHz);
 
             ewma1FilterInit(&gov.motorHSKFilter, 0.5f, gyro.targetRateHz);
 
