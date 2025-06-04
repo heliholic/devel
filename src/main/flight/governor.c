@@ -902,7 +902,7 @@ static void govUpdateGovernedThrottle(void)
             break;
         case GOV_STATE_RECOVERY:
         case GOV_STATE_BAILOUT:
-            throttle = govSpoolupControl(gov.throttleRecoveryRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+            throttle = govThrottleSlewControl(gov.throttleRecoveryRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
             break;
         case GOV_STATE_DIRECT:
             throttle = gov.throttleInput;
