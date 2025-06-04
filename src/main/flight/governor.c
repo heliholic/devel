@@ -1188,14 +1188,6 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
         gov.govMode = governorConfig()->gov_mode;
 
-        if (gov.govMode > GOV_MODE_EXTERNAL) {
-            if (!isMotorFastRpmSourceActive(0)) {
-                setArmingDisabled(ARMING_DISABLED_GOVERNOR);
-                setArmingDisabled(ARMING_DISABLED_RPM_SIGNAL);
-                gov.govMode = GOV_MODE_NONE;
-            }
-        }
-
         switch (gov.govMode)
         {
             case GOV_MODE_EXTERNAL:
@@ -1204,6 +1196,11 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             case GOV_MODE_ELECTRIC:
             case GOV_MODE_NITRO:
                 govStateUpdate = govUpdateGovernedState;
+                if (!isMotorFastRpmSourceActive(0)) {
+                    setArmingDisabled(ARMING_DISABLED_GOVERNOR);
+                    setArmingDisabled(ARMING_DISABLED_RPM_SIGNAL);
+                    gov.govMode = GOV_MODE_NONE;
+                }
                 break;
             default:
                 break;
