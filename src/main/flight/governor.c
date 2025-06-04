@@ -471,14 +471,17 @@ static void govDataUpdate(void)
     gov.voltageCompGain = (gov.useVoltageComp && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
 
     // Calculate request ratio (HS or throttle)
-    if (gov.throttleInput > 0) {
-        if (gov.govMode == GOV_MODE_EXTERNAL)
+    if (gov.govMode == GOV_MODE_EXTERNAL) {
+        if (gov.throttleInput > 0)
             gov.requestRatio = gov.throttleOutput / gov.throttleInput;
         else
-            gov.requestRatio = gov.currentHeadSpeed / gov.requestedHeadSpeed;
+            gov.requestRatio = 0;
     }
     else {
-        gov.requestRatio = 0;
+        if (gov.motorRPMPresent)
+            gov.requestRatio = gov.currentHeadSpeed / gov.requestedHeadSpeed;
+        else
+            gov.requestRatio = 0;
     }
 
     // All precomps and feedforwards
@@ -991,7 +994,7 @@ static void govUpdateGovernedState(void)
             case GOV_STATE_THROTTLE_CUT:
                 if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
                     govEnterRecoveryState();
-                else if (govStateTime() > gov.lowThrottleTimeout) {
+                else if (!gov.motorRPMPresent || govStateTime() > gov.lowThrottleTimeout) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
                     else
