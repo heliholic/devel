@@ -62,9 +62,6 @@
 // Nominal battery cell voltage
 #define GOV_NOMINAL_CELL_VOLTAGE        3.70f
 
-// P-term limit for spoolup
-#define GOV_SPOOLUP_P_LIMIT             0.10f
-
 
 //// Internal Data
 
@@ -574,13 +571,10 @@ static void govHeadspeedSpoolUpInit(void)
     float pidTarget = gov.throttleOutput;
 
     // PID limits
-    gov.P = constrainf(gov.P, -GOV_SPOOLUP_P_LIMIT, GOV_SPOOLUP_P_LIMIT);
+    gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
 
     // Use gov.I to reach the target
     gov.I = pidTarget - gov.P;
-
-    // Limited range
-    gov.I = constrainf(gov.I, 0, gov.Li);
 }
 
 static float govHeadspeedSpoolUpControl(float rate, float min, float max)
@@ -589,7 +583,7 @@ static float govHeadspeedSpoolUpControl(float rate, float min, float max)
     gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
 
     // PID limits
-    gov.P = constrainf(gov.P, -GOV_SPOOLUP_P_LIMIT, GOV_SPOOLUP_P_LIMIT);
+    gov.P = constrainf(gov.P, -gov.Lp, gov.Lp);
     gov.I = constrainf(gov.I, 0, gov.Li);
     gov.D = 0;
     gov.F = 0;
@@ -622,18 +616,15 @@ static void govPIDInit(void)
 
     // Use gov.I to reach the target
     gov.I = pidTarget - (gov.P + gov.D + gov.F);
-
-    // Limited range
-    gov.I = constrainf(gov.I, 0, gov.Li);
 }
 
 static float govPIDControl(float rate, float min, float max)
 {
     // Update motor constant
-    if (gov.fullHeadSpeedRatio > 0.25f && gov.I > 0.333f) {
+    if (gov.fullHeadSpeedRatio > 0.25f && gov.I > 0.25f) {
         const float HSK = gov.currentHeadSpeed / gov.I;
-        gov.motorHSK = ewma1FilterApply(&gov.motorHSKFilter, HSK);
         DEBUG(GOVERNOR, 6, HSK);
+        gov.motorHSK = ewma1FilterApply(&gov.motorHSKFilter, HSK);
     }
 
     DEBUG(GOVERNOR, 7, gov.motorHSK);
@@ -685,7 +676,7 @@ static void govRecoveryInit(void)
     // Headspeed is still reasonably high
     // Motor constant has been acquired.
     //  => calculate estimated throttle for the current headspeed
-    if (gov.fullHeadSpeedRatio > 0.25f && gov.motorHSK > gov.fullHeadSpeed) {
+    if (gov.motorRPMPresent && gov.fullHeadSpeedRatio > 0.25f && gov.motorHSK > gov.fullHeadSpeed) {
         gov.throttleOutput = fminf(gov.requestedHeadSpeed / gov.motorHSK, gov.requestRatio);
     }
 }
@@ -867,21 +858,16 @@ static void govUpdateExternalState(void)
  * Electric motor speed control
  */
 
-static inline void govEnterSpoolupState(govState_e state)
-{
-    govChangeState(state);
-    govSpoolupInit();
-}
-
 static inline void govEnterActiveState(void)
 {
     govChangeState(GOV_STATE_ACTIVE);
     govPIDInit();
 }
 
-static inline void govEnterFallbackState(void)
+static inline void govEnterSpoolupState(govState_e state)
 {
-    govChangeState(GOV_STATE_FALLBACK);
+    govChangeState(state);
+    govSpoolupInit();
 }
 
 static inline void govEnterRecoveryState(void)
@@ -984,7 +970,7 @@ static void govUpdateGovernedState(void)
                 if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_CUT);
                 else if (gov.motorRPMError)
-                    govEnterFallbackState();
+                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.throttleInput < gov.handoverThrottle) {
                     if (isAutorotation())
                         govChangeState(GOV_STATE_AUTOROTATION);
@@ -1032,7 +1018,7 @@ static void govUpdateGovernedState(void)
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMError)
-                    govChangeState(GOV_STATE_THROTTLE_IDLE);
+                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
@@ -1063,7 +1049,7 @@ static void govUpdateGovernedState(void)
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_AUTOROTATION);
                 else if (gov.motorRPMError)
-                    govEnterFallbackState();
+                    govChangeState(GOV_STATE_FALLBACK);
                 else if (gov.currentHeadSpeed > gov.requestedHeadSpeed * 0.99f || gov.throttleOutput > gov.maxSpoolupThrottle * 0.99f)
                     govEnterActiveState();
                 break;
