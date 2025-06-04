@@ -673,8 +673,7 @@ static float govFallbackControl(float __unused rate, float min, float max)
 
 static void govRecoveryInit(void)
 {
-    // Headspeed is still reasonably high
-    // Motor constant has been acquired.
+    // Headspeed is still reasonably high. Motor constant has been acquired.
     //  => calculate estimated throttle for the current headspeed
     if (gov.motorRPMPresent && gov.fullHeadSpeedRatio > 0.25f && gov.motorHSK > gov.fullHeadSpeed) {
         gov.throttleOutput = fminf(gov.requestedHeadSpeed / gov.motorHSK, gov.requestRatio);
@@ -683,7 +682,7 @@ static void govRecoveryInit(void)
 
 
 /*
- * External throttle control (governor)
+ * External throttle control (Ext.Gov)
  */
 
 static void govUpdateExternalThrottle(void)
