@@ -689,34 +689,31 @@ static void govUpdateExternalThrottle(void)
 {
     float throttle = 0;
 
-    if (ARMING_FLAG(ARMED) && !gov.throttleInputOff)
-    {
-        switch (gov.state) {
-            case GOV_STATE_THROTTLE_OFF:
-                throttle = 0;
-                break;
-            case GOV_STATE_THROTTLE_CUT:
-            case GOV_STATE_THROTTLE_IDLE:
-                throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleStartupRate);
-                break;
-            case GOV_STATE_SPOOLUP:
-                throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleSpoolupRate);
-                break;
-            case GOV_STATE_ACTIVE:
-            case GOV_STATE_FALLBACK:
-            case GOV_STATE_AUTOROTATION:
-                throttle = slewLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleTrackingRate);
-                break;
-            case GOV_STATE_RECOVERY:
-            case GOV_STATE_BAILOUT:
-                throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
-                break;
-            case GOV_STATE_DIRECT:
-                throttle = gov.throttleInput;
-                break;
-            default:
-                break;
-        }
+    switch (gov.state) {
+        case GOV_STATE_THROTTLE_OFF:
+            throttle = 0;
+            break;
+        case GOV_STATE_THROTTLE_CUT:
+        case GOV_STATE_THROTTLE_IDLE:
+            throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleStartupRate);
+            break;
+        case GOV_STATE_SPOOLUP:
+            throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleSpoolupRate);
+            break;
+        case GOV_STATE_ACTIVE:
+        case GOV_STATE_FALLBACK:
+        case GOV_STATE_AUTOROTATION:
+            throttle = slewLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleTrackingRate);
+            break;
+        case GOV_STATE_RECOVERY:
+        case GOV_STATE_BAILOUT:
+            throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
+            break;
+        case GOV_STATE_DIRECT:
+            throttle = gov.throttleInput;
+            break;
+        default:
+            break;
     }
 
     gov.throttlePrevInput = throttle;
@@ -880,38 +877,35 @@ static void govUpdateGovernedThrottle(void)
 {
     float throttle = 0;
 
-    if (ARMING_FLAG(ARMED) && !gov.throttleInputOff)
-    {
-        switch (gov.state) {
-            case GOV_STATE_THROTTLE_OFF:
-                throttle = 0;
-                break;
-            case GOV_STATE_THROTTLE_CUT:
-            case GOV_STATE_THROTTLE_IDLE:
-                throttle = govThrottleSlewControl(gov.throttleStartupRate, gov.idleThrottle, gov.handoverThrottle);
-                break;
-            case GOV_STATE_SPOOLUP:
-                throttle = govSpoolupControl(gov.throttleSpoolupRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
-                break;
-            case GOV_STATE_ACTIVE:
-                throttle = govPIDControl(gov.throttleTrackingRate, gov.minActiveThrottle, gov.maxActiveThrottle);
-                break;
-            case GOV_STATE_FALLBACK:
-                throttle = govFallbackControl(gov.throttleTrackingRate, gov.minActiveThrottle, gov.maxActiveThrottle);
-                break;
-            case GOV_STATE_AUTOROTATION:
-                throttle = govThrottleSlewControl(gov.throttleTrackingRate, gov.autoThrottle, gov.handoverThrottle);
-                break;
-            case GOV_STATE_RECOVERY:
-            case GOV_STATE_BAILOUT:
-                throttle = govSpoolupControl(gov.throttleRecoveryRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
-                break;
-            case GOV_STATE_DIRECT:
-                throttle = gov.throttleInput;
-                break;
-            default:
-                break;
-        }
+    switch (gov.state) {
+        case GOV_STATE_THROTTLE_OFF:
+            throttle = 0;
+            break;
+        case GOV_STATE_THROTTLE_CUT:
+        case GOV_STATE_THROTTLE_IDLE:
+            throttle = govThrottleSlewControl(gov.throttleStartupRate, gov.throttleInputOff ? 0 : gov.idleThrottle, gov.handoverThrottle);
+            break;
+        case GOV_STATE_SPOOLUP:
+            throttle = govSpoolupControl(gov.throttleSpoolupRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+            break;
+        case GOV_STATE_ACTIVE:
+            throttle = govPIDControl(gov.throttleTrackingRate, gov.minActiveThrottle, gov.maxActiveThrottle);
+            break;
+        case GOV_STATE_FALLBACK:
+            throttle = govFallbackControl(gov.throttleTrackingRate, gov.minActiveThrottle, gov.maxActiveThrottle);
+            break;
+        case GOV_STATE_AUTOROTATION:
+            throttle = govThrottleSlewControl(gov.throttleTrackingRate, gov.autoThrottle, gov.handoverThrottle);
+            break;
+        case GOV_STATE_RECOVERY:
+        case GOV_STATE_BAILOUT:
+            throttle = govSpoolupControl(gov.throttleRecoveryRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
+            break;
+        case GOV_STATE_DIRECT:
+            throttle = gov.throttleInput;
+            break;
+        default:
+            break;
     }
 
     gov.throttleOutput = throttle;
