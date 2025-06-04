@@ -155,6 +155,10 @@ typedef struct {
     // Voltage compensation gain
     float           voltageCompGain;
 
+    // Motor constant (approx HS at full throttle)
+    float           motorHSK;
+    ewma1Filter_t   motorHSKFilter;
+
     // PID terms
     float           P;
     float           I;
@@ -348,8 +352,8 @@ static void govDebugStats(void)
     DEBUG(GOVERNOR, 3, gov.pidSum * 1000);
     DEBUG(GOVERNOR, 4, gov.P * 1000);
     DEBUG(GOVERNOR, 5, gov.I * 1000);
-    DEBUG(GOVERNOR, 6, gov.D * 1000);
-    DEBUG(GOVERNOR, 7, gov.F * 1000);
+    //DEBUG(GOVERNOR, 6, gov.D * 1000);
+    //DEBUG(GOVERNOR, 7, gov.F * 1000);
 }
 
 static inline void govChangeState(govState_e futureState)
@@ -548,16 +552,7 @@ static void govDataUpdate(void)
 }
 
 
-/*
- * Void init function
- */
-
 static void govVoidInit(void) { }
-
-
-/*
- * Throttle slew controller
- */
 
 static float govThrottleSlewControl(float rate, float min, float max)
 {
@@ -572,11 +567,6 @@ static float govThrottleSlewControl(float rate, float min, float max)
 
     return output;
 }
-
-
-/*
- * Headspeed PI ramp up controller
- */
 
 static void govHeadspeedSpoolUpInit(void)
 {
@@ -620,11 +610,6 @@ static float govHeadspeedSpoolUpControl(float rate, float min, float max)
     return output;
 }
 
-
-/*
- * Full PIDF controller
- */
-
 static void govPIDInit(void)
 {
     // Expected PID output
@@ -644,6 +629,15 @@ static void govPIDInit(void)
 
 static float govPIDControl(float rate, float min, float max)
 {
+    // Update motor constant
+    if (gov.fullHeadSpeedRatio > 0.25f && gov.I > 0.333f) {
+        const float HSK = gov.currentHeadSpeed / gov.I;
+        gov.motorHSK = ewma1FilterApply(&gov.motorHSKFilter, HSK);
+        DEBUG(GOVERNOR, 6, HSK);
+    }
+
+    DEBUG(GOVERNOR, 7, gov.motorHSK);
+
     // Update headspeed target
     gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
 
@@ -669,11 +663,6 @@ static float govPIDControl(float rate, float min, float max)
     return output;
 }
 
-
-/*
- * Fallback controller - Base throttle + precomp
- */
-
 static float govFallbackControl(float __unused rate, float min, float max)
 {
     // Precomp limits
@@ -689,6 +678,16 @@ static float govFallbackControl(float __unused rate, float min, float max)
     output = constrainf(output, min, max);
 
     return output;
+}
+
+static void govRecoveryInit(void)
+{
+    // Headspeed is still reasonably high
+    // Motor constant has been acquired.
+    //  => calculate estimated throttle for the current headspeed
+    if (gov.fullHeadSpeedRatio > 0.25f && gov.motorHSK > gov.fullHeadSpeed) {
+        gov.throttleOutput = fminf(gov.requestedHeadSpeed / gov.motorHSK, gov.requestRatio);
+    }
 }
 
 
@@ -885,6 +884,13 @@ static inline void govEnterFallbackState(void)
     govChangeState(GOV_STATE_FALLBACK);
 }
 
+static inline void govEnterRecoveryState(void)
+{
+    govChangeState(GOV_STATE_RECOVERY);
+    govRecoveryInit();
+    govSpoolupInit();
+}
+
 static void govUpdateGovernedThrottle(void)
 {
     float throttle = 0;
@@ -997,7 +1003,7 @@ static void govUpdateGovernedState(void)
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 else if (gov.motorRPMPresent)
-                    govEnterSpoolupState(GOV_STATE_RECOVERY);
+                    govEnterRecoveryState();
                 break;
 
             // Throttle is off or low. If it is a mistake, give a chance to recover
@@ -1005,7 +1011,7 @@ static void govUpdateGovernedState(void)
             //  -- When timer expires, move to IDLE
             case GOV_STATE_THROTTLE_CUT:
                 if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMPresent)
-                    govChangeState(GOV_STATE_RECOVERY);
+                    govEnterRecoveryState();
                 else if (govStateTime() > gov.lowThrottleTimeout) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
@@ -1240,6 +1246,8 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
                 constrainf(governorConfig()->gov_rpm_filter, 1, 50) : 10;
 
             difFilterInit(&gov.differentiator, diff_cutoff, gyro.targetRateHz);
+
+            ewma1FilterInit(&gov.motorHSKFilter, 0.5f, gyro.targetRateHz);
 
             lowpassFilterInit(&gov.motorVoltageFilter, LPF_PT2, governorConfig()->gov_pwr_filter, gyro.targetRateHz, 0);
             lowpassFilterInit(&gov.motorRPMFilter, LPF_PT2, governorConfig()->gov_rpm_filter, gyro.targetRateHz, 0);
