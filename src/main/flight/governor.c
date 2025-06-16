@@ -668,7 +668,7 @@ static void govPIDControl(float rate, float min, float max)
 
     // Update motor constant
     if (gov.fullHeadSpeedRatio > 0.25f && gov.I > 0.25f) {
-        const float HSK = gov.currentHeadSpeed / (gov.I * gov.motorHSK);
+        const float HSK = gov.currentHeadSpeed / (gov.I * gov.voltageCompGain);
         gov.motorHSK = ewma1FilterApply(&gov.motorHSKFilter, HSK);
         DEBUG(GOV_HSK, 4, HSK);
     }
@@ -739,8 +739,9 @@ static void govRecoveryInit(void)
 {
     // Headspeed is still reasonably high. Motor constant has been acquired.
     //  => calculate estimated throttle for the target headspeed
+    //  => start from half of the estimated throttle
     if (gov.motorRPMGood && gov.fullHeadSpeedRatio > 0.25f && gov.motorHSK > gov.fullHeadSpeed) {
-        gov.throttleOutput = fminf(gov.targetHeadSpeed / gov.motorHSK, gov.requestRatio);
+        gov.throttleOutput = fminf(gov.targetHeadSpeed / gov.motorHSK, gov.requestRatio) * 0.5f;
     }
 }
 
