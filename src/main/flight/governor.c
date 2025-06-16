@@ -633,11 +633,8 @@ static void govSpoolupControl(float rate, float min, float max)
         // Move to HS rampup, if applicable
         if (gov.usePidSpoolup && gov.throttleInput > gov.handoverThrottle && gov.throttleOutput > gov.handoverThrottle)
         {
-            // PID limits
-            gov.P = constrainf(gov.P, -gov.lp, gov.LP);
-
-            // Use gov.I to reach the target
-            gov.I = gov.throttleOutput - gov.P;
+            // Update gov.I from current throttle
+            gov.I = gov.throttleOutput;
 
             // Now HS control active
             gov.hsSpoolupActive = true;
