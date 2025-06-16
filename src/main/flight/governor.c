@@ -472,7 +472,7 @@ static void govDataUpdate(void)
     // Battery voltage required
     if (gov.useVoltageComp) {
         const float Vnom = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
-        const float Vbat = getBatteryVoltageSample() * 0.01f;
+        const float Vbat = getBatteryVoltageMeter()->sample * 0.001f;
 
         if (Vnom > 2 && Vbat > 2) {
             gov.motorVoltage = filterApply(&gov.motorVoltageFilter, Vbat);
@@ -1185,7 +1185,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.useThreePosThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE)) && !gov.usePassthrough;
         gov.usePidSpoolup = (pidProfile->governor.flags & BIT(GOV_FLAG_PID_SPOOLUP)) && !gov.usePassthrough;
         gov.useHsAdjustment = (pidProfile->governor.flags & BIT(GOV_FLAG_HS_ON_THROTTLE)) && !gov.useThreePosThrottle && gov.usePidSpoolup;
-        gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && (gov.govMode == GOV_MODE_ELECTRIC) && isBatteryVoltageConfigured();
+        gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && (gov.govMode == GOV_MODE_ELECTRIC) && (getBatteryVoltageSource() == VOLTAGE_METER_ADC);
         gov.usePrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_PRECOMP)) && !gov.usePassthrough;
         gov.useDirectPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_DIRECT_PRECOMP)) && gov.usePrecomp && !gov.useHsAdjustment && !gov.usePassthrough;
         gov.useFallbackPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_FALLBACK_PRECOMP)) && gov.usePrecomp && !gov.usePassthrough;
