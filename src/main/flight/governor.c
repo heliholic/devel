@@ -333,7 +333,7 @@ static void govDebugStats(void)
 {
     DEBUG(GOVERNOR, 0, gov.requestedHeadSpeed);
     DEBUG(GOVERNOR, 1, gov.targetHeadSpeed);
-    DEBUG(GOVERNOR, 2, gov.currentHeadSpeed);
+    DEBUG(GOVERNOR, 2, gov.voltageCompGain * 1000);
     DEBUG(GOVERNOR, 3, gov.pidSum * 1000);
     DEBUG(GOVERNOR, 4, gov.P * 1000);
     DEBUG(GOVERNOR, 5, gov.I * 1000);
@@ -469,14 +469,20 @@ static void govDataUpdate(void)
     // Headspeed is present if RPM is stable long enough
     gov.motorRPMGood = (gov.motorRPMDetectTime && cmp32(millis(),gov.motorRPMDetectTime) > GOV_HS_DETECT_DELAY);
 
-    // Battery state - zero when battery unplugged
-    gov.nominalVoltage = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
+    // Battery voltage required
+    if (gov.useVoltageComp) {
+        const float Vnom = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
+        const float Vbat = getBatteryVoltageSample() * 0.01f;
 
-    // Filtered voltage
-    gov.motorVoltage = filterApply(&gov.motorVoltageFilter, getBatteryVoltageSample() * 0.01f);
-
-    // Voltage compensation gain
-    gov.voltageCompGain = (gov.useVoltageComp && gov.motorVoltage > 1) ? gov.nominalVoltage / gov.motorVoltage : 1;
+        if (Vnom > 2 && Vbat > 2) {
+            gov.motorVoltage = filterApply(&gov.motorVoltageFilter, Vbat);
+            gov.nominalVoltage = Vnom;
+            if (gov.motorVoltage > 1)
+                gov.voltageCompGain = constrainf(gov.nominalVoltage / gov.motorVoltage, 0.80f, 1.2f);
+            else
+                gov.voltageCompGain = 1;
+        }
+    }
 
     // Calculate request ratio (HS or throttle)
     if (gov.govMode == GOV_MODE_EXTERNAL) {
@@ -951,13 +957,10 @@ static void govUpdateGovernedThrottle(void)
             govThrottleSlewControl(gov.throttleStartupRate, gov.idleThrottle, gov.handoverThrottle);
             break;
         case GOV_STATE_THROTTLE_HOLD:
-            if (gov.throttleInputOff) {
+            if (gov.throttleInputOff)
                 gov.throttleOutput = 0;
-                gov.targetHeadSpeed = 0;
-            }
-            else {
+            else
                 govThrottleSlewControl(gov.throttleTrackingRate, gov.idleThrottle, gov.handoverThrottle);
-            }
             break;
         case GOV_STATE_SPOOLUP:
             govSpoolupControl(gov.throttleSpoolupRate, gov.minSpoolupThrottle, gov.maxSpoolupThrottle);
@@ -1223,6 +1226,8 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
             gov.ttaLimit = 0;
             gov.useTTA = false;
         }
+
+        gov.voltageCompGain = 1;
 
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
