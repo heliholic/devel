@@ -668,19 +668,21 @@ static void govPIDControl(float rate, float min, float max)
 
     // Update motor constant
     if (gov.fullHeadSpeedRatio > 0.25f && gov.I > 0.25f) {
-        const float HSK = gov.currentHeadSpeed / gov.I;
-        DEBUG(GOV_HSK, 4, HSK);
+        const float HSK = gov.currentHeadSpeed / (gov.I * gov.motorHSK);
         gov.motorHSK = ewma1FilterApply(&gov.motorHSKFilter, HSK);
+        DEBUG(GOV_HSK, 4, HSK);
     }
 
     DEBUG(GOV_HSK, 5, gov.motorHSK);
 
     // Dynamic min throttle
-    if (gov.useDynMinThrottle && gov.motorHSK > gov.fullHeadSpeed) {
-        const float throttleEst = gov.targetHeadSpeed / gov.motorHSK;
-        min = fmaxf(min, throttleEst * GOV_DYN_MIN_THROTTLE_LIMIT);
-        DEBUG(GOV_HSK, 6, throttleEst);
-        DEBUG(GOV_HSK, 7, min);
+    if (gov.useDynMinThrottle) {
+        if (gov.motorHSK > gov.fullHeadSpeed) {
+            const float throttleEst = gov.targetHeadSpeed / gov.motorHSK;
+            min = fmaxf(min, throttleEst * GOV_DYN_MIN_THROTTLE_LIMIT);
+            DEBUG(GOV_HSK, 6, throttleEst);
+            DEBUG(GOV_HSK, 7, min);
+        }
     }
 
     // PID limits
