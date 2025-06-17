@@ -66,7 +66,7 @@
 #define GOV_DYN_MIN_THROTTLE_LIMIT      0.80f
 
 // Motor constant K filter
-#define GOV_MOTOR_K_CUTOFF              0.20f
+#define GOV_MOTOR_K_CUTOFF              0.10f
 
 // Auto bailout timeout if no RPM signal
 #define GOV_BAILOUT_TIMEOUT             1000
