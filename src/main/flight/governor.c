@@ -165,6 +165,9 @@ typedef struct {
     float           motorHSK;
     ewma1Filter_t   motorHSKFilter;
 
+    // Dynamic min throttle limit
+    float           dynMinLevel;  // TDB remove
+
     // PID terms
     float           P;
     float           I;
@@ -676,7 +679,7 @@ static void govPIDControl(float rate, float min, float max)
     if (gov.useDynMinThrottle) {
         if (gov.motorHSK > gov.fullHeadSpeed) {
             const float throttleEst = gov.targetHeadSpeed / gov.motorHSK;
-            min = fmaxf(min, throttleEst * GOV_DYN_MIN_THROTTLE_LIMIT);
+            min = fmaxf(min, throttleEst * gov.dynMinLevel); // GOV_DYN_MIN_THROTTLE_LIMIT
             DEBUG(GOV_HSK, 6, throttleEst);
             DEBUG(GOV_HSK, 7, min);
         }
@@ -1226,6 +1229,8 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         }
 
         gov.voltageCompGain = 1;
+
+        gov.dynMinLevel = pidProfile->governor.dyn_min_level / 100.0f; // TDB remove
 
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
