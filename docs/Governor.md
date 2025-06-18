@@ -14,11 +14,11 @@ with failure situations.
 The governor operates in multiple states. Each state is used for a specific purpose, and
 has its own parameters.
 
-### State `THROTTLE_OFF`
+#### State `THROTTLE_OFF`
 
 The motor is turned off.
 
-### State `THROTTLE_IDLE`
+#### State `THROTTLE_IDLE`
 
 The throttle is below _handover_, and the motor is either off or running slow.
 The input throttle is passed to the output, but change speed is limited by
@@ -26,41 +26,41 @@ The input throttle is passed to the output, but change speed is limited by
 
 The helicopter is expected to be on the ground.
 
-### State `THROTTLE_HOLD`
+#### State `THROTTLE_HOLD`
 
 The input throttle was switched off while in the `ACTIVE` state. The motor is spooling
-down. If the throttle is resumed within `gov_throttle_hold_timeout`, a fast recovery
+down. If the throttle is restored within `gov_throttle_hold_timeout`, a fast recovery
 is performed.
 
 This is a safeguard against an accidential throttle cut/hold activation.
 
-### State `SPOOLUP`
+#### State `SPOOLUP`
 
 The input throttle was increased above _handover_, and the motor is spooling up to
 the required headspeed. The change speed is limited by `gov_spoolup_time`.
 
 Once the target headspeed is reached, the governor moves to the `ACTIVE` state.
 
-### State `RECOVERY`
+#### State `RECOVERY`
 
 The governor is recoving from `FALLBACK` or `THROTTLE_HOLD`, i.e. going back to `ACTIVE`.
 This is done with a much faster spoolup speed than in `SPOOLUP`, as the helicopter is likely
 airborne. The throttle change is limited by `gov_recovery time`.
 
-### State `ACTIVE`
+#### State `ACTIVE`
 
 The governor is locked on the target headspeed, and the throttle is controlled by
 the PID loop. Precomps from collective, cyclic, and yaw are applied.
 
 If the target headspeed is altered, the change speed is limited by `gov_tracking_time`.
 
-### State `FALLBACK`
+#### State `FALLBACK`
 
 RPM signal is unreliable or lost, and the headspeed can't be controlled.
 Instead, a throttle value `gov_base_throttle` is applied, with optional precomps, so
 that the pilot can land the helicopter safely.
 
-### State `AUTOROTATION`
+#### State `AUTOROTATION`
 
 Throttle is below _handover_, and _Autorotation_ is enabled. Similar to `THROTTLE_IDLE`,
 but the helicopter is expected to be airborne. If the throttle is returned, a fast
@@ -69,12 +69,12 @@ but the helicopter is expected to be airborne. If the throttle is returned, a fa
 After a succesful landing, the pilot is expected to disable _Autorotation_, and proceed
 with a normal `SPOOLUP`.
 
-### State `BAILOUT`
+#### State `BAILOUT`
 
 The autorotation attempt was abandoned, and an _autorotation bailout_ is performed.
 Throttle is ramped up quickly.
 
-### State `PASSTHRU`
+#### State `PASSTHRU`
 
 The governor is temporarily disabled, and the throttle is passed to the ESC unaltered.
 
@@ -164,7 +164,7 @@ The minimum throttle value in `IDLE` state.
 
 ### Base throttle value `gov_base_throttle`
 
-The throttle value used in the `FALLBACK`.
+The throttle value used in `FALLBACK` state.
 
 ### Autorotation throttle value `gov_auto_throttle`
 
@@ -190,29 +190,36 @@ The master PID gain.
 
 ### F-gain `gov_f_gain`
 
-Total _feedforward_ gain, i.e. a common gain for all precomps.
+The total _feedforward_ gain, i.e. a common gain for all precomps.
 
 ### P-limits `gov_p_limit`
 
-P-term positive and negative limits (array).
+P-term positive and negative limits (array). Both values are positive, and indicate how much
+the P-term can be above zero, and below zero, respoectively.
 
 ### I-limit `gov_i_limit`
 
+The I-term range is `[0, gov_i_limit]`.
+
 ### D-limit `gov_d_limit`
+
+The D-term range is `[-gov_d_limit, gov_d_limit]`.
 
 ### F-limit `gov_f_limit`
 
+The F-term range is `[0, gov_f_limit]`.
+
 ### Yaw Precomp Weight `gov_yaw_ff_weight`
 
-Yaw precomp relative weight.
+A relative weight for the yaw precomp.
 
 ### Cyclic Precomp Weight `gov_cyclic_ff_weight`
 
-Cyclic precomp relative weight.
+A relative weight for the cyclic precomp.
 
 ### Collective Precomp Weight `gov_collective_ff_weight`
 
-Collective precomp relative weight.
+A relative weight for the collective precomp.
 
 ### Collective Precomp Curve `gov_collective_curve`
 
@@ -220,7 +227,11 @@ Collective curve selector 0..5.
 
 ### TTA-gain `gov_tta_gain`
 
+A gain for _Tail Torque Assist_.
+
 ### TTA-limit `gov_tta_limig`
+
+A limit for headspeed increase in % due to TTA.
 
 
 ## Profile Flags
@@ -228,6 +239,7 @@ Collective curve selector 0..5.
 ### Flag `gov_use_passthrough`
 
 This is a passthrough profile. The throttle is passed to the output unaltered.
+The governor is essentially disabled when this flag is enabled.
 
 ### Flag `gov_use_dyn_min_throttle`
 
@@ -249,10 +261,12 @@ Enable the _precompensations_ in `FALLBACK` state.
 ### Flag `gov_use_direct_precomp`
 
 Use the throttle input as the precompensation level, instead of calculating it in the FC.
+This allows setting the throttle (precomp) curve in the Tx.
 
 ### Flag `gov_use_voltage_comp`
 
-Use _battery voltage compensation_.
+Use _battery voltage compensation_. This is useful when the battery has a high internal resistance.
+For example, when using Li-ion or LiFePo4 batteries.
 
 ### Flat `gov_use_pid_spoolup`
 
@@ -260,8 +274,8 @@ Use a PID controlled spoolup in `SPOOLUP` state.
 
 ### Flag `gov_use_hs_on_throttle`
 
-Headspeed target is controlled by the input throttle. The target headspeed is set to
-`input_throttle * gov_headspeed`, while the throttle is above `gov_handover_throttle`.
+Headspeed target is controlled by the input throttle. The `gov_headspeed` value is multiplied
+by the input throttle, giving the target headspeed. The input throttle must be above `gov_handover_throttle`.
 
 ### Flag `gov_use_autorotation`
 
@@ -270,9 +284,11 @@ This is an autorotation profile. Throttle cut/hold always enables autorotation.
 
 ## Mode Switches
 
+There are three new mode switches for the governor.
+
 ### `AUTOROTATION`
 
-Enable _autorotation_ temporarily.
+Enable _autorotation_ while the mode is active.
 
 ### `RPMERROR`
 
@@ -280,4 +296,4 @@ Trigger an _RPM error_ temporarily, for testing the `FALLBACK` behaviour.
 
 ### `PASSTHRU`
 
-Enable _throttle passthrough_ temporarily. Can be activated in `THROTTLE_OFF` or `THROTTLE_IDLE` states, for safety.
+Enable _throttle passthrough_. Can be activated only in `THROTTLE_OFF` or `THROTTLE_IDLE` states, for safety.
