@@ -66,7 +66,7 @@
 #define GOV_DYN_MIN_THROTTLE_LIMIT      0.80f
 
 // Motor constant K filter
-#define GOV_MOTOR_K_CUTOFF              0.10f
+#define GOV_MOTOR_K_CUTOFF              0.05f
 
 // Auto bailout timeout if no RPM signal
 #define GOV_BAILOUT_TIMEOUT             1000
@@ -394,7 +394,7 @@ static void govGetInputThrottle(void)
     }
 
     if (gov.useHsAdjustment && throttle > gov.handoverThrottle) {
-        gov.requestedHeadSpeed = throttle * gov.fullHeadSpeed;
+        gov.requestedHeadSpeed = fmaxf(throttle * gov.fullHeadSpeed, 60);
         gov.throttleInput = 1.0f;
     }
     else {
@@ -660,8 +660,8 @@ static void govPIDControl(float rate, float min, float max)
     DEBUG(GOV_HSK, 3, gov.pidSum * 1000);
 
     // Update motor constant
-    if (gov.fullHeadSpeedRatio > 0.25f && gov.I > 0.25f) {
-        const float HSK = gov.currentHeadSpeed / (gov.I * gov.voltageCompGain);
+    if (gov.fullHeadSpeedRatio > 0.25f && gov.throttleOutput > 0.25f) {
+        const float HSK = gov.currentHeadSpeed / gov.throttleOutput;
         gov.motorHSK = ewma1FilterApply(&gov.motorHSKFilter, HSK);
         DEBUG(GOV_HSK, 4, HSK);
     }
@@ -680,7 +680,7 @@ static void govPIDControl(float rate, float min, float max)
 
     // PID limits
     gov.P = constrainf(gov.P, -gov.lp, gov.LP);
-    gov.I = constrainf(gov.I,       0, gov.Li);
+    gov.I = constrainf(gov.I, -gov.Li, gov.Li);
     gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
     gov.F = constrainf(gov.F,       0, gov.Lf);
 
