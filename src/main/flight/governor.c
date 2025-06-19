@@ -71,6 +71,9 @@
 // Auto bailout timeout if no RPM signal
 #define GOV_BAILOUT_TIMEOUT             1000
 
+// Approx throttle headroom
+#define GOV_THROTTLE_HEADROOM           1.25f
+
 
 //// Internal Data
 
@@ -616,7 +619,7 @@ static void govSpoolupControl(float rate, float min, float max)
         govOutputThrottleControl(throttle, min, max, rate);
 
         // Update headspeed target
-        gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
+        gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM);
     }
     else
     {
@@ -694,8 +697,11 @@ static void govPIDControl(float rate, float min, float max)
     // Set output
     govOutputThrottleControl(throttle, min, max, rate);
 
+    // Estimate HS change speed
+    const float hsRate = fmaxf(gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM, gov.motorHSK) * rate;
+
     // Update headspeed target
-    gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, rate * gov.fullHeadSpeed);
+    gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, hsRate);
 }
 
 static void govFallbackControl(float rate, float min, float max)
