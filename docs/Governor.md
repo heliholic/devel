@@ -97,25 +97,25 @@ Profile settings are applied only when a profile is active.
 
 ## Global settings
 
-### Governor Modes
+### Governor Modes `gov_mode`
 
-The governor mode setting `(gov_mode)` chooses what type of governor is used, if any.
+The governor mode setting chooses what type of governor is used, if any.
 
-#### Governor Mode `OFF`
+#### Mode `OFF`
 
 The governor is disabled. The throttle level is passed through unmodified.
 
-#### Governor Mode `EXTERNAL`
+#### Mode `EXTERNAL`
 
 An external governor, or throttle curves can be used. The slow spoolup and failure handling
 is still done in Rotorflight, but the headspeed stabilisation is left out.
 
-#### Governor Mode `ELECTRIC`
+#### Mode `ELECTRIC`
 
 A governor for electric motors is chosen. Rotorflight is taking care of the headspeed
 stabilisation and soft start, among other things.
 
-#### Governor Mode `NITRO`
+#### Mode `NITRO`
 
 A governor for I.C. / nitro motors is chosen. Rotorflight is taking care of the headspeed
 stabilisation and soft start, among other things.
@@ -206,11 +206,13 @@ The total _feedforward_ gain, i.e. a common gain for all precomps.
 ### P-limits `gov_p_limit`
 
 P-term positive and negative limits (array). Both values are positive, and indicate
-how much the P-term can be above zero, and below zero, respoectively.
+how much the P-term can be above zero, and below zero, respectively.
+
+The range is `[-gov_p_limit[1], gov_p_limit[0]]`.
 
 ### I-limit `gov_i_limit`
 
-The I-term range is `[0, gov_i_limit]`.
+The I-term range is `[-gov_i_limit, gov_i_limit]`.
 
 ### D-limit `gov_d_limit`
 
@@ -234,7 +236,7 @@ A relative weight for the collective precomp.
 
 ### Collective Precomp Curve `gov_collective_curve`
 
-Collective curve selector 0..5.
+Collective curve selector 0..4. Zero is linear curve, higher values have more curvature.
 
 ### TTA-gain `gov_tta_gain`
 
@@ -254,7 +256,9 @@ The governor is essentially disabled when this flag is enabled.
 
 ### Flag `gov_use_dyn_min_throttle`
 
-Use _Dynamic Minimum Throttle_ in the `ACTIVE` state.
+Use _Dynamic Minimum Throttle_ in the `ACTIVE` state. In case the one-way bearing
+disengages, the output throttle is not allowed to drop below a value that is
+calculated dynamically.
 
 ### Flag `gov_use_three_pos_switch`
 
@@ -306,3 +310,6 @@ Trigger an _RPM error_ temporarily, for testing the `FALLBACK` state behaviour.
 
 Enable _throttle passthrough_. Can be activated only in the `THROTTLE_OFF` or
 `THROTTLE_IDLE` states, for safety.
+
+There are no safeguards or change rate limits in `PASSTHRU`. The pilot **MUST**
+ensure safe operation with a suitable programming in the Tx.
