@@ -55,6 +55,13 @@ typedef enum {
     GOV_FLAG_PASSTHRU,
 } govFlags_e;
 
+typedef struct {
+    int32_t    pidTerms[4];
+    int32_t    pidSum;
+    uint16_t   targetHS;
+    uint16_t   requestHS;
+} govLogData_t;
+
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);
 
@@ -67,8 +74,11 @@ int getGovernorState(void);
 
 float getGovernorOutput(void);
 
+void getGovernorLogData(govLogData_t *data);
+
 float getFullHeadSpeedRatio(void);
 float getSpoolUpRatio(void);
+
 
 float getTTAIncrease(void);
 
