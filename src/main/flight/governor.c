@@ -240,6 +240,19 @@ float getTTAIncrease(void)
     return gov.TTAAdd;
 }
 
+void getGovernorLogData(govLogData_t *data)
+{
+    if (data) {
+        data->targetHS = gov.targetHeadSpeed;
+        data->requestHS = gov.requestedHeadSpeed;
+        data->pidTerms[0] = gov.P * 1000;
+        data->pidTerms[1] = gov.I * 1000;
+        data->pidTerms[2] = gov.D * 1000;
+        data->pidTerms[3] = gov.F * 1000;
+        data->pidSum = gov.pidSum * 1000;
+    }
+}
+
 float getFullHeadSpeedRatio(void)
 {
     if (gov.govMode > GOV_MODE_EXTERNAL) {
