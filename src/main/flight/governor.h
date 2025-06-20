@@ -43,7 +43,7 @@ typedef enum {
     GOV_STATE_PASSTHRU,
 } govState_e;
 
-enum {
+typedef enum {
     GOV_FLAG_3POS_THROTTLE,
     GOV_FLAG_DIRECT_PRECOMP,
     GOV_FLAG_FALLBACK_PRECOMP,
@@ -53,7 +53,7 @@ enum {
     GOV_FLAG_DYN_MIN_THROTTLE,
     GOV_FLAG_AUTOROTATION,
     GOV_FLAG_PASSTHRU,
-};
+} govFlags_e;
 
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);

@@ -66,7 +66,7 @@
 #define GOV_DYN_MIN_THROTTLE_LIMIT      0.80f
 
 // Motor constant K filter
-#define GOV_RPM_K_CUTOFF              0.05f
+#define GOV_RPM_K_CUTOFF                0.05f
 
 // Auto bailout timeout if no RPM signal
 #define GOV_BAILOUT_TIMEOUT             1000
@@ -200,7 +200,7 @@ typedef struct {
     float           yawWeight;
     float           cyclicWeight;
     float           collectiveWeight;
-    uint8_t         collectiveCurve;
+    uint            collectiveCurve;
     filter_t        precompFilter;
 
     // Tail Torque Assist
@@ -208,10 +208,6 @@ typedef struct {
     float           ttaGain;
     float           ttaLimit;
     filter_t        TTAFilter;
-
-    // Autorotation
-    long            autoMinEntry;
-    long            autoTimeout;
 
     // Timeouts
     long            throttleHoldTimeout;
@@ -660,7 +656,7 @@ static void govPIDControl(float rate, float min, float max)
     DEBUG(GOV_RPMK, 3, gov.pidSum * 1000);
 
     // Update RPM constant
-    if (gov.throttleOutput > 0.25f && gov.currentHeadSpeed > 100 && gov.fullHeadSpeedRatio > 0.25f) {
+    if (gov.throttleOutput > 0.25f && gov.fullHeadSpeedRatio > 0.25f && gov.currentHeadSpeed > 100) {
         const float RPMK = gov.currentHeadSpeed / gov.throttleOutput;
         gov.motorRPMK = ewma1FilterApply(&gov.motorRPMKFilter, RPMK);
         DEBUG(GOV_RPMK, 4, RPMK);
