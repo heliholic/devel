@@ -344,18 +344,6 @@ bool isSpooledUp(void)
 
 //// Internal functions
 
-static void govDebugStats(void)
-{
-    DEBUG(GOVERNOR, 0, gov.requestedHeadSpeed);
-    DEBUG(GOVERNOR, 1, gov.targetHeadSpeed);
-    DEBUG(GOVERNOR, 2, gov.currentHeadSpeed);
-    DEBUG(GOVERNOR, 3, gov.pidSum * 1000);
-    DEBUG(GOVERNOR, 4, gov.P * 1000);
-    DEBUG(GOVERNOR, 5, gov.I * 1000);
-    DEBUG(GOVERNOR, 6, gov.D * 1000);
-    DEBUG(GOVERNOR, 7, gov.F * 1000);
-}
-
 static inline bool isAutorotation(void)
 {
     return IS_RC_MODE_ACTIVE(BOXAUTOROTATION) || gov.useAutoRotation;
@@ -460,6 +448,9 @@ static void govDataUpdate(void)
     // Calculate current HS vs FullHS ratio
     gov.fullHeadSpeedRatio = gov.currentHeadSpeed / gov.fullHeadSpeed;
 
+    DEBUG(GOVERNOR, 0, gov.currentHeadSpeed);
+    DEBUG(GOVERNOR, 1, gov.fullHeadSpeedRatio * 1000);
+
     // Detect stuck motor / startup problem
     const bool rpmError = ((gov.fullHeadSpeedRatio < GOV_HS_INVALID_RATIO || motorRPM < 10) && gov.throttleOutput > GOV_HS_INVALID_THROTTLE);
 
@@ -484,6 +475,22 @@ static void govDataUpdate(void)
     // Headspeed is present if RPM is stable long enough
     gov.motorRPMGood = (gov.motorRPMDetectTime && cmp32(millis(),gov.motorRPMDetectTime) > GOV_HS_DETECT_DELAY);
 
+    // Calculate request ratio (HS or throttle)
+    if (gov.govMode == GOV_MODE_EXTERNAL) {
+        if (gov.throttleInput > 0)
+            gov.requestRatio = gov.throttleOutput / gov.throttleInput;
+        else
+            gov.requestRatio = 0;
+    }
+    else {
+        if (gov.motorRPMGood)
+            gov.requestRatio = gov.currentHeadSpeed / gov.requestedHeadSpeed;
+        else
+            gov.requestRatio = 0;
+    }
+
+    DEBUG(GOVERNOR, 2, gov.requestRatio * 1000);
+
     // Battery voltage required
     if (gov.useVoltageComp) {
         const float Vnom = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
@@ -497,20 +504,8 @@ static void govDataUpdate(void)
             else
                 gov.voltageCompGain = 1;
         }
-    }
 
-    // Calculate request ratio (HS or throttle)
-    if (gov.govMode == GOV_MODE_EXTERNAL) {
-        if (gov.throttleInput > 0)
-            gov.requestRatio = gov.throttleOutput / gov.throttleInput;
-        else
-            gov.requestRatio = 0;
-    }
-    else {
-        if (gov.motorRPMGood)
-            gov.requestRatio = gov.currentHeadSpeed / gov.requestedHeadSpeed;
-        else
-            gov.requestRatio = 0;
+        DEBUG(GOVERNOR, 4, gov.voltageCompGain * 1000);
     }
 
     // All precomps and feedforwards
@@ -560,11 +555,6 @@ static void govDataUpdate(void)
         DEBUG(TTA, 1, TTA * 1000);
         DEBUG(TTA, 2, headroom * 1000);
         DEBUG(TTA, 3, gov.TTAAdd * 1000);
-
-        DEBUG(TTA, 4, gov.P * 1000);
-        DEBUG(TTA, 5, gov.I * 1000);
-        DEBUG(TTA, 6, gov.pidSum * 1000);
-        DEBUG(TTA, 7, gov.targetHeadSpeed);
     }
     else {
         gov.TTAAdd = 0;
@@ -573,6 +563,8 @@ static void govDataUpdate(void)
     // Normalized RPM error
     const float newError = (gov.targetHeadSpeed - gov.currentHeadSpeed) / gov.fullHeadSpeed + gov.TTAAdd;
     const float newDiff = difFilterApply(&gov.differentiator, newError);
+
+    DEBUG(GOVERNOR, 3, newError * 1000);
 
     // Update PIDF terms
     gov.P = gov.K * gov.Kp * newError;
@@ -663,27 +655,19 @@ static void govPIDInit(void)
 
 static void govPIDControl(float rate, float min, float max)
 {
-    DEBUG(GOV_RPMK, 0, gov.requestedHeadSpeed);
-    DEBUG(GOV_RPMK, 1, gov.targetHeadSpeed);
-    DEBUG(GOV_RPMK, 2, gov.currentHeadSpeed);
-    DEBUG(GOV_RPMK, 3, gov.pidSum * 1000);
-
     // Update RPM constant
     if (gov.throttleOutput > 0.25f && gov.fullHeadSpeedRatio > 0.25f && gov.currentHeadSpeed > 100) {
         const float RPMK = gov.currentHeadSpeed / gov.throttleOutput;
         gov.motorRPMK = ewma1FilterApply(&gov.motorRPMKFilter, RPMK);
-        DEBUG(GOV_RPMK, 4, RPMK);
     }
 
-    DEBUG(GOV_RPMK, 5, gov.motorRPMK);
+    DEBUG(GOVERNOR, 5, gov.motorRPMK);
 
     // Dynamic min throttle
     if (gov.useDynMinThrottle) {
         if (gov.motorRPMK > gov.fullHeadSpeed) {
             const float throttleEst = gov.targetHeadSpeed / gov.motorRPMK;
             min = fmaxf(min, throttleEst * gov.dynMinLevel); // GOV_DYN_MIN_THROTTLE_LIMIT
-            DEBUG(GOV_RPMK, 6, throttleEst);
-            DEBUG(GOV_RPMK, 7, min);
         }
     }
 
@@ -1165,9 +1149,6 @@ void governorUpdate(void)
             govUpdateExternalState();
         else
             govUpdateGovernedState();
-
-        // Set debug
-        govDebugStats();
     }
     else
     {
