@@ -779,13 +779,14 @@ static void govUpdateExternalState(void)
         govChangeState(GOV_STATE_THROTTLE_OFF);
     }
     else {
+        if (isGovPassthrough())
+            govChangeState(GOV_STATE_PASSTHRU);
+
         switch (gov.state)
         {
             // Throttle is OFF
             case GOV_STATE_THROTTLE_OFF:
-                if (isGovPassthrough())
-                    govChangeState(GOV_STATE_PASSTHRU);
-                else if (!gov.throttleInputOff)
+                if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -793,9 +794,7 @@ static void govUpdateExternalState(void)
             //  -- If NO throttle, move to THROTTLE_OFF
             //  -- if throttle > handover, move to SPOOLUP
             case GOV_STATE_THROTTLE_IDLE:
-                if (isGovPassthrough())
-                    govChangeState(GOV_STATE_PASSTHRU);
-                else if (gov.throttleInputOff)
+                if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleOutput > gov.handoverThrottle)
                     govChangeState(GOV_STATE_SPOOLUP);
@@ -884,10 +883,10 @@ static void govUpdateExternalState(void)
                 if (!isGovPassthrough()) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
-                    else if (gov.throttleInput < gov.handoverThrottle)
-                        govChangeState(GOV_STATE_THROTTLE_IDLE);
-                    else
+                    else if (gov.throttleInput > gov.handoverThrottle)
                         govChangeState(GOV_STATE_SPOOLUP);
+                    else
+                        govChangeState(GOV_STATE_THROTTLE_IDLE);
                 }
                 break;
 
@@ -979,13 +978,14 @@ static void govUpdateGovernedState(void)
         govChangeState(GOV_STATE_THROTTLE_OFF);
     }
     else {
+        if (isGovPassthrough())
+            govChangeState(GOV_STATE_PASSTHRU);
+
         switch (gov.state)
         {
             // Throttle is OFF
             case GOV_STATE_THROTTLE_OFF:
-                if (isGovPassthrough())
-                    govChangeState(GOV_STATE_PASSTHRU);
-                else if (!gov.throttleInputOff)
+                if (!gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
                 break;
 
@@ -993,9 +993,7 @@ static void govUpdateGovernedState(void)
             //  -- If NO throttle, move to THROTTLE_OFF
             //  -- if throttle > handover and stable RPM, move to SPOOLUP
             case GOV_STATE_THROTTLE_IDLE:
-                if (isGovPassthrough())
-                    govChangeState(GOV_STATE_PASSTHRU);
-                else if (gov.throttleInputOff)
+                if (gov.throttleInputOff)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMGood)
                     govEnterSpoolupState();
@@ -1115,10 +1113,10 @@ static void govUpdateGovernedState(void)
                 if (!isGovPassthrough()) {
                     if (gov.throttleInputOff)
                         govChangeState(GOV_STATE_THROTTLE_OFF);
-                    else if (gov.throttleInput < gov.handoverThrottle)
-                        govChangeState(GOV_STATE_THROTTLE_IDLE);
+                    else if (gov.throttleInput > gov.handoverThrottle && gov.motorRPMGood)
+                        govChangeState(GOV_STATE_SPOOLUP);
                     else
-                        govEnterSpoolupState();
+                        govChangeState(GOV_STATE_IDLE);
                 }
                 break;
 
