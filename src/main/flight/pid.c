@@ -263,7 +263,7 @@ void INIT_CODE pidInitProfile(const pidProfile_t *pidProfile)
     pt1FilterInit(&pid.offsetFloodRelaxFilter, offset_flood_relax_freq, pid.freq);
 
     // Initialise sub-profiles
-    governorInitProfile(pidProfile);
+    governorLoadProfile(pidProfile);
 #ifdef USE_ACC
     levelingInit(pidProfile);
 #endif
