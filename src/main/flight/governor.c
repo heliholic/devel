@@ -368,9 +368,9 @@ static inline bool isGovPassthrough(void)
     return IS_RC_MODE_ACTIVE(BOXGOVPASSTHRU) || gov.usePassthrough;
 }
 
-static inline bool isForcedRPMError(void)
+static inline bool isForcedFallback(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXGOVRPMERROR);
+    return IS_RC_MODE_ACTIVE(BOXGOVFALLBACK);
 }
 
 static inline void govChangeState(govState_e futureState)
@@ -542,7 +542,7 @@ static void govDataUpdate(void)
     const bool rpmGlitch = (fabsf(motorRPM - filteredRPM) > gov.motorRPMGlitchDelta || motorRPM > gov.motorRPMGlitchLimit);
 
     // Error cases
-    const bool noErrors = !rpmError && !rpmGlitch && !isForcedRPMError();
+    const bool noErrors = !rpmError && !rpmGlitch && !isForcedFallback();
 
     // Evaluate RPM signal quality
     if (noErrors && motorRPM > 0 && gov.fullHeadSpeedRatio > GOV_HS_DETECT_RATIO) {
