@@ -2745,7 +2745,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
             currentPidProfile->governor.flags = sbufReadU16(src);
         }
         /* Load new values */
-        governorInitProfile(currentPidProfile);
+        governorLoadProfile(currentPidProfile);
         break;
 
     case MSP_SET_SENSOR_CONFIG:

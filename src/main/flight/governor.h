@@ -65,6 +65,7 @@ typedef struct {
 
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);
+void governorLoadProfile(const pidProfile_t *pidProfile);
 
 void governorUpdate(void);
 

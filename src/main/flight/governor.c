@@ -1189,6 +1189,16 @@ void governorUpdate(void)
     }
 }
 
+void INIT_CODE governorLoadProfile(const pidProfile_t *pidProfile)
+{
+    governorInitProfile(pidProfile);
+
+    if (gov.state == GOV_STATE_ACTIVE) {
+        govDataUpdate();
+        govEnterActiveState();
+    }
+}
+
 void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govMode)
@@ -1261,10 +1271,6 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.motorRPMGlitchDelta = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_DELTA;
         gov.motorRPMGlitchLimit = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_LIMIT;
-
-        if (gov.state == GOV_STATE_ACTIVE) {
-            govEnterActiveState();
-        }
     }
 }
 

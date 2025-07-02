@@ -834,7 +834,7 @@ void processRcAdjustments(void)
             pidInitProfile(currentPidProfile);
         }
         if (changed & ADJUSTMENT_TYPE_GOV) {
-            governorInitProfile(currentPidProfile);
+            governorLoadProfile(currentPidProfile);
         }
         if (changed & ADJUSTMENT_TYPE_MIX) {
             mixerInitConfig();
