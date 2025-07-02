@@ -1261,6 +1261,10 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.motorRPMGlitchDelta = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_DELTA;
         gov.motorRPMGlitchLimit = (gov.fullHeadSpeed / gov.mainGearRatio) * GOV_HS_GLITCH_LIMIT;
+
+        if (gov.state == GOV_STATE_ACTIVE) {
+            govEnterActiveState();
+        }
     }
 }
 
