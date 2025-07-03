@@ -191,12 +191,14 @@ typedef struct {
     float           Kf;
 
     // PID Limits
-    float           LP;     // Max P
-    float           lp;     // Min P
-    float           LI;     // Max I
-    float           li;     // Min I
-    float           Ld;
-    float           Lf;
+    float           maxP;
+    float           minP;
+    float           maxI;
+    float           minI;
+    float           maxD;
+    float           minD;
+    float           minF;
+    float           maxF;
 
     // Feedforward
     float           yawWeight;
@@ -614,8 +616,8 @@ static void govSpoolupControl(float minThrottle, float maxThrottle, float maxRat
     if (gov.hsSpoolupActive)
     {
         // PID limits
-        gov.P = constrainf(gov.P, -gov.lp, gov.LP);
-        gov.I = constrainf(gov.I,       0, gov.LI);
+        gov.P = constrainf(gov.P, -gov.minP, gov.maxP);
+        gov.I = constrainf(gov.I,         0, gov.maxI);
         gov.D = 0;
         gov.F = 0;
 
@@ -664,9 +666,9 @@ static void govPIDInit(void)
     const float pidTarget = gov.throttleOutput / gov.voltageCompGain;
 
     // PID limits
-    gov.P = constrainf(gov.P, -gov.lp, gov.LP);
-    gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
-    gov.F = constrainf(gov.F,       0, gov.Lf);
+    gov.P = constrainf(gov.P, gov.minP, gov.maxP);
+    gov.D = constrainf(gov.D, gov.minD, gov.maxD);
+    gov.F = constrainf(gov.F, gov.minF, gov.maxF);
 
     // Use gov.I to reach the target
     gov.I = pidTarget - (gov.P + gov.D + gov.F);
@@ -696,10 +698,10 @@ static void govPIDControl(float minThrottle, float maxThrottle, float maxRate)
     }
 
     // PID limits
-    gov.P = constrainf(gov.P, -gov.lp, gov.LP);
-    gov.I = constrainf(gov.I, -gov.li, gov.LI);
-    gov.D = constrainf(gov.D, -gov.Ld, gov.Ld);
-    gov.F = constrainf(gov.F,       0, gov.Lf);
+    gov.P = constrainf(gov.P, gov.minP, gov.maxP);
+    gov.I = constrainf(gov.I, gov.minI, gov.maxI);
+    gov.D = constrainf(gov.D, gov.minD, gov.maxD);
+    gov.F = constrainf(gov.F, gov.minF, gov.maxF);
 
     // Governor PIDF sum
     gov.pidSum = gov.P + gov.I + gov.C + gov.D + gov.F;
@@ -725,7 +727,7 @@ static void govFallbackControl(float minThrottle, float maxThrottle, float maxRa
 {
     // Precomp enabled
     if (gov.useFallbackPrecomp)
-        gov.F = constrainf(gov.F, 0, gov.Lf);
+        gov.F = constrainf(gov.F, gov.minF, gov.maxF);
     else
         gov.F = slewLimit(gov.F, gov.baseThrottle, maxRate);
 
@@ -760,7 +762,7 @@ static void govRecoveryInit(void)
 
 
 /*
- * External throttle control (Ext.Gov)
+ * External throttle control (Ext.Gov or Throttle Curve)
  */
 
 static void govUpdateExternalThrottle(void)
@@ -1221,14 +1223,19 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.Kd = pidProfile->governor.d_gain / 1000.0f;
         gov.Kf = pidProfile->governor.f_gain / 100.0f;
 
-        gov.LP = gov.lp = pidProfile->governor.p_limit / 100.0f;
-        gov.LI = gov.li = pidProfile->governor.i_limit / 100.0f;
-        gov.Ld = pidProfile->governor.d_limit / 100.0f;
-        gov.Lf = pidProfile->governor.f_limit / 100.0f;
+        gov.maxP = pidProfile->governor.p_limit / 100.0f;
+        gov.maxI = pidProfile->governor.i_limit / 100.0f;
+        gov.maxD = pidProfile->governor.d_limit / 100.0f;
+        gov.maxF = pidProfile->governor.f_limit / 100.0f;
+
+        gov.minP = -gov.maxP;
+        gov.minI = -gov.maxI;
+        gov.minD = -gov.maxD;
+        gov.minF = 0;
 
         if (gov.useRPMLimiter) {
-            gov.LP = 0;
-            gov.LI = 0;
+            gov.maxP = 0;
+            gov.maxI = 0;
         }
 
         gov.idleThrottle = pidProfile->governor.idle_throttle / 100.0f;
