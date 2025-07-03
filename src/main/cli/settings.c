@@ -1180,6 +1180,7 @@ const clivalue_t valueTable[] = {
     { "gov_use_voltage_comp",       VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_VOLTAGE_COMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_fallback_precomp",   VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_FALLBACK_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_dyn_min_throttle",   VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_DYN_MIN_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
+    { "gov_use_dyn_base_throttle",  VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_DYN_BASE_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_autorotation",       VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_AUTOROTATION, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
 
     { "gov_headspeed",              VAR_UINT16 |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 50000 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.headspeed) },
@@ -1200,8 +1201,9 @@ const clivalue_t valueTable[] = {
     { "gov_max_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.max_throttle) },
     { "gov_min_throttle",           VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.min_throttle) },
     { "gov_idle_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.idle_throttle) },
-    { "gov_base_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_throttle) },
     { "gov_auto_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.auto_throttle) },
+    { "gov_base_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_throttle) },
+    { "gov_base_charge",             VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_charge) },
     { "gov_collective_curve",       VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 4 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_curve) },
     // TDB remove
     { "gov_dyn_min_level",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.dyn_min_level) },

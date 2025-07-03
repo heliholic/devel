@@ -92,6 +92,7 @@ typedef struct {
     bool            useFallbackPrecomp;
     bool            useTxThrottleCurve;
     bool            useDynMinThrottle;
+    bool            useDynBaseThrottle;
     bool            useMotorConstant;
     bool            useAutoRotation;
     bool            useTTA;
@@ -113,6 +114,7 @@ typedef struct {
 
     // Fallback base throttle
     float           baseThrottle;
+    float           baseCharge;
 
     // Idle throttle level
     float           idleThrottle;
@@ -284,7 +286,7 @@ float getSpoolUpRatio(void)
     if (!ARMING_FLAG(ARMED))
         return 0;
 
-    if (gov.govMode ) {
+    if (gov.govMode) {
         switch (gov.state)
         {
             case GOV_STATE_THROTTLE_OFF:
@@ -294,13 +296,13 @@ float getSpoolUpRatio(void)
                 return 0;
 
             case GOV_STATE_ACTIVE:
-            case GOV_STATE_RECOVERY:
             case GOV_STATE_FALLBACK:
-            case GOV_STATE_BAILOUT:
             case GOV_STATE_PASSTHRU:
                 return 1.0f;
 
             case GOV_STATE_SPOOLUP:
+            case GOV_STATE_BAILOUT:
+            case GOV_STATE_RECOVERY:
                 return gov.requestRatio;
         }
         return 0;
@@ -317,7 +319,7 @@ bool isSpooledUp(void)
     if (!ARMING_FLAG(ARMED))
         return false;
 
-    if (gov.govMode ) {
+    if (gov.govMode) {
         switch (gov.state)
         {
             case GOV_STATE_ACTIVE:
@@ -326,8 +328,8 @@ bool isSpooledUp(void)
             case GOV_STATE_PASSTHRU:
                 return true;
 
-            case GOV_STATE_RECOVERY:
             case GOV_STATE_SPOOLUP:
+            case GOV_STATE_RECOVERY:
             case GOV_STATE_FALLBACK:
                 return (gov.throttleOutput > 0.333f);
 
@@ -407,7 +409,7 @@ static void govGetInputThrottle(void)
     }
 
     if (gov.useHsAdjustment && throttle > gov.handoverThrottle) {
-        gov.requestedHeadSpeed = fmaxf(throttle * gov.fullHeadSpeed, 60);
+        gov.requestedHeadSpeed = fmaxf(throttle * gov.fullHeadSpeed, 100);
         gov.throttleInput = 1.0f;
     }
     else {
@@ -484,10 +486,10 @@ static float govCalcVoltCompGain(void)
         const float Vnom = getBatteryCellCount() * GOV_NOMINAL_CELL_VOLTAGE;
         const float Vbat = getBatteryVoltageMeter()->sample * 0.001f;
 
-        if (Vnom > 2 && Vbat > 2) {
+        if (Vnom > 2.0f && Vbat > 2.0f) {
             gov.motorVoltage = filterApply(&gov.motorVoltageFilter, Vbat);
             gov.nominalVoltage = Vnom;
-            if (gov.motorVoltage > 1)
+            if (gov.motorVoltage > 1.0f)
                 gain = constrainf(gov.nominalVoltage / gov.motorVoltage, 0.80f, 1.2f);
         }
     }
@@ -504,10 +506,10 @@ static float govCalcTTA(void)
         float TTA = filterApply(&gov.ttaFilter, YAW) * getSpoolUpRatio() * gov.ttaGain;
         float headroom = 0;
 
-        if (gov.govMode  == GOV_MODE_ELECTRIC)
-            headroom = 2 * fmaxf(1.0f + gov.ttaLimit - gov.fullHeadSpeedRatio, 0);
-        else // GOV_MODE_EXTERNAL
+        if (gov.govMode == GOV_MODE_EXTERNAL)
             headroom = gov.ttaLimit;
+        else // GOV_MODE_ELECTRIC
+            headroom = 2 * fmaxf(1.0f + gov.ttaLimit - gov.fullHeadSpeedRatio, 0);
 
         ttaAdd = constrainf(TTA, 0, headroom);
 
@@ -518,6 +520,19 @@ static float govCalcTTA(void)
     }
 
     return ttaAdd;
+}
+
+static void govMotorConstantUpdate(void)
+{
+    if (gov.useMotorConstant) {
+        if (gov.throttleOutput > 0.25f && gov.fullHeadSpeedRatio > 0.25f && gov.currentHeadSpeed > 100) {
+            const float RPMK = gov.currentHeadSpeed / gov.throttleOutput;
+            gov.motorRPMK = ewma1FilterApply(&gov.motorRPMKFilter, RPMK);
+
+            DEBUG(GOV_MOTOR, 0, RPMK);
+            DEBUG(GOV_MOTOR, 1, gov.motorRPMK);
+        }
+    }
 }
 
 static float govCalcDynMinThrottle(float minThrottle)
@@ -535,16 +550,15 @@ static float govCalcDynMinThrottle(float minThrottle)
     return minThrottle;
 }
 
-static void goveMotorConstantUpdate(void)
+static void govBaseThrottleUpdate(void)
 {
-    if (gov.useMotorConstant) {
-        if (gov.throttleOutput > 0.25f && gov.fullHeadSpeedRatio > 0.25f && gov.currentHeadSpeed > 100) {
-            const float RPMK = gov.currentHeadSpeed / gov.throttleOutput;
-            gov.motorRPMK = ewma1FilterApply(&gov.motorRPMKFilter, RPMK);
+    if (gov.useDynBaseThrottle) {
+        const float delta = gov.I * gov.baseCharge;
 
-            DEBUG(GOV_MOTOR, 0, RPMK);
-            DEBUG(GOV_MOTOR, 1, gov.motorRPMK);
-        }
+        gov.I -= delta;
+        gov.baseThrottle += delta;
+
+        DEBUG(GOV_MOTOR, 4, gov.baseThrottle * 1000);
     }
 }
 
@@ -603,7 +617,7 @@ static void govDataUpdate(void)
             gov.requestRatio = 0;
     }
 
-    // Battery voltage required
+    // Voltage drop compensation
     gov.voltageCompGain = govCalcVoltCompGain();
 
     // Tail Torque Assist
@@ -628,7 +642,7 @@ static inline void govThrottleSlewControl(float minThrottle, float maxThrottle, 
     const float throttle = constrainf(gov.throttleInput, minThrottle, maxThrottle);
 
     // Limit rate
-    gov.throttleOutput = slewLimit(gov.throttleOutput, throttle,  maxRate);
+    gov.throttleOutput = slewLimit(gov.throttleOutput, throttle, maxRate);
 
     // Update headspeed target
     gov.targetHeadSpeed = gov.currentHeadSpeed;
@@ -660,7 +674,7 @@ static void govSpoolupControl(float minThrottle, float maxThrottle, float maxRat
         const float throttle = constrainf(gov.pidSum, minThrottle, maxThrottle);
 
         // Update output throttle (don't exceed rate)
-        gov.throttleOutput = slewLimit(gov.throttleOutput, throttle,  maxRate);
+        gov.throttleOutput = slewLimit(gov.throttleOutput, throttle, maxRate);
 
         // Update headspeed target
         gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, maxRate * gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM);
@@ -671,7 +685,7 @@ static void govSpoolupControl(float minThrottle, float maxThrottle, float maxRat
         const float throttle = constrainf(gov.throttleInput, minThrottle, maxThrottle);
 
         // Update output throttle
-        gov.throttleOutput = slewLimit(gov.throttleOutput, throttle,  maxRate);
+        gov.throttleOutput = slewLimit(gov.throttleOutput, throttle, maxRate);
 
         // Update headspeed target
         gov.targetHeadSpeed = gov.currentHeadSpeed;
@@ -727,13 +741,14 @@ static void govPIDControl(float minThrottle, float maxThrottle, float maxRate)
     gov.throttleOutput = constrainf(throttle, minThrottle, maxThrottle);
 
     // Estimate HS change speed
-    const float hsRate = fmaxf(gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM, gov.motorRPMK) *  maxRate;
+    const float hsRate = fmaxf(gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM, gov.motorRPMK) * maxRate;
 
     // Update headspeed target
     gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, hsRate);
 
     // Update motor data
-    goveMotorConstantUpdate();
+    govMotorConstantUpdate();
+    govBaseThrottleUpdate();
 }
 
 static void govFallbackControl(float minThrottle, float maxThrottle, float maxRate)
@@ -1002,7 +1017,7 @@ static void govUpdateGovernedThrottle(void)
             govFallbackControl(gov.minActiveThrottle, gov.maxActiveThrottle, gov.throttleTrackingRate);
             break;
         case GOV_STATE_AUTOROTATION:
-            govThrottleSlewControl(gov.autoThrottle, gov.maxActiveThrottle, gov.throttleTrackingRate);
+            govThrottleSlewControl(gov.autoThrottle, gov.handoverThrottle, gov.throttleTrackingRate);
             break;
         case GOV_STATE_RECOVERY:
         case GOV_STATE_BAILOUT:
@@ -1194,7 +1209,7 @@ void governorUpdate(void)
         else
             govUpdateGovernedState();
 
-        // Set GOVERNOR debug
+        // Set GOVERNOR debug data
         govDebugGovernor();
     }
     else
@@ -1227,6 +1242,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.useRPMLimiter = (pidProfile->governor.flags & BIT(GOV_FLAG_RPM_LIMITER)) && !gov.usePassthrough;
         gov.useMotorConstant = (gov.govMode == GOV_MODE_ELECTRIC) && !gov.usePassthrough;
         gov.useDynMinThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_DYN_MIN_THROTTLE)) && gov.useMotorConstant;
+        gov.useDynBaseThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_DYN_MIN_THROTTLE)) && !gov.usePassthrough;
         gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && gov.useMotorConstant && (getBatteryVoltageSource() == VOLTAGE_METER_ADC);
         gov.useAutoRotation = (pidProfile->governor.flags & BIT(GOV_FLAG_AUTOROTATION)) && !gov.usePassthrough;
 
@@ -1252,8 +1268,12 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         }
 
         gov.idleThrottle = pidProfile->governor.idle_throttle / 100.0f;
-        gov.baseThrottle = pidProfile->governor.base_throttle / 100.0f;
         gov.autoThrottle = pidProfile->governor.auto_throttle / 100.0f;
+
+        if (pidProfile->governor.base_throttle) {
+            gov.baseThrottle = pidProfile->governor.base_throttle / 100.0f;
+        }
+        gov.baseCharge = pidGetDT() / pidProfile->governor.base_charge;
 
         gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
         gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
