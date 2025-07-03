@@ -520,6 +520,34 @@ static float govCalcTTA(void)
     return ttaAdd;
 }
 
+static float govCalcDynMinThrottle(float minThrottle)
+{
+    if (gov.useDynMinThrottle) {
+        if (gov.motorRPMK > gov.fullHeadSpeed) {
+            const float throttleEst = gov.targetHeadSpeed / gov.motorRPMK;
+            minThrottle = fmaxf(minThrottle, throttleEst * gov.dynMinLevel); // GOV_DYN_MIN_THROTTLE_LIMIT
+
+            DEBUG(GOV_MOTOR, 2, throttleEst);
+            DEBUG(GOV_MOTOR, 3, minThrottle);
+        }
+    }
+
+    return minThrottle;
+}
+
+static void goveMotorConstantUpdate(void)
+{
+    if (gov.useMotorConstant) {
+        if (gov.throttleOutput > 0.25f && gov.fullHeadSpeedRatio > 0.25f && gov.currentHeadSpeed > 100) {
+            const float RPMK = gov.currentHeadSpeed / gov.throttleOutput;
+            gov.motorRPMK = ewma1FilterApply(&gov.motorRPMKFilter, RPMK);
+
+            DEBUG(GOV_MOTOR, 0, RPMK);
+            DEBUG(GOV_MOTOR, 1, gov.motorRPMK);
+        }
+    }
+}
+
 static void govDataUpdate(void)
 {
     // Calculate effective throttle
@@ -616,8 +644,8 @@ static void govSpoolupControl(float minThrottle, float maxThrottle, float maxRat
     if (gov.hsSpoolupActive)
     {
         // PID limits
-        gov.P = constrainf(gov.P, -gov.minP, gov.maxP);
-        gov.I = constrainf(gov.I,         0, gov.maxI);
+        gov.P = constrainf(gov.P, gov.minP, gov.maxP);
+        gov.I = constrainf(gov.I, gov.minI, gov.maxI);
         gov.D = 0;
         gov.F = 0;
 
@@ -625,7 +653,7 @@ static void govSpoolupControl(float minThrottle, float maxThrottle, float maxRat
         gov.pidSum = gov.P + gov.I + gov.C;
 
         // Apply gov.C if pidsum not saturated
-        if (!((gov.pidSum > maxThrottle && gov.C > 0) || (gov.pidSum < minThrottle && gov.C < 0)))
+        if ((gov.pidSum > minThrottle || gov.C > 0) && (gov.pidSum < maxThrottle || gov.C < 0))
             gov.I += gov.C;
 
         // Limit value range
@@ -635,7 +663,7 @@ static void govSpoolupControl(float minThrottle, float maxThrottle, float maxRat
         gov.throttleOutput = slewLimit(gov.throttleOutput, throttle,  maxRate);
 
         // Update headspeed target
-        gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed,  maxRate * gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM);
+        gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, maxRate * gov.fullHeadSpeed * GOV_THROTTLE_HEADROOM);
     }
     else
     {
@@ -676,27 +704,6 @@ static void govPIDInit(void)
 
 static void govPIDControl(float minThrottle, float maxThrottle, float maxRate)
 {
-    // Update motor constant
-    if (gov.useMotorConstant) {
-        if (gov.throttleOutput > 0.25f && gov.fullHeadSpeedRatio > 0.25f && gov.currentHeadSpeed > 100) {
-            const float RPMK = gov.currentHeadSpeed / gov.throttleOutput;
-            gov.motorRPMK = ewma1FilterApply(&gov.motorRPMKFilter, RPMK);
-            DEBUG(GOV_MOTOR, 0, RPMK);
-        }
-
-        DEBUG(GOV_MOTOR, 1, gov.motorRPMK);
-
-        // Dynamic min throttle
-        if (gov.useDynMinThrottle) {
-            if (gov.motorRPMK > gov.fullHeadSpeed) {
-                const float throttleEst = gov.targetHeadSpeed / gov.motorRPMK;
-                minThrottle = fmaxf(minThrottle, throttleEst * gov.dynMinLevel); // GOV_DYN_MIN_THROTTLE_LIMIT
-                DEBUG(GOV_MOTOR, 2, throttleEst);
-                DEBUG(GOV_MOTOR, 3, minThrottle);
-            }
-        }
-    }
-
     // PID limits
     gov.P = constrainf(gov.P, gov.minP, gov.maxP);
     gov.I = constrainf(gov.I, gov.minI, gov.maxI);
@@ -709,8 +716,11 @@ static void govPIDControl(float minThrottle, float maxThrottle, float maxRate)
     // Generate throttle signal
     const float throttle = gov.pidSum * gov.voltageCompGain;
 
+    // update minThrottle
+    minThrottle = govCalcDynMinThrottle(minThrottle);
+
     // Apply gov.C if pidsum not saturated
-    if (!((throttle > maxThrottle && gov.C > 0) || (throttle < minThrottle && gov.C < 0)))
+    if ((throttle > minThrottle || gov.C > 0) && (throttle < maxThrottle || gov.C < 0))
         gov.I += gov.C;
 
     // Limit value range
@@ -721,6 +731,9 @@ static void govPIDControl(float minThrottle, float maxThrottle, float maxRate)
 
     // Update headspeed target
     gov.targetHeadSpeed = slewLimit(gov.targetHeadSpeed, gov.requestedHeadSpeed, hsRate);
+
+    // Update motor data
+    goveMotorConstantUpdate();
 }
 
 static void govFallbackControl(float minThrottle, float maxThrottle, float maxRate)
@@ -756,7 +769,7 @@ static void govRecoveryInit(void)
     }
     else if (gov.govMode == GOV_MODE_NITRO) {
         // Base throttle is a good starting point
-        gov.throttleOutput = fmaxf(gov.throttleOutput, gov.baseThrottle);
+        gov.throttleOutput = fmaxf(gov.throttleOutput, gov.baseThrottle) * 0.95f;
     }
 }
 
