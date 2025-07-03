@@ -112,7 +112,6 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .governor.idle_throttle = 0,
         .governor.auto_throttle = 0,
         .governor.base_throttle = 0,
-        .governor.base_charge = 15,
         .governor.gain = 40,
         .governor.p_gain = 40,
         .governor.i_gain = 50,
@@ -128,6 +127,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .governor.cyclic_weight = 10,
         .governor.collective_weight = 50,
         .governor.collective_curve = 0,
+        .governor.fallback_reduction = 10,
         .governor.dyn_min_level = 80,   // TDB remove
     );
 }

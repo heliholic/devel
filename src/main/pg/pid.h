@@ -84,7 +84,6 @@ typedef struct {
     uint8_t     idle_throttle;
     uint8_t     auto_throttle;
     uint8_t     base_throttle;
-    uint8_t     base_charge;
     uint8_t     gain;
     uint8_t     p_gain;
     uint8_t     i_gain;
@@ -100,6 +99,7 @@ typedef struct {
     uint8_t     cyclic_weight;
     uint8_t     collective_weight;
     uint8_t     collective_curve;
+    uint8_t     fallback_reduction;
     uint8_t     dyn_min_level;      // TDB remove
 } governorProfile_t;
 

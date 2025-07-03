@@ -934,6 +934,7 @@ const clivalue_t valueTable[] = {
     { "gov_recovery_time",          VAR_UINT16 | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_recovery_time) },
     { "gov_throttle_hold_timeout",  VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_throttle_hold_timeout) },
     { "gov_handover_throttle",      VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_handover_throttle) },
+    { "gov_base_charge",            VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 5, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_base_charge) },
     { "gov_pwr_filter",             VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_pwr_filter) },
     { "gov_rpm_filter",             VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_rpm_filter) },
     { "gov_tta_filter",             VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tta_filter) },
@@ -1203,7 +1204,6 @@ const clivalue_t valueTable[] = {
     { "gov_idle_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.idle_throttle) },
     { "gov_auto_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.auto_throttle) },
     { "gov_base_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_throttle) },
-    { "gov_base_charge",             VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 1, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.base_charge) },
     { "gov_collective_curve",       VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 4 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_curve) },
     // TDB remove
     { "gov_dyn_min_level",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.dyn_min_level) },
