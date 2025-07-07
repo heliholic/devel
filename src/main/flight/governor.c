@@ -88,7 +88,6 @@ typedef struct {
     bool            useThreePosThrottle;
     bool            useHsAdjustment;
     bool            usePidSpoolup;
-    bool            useRPMLimiter;
     bool            useVoltageComp;
     bool            useFallbackPrecomp;
     bool            useTxThrottleCurve;
@@ -1226,8 +1225,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.useTxThrottleCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_TX_THROTTLE_CURVE)) && !gov.useThreePosThrottle && !gov.useBypass;
         gov.useHsAdjustment = (pidProfile->governor.flags & BIT(GOV_FLAG_HS_ADJUSTMENT)) && !gov.useTxThrottleCurve && !gov.useThreePosThrottle && !gov.useBypass;
         gov.useFallbackPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_FALLBACK_PRECOMP)) && !gov.useBypass;
-        gov.useRPMLimiter = (pidProfile->governor.flags & BIT(GOV_FLAG_RPM_LIMITER)) && !gov.useBypass;
-        gov.usePidSpoolup = (pidProfile->governor.flags & BIT(GOV_FLAG_PID_SPOOLUP)) && !gov.useTxThrottleCurve && !gov.useRPMLimiter && !gov.useBypass;
+        gov.usePidSpoolup = (pidProfile->governor.flags & BIT(GOV_FLAG_PID_SPOOLUP)) && !gov.useTxThrottleCurve && !gov.useBypass;
         gov.useMotorConstant = (gov.govMode == GOV_MODE_ELECTRIC) && !gov.useBypass;
         gov.useDynMinThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_DYN_MIN_THROTTLE)) && gov.useMotorConstant;
         gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && (getBatteryVoltageSource() == VOLTAGE_METER_ADC) && gov.useMotorConstant;
@@ -1248,14 +1246,6 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.minI = -gov.maxI;
         gov.minD = -gov.maxD;
         gov.minF = 0;
-
-        if (gov.useRPMLimiter) {
-            gov.Ki = 0;
-            gov.maxP = 0;
-            gov.maxD = 0;
-            gov.maxI = 0;
-            gov.minI = 0;
-        }
 
         gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
         gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;

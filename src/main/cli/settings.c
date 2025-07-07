@@ -1177,7 +1177,6 @@ const clivalue_t valueTable[] = {
     { "gov_use_tx_throttle_curve",  VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_TX_THROTTLE_CURVE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_hs_adjustment",      VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_HS_ADJUSTMENT, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_pid_spoolup",        VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_PID_SPOOLUP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_rpm_limiter",        VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_RPM_LIMITER, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_voltage_comp",       VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_VOLTAGE_COMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_fallback_precomp",   VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_FALLBACK_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_dyn_min_throttle",   VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_DYN_MIN_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },

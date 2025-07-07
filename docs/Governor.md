@@ -295,10 +295,6 @@ Enable the _precompensations_ in the `FALLBACK` state.
 Use _battery voltage compensation_. This is useful when the battery has a high internal
 resistance. For example, when using Li-ion or LiFePo4 batteries.
 
-### Flat `gov_use_rpm_limiter`
-
-Use the PID controller for limiting the max RPM, instead of keeping it constnat.
-
 ### Flat `gov_use_pid_spoolup`
 
 Use a PID controlled spoolup in the `SPOOLUP` state.
