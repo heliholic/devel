@@ -1213,10 +1213,39 @@ void governorUpdate(void)
     }
 }
 
+void INIT_CODE validateAndFixGovernorConfig(void)
+{
+    pidProfile_t * pidProfile = currentPidProfile;
+
+    if (pidProfile->governor.flags & BIT(GOV_FLAG_BYPASS)) {
+        CLEAR_BIT(pidProfile->governor.flags,
+            BIT(GOV_FLAG_3POS_THROTTLE) |
+            BIT(GOV_FLAG_HS_ADJUSTMENT) |
+            BIT(GOV_FLAG_FALLBACK_PRECOMP) |
+            BIT(GOV_FLAG_PID_SPOOLUP) |
+            BIT(GOV_FLAG_DYN_MIN_THROTTLE) |
+            BIT(GOV_FLAG_VOLTAGE_COMP) |
+            BIT(GOV_FLAG_AUTOROTATION));
+    }
+    if (pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE)) {
+        CLEAR_BIT(pidProfile->governor.flags,
+            BIT(GOV_FLAG_TX_THROTTLE_CURVE) |
+            BIT(GOV_FLAG_HS_ADJUSTMENT));
+    }
+    if (pidProfile->governor.flags & BIT(GOV_FLAG_TX_THROTTLE_CURVE)) {
+        CLEAR_BIT(pidProfile->governor.flags,
+            BIT(GOV_FLAG_HS_ADJUSTMENT) |
+            BIT(GOV_FLAG_FALLBACK_PRECOMP) |
+            BIT(GOV_FLAG_PID_SPOOLUP));
+    }
+}
+
 void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govMode)
     {
+        validateAndFixGovernorConfig();
+
         gov.stateResetReq = true;
 
         gov.useBypass = (pidProfile->governor.flags & BIT(GOV_FLAG_BYPASS));
