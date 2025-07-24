@@ -1913,6 +1913,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, currentPidProfile->governor.min_throttle);
         sbufWriteU8(dst, currentPidProfile->governor.idle_throttle);
         sbufWriteU8(dst, currentPidProfile->governor.auto_throttle);
+        sbufWriteU8(dst, currentPidProfile->governor.fallback_drop);
         sbufWriteU16(dst, currentPidProfile->governor.flags);
         break;
 
@@ -2748,9 +2749,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         if (sbufBytesRemaining(src) >= 1) {
             currentPidProfile->governor.min_throttle = sbufReadU8(src);
         }
-        if (sbufBytesRemaining(src) >= 4) {
+        if (sbufBytesRemaining(src) >= 5) {
             currentPidProfile->governor.idle_throttle = sbufReadU8(src);
             currentPidProfile->governor.auto_throttle = sbufReadU8(src);
+            currentPidProfile->governor.fallback_drop = sbufReadU8(src);
             currentPidProfile->governor.flags = sbufReadU16(src);
         }
         /* Load new values */
