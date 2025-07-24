@@ -224,6 +224,7 @@ typedef struct {
     float           throttleSpoolupRate;
     float           throttleRecoveryRate;
     float           throttleTrackingRate;
+    float           throttleSpooldownRate;
 
 } govData_t;
 
@@ -625,13 +626,13 @@ static void govDataUpdate(void)
     gov.F = govCalcFeedforward();
 }
 
-static inline void govThrottleSlewControl(float minThrottle, float maxThrottle, float maxRate)
+static inline void govThrottleSlewControl(float minThrottle, float maxThrottle, float upRate, float downRate)
 {
     // Limit input value range
     const float throttle = constrainf(gov.throttleInput, minThrottle, maxThrottle);
 
     // Limit rate
-    gov.throttleOutput = slewLimit(gov.throttleOutput, throttle, maxRate);
+    gov.throttleOutput = slewUpDownLimit(gov.throttleOutput, throttle, upRate, downRate);
 
     // Update headspeed target
     gov.targetHeadSpeed = gov.currentHeadSpeed;
@@ -994,13 +995,13 @@ static void govUpdateGovernedThrottle(void)
             gov.throttleOutput = 0;
             break;
         case GOV_STATE_THROTTLE_IDLE:
-            govThrottleSlewControl(gov.idleThrottle, gov.handoverThrottle, gov.throttleStartupRate);
+            govThrottleSlewControl(gov.idleThrottle, gov.handoverThrottle, gov.throttleStartupRate, gov.throttleSpooldownRate);
             break;
         case GOV_STATE_THROTTLE_HOLD:
             if (gov.throttleInputOff)
                 gov.throttleOutput = 0;
             else
-                govThrottleSlewControl(gov.idleThrottle, gov.handoverThrottle, gov.throttleTrackingRate);
+                govThrottleSlewControl(gov.idleThrottle, gov.handoverThrottle, gov.throttleStartupRate, gov.throttleSpooldownRate);
             break;
         case GOV_STATE_SPOOLUP:
             govSpoolupControl(gov.minSpoolupThrottle, gov.maxSpoolupThrottle, gov.throttleSpoolupRate);
@@ -1012,11 +1013,11 @@ static void govUpdateGovernedThrottle(void)
             govFallbackControl(gov.minActiveThrottle, gov.maxActiveThrottle, gov.throttleTrackingRate);
             break;
         case GOV_STATE_AUTOROTATION:
-            govThrottleSlewControl(gov.autoThrottle, gov.handoverThrottle, gov.throttleTrackingRate);
+            govThrottleSlewControl(gov.autoThrottle, gov.handoverThrottle, gov.throttleTrackingRate, gov.throttleTrackingRate);
             break;
         case GOV_STATE_RECOVERY:
         case GOV_STATE_BAILOUT:
-            govThrottleSlewControl(gov.minSpoolupThrottle, gov.maxSpoolupThrottle, gov.throttleRecoveryRate);
+            govThrottleSlewControl(gov.minSpoolupThrottle, gov.maxSpoolupThrottle, gov.throttleRecoveryRate, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_DISABLED:
             gov.targetHeadSpeed = 0;
@@ -1360,6 +1361,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             gov.throttleSpoolupRate  = govCalcRate(governorConfig()->gov_spoolup_time, 1, 600);
             gov.throttleTrackingRate = govCalcRate(governorConfig()->gov_tracking_time, 1, 100);
             gov.throttleRecoveryRate = govCalcRate(governorConfig()->gov_recovery_time, 1, 100);
+            gov.throttleSpooldownRate  = govCalcRate(governorConfig()->gov_spooldown_time, 1, 100);
 
             gov.throttleHoldTimeout  = governorConfig()->gov_throttle_hold_timeout * 100;
 
