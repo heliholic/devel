@@ -2030,6 +2030,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, governorConfig()->gov_ff_filter);
         sbufWriteU8(dst, 0); // governorConfig()->gov_spoolup_min_throttle
         sbufWriteU8(dst, governorConfig()->gov_d_cutoff);
+        sbufWriteU8(dst, governorConfig()->gov_spooldown_time);
         break;
 
     default:
@@ -3500,10 +3501,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         governorConfigMutable()->gov_tracking_time = sbufReadU16(src);
         governorConfigMutable()->gov_recovery_time = sbufReadU16(src);
         governorConfigMutable()->gov_throttle_hold_timeout = sbufReadU16(src);
-        sbufReadU16(src); // governorConfigMutable()->gov_lost_headspeed_timeout = sbufReadU16(src);
-        sbufReadU16(src); // governorConfigMutable()->gov_autorotation_timeout = sbufReadU16(src);
-        sbufReadU16(src); // governorConfigMutable()->gov_autorotation_bailout_time = sbufReadU16(src);
-        sbufReadU16(src); // governorConfigMutable()->gov_autorotation_min_entry_time = sbufReadU16(src);
+        sbufReadU16(src); // governorConfigMutable()->gov_lost_headspeed_timeout
+        sbufReadU16(src); // governorConfigMutable()->gov_autorotation_timeout
+        sbufReadU16(src); // governorConfigMutable()->gov_autorotation_bailout_time
+        sbufReadU16(src); // governorConfigMutable()->gov_autorotation_min_entry_time
         governorConfigMutable()->gov_handover_throttle = sbufReadU8(src);
         governorConfigMutable()->gov_pwr_filter = sbufReadU8(src);
         governorConfigMutable()->gov_rpm_filter = sbufReadU8(src);
@@ -3511,6 +3512,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         governorConfigMutable()->gov_ff_filter = sbufReadU8(src);
         if (sbufBytesRemaining(src) >= 1) {
             sbufReadU8(src); // governorConfigMutable()->gov_spoolup_min_throttle
+        }
+        if (sbufBytesRemaining(src) >= 2) {
+            governorConfigMutable()->gov_d_cutoff = sbufReadU8(src);
+            governorConfigMutable()->gov_spooldown_time = sbufReadU8(src);
         }
         break;
 
