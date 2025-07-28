@@ -2030,7 +2030,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, governorConfig()->gov_ff_filter);
         sbufWriteU8(dst, 0); // governorConfig()->gov_spoolup_min_throttle
         sbufWriteU8(dst, governorConfig()->gov_d_cutoff);
-        sbufWriteU8(dst, governorConfig()->gov_spooldown_time);
+        sbufWriteU16(dst, governorConfig()->gov_spooldown_time);
         break;
 
     default:
@@ -3513,9 +3513,9 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         if (sbufBytesRemaining(src) >= 1) {
             sbufReadU8(src); // governorConfigMutable()->gov_spoolup_min_throttle
         }
-        if (sbufBytesRemaining(src) >= 2) {
+        if (sbufBytesRemaining(src) >= 3) {
             governorConfigMutable()->gov_d_cutoff = sbufReadU8(src);
-            governorConfigMutable()->gov_spooldown_time = sbufReadU8(src);
+            governorConfigMutable()->gov_spooldown_time = sbufReadU16(src);
         }
         break;
 
