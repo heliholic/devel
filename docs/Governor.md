@@ -39,10 +39,11 @@ to stop** and not run. With an ESC it's also a level that allows the ESC to arm.
 **NOTE.** `min_throttle` and `max_throttle` defines the throttle range, that is later
 expressed as 0%..100% in the logs and in the telemetry.
 
+
 # States
 
 The governor operates in multiple states. Each state is used for a specific purpose,
-and has its own parameters.
+and has its own parameters. Each state is entered when specific conditions are met.
 
 #### State `THROTTLE_OFF`
 
@@ -60,7 +61,7 @@ The helicopter is expected to be on the ground.
 
 The input throttle was switched off while in the `ACTIVE` state. The motor is spooling
 down. If the throttle is restored within `gov_throttle_hold_timeout`, a fast recovery
-is performed.
+is performed. The change speed is limited by `gov_spooldown_time`.
 
 This is a safeguard against an accidential throttle cut/hold activation.
 
@@ -87,8 +88,11 @@ If the target headspeed is altered, the change speed is limited by `gov_tracking
 #### State `FALLBACK`
 
 RPM signal is unreliable or lost, and the headspeed can't be controlled.
-Instead, a throttle value `gov_base_throttle` is applied, with optional precomps, so
+Instead, an estimated throttle value is used, with optional precomps, so
 that the pilot can land the helicopter safely.
+
+The parameter `gov_fallback_drop` sets the percentage of throttle drop for
+indicating this condition, in order to notify the pilot.
 
 #### State `AUTOROTATION`
 
@@ -102,7 +106,7 @@ with a normal `SPOOLUP`.
 #### State `BAILOUT`
 
 The autorotation attempt was abandoned, and an _autorotation bailout_ is performed.
-Throttle is ramped up quickly.
+Throttle is ramped up quickly, according to the `gov_recover_time` parameter.
 
 #### State `DISABLED`
 
@@ -155,6 +159,10 @@ The throttle change speed limit for `ACTIVE` state.
 
 The throttle change speed limit for `RECOVERY` and `BAILOUT` states.
 
+### Recovery time `gov_spooldown_time`
+
+The throttle reduction speed limit for `THROTTLE_HOLD` and `THROTTLE_IDLE` states.
+
 ### Throttle Hold timeout `gov_throttle_hold_timeout`
 
 The timeout for `THROTTLE_HOLD` state.
@@ -162,6 +170,10 @@ The timeout for `THROTTLE_HOLD` state.
 ### Handover Throttle `gov_handover_throttle`
 
 The throttle level required for the governor to activate.
+
+### Collective level for WOT `gov_wot_collective`
+
+The collective level where Wide-Open-Throttle is reached, when using an FC throttle curve.
 
 ### Voltage Filter `gov_pwr_filter`
 
@@ -188,13 +200,11 @@ A cutoff frequency for the D-term internal filter.
 
 ### Target headspeed `gov_headspeed`
 
+The (full) headspeed for the profile.
+
 ### Idle throttle value `gov_idle_throttle`
 
 The minimum throttle value in the `IDLE` state.
-
-### Base throttle value `gov_base_throttle`
-
-The throttle value used in the `FALLBACK` state.
 
 ### Autorotation throttle value `gov_auto_throttle`
 
@@ -214,9 +224,15 @@ The master PID gain.
 
 ### P-Gain `gov_p_gain`
 
+The governor PID loop P-gain.
+
 ### I-Gain `gov_i_gain`
 
+The governor PID loop I-gain.
+
 ### D-Gain `gov_d_gain`
+
+The governor PID loop D-gain.
 
 ### F-gain `gov_f_gain`
 
@@ -236,7 +252,7 @@ The D-term range is `[-gov_d_limit, gov_d_limit]`.
 
 ### F-limit `gov_f_limit`
 
-The F-term range is `[0, gov_f_limit]`.
+The F-term range is `[-gov_f_limit, gov_f_limit]`.
 
 ### Yaw Precomp Weight `gov_yaw_ff_weight`
 
@@ -279,10 +295,15 @@ Used for tuning the precomps.
 
 The input throttle channel is a three-position switch: OFF/IDLE/ACTIVE.
 
-### Flag `gov_use_tx_throttle_curve`
+### Flag `gov_use_tx_precomp_curve`
 
 Use the throttle input as the precompensation level, instead of calculating it in the FC.
-This allows setting the throttle curve in the Tx.
+This allows setting the throttle precomp curve in the Tx.
+
+### Flag `gov_us_fc_throttle_curve`
+
+In conjuction with `gov_use_three_pos_switch`, the collective value is used for calculating
+the throttle level in the `IDLE` state (switch center position).
 
 ### Flag `gov_use_fallback_precomp`
 
@@ -337,3 +358,60 @@ Enable _throttle bypass_, effectively disabling all governor functions.
 
 There are no safeguards or change rate limits in `BYPASS`. The pilot **MUST**
 ensure safe operation with a suitable programming in the Tx.
+
+
+# Examples
+
+### Simple One Headspeed (electric)
+
+The most simple setup is to have the throttle channel on an ON/OFF switch, and
+set the headspeed in the governor profile.
+
+```
+set gov_headspeed = 2400
+```
+
+No other settings are needed.
+
+### Simple Throttle-on-Stick (electric)
+
+The traditional throttle-on-stick can be set up so that the throttle curve will ramp up
+from 0..100% at collective levels -100%..-20% (or so). Above -20% collective level
+the throttle must stay at 100%. The required headspeed is set in the governor profile.
+
+It is strongly suggested to have a _Throttle Cut_ switch with this setup.
+
+### OFF - IDLE - IU (electric)
+
+The throttle channel can be set on a three-position switch, for selecting OFF / IDLE / IU.
+The IDLE position is for starting the motor at a low RPM. On electric, this is handy for
+checking the motor startup and the controls, before spooling up fully.
+
+```
+set gov_use_3pos_throttle = ON
+set gov_idle_throttle = 12
+set gov_headspeed = 2800
+```
+
+### OFF - IDLE/AUTO - IU (electric)
+
+For autorotations, a simple Mode switch will change the IDLE position to _autorotation_.
+This switch should be activated whenever a fast recovery/bailout is needed from the
+IDLE/AUTO position.
+
+### Throttle-on-Stick curve in the FC (electric)
+
+The throttle curve can be also set in the FC. This is used in conjuction with the 3pos
+switch setup, replacing the middle position with the throttle control on collective.
+
+The `gov_idle_throttle` parameter sets the lowest throttle value when the collective
+is fully down.
+
+```
+set gov_use_3pos_throttle = ON
+set gov_use_fc_throttle_curve = ON
+set gov_idle_throttle = 10
+set gov_handover_throttle = 30
+set gov_headspeed = 2800
+```
+
