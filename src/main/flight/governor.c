@@ -1371,9 +1371,9 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
             gov.throttleStartupRate  = govCalcRate(governorConfig()->gov_startup_time, 1, 600);
             gov.throttleSpoolupRate  = govCalcRate(governorConfig()->gov_spoolup_time, 1, 600);
-            gov.throttleTrackingRate = govCalcRate(governorConfig()->gov_tracking_time, 1, 100);
-            gov.throttleRecoveryRate = govCalcRate(governorConfig()->gov_recovery_time, 1, 100);
-            gov.throttleSpooldownRate  = govCalcRate(governorConfig()->gov_spooldown_time, 1, 100);
+            gov.throttleTrackingRate = govCalcRate(governorConfig()->gov_tracking_time, 1, 600);
+            gov.throttleRecoveryRate = govCalcRate(governorConfig()->gov_recovery_time, 1, 600);
+            gov.throttleSpooldownRate  = govCalcRate(governorConfig()->gov_spooldown_time, 1, 600);
 
             gov.throttleHoldTimeout  = governorConfig()->gov_throttle_hold_timeout * 100;
 
