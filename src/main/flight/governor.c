@@ -414,7 +414,7 @@ static void govGetInputThrottle(void)
         }
         else if (throttle < 0.666f) {
             if (gov.useFcThrottleCurve)
-                throttle = transition(getRcDeflection(COLLECTIVE), -1.0f, gov.wotCollective, gov.idleThrottle, 1.0f);
+                throttle = transition(getRcDeflection(COLLECTIVE), -0.95f, gov.wotCollective, gov.idleThrottle, 1.0f);
             else
                 throttle = gov.idleThrottle;
         }
@@ -1379,7 +1379,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
-            gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -100, 100) / 100.0f;
+            gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -90, 0) / 100.0f;
 
             difFilterInit(&gov.differentiator, governorConfig()->gov_d_cutoff / 10.0f, gyro.targetRateHz);
 
