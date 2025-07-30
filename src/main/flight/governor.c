@@ -402,36 +402,41 @@ static inline long govStateTime(void)
     return cmp32(millis(),gov.stateEntryTime);
 }
 
+static inline long govGetMappedThrottle(void)
+{
+    return transition(getRcDeflection(COLLECTIVE), -0.95f, gov.wotCollective, gov.idleThrottle, 1.0f);
+}
+
 static void govGetInputThrottle(void)
 {
-    bool throloff = isThrottleOff();
-    float throttle = getThrottle();
+    gov.throttleInputOff = isThrottleOff();
+    gov.throttleInput = getThrottle();
+
+    if (gov.useBypass) {
+        if (gov.useFcThrottleCurve)
+            gov.throttleInput = govGetMappedThrottle();
+    }
 
     if (gov.useThreePosThrottle) {
-        if (throttle < 0.333f) {
-            throttle = 0;
-            throloff = true;
+        if (gov.throttleInput < 0.333f) {
+            gov.throttleInput = 0;
+            gov.throttleInputOff = true;
         }
-        else if (throttle < 0.666f) {
+        else if (gov.throttleInput < 0.666f) {
             if (gov.useFcThrottleCurve)
-                throttle = transition(getRcDeflection(COLLECTIVE), -0.95f, gov.wotCollective, gov.idleThrottle, 1.0f);
+                gov.throttleInput = govGetMappedThrottle();
             else
-                throttle = gov.idleThrottle;
+                gov.throttleInput = gov.idleThrottle;
         }
         else {
-            throttle = 1.0f;
+            gov.throttleInput = 1.0f;
         }
     }
 
-    if (gov.useHsAdjustment && throttle > gov.handoverThrottle) {
-        gov.requestedHeadSpeed = fmaxf(throttle * gov.fullHeadSpeed, 100);
+    if (gov.useHsAdjustment && gov.throttleInput > gov.handoverThrottle) {
+        gov.requestedHeadSpeed = fmaxf(gov.throttleInput * gov.fullHeadSpeed, 100);
         gov.throttleInput = 1.0f;
     }
-    else {
-        gov.throttleInput = throttle;
-    }
-
-    gov.throttleInputOff = throloff;
 }
 
 static float precompCurve(float angle, uint8_t curve)
@@ -1246,10 +1251,6 @@ void INIT_CODE validateAndFixGovernorConfig(void)
             BIT(GOV_FLAG_FALLBACK_PRECOMP) |
             BIT(GOV_FLAG_PID_SPOOLUP));
     }
-    if (!(pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE))) {
-        CLEAR_BIT(pidProfile->governor.flags,
-            BIT(GOV_FLAG_FC_THROTTLE_CURVE));
-    }
 }
 
 void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
@@ -1263,7 +1264,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.useBypass = (pidProfile->governor.flags & BIT(GOV_FLAG_BYPASS));
         gov.useSuspend = (pidProfile->governor.flags & BIT(GOV_FLAG_SUSPEND));
         gov.useThreePosThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE)) && !gov.useBypass;
-        gov.useFcThrottleCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_FC_THROTTLE_CURVE)) && gov.useThreePosThrottle;
+        gov.useFcThrottleCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_FC_THROTTLE_CURVE)) && (gov.useThreePosThrottle || gov.useBypass);
         gov.useTxPrecompCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_TX_PRECOMP_CURVE)) && !gov.useThreePosThrottle && !gov.useBypass;
         gov.useHsAdjustment = (pidProfile->governor.flags & BIT(GOV_FLAG_HS_ADJUSTMENT)) && !gov.useTxPrecompCurve && !gov.useThreePosThrottle && !gov.useBypass;
         gov.useFallbackPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_FALLBACK_PRECOMP)) && !gov.useBypass;
