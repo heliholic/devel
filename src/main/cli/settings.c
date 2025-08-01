@@ -471,6 +471,10 @@ static const char * const lookupTableGovernorMode[] = {
     "OFF", "EXTERNAL", "ELECTRIC", "NITRO",
 };
 
+static const char * const lookupTableGovernorThrottleType[] = {
+    "NORMAL", "OFF_ON", "OFF_IDLE_ON",
+};
+
 const char * const lookupTableErrorRelaxType[] = {
     "OFF", "RP", "RPY",
 };
@@ -606,6 +610,7 @@ const lookupTableEntry_t lookupTables[] = {
     LOOKUP_TABLE_ENTRY(lookupTableRotationDir),
     LOOKUP_TABLE_ENTRY(lookupTableTailMode),
     LOOKUP_TABLE_ENTRY(lookupTableGovernorMode),
+    LOOKUP_TABLE_ENTRY(lookupTableGovernorThrottleType),
     LOOKUP_TABLE_ENTRY(lookupTableErrorRelaxType),
 
 #ifdef USE_ESC_SENSOR
@@ -928,6 +933,7 @@ const clivalue_t valueTable[] = {
 
 // PG_GOVERNOR_CONFIG
     { "gov_mode",                   VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_MODE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_mode) },
+    { "gov_throttle_type",          VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GOVERNOR_THROTTLE_TYPE }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_throttle_type) },
     { "gov_startup_time",           VAR_UINT16 | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_startup_time) },
     { "gov_spoolup_time",           VAR_UINT16 | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_spoolup_time) },
     { "gov_tracking_time",          VAR_UINT16 | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tracking_time) },
@@ -935,7 +941,7 @@ const clivalue_t valueTable[] = {
     { "gov_spooldown_time",         VAR_UINT16 | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 600 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_spooldown_time) },
     { "gov_throttle_hold_timeout",  VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_throttle_hold_timeout) },
     { "gov_handover_throttle",      VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_handover_throttle) },
-    { "gov_wot_collective",         VAR_INT8   | MASTER_VALUE,  .config.minmax = { -90, 0 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_wot_collective) },
+    { "gov_wot_collective",         VAR_INT8   | MASTER_VALUE,  .config.minmax = { -90, 100 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_wot_collective) },
     { "gov_pwr_filter",             VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_pwr_filter) },
     { "gov_rpm_filter",             VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_rpm_filter) },
     { "gov_tta_filter",             VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GOVERNOR_CONFIG, offsetof(governorConfig_t, gov_tta_filter) },
@@ -1175,7 +1181,6 @@ const clivalue_t valueTable[] = {
 
     { "gov_use_bypass",             VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_BYPASS, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_suspend",            VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_SUSPEND, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
-    { "gov_use_three_pos_throttle", VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_3POS_THROTTLE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_fc_throttle_curve",  VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_FC_THROTTLE_CURVE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_tx_precomp_curve",   VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_TX_PRECOMP_CURVE, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_fallback_precomp",   VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_FALLBACK_PRECOMP, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },

@@ -82,6 +82,9 @@ typedef struct {
     // Governor type
     govMode_e       govMode;
 
+    // Throttle channel type
+    govThrottle_e   throttleType;
+
     // Governor features
     bool            useBypass;
     bool            useSuspend;
@@ -402,7 +405,7 @@ static inline long govStateTime(void)
     return cmp32(millis(),gov.stateEntryTime);
 }
 
-static inline long govGetMappedThrottle(void)
+static inline float govGetMappedThrottle(void)
 {
     return transition(getRcDeflection(COLLECTIVE), -0.95f, gov.wotCollective, gov.idleThrottle, 1.0f);
 }
@@ -412,30 +415,43 @@ static void govGetInputThrottle(void)
     gov.throttleInputOff = (getThrottleStatus() == THROTTLE_LOW);
     gov.throttleInput = getThrottle();
 
-    if (gov.useBypass) {
-        if (gov.useFcThrottleCurve)
-            gov.throttleInput = govGetMappedThrottle();
-    }
+    switch (gov.throttleType)
+    {
+        case GOV_THROTTLE_NORMAL:
+            if (gov.useHsAdjustment && gov.throttleInput > gov.handoverThrottle) {
+                gov.requestedHeadSpeed = fmaxf(gov.throttleInput * gov.fullHeadSpeed, 100);
+                gov.throttleInput = 1.0f;
+            }
+            break;
 
-    if (gov.useThreePosThrottle) {
-        if (gov.throttleInput < 0.333f) {
-            gov.throttleInput = 0;
-            gov.throttleInputOff = true;
-        }
-        else if (gov.throttleInput < 0.666f) {
-            if (gov.useFcThrottleCurve)
-                gov.throttleInput = govGetMappedThrottle();
-            else
+        case GOV_THROTTLE_OFF_ON:
+            if (gov.throttleInput < 0.666f) {
+                gov.throttleInput = 0;
+                gov.throttleInputOff = true;
+            }
+            else {
+                if (gov.useFcThrottleCurve)
+                    gov.throttleInput = govGetMappedThrottle();
+                else
+                    gov.throttleInput = 1.0f;
+            }
+            break;
+
+        case GOV_THROTTLE_OFF_IDLE_ON:
+            if (gov.throttleInput < 0.333f) {
+                gov.throttleInput = 0;
+                gov.throttleInputOff = true;
+            }
+            else if (gov.throttleInput < 0.666f) {
                 gov.throttleInput = gov.idleThrottle;
-        }
-        else {
-            gov.throttleInput = 1.0f;
-        }
-    }
-
-    if (gov.useHsAdjustment && gov.throttleInput > gov.handoverThrottle) {
-        gov.requestedHeadSpeed = fmaxf(gov.throttleInput * gov.fullHeadSpeed, 100);
-        gov.throttleInput = 1.0f;
+            }
+            else {
+                if (gov.useFcThrottleCurve)
+                    gov.throttleInput = govGetMappedThrottle();
+                else
+                    gov.throttleInput = 1.0f;
+            }
+            break;
     }
 }
 
@@ -1230,20 +1246,20 @@ void INIT_CODE validateAndFixGovernorConfig(void)
 {
     pidProfile_t * pidProfile = currentPidProfile;
 
+    if (gov.throttleType != GOV_THROTTLE_NORMAL) {
+        CLEAR_BIT(pidProfile->governor.flags,
+            BIT(GOV_FLAG_TX_PRECOMP_CURVE) |
+            BIT(GOV_FLAG_HS_ADJUSTMENT));
+    }
+
     if (pidProfile->governor.flags & BIT(GOV_FLAG_BYPASS)) {
         CLEAR_BIT(pidProfile->governor.flags,
-            BIT(GOV_FLAG_3POS_THROTTLE) |
             BIT(GOV_FLAG_HS_ADJUSTMENT) |
             BIT(GOV_FLAG_FALLBACK_PRECOMP) |
             BIT(GOV_FLAG_PID_SPOOLUP) |
             BIT(GOV_FLAG_DYN_MIN_THROTTLE) |
             BIT(GOV_FLAG_VOLTAGE_COMP) |
             BIT(GOV_FLAG_AUTOROTATION));
-    }
-    if (pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE)) {
-        CLEAR_BIT(pidProfile->governor.flags,
-            BIT(GOV_FLAG_TX_PRECOMP_CURVE) |
-            BIT(GOV_FLAG_HS_ADJUSTMENT));
     }
     if (pidProfile->governor.flags & BIT(GOV_FLAG_TX_PRECOMP_CURVE)) {
         CLEAR_BIT(pidProfile->governor.flags,
@@ -1263,15 +1279,14 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.useBypass = (pidProfile->governor.flags & BIT(GOV_FLAG_BYPASS));
         gov.useSuspend = (pidProfile->governor.flags & BIT(GOV_FLAG_SUSPEND));
-        gov.useThreePosThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_3POS_THROTTLE)) && !gov.useBypass;
-        gov.useFcThrottleCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_FC_THROTTLE_CURVE)) && (gov.useThreePosThrottle || gov.useBypass);
-        gov.useTxPrecompCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_TX_PRECOMP_CURVE)) && !gov.useThreePosThrottle && !gov.useBypass;
-        gov.useHsAdjustment = (pidProfile->governor.flags & BIT(GOV_FLAG_HS_ADJUSTMENT)) && !gov.useTxPrecompCurve && !gov.useThreePosThrottle && !gov.useBypass;
+        gov.useFcThrottleCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_FC_THROTTLE_CURVE)) && (gov.throttleType != GOV_THROTTLE_NORMAL);
+        gov.useTxPrecompCurve = (pidProfile->governor.flags & BIT(GOV_FLAG_TX_PRECOMP_CURVE)) && (gov.throttleType == GOV_THROTTLE_NORMAL) && !gov.useBypass;
+        gov.useHsAdjustment = (pidProfile->governor.flags & BIT(GOV_FLAG_HS_ADJUSTMENT)) && !gov.useTxPrecompCurve && (gov.throttleType == GOV_THROTTLE_NORMAL) && !gov.useBypass;
         gov.useFallbackPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_FALLBACK_PRECOMP)) && !gov.useBypass;
         gov.usePidSpoolup = (pidProfile->governor.flags & BIT(GOV_FLAG_PID_SPOOLUP)) && !gov.useTxPrecompCurve && !gov.useBypass;
         gov.useMotorConstant = (gov.govMode == GOV_MODE_ELECTRIC) && !gov.useBypass;
-        gov.useDynMinThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_DYN_MIN_THROTTLE)) && gov.useMotorConstant;
-        gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && (getBatteryVoltageSource() == VOLTAGE_METER_ADC) && gov.useMotorConstant;
+        gov.useDynMinThrottle = (pidProfile->governor.flags & BIT(GOV_FLAG_DYN_MIN_THROTTLE)) && gov.useMotorConstant && !gov.useBypass;
+        gov.useVoltageComp = (pidProfile->governor.flags & BIT(GOV_FLAG_VOLTAGE_COMP)) && (getBatteryVoltageSource() == VOLTAGE_METER_ADC) && gov.useMotorConstant && !gov.useBypass;
         gov.useAutoRotation = (pidProfile->governor.flags & BIT(GOV_FLAG_AUTOROTATION)) && !gov.useBypass;
 
         gov.K  = pidProfile->governor.gain / 100.0f;
@@ -1348,6 +1363,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
         gov.state = GOV_STATE_THROTTLE_OFF;
 
         gov.govMode = governorConfig()->gov_mode;
+        gov.throttleType = governorConfig()->gov_throttle_type;
 
         switch (gov.govMode)
         {
@@ -1380,7 +1396,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
-            gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -90, 0) / 100.0f;
+            gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -90, 100) / 100.0f;
 
             difFilterInit(&gov.differentiator, governorConfig()->gov_d_cutoff / 10.0f, gyro.targetRateHz);
 
