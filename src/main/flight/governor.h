@@ -24,13 +24,6 @@
 #include "flight/pid.h"
 
 typedef enum {
-    GOV_MODE_NONE = 0,
-    GOV_MODE_EXTERNAL,
-    GOV_MODE_ELECTRIC,
-    GOV_MODE_NITRO,
-} govMode_e;
-
-typedef enum {
     GOV_STATE_THROTTLE_OFF,
     GOV_STATE_THROTTLE_IDLE,
     GOV_STATE_SPOOLUP,
@@ -42,20 +35,6 @@ typedef enum {
     GOV_STATE_BAILOUT,
     GOV_STATE_DISABLED,
 } govState_e;
-
-typedef enum {
-    GOV_FLAG_3POS_THROTTLE,
-    GOV_FLAG_FC_THROTTLE_CURVE,
-    GOV_FLAG_TX_PRECOMP_CURVE,
-    GOV_FLAG_FALLBACK_PRECOMP,
-    GOV_FLAG_VOLTAGE_COMP,
-    GOV_FLAG_PID_SPOOLUP,
-    GOV_FLAG_HS_ADJUSTMENT,
-    GOV_FLAG_DYN_MIN_THROTTLE,
-    GOV_FLAG_AUTOROTATION,
-    GOV_FLAG_SUSPEND,
-    GOV_FLAG_BYPASS,
-} govFlags_e;
 
 typedef struct {
     int32_t    pidTerms[4];
@@ -80,7 +59,6 @@ void getGovernorLogData(govLogData_t *data);
 
 float getFullHeadSpeedRatio(void);
 float getSpoolUpRatio(void);
-
 
 float getTTAIncrease(void);
 
