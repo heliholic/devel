@@ -120,28 +120,26 @@ Profile settings are applied only when a profile is active.
 
 ## Global settings
 
-### Governor Modes `gov_mode`
+### Governor Mode `gov_mode`
 
 The governor mode setting chooses what type of governor is used, if any.
 
-#### Mode `OFF`
+| Mode | Description |
+| ---- | ----------- |
+| `OFF` | The governor is disabled. The throttle level is passed through unmodified. |
+| `EXTERNAL` | An external governor, or throttle curves can be used. The slow spoolup and failure handling is still done in Rotorflight, but the headspeed stabilisation is left out. |
+| `ELECTRIC` | A governor for electric motors is chosen. Rotorflight is taking care of the headspeed stabilisation and soft start, among other things. |
+| `NITRO` | A governor for I.C. / nitro motors is chosen. Rotorflight is taking care of the headspeed stabilisation and soft start, among other things. |
 
-The governor is disabled. The throttle level is passed through unmodified.
+### Throttle Channel Type `gov_throttle_type`
 
-#### Mode `EXTERNAL`
+The type of Throttle Channel.
 
-An external governor, or throttle curves can be used. The slow spoolup and failure handling
-is still done in Rotorflight, but the headspeed stabilisation is left out.
-
-#### Mode `ELECTRIC`
-
-A governor for electric motors is chosen. Rotorflight is taking care of the headspeed
-stabilisation and soft start, among other things.
-
-#### Mode `NITRO`
-
-A governor for I.C. / nitro motors is chosen. Rotorflight is taking care of the headspeed
-stabilisation and soft start, among other things.
+| Type | Description |
+| ---- | ----------- |
+| `NORMAL` | Normal throttle channel, with values ranging 0%..100% |
+| `OFF_ON` | Throttle channel is a two-way switch. |
+| `OFF_IDLE_ON` | Throttle channels is a three-way switch |
 
 ### Startup time `gov_startup_time`
 
@@ -291,10 +289,6 @@ Can be used in I.C. for disabling the governor and flying with the Tx curves onl
 The governor PID function in `ACTIVE` state is suspended. Only the F-term is active.
 Used for tuning the precomps.
 
-### Flag `gov_use_three_pos_switch`
-
-The input throttle channel is a three-position switch: OFF/IDLE/ACTIVE.
-
 ### Flag `gov_use_tx_precomp_curve`
 
 Use the throttle input as the precompensation level, instead of calculating it in the FC.
@@ -302,8 +296,8 @@ This allows setting the throttle precomp curve in the Tx.
 
 ### Flag `gov_us_fc_throttle_curve`
 
-In conjuction with `gov_use_three_pos_switch`, the collective value is used for calculating
-the throttle level in the `IDLE` state (switch center position).
+In conjuction with `gov_throttle_type` as a switch, the collective value is used for
+calculating the throttle level used in the governor.
 
 ### Flag `gov_use_fallback_precomp`
 
@@ -382,14 +376,14 @@ The required headspeed is set in the governor profile.
 
 It is strongly suggested to have a _Throttle Cut_ switch with this setup.
 
-### OFF - IDLE - IU (electric)
+### OFF - IDLE - ON (electric)
 
-The throttle channel can be set on a three-position switch, for selecting OFF / IDLE / IU.
+The throttle channel can be set on a three-position switch, for selecting OFF / IDLE / ON.
 The IDLE position is for starting the motor at a low RPM. On electric, this is handy for
 checking the motor startup and the controls, before spooling up fully.
 
 ```
-set gov_use_3pos_throttle = ON
+set gov_throttle_type = OFF_IDLE_ON
 set gov_idle_throttle = 12
 set gov_headspeed = 2800
 ```
@@ -402,47 +396,15 @@ IDLE/AUTO position.
 
 ### Throttle-on-Stick curve in the FC (electric)
 
-The throttle curve can be also set in the FC. This is used in conjuction with the 3pos
-switch setup, replacing the middle position with the throttle control on collective.
+The throttle curve can be also set in the FC. This is used in conjuction with the throttle
+switch setup, replacing the ON position with the throttle control on collective.
 
 The `gov_idle_throttle` parameter sets the lowest throttle value when the collective
 is fully down.
 
 ```
-set gov_use_3pos_throttle = ON
+set gov_throttle_type = OFF_IDLE_ON
 set gov_use_fc_throttle_curve = ON
 set gov_idle_throttle = 10
-set gov_handover_throttle = 30
 set gov_headspeed = 2800
 ```
-
-### Nitro Setup with Profiles
-
-This example uses three profiles:
-1) Throttle on stick with 1:1 throttle servo control
-2) Flight (IU1)
-3) Autorotation
-
-The first profile uses governor bypass, for turning off all governor features, and letting
-the throttle to go directly to the servo. The idle level is still obeyed.
-
-Using a profile for autorotations allows tuning the PIDs separately. The Tx need to send
-a low enough throttle value for entering the autorotation state. Like 5% or so.
-
-```
-profile 0
-set gov_use_bypass = ON
-set gov_idle_throttle = 15
-set gov_handover_throttle = 50
-
-profile 1
-set gov_idle_throttle = 15
-set gov_handover_throttle = 50
-set gov_headspeed = 2200
-
-profile 2
-set gov_use_autorotation = ON
-set gov_idle_throttle = 15
-set gov_auto_throttle = 22
-set gov_handover_throttle = 50
-set gov_headspeed = 2200
