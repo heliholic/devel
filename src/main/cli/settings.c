@@ -1209,7 +1209,7 @@ const clivalue_t valueTable[] = {
     { "gov_idle_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.idle_throttle) },
     { "gov_auto_throttle",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.auto_throttle) },
     { "gov_fallback_drop",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 50 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.fallback_drop) },
-    { "gov_collective_curve",       VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 4 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_curve) },
+    { "gov_collective_curve",       VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 5, 40 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.collective_curve) },
     // TDB remove
     { "gov_dyn_min_level",          VAR_UINT8  |  PROFILE_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_PID_PROFILE, offsetof(pidProfile_t, governor.dyn_min_level) },
 
