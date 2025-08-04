@@ -817,7 +817,7 @@ static void govUpdateExternalThrottle(void)
             throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_DISABLED:
-            throttle = gov.throttleInput;
+            throttle = fminf(gov.throttleInput, gov.maxActiveThrottle);
             break;
         default:
             break;
@@ -1025,7 +1025,7 @@ static void govUpdateGovernedThrottle(void)
             break;
         case GOV_STATE_DISABLED:
             gov.targetHeadSpeed = 0;
-            gov.throttleOutput = gov.throttleInput;
+            gov.throttleOutput = fminf(gov.throttleInput, gov.maxActiveThrottle);
             break;
         default:
             break;
@@ -1281,11 +1281,11 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.minD = -gov.maxD;
         gov.minF = 0;
 
-        gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
-        gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
-
         gov.idleThrottle = pidProfile->governor.idle_throttle / 100.0f;
         gov.autoThrottle = pidProfile->governor.auto_throttle / 100.0f;
+
+        gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
+        gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
 
         gov.minSpoolupThrottle = gov.idleThrottle;
         gov.maxSpoolupThrottle = gov.maxActiveThrottle;
