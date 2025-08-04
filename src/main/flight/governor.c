@@ -408,7 +408,7 @@ static inline long govStateTime(void)
 
 static inline float govGetMappedThrottle(void)
 {
-    return transition(getRcDeflection(COLLECTIVE), -0.95f, gov.wotCollective, gov.idleThrottle, 1.0f);
+    return transition(getRcDeflection(COLLECTIVE), gov.idleCollective, gov.wotCollective, gov.idleThrottle, 1.0f);
 }
 
 static void govGetInputThrottle(void)
@@ -1222,7 +1222,12 @@ void INIT_CODE validateAndFixGovernorConfig(void)
 {
     pidProfile_t * pidProfile = currentPidProfile;
 
-    if (gov.throttleType != GOV_THROTTLE_NORMAL) {
+    while (governorConfig()->gov_wot_collective - governorConfig()->gov_idle_collective < 1) {
+        governorConfigMutable()->gov_wot_collective = MIN(governorConfig()->gov_wot_collective + 1, 100);
+        governorConfigMutable()->gov_idle_collective = MAX(governorConfig()->gov_idle_collective - 1, -100);
+    }
+
+    if (governorConfig()->gov_throttle_type != GOV_THROTTLE_NORMAL) {
         CLEAR_BIT(pidProfile->governor.flags,
             BIT(GOV_FLAG_TX_PRECOMP_CURVE) |
             BIT(GOV_FLAG_HS_ADJUSTMENT));
@@ -1249,8 +1254,6 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (gov.govMode)
     {
-        validateAndFixGovernorConfig();
-
         gov.stateResetReq = true;
 
         gov.useBypass = (pidProfile->governor.flags & BIT(GOV_FLAG_BYPASS));
@@ -1336,6 +1339,8 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 {
     if (getMotorCount() > 0)
     {
+        validateAndFixGovernorConfig();
+
         gov.state = GOV_STATE_THROTTLE_OFF;
 
         gov.govMode = governorConfig()->gov_mode;
@@ -1372,7 +1377,8 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
 
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
-            gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -90, 100) / 100.0f;
+            gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -100, 100) / 100.0f;
+            gov.idleCollective = constrain(governorConfig()->gov_idle_collective, -100, 100) / 100.0f;
 
             difFilterInit(&gov.differentiator, governorConfig()->gov_d_cutoff / 10.0f, gyro.targetRateHz);
 

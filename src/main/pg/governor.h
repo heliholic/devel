@@ -60,6 +60,7 @@ typedef struct governorConfig_s {
     uint8_t  gov_throttle_hold_timeout;
     uint8_t  gov_handover_throttle;
     int8_t   gov_wot_collective;
+    int8_t   gov_idle_collective;
     uint8_t  gov_pwr_filter;
     uint8_t  gov_rpm_filter;
     uint8_t  gov_tta_filter;
