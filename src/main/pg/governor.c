@@ -37,11 +37,11 @@ PG_RESET_TEMPLATE(governorConfig_t, governorConfig,
     .gov_spooldown_time = 30,
     .gov_throttle_hold_timeout = 50,
     .gov_handover_throttle = 20,
-    .gov_wot_collective = -20,
+    .gov_wot_collective = -10,
     .gov_pwr_filter = 5,
     .gov_rpm_filter = 10,
     .gov_tta_filter = 0,
     .gov_ff_filter = 5,
-    .gov_d_cutoff = 50,
+    .gov_d_filter = 50,
 );
 

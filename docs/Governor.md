@@ -189,7 +189,7 @@ A cutoff frequency for the TTA control filter.
 
 A cutoff frequency for the feedforward/precomp filter.
 
-### D-term Cutoff Frequency `gov_d_cutoff`
+### D-term Filter `gov_d_filter`
 
 A cutoff frequency for the D-term internal filter.
 
