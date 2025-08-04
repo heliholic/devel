@@ -121,8 +121,9 @@ typedef struct {
     // Fallback throttle reduction
     float           fallbackRatio;
 
-    // Wide-open-throttle collective point (throttle curve)
+    // Collective-to-throttle curve points
     float           wotCollective;
+    float           idleCollective;
 
     // Idle throttle level
     float           idleThrottle;
@@ -455,34 +456,9 @@ static void govGetInputThrottle(void)
     }
 }
 
-static float precompCurve(float angle, uint8_t curve)
+static inline float precompCurve(float angle, uint8_t curve)
 {
-    float drag;
-
-    angle = fabsf(angle);
-
-    switch (curve) {
-        case 0:
-            drag = angle;
-            break;
-        case 1:
-            drag = angle * sqrtf(angle);
-            break;
-        case 2:
-            drag = angle * angle;
-            break;
-        case 3:
-            drag = angle * angle * sqrtf(angle);
-            break;
-        case 4:
-            drag = angle * angle * angle;
-            break;
-        default:
-            drag = 0;
-            break;
-    }
-
-    return drag;
+    return pow_approx(fabsf(angle), curve / 10.0f);
 }
 
 static float govCalcFeedforward(void)

@@ -266,7 +266,7 @@ A relative weight for the collective precomp.
 
 ### Collective Precomp Curve `gov_collective_curve`
 
-Collective curve selector 0..4. Zero is linear curve, higher values have more curvature.
+Collective curve exponent (/10). Values 15..25 are likely good.
 
 ### TTA-gain `gov_tta_gain`
 
