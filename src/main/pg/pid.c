@@ -125,7 +125,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .governor.yaw_weight = 10,
         .governor.cyclic_weight = 10,
         .governor.collective_weight = 50,
-        .governor.collective_curve = 0,
+        .governor.collective_curve = 20,
         .governor.fallback_drop = 10,
         .governor.dyn_min_level = 80,   // TDB remove
     );
