@@ -1380,7 +1380,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             gov.wotCollective = constrain(governorConfig()->gov_wot_collective, -100, 100) / 100.0f;
             gov.idleCollective = constrain(governorConfig()->gov_idle_collective, -100, 100) / 100.0f;
 
-            difFilterInit(&gov.differentiator, governorConfig()->gov_d_cutoff / 10.0f, gyro.targetRateHz);
+            difFilterInit(&gov.differentiator, governorConfig()->gov_d_filter / 10.0f, gyro.targetRateHz);
 
             ewma1FilterInit(&gov.motorRPMKFilter, GOV_RPM_K_CUTOFF, gyro.targetRateHz);
 
