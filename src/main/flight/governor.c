@@ -125,6 +125,9 @@ typedef struct {
     float           wotCollective;
     float           idleCollective;
 
+    // Absolute maximum throttle output
+    float           maxThrottle;
+
     // Idle throttle level
     float           idleThrottle;
 
@@ -138,9 +141,8 @@ typedef struct {
     float           minSpoolupThrottle;
     float           maxSpoolupThrottle;
 
-    // Active throttle limits
+    // Governor active throttle limits
     float           minActiveThrottle;
-    float           maxActiveThrottle;
 
     // Current headspeed
     float           currentHeadSpeed;
@@ -817,7 +819,7 @@ static void govUpdateExternalThrottle(void)
             throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_DISABLED:
-            throttle = fminf(gov.throttleInput, gov.maxActiveThrottle);
+            throttle = gov.throttleInput;
             break;
         default:
             break;
@@ -829,7 +831,7 @@ static void govUpdateExternalThrottle(void)
         throttle += throttle * gov.ttaAdd;
     }
 
-    gov.throttleOutput = throttle;
+    gov.throttleOutput = fminf(throttle, gov.maxThrottle);
 }
 
 static void govUpdateExternalState(void)
@@ -1011,10 +1013,10 @@ static void govUpdateGovernedThrottle(void)
             govSpoolupControl(gov.minSpoolupThrottle, gov.maxSpoolupThrottle, gov.throttleSpoolupRate);
             break;
         case GOV_STATE_ACTIVE:
-            govPIDControl(gov.minActiveThrottle, gov.maxActiveThrottle, gov.throttleTrackingRate);
+            govPIDControl(gov.minActiveThrottle, gov.maxThrottle, gov.throttleTrackingRate);
             break;
         case GOV_STATE_FALLBACK:
-            govFallbackControl(gov.minActiveThrottle, gov.maxActiveThrottle, gov.throttleTrackingRate);
+            govFallbackControl(gov.minActiveThrottle, gov.maxThrottle, gov.throttleTrackingRate);
             break;
         case GOV_STATE_AUTOROTATION:
             govThrottleSlewControl(gov.autoThrottle, gov.handoverThrottle, gov.throttleTrackingRate, gov.throttleTrackingRate);
@@ -1025,7 +1027,7 @@ static void govUpdateGovernedThrottle(void)
             break;
         case GOV_STATE_DISABLED:
             gov.targetHeadSpeed = 0;
-            gov.throttleOutput = fminf(gov.throttleInput, gov.maxActiveThrottle);
+            gov.throttleOutput = constrainf(gov.throttleInput, gov.idleThrottle, gov.maxThrottle);
             break;
         default:
             break;
@@ -1284,14 +1286,14 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.minD = -gov.maxD;
         gov.minF = 0;
 
+        gov.maxThrottle = pidProfile->governor.max_throttle / 100.0f;
         gov.idleThrottle = pidProfile->governor.idle_throttle / 100.0f;
         gov.autoThrottle = pidProfile->governor.auto_throttle / 100.0f;
 
         gov.minActiveThrottle = pidProfile->governor.min_throttle / 100.0f;
-        gov.maxActiveThrottle = pidProfile->governor.max_throttle / 100.0f;
 
         gov.minSpoolupThrottle = gov.idleThrottle;
-        gov.maxSpoolupThrottle = gov.maxActiveThrottle;
+        gov.maxSpoolupThrottle = gov.maxThrottle;
 
         if (pidProfile->governor.tta_gain && !gov.useBypass) {
             gov.ttaGain = mixerRotationSign() * pidProfile->governor.tta_gain / -125.0f;
