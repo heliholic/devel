@@ -173,6 +173,10 @@ The throttle level required for the governor to activate.
 
 The collective level where Wide-Open-Throttle is reached, when using an FC throttle curve.
 
+### Collective level for IDLE `gov_idle_collective`
+
+The collective level where Idle Throttle is reached, when using an FC throttle curve.
+
 ### Voltage Filter `gov_pwr_filter`
 
 A cutoff frequency for the battery voltage filter.
