@@ -415,8 +415,8 @@ static inline float govGetMappedThrottle(void)
 
 static void govGetInputThrottle(void)
 {
-    gov.throttleInputOff = (getThrottleStatus() == THROTTLE_LOW);
     gov.throttleInput = getThrottle();
+    gov.throttleInputOff = (getThrottleStatus() == THROTTLE_LOW);
 
     switch (gov.throttleType)
     {
@@ -433,10 +433,7 @@ static void govGetInputThrottle(void)
                 gov.throttleInputOff = true;
             }
             else {
-                if (gov.useFcThrottleCurve)
-                    gov.throttleInput = govGetMappedThrottle();
-                else
-                    gov.throttleInput = 1.0f;
+                gov.throttleInput = gov.useFcThrottleCurve ? govGetMappedThrottle() : 1.0f;
             }
             break;
 
@@ -449,10 +446,24 @@ static void govGetInputThrottle(void)
                 gov.throttleInput = gov.idleThrottle;
             }
             else {
-                if (gov.useFcThrottleCurve)
-                    gov.throttleInput = govGetMappedThrottle();
-                else
-                    gov.throttleInput = 1.0f;
+                gov.throttleInput = gov.useFcThrottleCurve ? govGetMappedThrottle() : 1.0f;
+            }
+            break;
+
+        case GOV_THROTTLE_IDLE_AUTO_ON:
+            if (!gov.throttleInputOff) {
+                if (gov.throttleInput < 0.333f) {
+                    gov.throttleInput = gov.idleThrottle;
+                    gov.useAutoRotation = false;
+                }
+                else if (gov.throttleInput < 0.666f) {
+                    gov.throttleInput = gov.autoThrottle;
+                    gov.useAutoRotation = true;
+                }
+                else {
+                    gov.throttleInput = gov.useFcThrottleCurve ? govGetMappedThrottle() : 1.0f;
+                    gov.useAutoRotation = false;
+                }
             }
             break;
     }
@@ -819,7 +830,7 @@ static void govUpdateExternalThrottle(void)
             throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_DISABLED:
-            throttle = gov.throttleInputOff ? 0 : gov.throttleInput;
+            throttle = gov.throttleInput;
             break;
         default:
             break;
@@ -831,7 +842,7 @@ static void govUpdateExternalThrottle(void)
         throttle += throttle * gov.ttaAdd;
     }
 
-    gov.throttleOutput = fminf(throttle, gov.maxThrottle);
+    gov.throttleOutput = gov.throttleInputOff ? 0 : fminf(throttle, gov.maxThrottle);
 }
 
 static void govUpdateExternalState(void)
