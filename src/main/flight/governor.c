@@ -116,6 +116,7 @@ typedef struct {
     // Input throttle
     float           throttleInput;
     bool            throttleInputOff;
+    bool            throttleInputAuto;
     float           throttlePrevInput;
 
     // Fallback throttle reduction
@@ -376,7 +377,7 @@ static void govDebugGovernor(void)
 
 static inline bool isAutorotation(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXAUTOROTATION) || gov.useAutoRotation;
+    return IS_RC_MODE_ACTIVE(BOXAUTOROTATION) || gov.useAutoRotation || gov.throttleInputAuto;
 }
 
 static inline bool isGovDisabled(void)
@@ -415,8 +416,9 @@ static inline float govGetMappedThrottle(void)
 
 static void govGetInputThrottle(void)
 {
-    gov.throttleInputOff = (getThrottleStatus() == THROTTLE_LOW);
     gov.throttleInput = getThrottle();
+    gov.throttleInputOff = (getThrottleStatus() == THROTTLE_LOW);
+    gov.throttleInputAuto = false;
 
     switch (gov.throttleType)
     {
@@ -447,6 +449,23 @@ static void govGetInputThrottle(void)
             }
             else if (gov.throttleInput < 0.666f) {
                 gov.throttleInput = gov.idleThrottle;
+            }
+            else {
+                if (gov.useFcThrottleCurve)
+                    gov.throttleInput = govGetMappedThrottle();
+                else
+                    gov.throttleInput = 1.0f;
+            }
+            break;
+
+        case GOV_THROTTLE_IDLE_AUTO_ON:
+            gov.throttleInputOff = false;
+            if (gov.throttleInput < 0.333f) {
+                gov.throttleInput = gov.idleThrottle;
+            }
+            else if (gov.throttleInput < 0.666f) {
+                gov.throttleInput = gov.autoThrottle;
+                gov.throttleInputAuto = true;
             }
             else {
                 if (gov.useFcThrottleCurve)
@@ -819,7 +838,7 @@ static void govUpdateExternalThrottle(void)
             throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_DISABLED:
-            throttle = gov.throttleInputOff ? 0 : gov.throttleInput;
+            throttle = gov.throttleInput;
             break;
         default:
             break;
@@ -831,7 +850,7 @@ static void govUpdateExternalThrottle(void)
         throttle += throttle * gov.ttaAdd;
     }
 
-    gov.throttleOutput = fminf(throttle, gov.maxThrottle);
+    gov.throttleOutput = gov.throttleInputOff ? 0 : fminf(throttle, gov.maxThrottle);
 }
 
 static void govUpdateExternalState(void)
@@ -1227,6 +1246,12 @@ void INIT_CODE validateAndFixGovernorConfig(void)
     while (governorConfig()->gov_wot_collective - governorConfig()->gov_idle_collective < 1) {
         governorConfigMutable()->gov_wot_collective = MIN(governorConfig()->gov_wot_collective + 1, 100);
         governorConfigMutable()->gov_idle_collective = MAX(governorConfig()->gov_idle_collective - 1, -100);
+    }
+
+    if (governorConfig()->gov_throttle_type == GOV_THROTTLE_IDLE_AUTO_ON) {
+        if (governorConfig()->gov_mode != GOV_MODE_NITRO) {
+            governorConfigMutable()->gov_throttle_type = GOV_THROTTLE_OFF_IDLE_ON;
+        }
     }
 
     if (governorConfig()->gov_throttle_type != GOV_THROTTLE_NORMAL) {
