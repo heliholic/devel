@@ -819,7 +819,7 @@ static void govUpdateExternalThrottle(void)
             throttle = slewUpLimit(gov.throttlePrevInput, gov.throttleInput, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_DISABLED:
-            throttle = gov.throttleInput;
+            throttle = gov.throttleInputOff ? 0 : gov.throttleInput;
             break;
         default:
             break;
@@ -1027,7 +1027,7 @@ static void govUpdateGovernedThrottle(void)
             break;
         case GOV_STATE_DISABLED:
             gov.targetHeadSpeed = 0;
-            gov.throttleOutput = constrainf(gov.throttleInput, gov.idleThrottle, gov.maxThrottle);
+            gov.throttleOutput = gov.throttleInputOff ? 0 : constrainf(gov.throttleInput, gov.idleThrottle, gov.maxThrottle);
             break;
         default:
             break;
