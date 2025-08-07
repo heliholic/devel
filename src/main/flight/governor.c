@@ -485,13 +485,16 @@ static float govCalcFeedforward(void)
     }
     else {
         // Collective deflection
-        const float collectiveFF = gov.collectiveWeight * precompCurve(getCollectiveDeflectionAbs(), gov.collectiveCurve);
+        const float collectiveDef = fabsf(pidGetCollective());
+        const float collectiveFF = gov.collectiveWeight * precompCurve(collectiveDef, gov.collectiveCurve);
 
         // Cyclic deflection
-        const float cyclicFF = gov.cyclicWeight * getCyclicDeflection();
+        const float cyclicDef = sqrtf(sq(pidGetSetpoint(PID_ROLL)) + sq(pidGetSetpoint(PID_PITCH)));
+        const float cyclicFF = gov.cyclicWeight * cyclicDef;
 
         // Yaw deflection
-        const float yawFF = gov.yawWeight * getYawDeflectionAbs();
+        const float yawDef = fabsf(pidGetSetpoint(PID_YAW));
+        const float yawFF = gov.yawWeight * yawDef;
 
         // Total feedforward
         totalFF = gov.K * gov.Kf * (collectiveFF + cyclicFF + yawFF);
@@ -1326,8 +1329,8 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.dynMinLevel = pidProfile->governor.dyn_min_level / 100.0f; // TDB remove
 
-        gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
-        gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
+        gov.yawWeight = pidProfile->governor.yaw_weight / 36000.0f;
+        gov.cyclicWeight = pidProfile->governor.cyclic_weight / 36000.0f;
         gov.collectiveWeight = pidProfile->governor.collective_weight / 100.0f;
         gov.collectiveCurve = pidProfile->governor.collective_curve;
 
