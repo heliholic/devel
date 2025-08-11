@@ -301,7 +301,7 @@ void rxInit(void)
         validRxSignalTimeout[i] = millis() + MAX_INVALID_PULSE_TIME_MS;
     }
 
-    rcInput[THROTTLE] = rcControlsConfig()->rc_arm_throttle - 10;
+    rcInput[THROTTLE] = 975;
 
     // Initialize ARM switch to OFF position when arming via switch is defined
     // TODO - move to rc_mode.c
