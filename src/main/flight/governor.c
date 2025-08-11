@@ -416,7 +416,7 @@ static inline float govGetMappedThrottle(void)
 static void govGetInputThrottle(void)
 {
     gov.throttleInput = getThrottle();
-    gov.throttleInputOff = (getThrottleStatus() == THROTTLE_LOW);
+    gov.throttleInputOff = isThrottleOff();
 
     switch (gov.throttleType)
     {
