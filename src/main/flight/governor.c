@@ -296,7 +296,7 @@ float getFullHeadSpeedRatio(void)
 float getSpoolUpRatio(void)
 {
     if (!ARMING_FLAG(ARMED))
-        return 0;
+        return 1.0f;
 
     if (gov.govMode) {
         switch (gov.state)
