@@ -115,6 +115,7 @@ typedef struct {
     uint16_t    max_collective;
     uint16_t    max_setpoint_rate;
     uint16_t    max_setpoint_accel;
+    uint8_t     max_climb_speed;
 } pidRescueConfig_t;
 
 

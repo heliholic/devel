@@ -477,7 +477,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
-    rescue.maxVSpeed = 3.0f;
+    rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
     rescue.maxVError = 3.0f;
 
     rescue.alt_Ks = pidProfile->rescue.alt_s_gain * 0.01f;
