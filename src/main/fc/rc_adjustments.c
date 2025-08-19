@@ -151,9 +151,9 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(RESCUE_CLIMB_COLLECTIVE, PROF,  0, 1000),
     ADJ_CONFIG(RESCUE_HOVER_COLLECTIVE, PROF,  0, 1000),
     ADJ_CONFIG(RESCUE_HOVER_ALTITUDE,   PROF,  0, 2500),
-    ADJ_CONFIG(RESCUE_ALT_P_GAIN,       PROF,  0, 1000),
-    ADJ_CONFIG(RESCUE_ALT_I_GAIN,       PROF,  0, 1000),
-    ADJ_CONFIG(RESCUE_ALT_D_GAIN,       PROF,  0, 1000),
+    ADJ_CONFIG(RESCUE_ALT_P_GAIN,       PROF,  0, 10000),
+    ADJ_CONFIG(RESCUE_ALT_I_GAIN,       PROF,  0, 10000),
+    ADJ_CONFIG(RESCUE_ALT_S_GAIN,       PROF,  0, 10000),
 
     ADJ_CONFIG(ANGLE_LEVEL_GAIN,        PROF,  0, 200),
     ADJ_CONFIG(HORIZON_LEVEL_GAIN,      PROF,  0, 200),
@@ -338,8 +338,8 @@ static int getAdjustmentValue(adjustmentFunc_e adjFunc)
         case ADJUSTMENT_RESCUE_ALT_I_GAIN:
             value = currentPidProfile->rescue.alt_i_gain;
             break;
-        case ADJUSTMENT_RESCUE_ALT_D_GAIN:
-            value = currentPidProfile->rescue.alt_d_gain;
+        case ADJUSTMENT_RESCUE_ALT_S_GAIN:
+            value = currentPidProfile->rescue.alt_s_gain;
             break;
         case ADJUSTMENT_ANGLE_LEVEL_GAIN:
             value = currentPidProfile->angle.level_strength;
@@ -577,8 +577,8 @@ static void setAdjustmentValue(adjustmentFunc_e adjFunc, int value)
         case ADJUSTMENT_RESCUE_ALT_I_GAIN:
             currentPidProfile->rescue.alt_i_gain = value;
             break;
-        case ADJUSTMENT_RESCUE_ALT_D_GAIN:
-            currentPidProfile->rescue.alt_d_gain = value;
+        case ADJUSTMENT_RESCUE_ALT_S_GAIN:
+            currentPidProfile->rescue.alt_s_gain = value;
             break;
         case ADJUSTMENT_ANGLE_LEVEL_GAIN:
             currentPidProfile->angle.level_strength = value;

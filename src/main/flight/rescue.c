@@ -75,11 +75,14 @@ typedef struct {
 
     float           hoverAltitude;
 
+    float           maxVSpeed;
+    float           maxVError;
+
+    float           alt_Ks;
     float           alt_Kp;
     float           alt_Ki;
-    float           alt_Kd;
 
-    float           alt_Iterm;
+    float           alt_I;
 
     /* Setpoint limits */
 
@@ -105,7 +108,7 @@ static inline void rescueChangeState(uint8_t newState)
     rescue.stateEntryTime = millis();
 
     if (newState == RESCUE_STATE_CLIMB)
-        rescue.alt_Iterm = rescue.hoverCollective;
+        rescue.alt_I = rescue.climbCollective;
 }
 
 static inline timeDelta_t rescueStateTime(void)
@@ -234,25 +237,24 @@ static float rescueApplyAltitudePID(float altitude)
 {
     const float tilt = getCosTiltAngle();
 
-    const float error = altitude - getAltitude();
-    const float sqerr = copysignf(sqrtf(fabsf(error)), error);
+    float error = altitude - getAltitude();
+    float speed = limitf(error * rescue.alt_Ks, rescue.maxVSpeed);
+    float delta = limitf(speed - getVario(), rescue.maxVError);
 
-    float Pterm = error * rescue.alt_Kp;
-    float Iterm = error * rescue.alt_Ki * tilt * tilt + rescue.alt_Iterm;
-    float Dterm = getVario() * rescue.alt_Kd;
+    float Pterm = delta * rescue.alt_Kp;
+    float Iterm = delta * rescue.alt_Ki * tilt * tilt + rescue.alt_I;
 
-    Iterm = constrainf(Iterm, 0, rescue.maxColl);
+    rescue.alt_I = Iterm = constrainf(Iterm, 0, rescue.maxColl);
 
-    rescue.alt_Iterm = Iterm;
-
-    float pidSum = fminf(Pterm + Iterm + Dterm, rescue.maxColl);
+    float pidSum = constrainf(Iterm + Pterm, 0, rescue.maxColl);
 
     DEBUG(RESCUE_ALTHOLD, 0, error * 100);
-    DEBUG(RESCUE_ALTHOLD, 1, sqerr * 100);
-    DEBUG(RESCUE_ALTHOLD, 2, Pterm);
-    DEBUG(RESCUE_ALTHOLD, 3, Iterm);
-    DEBUG(RESCUE_ALTHOLD, 4, Dterm);
-    DEBUG(RESCUE_ALTHOLD, 5, pidSum);
+    DEBUG(RESCUE_ALTHOLD, 1, speed * 100);
+    DEBUG(RESCUE_ALTHOLD, 2, delta * 100);
+    DEBUG(RESCUE_ALTHOLD, 3, pidSum * 100);
+
+    DEBUG(RESCUE_ALTHOLD, 4, Iterm * 100);
+    DEBUG(RESCUE_ALTHOLD, 5, Pterm * 100);
 
     return pidSum;
 }
@@ -475,7 +477,10 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
-    rescue.alt_Kp = pidProfile->rescue.alt_p_gain;
-    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() / 10.0f;
-    rescue.alt_Kd = pidProfile->rescue.alt_d_gain * -1.0f;
+    rescue.maxVSpeed = 3.0f;
+    rescue.maxVError = 3.0f;
+
+    rescue.alt_Ks = pidProfile->rescue.alt_s_gain * 0.01f;
+    rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.01f;
+    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() * 0.01f;
 }
