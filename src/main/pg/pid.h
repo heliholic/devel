@@ -109,13 +109,14 @@ typedef struct {
     uint16_t    climb_collective;
     uint16_t    hover_collective;
     uint16_t    hover_altitude;
-    uint16_t    alt_p_gain;
-    uint16_t    alt_i_gain;
-    uint16_t    alt_s_gain;
+    uint16_t      alt_ap_gain;
+    uint16_t      alt_ad_gain;
+    uint16_t      alt_vp_gain;
+    uint16_t      alt_vi_gain;
     uint16_t    max_collective;
+    uint8_t     max_climb_speed;
     uint16_t    max_setpoint_rate;
     uint16_t    max_setpoint_accel;
-    uint8_t     max_climb_speed;
 } pidRescueConfig_t;
 
 
