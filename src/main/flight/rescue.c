@@ -240,28 +240,30 @@ static float rescueApplyAltitudePID(float altitude)
     const float alt = getAltitude();
     const float var = getVario();
 
-    const float alt_err = altitude - alt;
-    const float alt_P = alt_err * rescue.alt_KAp;
+    const float alt_E = altitude - alt;
+    const float alt_P = alt_E * rescue.alt_KAp;
     const float alt_D = var * rescue.alt_KAd;
 
-    const float vario = limitf(alt_P + alt_D, rescue.maxVSpeed);
+    const float speed = limitf(alt_P + alt_D, rescue.maxVSpeed);
 
-    const float var_err = limitf(vario - var, rescue.maxVError);
+    const float var_E = limitf(speed - var, rescue.maxVError);
 
-    const float var_P = var_err * rescue.alt_KVp;
-    const float var_I = var_err * rescue.alt_KVi * tilt * tilt + rescue.alt_I;
+    const float var_P = var_E * rescue.alt_KVp;
+    const float var_I = var_E * rescue.alt_KVi * tilt * tilt + rescue.alt_I;
 
     rescue.alt_I = constrainf(var_I, 0, rescue.maxColl);
 
-    float pidSum = constrainf(var_P + var_I, 0, rescue.maxColl);
+    const float pidSum = constrainf(var_P + var_I, 0, rescue.maxColl);
 
-    DEBUG(RESCUE_ALTHOLD, 0, error * 100);
-    DEBUG(RESCUE_ALTHOLD, 1, speed * 100);
-    DEBUG(RESCUE_ALTHOLD, 2, delta * 100);
-    DEBUG(RESCUE_ALTHOLD, 3, pidSum * 100);
+    DEBUG(RESCUE_ALTHOLD, 0, alt_E * 100);
+    DEBUG(RESCUE_ALTHOLD, 1, alt_P * 100);
+    DEBUG(RESCUE_ALTHOLD, 2, alt_D * 100);
+    DEBUG(RESCUE_ALTHOLD, 3, speed * 100);
 
-    DEBUG(RESCUE_ALTHOLD, 4, Iterm * 100);
-    DEBUG(RESCUE_ALTHOLD, 5, Pterm * 100);
+    DEBUG(RESCUE_ALTHOLD, 4, var_E * 100);
+    DEBUG(RESCUE_ALTHOLD, 5, var_P * 100);
+    DEBUG(RESCUE_ALTHOLD, 6, var_I * 100);
+    DEBUG(RESCUE_ALTHOLD, 7, pidSum * 100);
 
     return pidSum;
 }
@@ -487,8 +489,8 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
     rescue.maxVError = 3.0f;
 
-    rescue.alt_Kap = pidProfile->rescue.alt_ap_gain * 0.01f;
-    rescue.alt_Kad = pidProfile->rescue.alt_ad_gain * -0.01f;
-    rescue.alt_Kvp = pidProfile->rescue.alt_vp_gain * 0.01f;
-    rescue.alt_Kvi = pidProfile->rescue.alt_vi_gain * pidGetDT() * 0.01f;
+    rescue.alt_KAp = pidProfile->rescue.alt_ap_gain * 0.01f;
+    rescue.alt_KAd = pidProfile->rescue.alt_ad_gain * -0.01f;
+    rescue.alt_KVp = pidProfile->rescue.alt_vp_gain * 0.01f;
+    rescue.alt_KVi = pidProfile->rescue.alt_vi_gain * pidGetDT() * 0.01f;
 }
