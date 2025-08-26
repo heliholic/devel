@@ -36,6 +36,7 @@
 
 #include "fc/rc.h"
 #include "fc/rc_rates.h"
+#include "fc/rc_adjustments.h"
 
 
 const ratesSettingsLimits_t ratesSettingLimits[RATES_TYPE_COUNT] = {
@@ -161,6 +162,130 @@ float applyRatesCurve(const int axis, float rcCommandf)
         rate *= 2.083333333f;
 
     return rate;
+}
+
+int adjustControlRateGet(int adjFunc)
+{
+    int value = 0;
+
+    switch (adjFunc)
+    {
+        case ADJUSTMENT_PITCH_RATE:
+            value = currentControlRateProfile->rates[FD_PITCH];
+            break;
+        case ADJUSTMENT_ROLL_RATE:
+            value = currentControlRateProfile->rates[FD_ROLL];
+            break;
+        case ADJUSTMENT_YAW_RATE:
+            value = currentControlRateProfile->rates[FD_YAW];
+            break;
+
+        case ADJUSTMENT_PITCH_RC_RATE:
+            value = currentControlRateProfile->rcRates[FD_PITCH];
+            break;
+        case ADJUSTMENT_ROLL_RC_RATE:
+            value = currentControlRateProfile->rcRates[FD_ROLL];
+            break;
+        case ADJUSTMENT_YAW_RC_RATE:
+            value = currentControlRateProfile->rcRates[FD_YAW];
+            break;
+
+        case ADJUSTMENT_PITCH_RC_EXPO:
+            value = currentControlRateProfile->rcExpo[FD_PITCH];
+            break;
+        case ADJUSTMENT_ROLL_RC_EXPO:
+            value = currentControlRateProfile->rcExpo[FD_ROLL];
+            break;
+        case ADJUSTMENT_YAW_RC_EXPO:
+            value = currentControlRateProfile->rcExpo[FD_YAW];
+            break;
+
+        case ADJUSTMENT_PITCH_SP_BOOST_GAIN:
+            value = currentControlRateProfile->setpoint_boost_gain[FD_PITCH];
+            break;
+        case ADJUSTMENT_ROLL_SP_BOOST_GAIN:
+            value = currentControlRateProfile->setpoint_boost_gain[FD_ROLL];
+            break;
+        case ADJUSTMENT_YAW_SP_BOOST_GAIN:
+            value = currentControlRateProfile->setpoint_boost_gain[FD_YAW];
+            break;
+        case ADJUSTMENT_COLL_SP_BOOST_GAIN:
+            value = currentControlRateProfile->setpoint_boost_gain[FD_COLL];
+            break;
+
+        case ADJUSTMENT_YAW_DYN_CEILING_GAIN:
+            value = currentControlRateProfile->yaw_dynamic_ceiling_gain;
+            break;
+        case ADJUSTMENT_YAW_DYN_DEADBAND_GAIN:
+            value = currentControlRateProfile->yaw_dynamic_deadband_gain;
+            break;
+        case ADJUSTMENT_YAW_DYN_DEADBAND_FILTER:
+            value = currentControlRateProfile->yaw_dynamic_deadband_filter;
+            break;
+    }
+
+    return value;
+}
+
+void adjustControlRateSet(int adjFunc, int value)
+{
+    switch (adjFunc)
+    {
+        case ADJUSTMENT_PITCH_RATE:
+            currentControlRateProfile->rates[FD_PITCH] = value;
+            break;
+        case ADJUSTMENT_ROLL_RATE:
+            currentControlRateProfile->rates[FD_ROLL] = value;
+            break;
+        case ADJUSTMENT_YAW_RATE:
+            currentControlRateProfile->rates[FD_YAW] = value;
+            break;
+
+        case ADJUSTMENT_PITCH_RC_RATE:
+            currentControlRateProfile->rcRates[FD_PITCH] = value;
+            break;
+        case ADJUSTMENT_ROLL_RC_RATE:
+            currentControlRateProfile->rcRates[FD_ROLL] = value;
+            break;
+        case ADJUSTMENT_YAW_RC_RATE:
+
+            currentControlRateProfile->rcRates[FD_YAW] = value;
+            break;
+        case ADJUSTMENT_PITCH_RC_EXPO:
+            currentControlRateProfile->rcExpo[FD_PITCH] = value;
+            break;
+        case ADJUSTMENT_ROLL_RC_EXPO:
+            currentControlRateProfile->rcExpo[FD_ROLL] = value;
+            break;
+        case ADJUSTMENT_YAW_RC_EXPO:
+            currentControlRateProfile->rcExpo[FD_YAW] = value;
+            break;
+
+        case ADJUSTMENT_PITCH_SP_BOOST_GAIN:
+            currentControlRateProfile->setpoint_boost_gain[FD_PITCH] = value;
+            break;
+        case ADJUSTMENT_ROLL_SP_BOOST_GAIN:
+            currentControlRateProfile->setpoint_boost_gain[FD_ROLL] = value;
+            break;
+        case ADJUSTMENT_YAW_SP_BOOST_GAIN:
+            currentControlRateProfile->setpoint_boost_gain[FD_YAW] = value;
+            break;
+        case ADJUSTMENT_COLL_SP_BOOST_GAIN:
+            currentControlRateProfile->setpoint_boost_gain[FD_COLL] = value;
+            break;
+
+        case ADJUSTMENT_YAW_DYN_CEILING_GAIN:
+            currentControlRateProfile->yaw_dynamic_ceiling_gain = value;
+            break;
+        case ADJUSTMENT_YAW_DYN_DEADBAND_GAIN:
+            currentControlRateProfile->yaw_dynamic_deadband_gain = value;
+            break;
+        case ADJUSTMENT_YAW_DYN_DEADBAND_FILTER:
+            currentControlRateProfile->yaw_dynamic_deadband_filter = value;
+            break;
+    }
+
+    setpointInitProfile();
 }
 
 INIT_CODE void loadControlRateProfile(void)

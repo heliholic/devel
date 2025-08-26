@@ -34,6 +34,7 @@
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc.h"
 
@@ -1035,7 +1036,77 @@ void governorUpdate(void)
     }
 }
 
-void governorInitProfile(const pidProfile_t *pidProfile)
+
+INIT_CODE int adjustGovernorGet(int adjFunc)
+{
+    int value = 0;
+
+    switch (adjFunc)
+    {
+        case ADJUSTMENT_GOV_GAIN:
+            value = currentPidProfile->governor.gain;
+            break;
+        case ADJUSTMENT_GOV_P_GAIN:
+            value = currentPidProfile->governor.p_gain;
+            break;
+        case ADJUSTMENT_GOV_I_GAIN:
+            value = currentPidProfile->governor.i_gain;
+            break;
+        case ADJUSTMENT_GOV_D_GAIN:
+            value = currentPidProfile->governor.d_gain;
+            break;
+        case ADJUSTMENT_GOV_F_GAIN:
+            value = currentPidProfile->governor.f_gain;
+            break;
+        case ADJUSTMENT_GOV_TTA_GAIN:
+            value = currentPidProfile->governor.tta_gain;
+            break;
+        case ADJUSTMENT_GOV_CYCLIC_FF:
+            value = currentPidProfile->governor.cyclic_ff_weight;
+            break;
+        case ADJUSTMENT_GOV_COLLECTIVE_FF:
+            value = currentPidProfile->governor.collective_ff_weight;
+            break;
+    }
+
+    return value;
+}
+
+INIT_CODE void adjustGovernorSet(int adjFunc, int value)
+{
+    switch (adjFunc)
+    {
+        case ADJUSTMENT_GOV_GAIN:
+            currentPidProfile->governor.gain = value;
+            break;
+        case ADJUSTMENT_GOV_P_GAIN:
+            currentPidProfile->governor.p_gain = value;
+            break;
+        case ADJUSTMENT_GOV_I_GAIN:
+            currentPidProfile->governor.i_gain = value;
+            break;
+        case ADJUSTMENT_GOV_D_GAIN:
+            currentPidProfile->governor.d_gain = value;
+            break;
+        case ADJUSTMENT_GOV_F_GAIN:
+            currentPidProfile->governor.f_gain = value;
+            break;
+        case ADJUSTMENT_GOV_TTA_GAIN:
+            currentPidProfile->governor.tta_gain = value;
+            break;
+        case ADJUSTMENT_GOV_CYCLIC_FF:
+            currentPidProfile->governor.cyclic_ff_weight = value;
+            break;
+        case ADJUSTMENT_GOV_COLLECTIVE_FF:
+            currentPidProfile->governor.collective_ff_weight = value;
+            break;
+    }
+
+    governorInitProfile(currentPidProfile);
+}
+
+
+INIT_CODE void governorInitProfile(const pidProfile_t *pidProfile)
 {
     if (getMotorCount() > 0)
     {
@@ -1075,7 +1146,7 @@ void governorInitProfile(const pidProfile_t *pidProfile)
     }
 }
 
-void governorInit(const pidProfile_t *pidProfile)
+INIT_CODE void governorInit(const pidProfile_t *pidProfile)
 {
     // Must have at least one motor
     if (getMotorCount() > 0)
