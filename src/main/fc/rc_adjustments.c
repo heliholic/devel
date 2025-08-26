@@ -392,72 +392,6 @@ static void adjPidsSet(int adjFunc, int value)
     pidLoadProfile(currentPidProfile);
 }
 
-static int adjGovGet(int adjFunc)
-{
-    int value = 0;
-
-    switch (adjFunc) {
-        case ADJUSTMENT_GOV_GAIN:
-            value = currentPidProfile->governor.gain;
-            break;
-        case ADJUSTMENT_GOV_P_GAIN:
-            value = currentPidProfile->governor.p_gain;
-            break;
-        case ADJUSTMENT_GOV_I_GAIN:
-            value = currentPidProfile->governor.i_gain;
-            break;
-        case ADJUSTMENT_GOV_D_GAIN:
-            value = currentPidProfile->governor.d_gain;
-            break;
-        case ADJUSTMENT_GOV_F_GAIN:
-            value = currentPidProfile->governor.f_gain;
-            break;
-        case ADJUSTMENT_GOV_TTA_GAIN:
-            value = currentPidProfile->governor.tta_gain;
-            break;
-        case ADJUSTMENT_GOV_CYCLIC_FF:
-            value = currentPidProfile->governor.cyclic_ff_weight;
-            break;
-        case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            value = currentPidProfile->governor.collective_ff_weight;
-            break;
-    }
-
-    return value;
-}
-
-static void adjGovSet(int adjFunc, int value)
-{
-    switch (adjFunc) {
-        case ADJUSTMENT_GOV_GAIN:
-            currentPidProfile->governor.gain = value;
-            break;
-        case ADJUSTMENT_GOV_P_GAIN:
-            currentPidProfile->governor.p_gain = value;
-            break;
-        case ADJUSTMENT_GOV_I_GAIN:
-            currentPidProfile->governor.i_gain = value;
-            break;
-        case ADJUSTMENT_GOV_D_GAIN:
-            currentPidProfile->governor.d_gain = value;
-            break;
-        case ADJUSTMENT_GOV_F_GAIN:
-            currentPidProfile->governor.f_gain = value;
-            break;
-        case ADJUSTMENT_GOV_TTA_GAIN:
-            currentPidProfile->governor.tta_gain = value;
-            break;
-        case ADJUSTMENT_GOV_CYCLIC_FF:
-            currentPidProfile->governor.cyclic_ff_weight = value;
-            break;
-        case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            currentPidProfile->governor.collective_ff_weight = value;
-            break;
-    }
-
-    governorInitProfile(currentPidProfile);
-}
-
 static int adjRescueGet(int adjFunc)
 {
     int value = 0;
@@ -633,14 +567,14 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(RESCUE_ALT_I_GAIN,       adjRescue,              0, 1000),
     ADJ_CONFIG(RESCUE_ALT_D_GAIN,       adjRescue,              0, 1000),
 
-    ADJ_CONFIG(GOV_GAIN,                adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_P_GAIN,              adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_I_GAIN,              adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_D_GAIN,              adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_F_GAIN,              adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_TTA_GAIN,            adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_CYCLIC_FF,           adjGov,                 0, 250),
-    ADJ_CONFIG(GOV_COLLECTIVE_FF,       adjGov,                 0, 250),
+    ADJ_CONFIG(GOV_GAIN,                adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_P_GAIN,              adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_I_GAIN,              adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_D_GAIN,              adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_F_GAIN,              adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_TTA_GAIN,            adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_CYCLIC_FF,           adjustGovernor,         0, 250),
+    ADJ_CONFIG(GOV_COLLECTIVE_FF,       adjustGovernor,         0, 250),
 
     ADJ_CONFIG(ACC_TRIM_PITCH,          adjAcc,                 -300, 300),
     ADJ_CONFIG(ACC_TRIM_ROLL,           adjAcc,                 -300, 300),

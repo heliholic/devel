@@ -43,6 +43,8 @@ typedef enum {
     GS_AUTOROTATION_BAILOUT,
 } govState_e;
 
+int adjustGovernorGet(int adjFunc);
+void adjustGovernorSet(int adjFunc, int value);
 
 void governorInit(const pidProfile_t *pidProfile);
 void governorInitProfile(const pidProfile_t *pidProfile);
