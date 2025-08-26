@@ -104,7 +104,7 @@ static void adjNullSet(int __unused adjFunc, int __unused value)
     // Nothing
 }
 
-static int adjProfileGet(int adjFunc)
+static int adjustProfileGet(int adjFunc)
 {
     int value = 0;
 
@@ -130,7 +130,7 @@ static int adjProfileGet(int adjFunc)
     return value;
 }
 
-static void adjProfileSet(int adjFunc, int value)
+static void adjustProfileSet(int adjFunc, int value)
 {
     switch (adjFunc) {
         case ADJUSTMENT_RATE_PROFILE:
@@ -486,10 +486,10 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 {
     ADJ_CONFIG(NONE,                    adjNull,                0, 0),
 
-    ADJ_CONFIG(RATE_PROFILE,            adjProfile,             1, 6),
-    ADJ_CONFIG(PID_PROFILE,             adjProfile,             1, 6),
-    ADJ_CONFIG(LED_PROFILE,             adjProfile,             1, 4),
-    ADJ_CONFIG(OSD_PROFILE,             adjProfile,             1, 3),
+    ADJ_CONFIG(RATE_PROFILE,            adjustProfile,          1, 6),
+    ADJ_CONFIG(PID_PROFILE,             adjustProfile,          1, 6),
+    ADJ_CONFIG(LED_PROFILE,             adjustProfile,          1, 4),
+    ADJ_CONFIG(OSD_PROFILE,             adjustProfile,          1, 3),
 
     ADJ_CONFIG(PITCH_RATE,              adjustControlRate,      0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
     ADJ_CONFIG(ROLL_RATE,               adjustControlRate,      0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
