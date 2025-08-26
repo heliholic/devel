@@ -444,7 +444,7 @@ static void adjRescueSet(int adjFunc, int value)
     }
 }
 
-static int adjAccGet(int adjFunc)
+static int adjustMiscGet(int adjFunc)
 {
     int value = 0;
 
@@ -460,7 +460,7 @@ static int adjAccGet(int adjFunc)
     return value;
 }
 
-static void adjAccSet(int adjFunc, int value)
+static void adjustMiscSet(int adjFunc, int value)
 {
     switch (adjFunc) {
         case ADJUSTMENT_ACC_TRIM_PITCH:
@@ -576,8 +576,8 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_CONFIG(GOV_CYCLIC_FF,           adjustGovernor,         0, 250),
     ADJ_CONFIG(GOV_COLLECTIVE_FF,       adjustGovernor,         0, 250),
 
-    ADJ_CONFIG(ACC_TRIM_PITCH,          adjAcc,                 -300, 300),
-    ADJ_CONFIG(ACC_TRIM_ROLL,           adjAcc,                 -300, 300),
+    ADJ_CONFIG(ACC_TRIM_PITCH,          adjustMisc,             -300, 300),
+    ADJ_CONFIG(ACC_TRIM_ROLL,           adjustMisc,             -300, 300),
 
 };
 
