@@ -94,12 +94,12 @@ static int            adjustmentValue  = 0;
 
 //// Internal Functions
 
-static int adjNullGet(int __unused adjFunc)
+static int adjustNullGet(int __unused adjFunc)
 {
     return 0;
 }
 
-static void adjNullSet(int __unused adjFunc, int __unused value)
+static void adjustNullSet(int __unused adjFunc, int __unused value)
 {
     // Nothing
 }
@@ -484,7 +484,7 @@ static void adjustMiscSet(int adjFunc, int value)
 
 static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 {
-    ADJ_CONFIG(NONE,                    adjNull,                0, 0),
+    ADJ_CONFIG(NONE,                    adjustNull,             0, 0),
 
     ADJ_CONFIG(RATE_PROFILE,            adjustProfile,          1, 6),
     ADJ_CONFIG(PID_PROFILE,             adjustProfile,          1, 6),
