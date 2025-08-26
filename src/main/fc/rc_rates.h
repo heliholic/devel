@@ -51,7 +51,9 @@ extern const ratesSettingsLimits_t ratesSettingLimits[RATES_TYPE_COUNT];
 
 float applyRatesCurve(const int axis, float rcCommandf);
 
-void initControlRates(void);
+int adjustControlRateGet(int adjFunc);
+void adjustControlRateSet(int adjFunc, int value);
+
 void loadControlRateProfile(void);
 void changeControlRateProfile(uint8_t controlRateProfileIndex);
 void copyControlRateProfile(uint8_t dstControlRateProfileIndex, uint8_t srcControlRateProfileIndex);
