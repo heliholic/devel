@@ -730,14 +730,14 @@ int getAdjustmentsRangeValue(void)
     return adjustmentValue;
 }
 
-void adjustmentRangeInit(void)
+INIT_CODE void adjustmentRangeInit(void)
 {
     for (int index = 0; index < MAX_ADJUSTMENT_RANGE_COUNT; index++) {
         adjustmentRangeReset(index);
     }
 }
 
-void adjustmentRangeReset(int index)
+INIT_CODE void adjustmentRangeReset(int index)
 {
     const int adjFunc = adjustmentRanges(index)->function;
     const adjustmentConfig_t * adjConfig = &adjustmentConfigs[adjFunc];
