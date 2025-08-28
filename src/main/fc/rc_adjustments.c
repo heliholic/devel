@@ -42,7 +42,9 @@
 #include "flight/pid.h"
 #include "flight/mixer.h"
 #include "flight/rescue.h"
+#include "flight/trainer.h"
 #include "flight/governor.h"
+#include "flight/leveling.h"
 
 #include "io/beeper.h"
 #include "io/ledstrip.h"

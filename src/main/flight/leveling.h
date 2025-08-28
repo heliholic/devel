@@ -23,6 +23,8 @@
 #include <stdbool.h>
 
 #include "common/axis.h"
+
+#include "pg/pid.h"
 #include "pg/adjustments.h"
 
 void levelingInit(const pidProfile_t *pidProfile);

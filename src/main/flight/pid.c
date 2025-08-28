@@ -339,7 +339,7 @@ int adjustmentGet_ROLL_GYRO_CUTOFF(__unused int adjFunc)
 void adjustmentSet_ROLL_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_ROLL] = value;
-    filterUpdate(&pid.gyrorFilter[PID_PITCH], value, pid.freq);
+    filterUpdate(&pid.gyrorFilter[PID_ROLL], value, pid.freq);
 }
 
 int adjustmentGet_YAW_GYRO_CUTOFF(__unused int adjFunc)
@@ -386,17 +386,6 @@ void adjustmentSet_YAW_DTERM_CUTOFF(__unused int adjFunc, int value)
     difFilterUpdate(&pid.dtermFilter[PID_YAW], value, pid.freq);
 }
 
-int adjustmentGet_ACRO_TRAINER_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->trainer.gain;
-}
-
-void adjustmentSet_ACRO_TRAINER_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->trainer.gain = value;
-    pidLoadProfile(currentPidProfile);
-}
-
 int adjustmentGet_PITCH_B_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].B;
@@ -405,7 +394,7 @@ int adjustmentGet_PITCH_B_GAIN(__unused int adjFunc)
 void adjustmentSet_PITCH_B_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].B = value;
-    pidLoadProfile(currentPidProfile);
+    pid.coef[PID_PITCH].Kb = PITCH_B_TERM_SCALE * value;
 }
 
 int adjustmentGet_ROLL_B_GAIN(__unused int adjFunc)
@@ -416,7 +405,7 @@ int adjustmentGet_ROLL_B_GAIN(__unused int adjFunc)
 void adjustmentSet_ROLL_B_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].B = value;
-    pidLoadProfile(currentPidProfile);
+    pid.coef[PID_ROLL].Kb = ROLL_B_TERM_SCALE * value;
 }
 
 int adjustmentGet_YAW_B_GAIN(__unused int adjFunc)
@@ -427,7 +416,7 @@ int adjustmentGet_YAW_B_GAIN(__unused int adjFunc)
 void adjustmentSet_YAW_B_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_YAW].B = value;
-    pidLoadProfile(currentPidProfile);
+    pid.coef[PID_YAW].Kb = YAW_B_TERM_SCALE * value;
 }
 
 int adjustmentGet_PITCH_O_GAIN(__unused int adjFunc)
@@ -438,7 +427,7 @@ int adjustmentGet_PITCH_O_GAIN(__unused int adjFunc)
 void adjustmentSet_PITCH_O_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].O = value;
-    pidLoadProfile(currentPidProfile);
+    pid.coef[PID_PITCH].Ko = PITCH_I_TERM_SCALE * value;
 }
 
 int adjustmentGet_ROLL_O_GAIN(__unused int adjFunc)
@@ -449,7 +438,7 @@ int adjustmentGet_ROLL_O_GAIN(__unused int adjFunc)
 void adjustmentSet_ROLL_O_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].O = value;
-    pidLoadProfile(currentPidProfile);
+    pid.coef[PID_ROLL].Ko = ROLL_I_TERM_SCALE * value;
 }
 
 int adjustmentGet_CROSS_COUPLING_GAIN(__unused int adjFunc)
@@ -460,7 +449,8 @@ int adjustmentGet_CROSS_COUPLING_GAIN(__unused int adjFunc)
 void adjustmentSet_CROSS_COUPLING_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->cyclic_cross_coupling_gain = value;
-    pidLoadProfile(currentPidProfile);
+    pid.cyclicCrossCouplingGain[FD_PITCH] = currentPidProfile->cyclic_cross_coupling_gain * mixerRotationSign() * -CROSS_COUPLING_SCALE;
+    pid.cyclicCrossCouplingGain[FD_ROLL]  = pid.cyclicCrossCouplingGain[FD_PITCH] * currentPidProfile->cyclic_cross_coupling_ratio / -100.0f;
 }
 
 int adjustmentGet_CROSS_COUPLING_RATIO(__unused int adjFunc)
@@ -471,7 +461,8 @@ int adjustmentGet_CROSS_COUPLING_RATIO(__unused int adjFunc)
 void adjustmentSet_CROSS_COUPLING_RATIO(__unused int adjFunc, int value)
 {
     currentPidProfile->cyclic_cross_coupling_ratio = value;
-    pidLoadProfile(currentPidProfile);
+    pid.cyclicCrossCouplingGain[FD_PITCH] = currentPidProfile->cyclic_cross_coupling_gain * mixerRotationSign() * -CROSS_COUPLING_SCALE;
+    pid.cyclicCrossCouplingGain[FD_ROLL]  = pid.cyclicCrossCouplingGain[FD_PITCH] * currentPidProfile->cyclic_cross_coupling_ratio / -100.0f;
 }
 
 int adjustmentGet_CROSS_COUPLING_CUTOFF(__unused int adjFunc)
@@ -482,7 +473,8 @@ int adjustmentGet_CROSS_COUPLING_CUTOFF(__unused int adjFunc)
 void adjustmentSet_CROSS_COUPLING_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->cyclic_cross_coupling_cutoff = value;
-    pidLoadProfile(currentPidProfile);
+    firstOrderHPFUpdate(&pid.crossCouplingFilter[FD_PITCH], value / 10.0f, pid.freq);
+    firstOrderHPFUpdate(&pid.crossCouplingFilter[FD_ROLL], value / 10.0f, pid.freq);
 }
 
 int adjustmentGet_INERTIA_PRECOMP_GAIN(__unused int adjFunc)
@@ -493,7 +485,7 @@ int adjustmentGet_INERTIA_PRECOMP_GAIN(__unused int adjFunc)
 void adjustmentSet_INERTIA_PRECOMP_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_inertia_precomp_gain = value;
-    pidLoadProfile(currentPidProfile);
+    pid.precomp.yawInertiaGain = value / 200.0f;
 }
 
 int adjustmentGet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc)
@@ -504,7 +496,7 @@ int adjustmentGet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc)
 void adjustmentSet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_inertia_precomp_cutoff = value;
-    pidLoadProfile(currentPidProfile);
+    difFilterUpdate(&pid.precomp.yawInertiaFilter, value / 10.0f, pid.freq);
 }
 
 int adjustmentGet_YAW_PRECOMP_CUTOFF(__unused int adjFunc)
@@ -515,7 +507,7 @@ int adjustmentGet_YAW_PRECOMP_CUTOFF(__unused int adjFunc)
 void adjustmentSet_YAW_PRECOMP_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_precomp_cutoff = value;
-    pidLoadProfile(currentPidProfile);
+    filterUpdate(&pid.precomp.yawPrecompFilter, value, pid.freq);
 }
 
 
