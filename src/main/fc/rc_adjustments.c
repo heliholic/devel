@@ -660,6 +660,7 @@ static void adjustmentSet_ACC_TRIM_ROLL(__unused int adjFunc, int value)
     accelerometerConfigMutable()->accelerometerTrims.values.roll = value;
 }
 
+
 //// Internal functions
 
 #define ADJ_ENTRY(id, min, max)  [ADJUSTMENT_##id] = \
