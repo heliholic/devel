@@ -279,6 +279,71 @@ void set_ADJUSTMENT_YAW_F_GAIN(__unused int adjFunc, int value)
     pid.coef[PID_YAW].Kf = YAW_F_TERM_SCALE * value;
 }
 
+int get_ADJUSTMENT_PITCH_B_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->pid[PID_PITCH].B;
+}
+
+void set_ADJUSTMENT_PITCH_B_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->pid[PID_PITCH].B = value;
+    pid.coef[PID_PITCH].Kb = PITCH_B_TERM_SCALE * value * (pid.pidMode == 4 ? 10 : 1);
+}
+
+int get_ADJUSTMENT_ROLL_B_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->pid[PID_ROLL].B;
+}
+
+void set_ADJUSTMENT_ROLL_B_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->pid[PID_ROLL].B = value;
+    pid.coef[PID_ROLL].Kb = ROLL_B_TERM_SCALE * value * (pid.pidMode == 4 ? 0.2f : 1.0f);
+}
+
+int get_ADJUSTMENT_YAW_B_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->pid[PID_YAW].B;
+}
+
+void set_ADJUSTMENT_YAW_B_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->pid[PID_YAW].B = value;
+    pid.coef[PID_YAW].Kb = YAW_B_TERM_SCALE * value;
+}
+
+int get_ADJUSTMENT_PITCH_O_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->pid[PID_PITCH].O;
+}
+
+void set_ADJUSTMENT_PITCH_O_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->pid[PID_PITCH].O = value;
+    pid.coef[PID_PITCH].Ko = PITCH_I_TERM_SCALE * value;
+
+    if (currentPidProfile->pid[PID_PITCH].O > 0 && currentPidProfile->pid[PID_PITCH].I > 0)
+      pid.coef[PID_PITCH].Kc = pid.coef[PID_PITCH].Ko / pid.coef[PID_PITCH].Ki;
+    else
+      pid.coef[PID_PITCH].Kc = 0;
+}
+
+int get_ADJUSTMENT_ROLL_O_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->pid[PID_ROLL].O;
+}
+
+void set_ADJUSTMENT_ROLL_O_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->pid[PID_ROLL].O = value;
+    pid.coef[PID_ROLL].Ko = ROLL_I_TERM_SCALE * value;
+
+    if (currentPidProfile->pid[PID_ROLL].O > 0 && currentPidProfile->pid[PID_ROLL].I > 0)
+      pid.coef[PID_ROLL].Kc = pid.coef[PID_ROLL].Ko / pid.coef[PID_ROLL].Ki;
+    else
+      pid.coef[PID_ROLL].Kc = 0;
+}
+
 int get_ADJUSTMENT_YAW_CW_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->yaw_cw_stop_gain;
@@ -400,69 +465,15 @@ void set_ADJUSTMENT_YAW_DTERM_CUTOFF(__unused int adjFunc, int value)
     difFilterUpdate(&pid.dtermFilter[PID_YAW], value, pid.freq);
 }
 
-int get_ADJUSTMENT_PITCH_B_GAIN(__unused int adjFunc)
+int get_ADJUSTMENT_YAW_PRECOMP_CUTOFF(__unused int adjFunc)
 {
-    return currentPidProfile->pid[PID_PITCH].B;
+    return currentPidProfile->yaw_precomp_cutoff;
 }
 
-void set_ADJUSTMENT_PITCH_B_GAIN(__unused int adjFunc, int value)
+void set_ADJUSTMENT_YAW_PRECOMP_CUTOFF(__unused int adjFunc, int value)
 {
-    currentPidProfile->pid[PID_PITCH].B = value;
-    pid.coef[PID_PITCH].Kb = PITCH_B_TERM_SCALE * value * (pid.pidMode == 4 ? 10 : 1);
-}
-
-int get_ADJUSTMENT_ROLL_B_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->pid[PID_ROLL].B;
-}
-
-void set_ADJUSTMENT_ROLL_B_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->pid[PID_ROLL].B = value;
-    pid.coef[PID_ROLL].Kb = ROLL_B_TERM_SCALE * value * (pid.pidMode == 4 ? 0.2f : 1.0f);
-}
-
-int get_ADJUSTMENT_YAW_B_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->pid[PID_YAW].B;
-}
-
-void set_ADJUSTMENT_YAW_B_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->pid[PID_YAW].B = value;
-    pid.coef[PID_YAW].Kb = YAW_B_TERM_SCALE * value;
-}
-
-int get_ADJUSTMENT_PITCH_O_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->pid[PID_PITCH].O;
-}
-
-void set_ADJUSTMENT_PITCH_O_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->pid[PID_PITCH].O = value;
-    pid.coef[PID_PITCH].Ko = PITCH_I_TERM_SCALE * value;
-
-    if (currentPidProfile->pid[PID_PITCH].O > 0 && currentPidProfile->pid[PID_PITCH].I > 0)
-      pid.coef[PID_PITCH].Kc = pid.coef[PID_PITCH].Ko / pid.coef[PID_PITCH].Ki;
-    else
-      pid.coef[PID_PITCH].Kc = 0;
-}
-
-int get_ADJUSTMENT_ROLL_O_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->pid[PID_ROLL].O;
-}
-
-void set_ADJUSTMENT_ROLL_O_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->pid[PID_ROLL].O = value;
-    pid.coef[PID_ROLL].Ko = ROLL_I_TERM_SCALE * value;
-
-    if (currentPidProfile->pid[PID_ROLL].O > 0 && currentPidProfile->pid[PID_ROLL].I > 0)
-      pid.coef[PID_ROLL].Kc = pid.coef[PID_ROLL].Ko / pid.coef[PID_ROLL].Ki;
-    else
-      pid.coef[PID_ROLL].Kc = 0;
+    currentPidProfile->yaw_precomp_cutoff = value;
+    filterUpdate(&pid.precomp.yawPrecompFilter, value, pid.freq);
 }
 
 int get_ADJUSTMENT_CROSS_COUPLING_GAIN(__unused int adjFunc)
@@ -521,17 +532,6 @@ void set_ADJUSTMENT_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_inertia_precomp_cutoff = value;
     difFilterUpdate(&pid.precomp.yawInertiaFilter, value / 10.0f, pid.freq);
-}
-
-int get_ADJUSTMENT_YAW_PRECOMP_CUTOFF(__unused int adjFunc)
-{
-    return currentPidProfile->yaw_precomp_cutoff;
-}
-
-void set_ADJUSTMENT_YAW_PRECOMP_CUTOFF(__unused int adjFunc, int value)
-{
-    currentPidProfile->yaw_precomp_cutoff = value;
-    filterUpdate(&pid.precomp.yawPrecompFilter, value, pid.freq);
 }
 
 
