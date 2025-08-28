@@ -92,65 +92,80 @@ static int            adjustmentValue  = 0;
 
 
 
-//// Internal Functions
+//// Get/Set Functions
 
-static int adjustNullGet(int __unused adjFunc)
+static int adjustmentGet_NONE(__unused int adjFunc)
 {
     return 0;
 }
 
-static void adjustNullSet(int __unused adjFunc, int __unused value)
+static void adjustmentSet_NONE(__unused int adjFunc, __unused int value)
 {
     // Nothing
 }
 
-static int adjustProfileGet(int adjFunc)
+static int adjustmentGet_PID_PROFILE(__unused int adjFunc)
 {
-    int value = 0;
-
-    switch (adjFunc) {
-        case ADJUSTMENT_RATE_PROFILE:
-            value = getCurrentControlRateProfileIndex() + 1;
-            break;
-        case ADJUSTMENT_PID_PROFILE:
-            value = getCurrentPidProfileIndex() + 1;
-            break;
-        case ADJUSTMENT_LED_PROFILE:
-#ifdef USE_LED_STRIP
-            value = getLedProfile() + 1;
-#endif
-            break;
-        case ADJUSTMENT_OSD_PROFILE:
-#ifdef USE_OSD_PROFILES
-            value = getCurrentOsdProfileIndex();
-#endif
-            break;
-    }
-
-    return value;
+    return getCurrentPidProfileIndex() + 1;
 }
 
-static void adjustProfileSet(int adjFunc, int value)
+static void adjustmentSet_PID_PROFILE(__unused int adjFunc, int value)
 {
-    switch (adjFunc) {
-        case ADJUSTMENT_RATE_PROFILE:
-            changeControlRateProfile(value - 1);
-            break;
-        case ADJUSTMENT_PID_PROFILE:
-            changePidProfile(value - 1);
-            break;
-        case ADJUSTMENT_LED_PROFILE:
-#ifdef USE_LED_STRIP
-            setLedProfile(value - 1);
-#endif
-            break;
-        case ADJUSTMENT_OSD_PROFILE:
-#ifdef USE_OSD_PROFILES
-            changeOsdProfileIndex(value);
-#endif
-            break;
-    }
+    changePidProfile(value - 1);
 }
+
+static int adjustmentGet_RATE_PROFILE(__unused int adjFunc)
+{
+    return getCurrentControlRateProfileIndex() + 1;
+}
+
+static void adjustmentSet_RATE_PROFILE(__unused int adjFunc, int value)
+{
+    changeControlRateProfile(value - 1);
+}
+
+static int adjustmentGet_LED_PROFILE(__unused int adjFunc)
+{
+#ifdef USE_LED_STRIP
+    return getLedProfile() + 1;
+#else
+    return 0;
+#endif
+}
+
+static void adjustmentSet_LED_PROFILE(__unused int adjFunc, int value)
+{
+#ifdef USE_LED_STRIP
+    setLedProfile(value - 1);
+#endif
+}
+
+static int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
+{
+#ifdef USE_OSD_PROFILES
+    return getCurrentOsdProfileIndex();
+#else
+    return 0;
+#endif
+}
+
+static void adjustmentSet_OSD_PROFILE(__unused int adjFunc, int value)
+{
+#ifdef USE_OSD_PROFILES
+    changeOsdProfileIndex(value);
+#endif
+}
+
+static int adjustmentGet_(__unused int adjFunc)
+{
+    return 0;
+}
+
+static void adjustmentSet_(__unused int adjFunc, int value)
+{
+}
+
+
 
 static int adjPidsGet(int adjFunc)
 {
@@ -473,111 +488,113 @@ static void adjustMiscSet(int adjFunc, int value)
 }
 
 
-#define ADJ_CONFIG(id, fun, min, max)  [ADJUSTMENT_##id] = \
+//// Internal functions
+
+#define ADJ_ENTRY(id, min, max)  [ADJUSTMENT_##id] = \
     {                                                       \
         .cfgName  = #id,                                    \
-        .cfgGet   = fun##Get,                               \
-        .cfgSet   = fun##Set,                               \
+        .cfgGet   = adjustmentGet_##id,                     \
+        .cfgSet   = adjustmentSet_##id,                     \
         .cfgMin   = (min),                                  \
         .cfgMax   = (max),                                  \
     }
 
 static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 {
-    ADJ_CONFIG(NONE,                    adjustNull,             0, 0),
+    ADJ_ENTRY(NONE,                         0, 0),
 
-    ADJ_CONFIG(RATE_PROFILE,            adjustProfile,          1, 6),
-    ADJ_CONFIG(PID_PROFILE,             adjustProfile,          1, 6),
-    ADJ_CONFIG(LED_PROFILE,             adjustProfile,          1, 4),
-    ADJ_CONFIG(OSD_PROFILE,             adjustProfile,          1, 3),
+    ADJ_ENTRY(RATE_PROFILE,                 1, 6),
+    ADJ_ENTRY(PID_PROFILE,                  1, 6),
+    ADJ_ENTRY(LED_PROFILE,                  1, 4),
+    ADJ_ENTRY(OSD_PROFILE,                  1, 3),
 
-    ADJ_CONFIG(PITCH_RATE,              adjustControlRate,      0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
-    ADJ_CONFIG(ROLL_RATE,               adjustControlRate,      0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
-    ADJ_CONFIG(YAW_RATE,                adjustControlRate,      0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
-    ADJ_CONFIG(PITCH_RC_RATE,           adjustControlRate,      1, CONTROL_RATE_CONFIG_RC_RATES_MAX),
-    ADJ_CONFIG(ROLL_RC_RATE,            adjustControlRate,      1, CONTROL_RATE_CONFIG_RC_RATES_MAX),
-    ADJ_CONFIG(YAW_RC_RATE,             adjustControlRate,      1, CONTROL_RATE_CONFIG_RC_RATES_MAX),
-    ADJ_CONFIG(PITCH_RC_EXPO,           adjustControlRate,      0, CONTROL_RATE_CONFIG_RC_EXPO_MAX),
-    ADJ_CONFIG(ROLL_RC_EXPO,            adjustControlRate,      0, CONTROL_RATE_CONFIG_RC_EXPO_MAX),
-    ADJ_CONFIG(YAW_RC_EXPO,             adjustControlRate,      0, CONTROL_RATE_CONFIG_RC_EXPO_MAX),
+    ADJ_ENTRY(PITCH_RATE,                   0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
+    ADJ_ENTRY(ROLL_RATE,                    0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
+    ADJ_ENTRY(YAW_RATE,                     0, CONTROL_RATE_CONFIG_SUPER_RATE_MAX),
+    ADJ_ENTRY(PITCH_RC_RATE,                1, CONTROL_RATE_CONFIG_RC_RATES_MAX),
+    ADJ_ENTRY(ROLL_RC_RATE,                 1, CONTROL_RATE_CONFIG_RC_RATES_MAX),
+    ADJ_ENTRY(YAW_RC_RATE,                  1, CONTROL_RATE_CONFIG_RC_RATES_MAX),
+    ADJ_ENTRY(PITCH_RC_EXPO,                0, CONTROL_RATE_CONFIG_RC_EXPO_MAX),
+    ADJ_ENTRY(ROLL_RC_EXPO,                 0, CONTROL_RATE_CONFIG_RC_EXPO_MAX),
+    ADJ_ENTRY(YAW_RC_EXPO,                  0, CONTROL_RATE_CONFIG_RC_EXPO_MAX),
 
-    ADJ_CONFIG(PITCH_SP_BOOST_GAIN,     adjustControlRate,      0, 255),
-    ADJ_CONFIG(ROLL_SP_BOOST_GAIN,      adjustControlRate,      0, 255),
-    ADJ_CONFIG(YAW_SP_BOOST_GAIN,       adjustControlRate,      0, 255),
-    ADJ_CONFIG(COLL_SP_BOOST_GAIN,      adjustControlRate,      0, 255),
+    ADJ_ENTRY(PITCH_SP_BOOST_GAIN,          0, 255),
+    ADJ_ENTRY(ROLL_SP_BOOST_GAIN,           0, 255),
+    ADJ_ENTRY(YAW_SP_BOOST_GAIN,            0, 255),
+    ADJ_ENTRY(COLL_SP_BOOST_GAIN,           0, 255),
 
-    ADJ_CONFIG(YAW_DYN_CEILING_GAIN,    adjustControlRate,      0, 250),
-    ADJ_CONFIG(YAW_DYN_DEADBAND_GAIN,   adjustControlRate,      0, 250),
-    ADJ_CONFIG(YAW_DYN_DEADBAND_FILTER, adjustControlRate,      0, 250),
+    ADJ_ENTRY(YAW_DYN_CEILING_GAIN,         0, 250),
+    ADJ_ENTRY(YAW_DYN_DEADBAND_GAIN,        0, 250),
+    ADJ_ENTRY(YAW_DYN_DEADBAND_FILTER,      0, 250),
 
-    ADJ_CONFIG(PITCH_P_GAIN,            adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(PITCH_I_GAIN,            adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(PITCH_D_GAIN,            adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(PITCH_F_GAIN,            adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(ROLL_P_GAIN,             adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(ROLL_I_GAIN,             adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(ROLL_D_GAIN,             adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(ROLL_F_GAIN,             adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(YAW_P_GAIN,              adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(YAW_I_GAIN,              adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(YAW_D_GAIN,              adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(YAW_F_GAIN,              adjPids,                0, PID_GAIN_MAX),
+    ADJ_ENTRY(PITCH_P_GAIN,                 0, PID_GAIN_MAX),
+    ADJ_ENTRY(PITCH_I_GAIN,                 0, PID_GAIN_MAX),
+    ADJ_ENTRY(PITCH_D_GAIN,                 0, PID_GAIN_MAX),
+    ADJ_ENTRY(PITCH_F_GAIN,                 0, PID_GAIN_MAX),
+    ADJ_ENTRY(ROLL_P_GAIN,                  0, PID_GAIN_MAX),
+    ADJ_ENTRY(ROLL_I_GAIN,                  0, PID_GAIN_MAX),
+    ADJ_ENTRY(ROLL_D_GAIN,                  0, PID_GAIN_MAX),
+    ADJ_ENTRY(ROLL_F_GAIN,                  0, PID_GAIN_MAX),
+    ADJ_ENTRY(YAW_P_GAIN,                   0, PID_GAIN_MAX),
+    ADJ_ENTRY(YAW_I_GAIN,                   0, PID_GAIN_MAX),
+    ADJ_ENTRY(YAW_D_GAIN,                   0, PID_GAIN_MAX),
+    ADJ_ENTRY(YAW_F_GAIN,                   0, PID_GAIN_MAX),
 
-    ADJ_CONFIG(PITCH_B_GAIN,            adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(ROLL_B_GAIN,             adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(YAW_B_GAIN,              adjPids,                0, PID_GAIN_MAX),
+    ADJ_ENTRY(PITCH_B_GAIN,                 0, PID_GAIN_MAX),
+    ADJ_ENTRY(ROLL_B_GAIN,                  0, PID_GAIN_MAX),
+    ADJ_ENTRY(YAW_B_GAIN,                   0, PID_GAIN_MAX),
 
-    ADJ_CONFIG(PITCH_O_GAIN,            adjPids,                0, PID_GAIN_MAX),
-    ADJ_CONFIG(ROLL_O_GAIN,             adjPids,                0, PID_GAIN_MAX),
+    ADJ_ENTRY(PITCH_O_GAIN,                 0, PID_GAIN_MAX),
+    ADJ_ENTRY(ROLL_O_GAIN,                  0, PID_GAIN_MAX),
 
-    ADJ_CONFIG(YAW_CW_GAIN,             adjPids,                25, 250),
-    ADJ_CONFIG(YAW_CCW_GAIN,            adjPids,                25, 250),
-    ADJ_CONFIG(YAW_CYCLIC_FF,           adjPids,                0, 250),
-    ADJ_CONFIG(YAW_COLLECTIVE_FF,       adjPids,                0, 250),
-    ADJ_CONFIG(YAW_COLLECTIVE_DYN,      adjPids,                -125, 125),
-    ADJ_CONFIG(YAW_COLLECTIVE_DECAY,    adjPids,                1, 250),
+    ADJ_ENTRY(YAW_CW_GAIN,                  25, 250),
+    ADJ_ENTRY(YAW_CCW_GAIN,                 25, 250),
+    ADJ_ENTRY(YAW_CYCLIC_FF,                0, 250),
+    ADJ_ENTRY(YAW_COLLECTIVE_FF,            0, 250),
+    ADJ_ENTRY(YAW_COLLECTIVE_DYN,           -125, 125),
+    ADJ_ENTRY(YAW_COLLECTIVE_DECAY,         1, 250),
 
-    ADJ_CONFIG(PITCH_COLLECTIVE_FF,     adjPids,                0, 250),
+    ADJ_ENTRY(PITCH_COLLECTIVE_FF,          0, 250),
 
-    ADJ_CONFIG(PITCH_GYRO_CUTOFF,       adjPids,                0, 250),
-    ADJ_CONFIG(ROLL_GYRO_CUTOFF,        adjPids,                0, 250),
-    ADJ_CONFIG(YAW_GYRO_CUTOFF,         adjPids,                0, 250),
+    ADJ_ENTRY(PITCH_GYRO_CUTOFF,            0, 250),
+    ADJ_ENTRY(ROLL_GYRO_CUTOFF,             0, 250),
+    ADJ_ENTRY(YAW_GYRO_CUTOFF,              0, 250),
 
-    ADJ_CONFIG(PITCH_DTERM_CUTOFF,      adjPids,                0, 250),
-    ADJ_CONFIG(ROLL_DTERM_CUTOFF,       adjPids,                0, 250),
-    ADJ_CONFIG(YAW_DTERM_CUTOFF,        adjPids,                0, 250),
+    ADJ_ENTRY(PITCH_DTERM_CUTOFF,           0, 250),
+    ADJ_ENTRY(ROLL_DTERM_CUTOFF,            0, 250),
+    ADJ_ENTRY(YAW_DTERM_CUTOFF,             0, 250),
 
-    ADJ_CONFIG(YAW_PRECOMP_CUTOFF,      adjPids,                0, 250),
+    ADJ_ENTRY(YAW_PRECOMP_CUTOFF,           0, 250),
 
-    ADJ_CONFIG(INERTIA_PRECOMP_GAIN,    adjPids,                0, 250),
-    ADJ_CONFIG(INERTIA_PRECOMP_CUTOFF,  adjPids,                0, 250),
+    ADJ_ENTRY(INERTIA_PRECOMP_GAIN,         0, 250),
+    ADJ_ENTRY(INERTIA_PRECOMP_CUTOFF,       0, 250),
 
-    ADJ_CONFIG(CROSS_COUPLING_GAIN,     adjPids,                0, 250),
-    ADJ_CONFIG(CROSS_COUPLING_RATIO,    adjPids,                0, 200),
-    ADJ_CONFIG(CROSS_COUPLING_CUTOFF,   adjPids,                1, 250),
+    ADJ_ENTRY(CROSS_COUPLING_GAIN,          0, 250),
+    ADJ_ENTRY(CROSS_COUPLING_RATIO,         0, 200),
+    ADJ_ENTRY(CROSS_COUPLING_CUTOFF,        1, 250),
 
-    ADJ_CONFIG(ANGLE_LEVEL_GAIN,        adjPids,                0, 200),
-    ADJ_CONFIG(HORIZON_LEVEL_GAIN,      adjPids,                0, 200),
-    ADJ_CONFIG(ACRO_TRAINER_GAIN,       adjPids,                25, 255),
+    ADJ_ENTRY(ANGLE_LEVEL_GAIN,             0, 200),
+    ADJ_ENTRY(HORIZON_LEVEL_GAIN,           0, 200),
+    ADJ_ENTRY(ACRO_TRAINER_GAIN,            25, 255),
 
-    ADJ_CONFIG(RESCUE_CLIMB_COLLECTIVE, adjRescue,              0, 1000),
-    ADJ_CONFIG(RESCUE_HOVER_COLLECTIVE, adjRescue,              0, 1000),
-    ADJ_CONFIG(RESCUE_HOVER_ALTITUDE,   adjRescue,              0, 2500),
-    ADJ_CONFIG(RESCUE_ALT_P_GAIN,       adjRescue,              0, 1000),
-    ADJ_CONFIG(RESCUE_ALT_I_GAIN,       adjRescue,              0, 1000),
-    ADJ_CONFIG(RESCUE_ALT_D_GAIN,       adjRescue,              0, 1000),
+    ADJ_ENTRY(RESCUE_CLIMB_COLLECTIVE,      0, 1000),
+    ADJ_ENTRY(RESCUE_HOVER_COLLECTIVE,      0, 1000),
+    ADJ_ENTRY(RESCUE_HOVER_ALTITUDE,        0, 2500),
+    ADJ_ENTRY(RESCUE_ALT_P_GAIN,            0, 1000),
+    ADJ_ENTRY(RESCUE_ALT_I_GAIN,            0, 1000),
+    ADJ_ENTRY(RESCUE_ALT_D_GAIN,            0, 1000),
 
-    ADJ_CONFIG(GOV_GAIN,                adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_P_GAIN,              adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_I_GAIN,              adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_D_GAIN,              adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_F_GAIN,              adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_TTA_GAIN,            adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_CYCLIC_FF,           adjustGovernor,         0, 250),
-    ADJ_CONFIG(GOV_COLLECTIVE_FF,       adjustGovernor,         0, 250),
+    ADJ_ENTRY(GOV_GAIN,                     0, 250),
+    ADJ_ENTRY(GOV_P_GAIN,                   0, 250),
+    ADJ_ENTRY(GOV_I_GAIN,                   0, 250),
+    ADJ_ENTRY(GOV_D_GAIN,                   0, 250),
+    ADJ_ENTRY(GOV_F_GAIN,                   0, 250),
+    ADJ_ENTRY(GOV_TTA_GAIN,                 0, 250),
+    ADJ_ENTRY(GOV_CYCLIC_FF,                0, 250),
+    ADJ_ENTRY(GOV_COLLECTIVE_FF,            0, 250),
 
-    ADJ_CONFIG(ACC_TRIM_PITCH,          adjustMisc,             -300, 300),
-    ADJ_CONFIG(ACC_TRIM_ROLL,           adjustMisc,             -300, 300),
+    ADJ_ENTRY(ACC_TRIM_PITCH,               -300, 300),
+    ADJ_ENTRY(ACC_TRIM_ROLL,                -300, 300),
 
 };
 
