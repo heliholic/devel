@@ -133,408 +133,408 @@ void INIT_CODE pidResetAxisErrors(void)
 
 //// Adjustment functions
 
-ADJ_CODE int adjustmentGet_PITCH_P_GAIN(__unused int adjFunc)
+int adjustmentGet_PITCH_P_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].P;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_P_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_P_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].P = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_P_GAIN(__unused int adjFunc)
+int adjustmentGet_ROLL_P_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_ROLL].P;
 }
 
-ADJ_CODE void adjustmentSet_ROLL_P_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_P_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].P = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_P_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_P_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_YAW].P;
 }
 
-ADJ_CODE void adjustmentSet_YAW_P_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_P_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_YAW].P = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_I_GAIN(__unused int adjFunc)
+int adjustmentGet_PITCH_I_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].I;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_I_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_I_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].I = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_I_GAIN(__unused int adjFunc)
+int adjustmentGet_ROLL_I_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_ROLL].I;
 }
 
-ADJ_CODE void adjustmentSet_ROLL_I_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_I_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].I = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_I_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_I_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_YAW].I;
 }
 
-ADJ_CODE void adjustmentSet_YAW_I_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_I_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_YAW].I = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_D_GAIN(__unused int adjFunc)
+int adjustmentGet_PITCH_D_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].D;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_D_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_D_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].D = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_D_GAIN(__unused int adjFunc)
+int adjustmentGet_ROLL_D_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_ROLL].D;
 }
 
-ADJ_CODE void adjustmentSet_ROLL_D_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_D_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].D = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_D_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_D_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_YAW].D;
 }
 
-ADJ_CODE void adjustmentSet_YAW_D_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_D_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_YAW].D = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_F_GAIN(__unused int adjFunc)
+int adjustmentGet_PITCH_F_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].F;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_F_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_F_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].F = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_F_GAIN(__unused int adjFunc)
+int adjustmentGet_ROLL_F_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_ROLL].F;
 }
 
-ADJ_CODE void adjustmentSet_ROLL_F_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_F_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].F = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_F_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_F_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_YAW].F;
 }
 
-ADJ_CODE void adjustmentSet_YAW_F_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_F_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_YAW].F = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_CW_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_CW_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->yaw_cw_stop_gain;
 }
 
-ADJ_CODE void adjustmentSet_YAW_CW_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_CW_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_cw_stop_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_CCW_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_CCW_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->yaw_ccw_stop_gain;
 }
 
-ADJ_CODE void adjustmentSet_YAW_CCW_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_CCW_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_ccw_stop_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_CYCLIC_FF(__unused int adjFunc)
+int adjustmentGet_YAW_CYCLIC_FF(__unused int adjFunc)
 {
     return currentPidProfile->yaw_cyclic_ff_gain;
 }
 
-ADJ_CODE void adjustmentSet_YAW_CYCLIC_FF(__unused int adjFunc, int value)
+void adjustmentSet_YAW_CYCLIC_FF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_cyclic_ff_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_COLLECTIVE_FF(__unused int adjFunc)
+int adjustmentGet_YAW_COLLECTIVE_FF(__unused int adjFunc)
 {
     return currentPidProfile->yaw_collective_ff_gain;
 }
 
-ADJ_CODE void adjustmentSet_YAW_COLLECTIVE_FF(__unused int adjFunc, int value)
+void adjustmentSet_YAW_COLLECTIVE_FF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_collective_ff_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_COLLECTIVE_FF(__unused int adjFunc)
+int adjustmentGet_PITCH_COLLECTIVE_FF(__unused int adjFunc)
 {
     return currentPidProfile->pitch_collective_ff_gain;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_COLLECTIVE_FF(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_COLLECTIVE_FF(__unused int adjFunc, int value)
 {
     currentPidProfile->pitch_collective_ff_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_GYRO_CUTOFF(__unused int adjFunc)
+int adjustmentGet_PITCH_GYRO_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->gyro_cutoff[PID_PITCH];
 }
 
-ADJ_CODE void adjustmentSet_PITCH_GYRO_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_PITCH] = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_GYRO_CUTOFF(__unused int adjFunc)
+int adjustmentGet_ROLL_GYRO_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->gyro_cutoff[PID_ROLL];
 }
 
-ADJ_CODE void adjustmentSet_ROLL_GYRO_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_ROLL] = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_GYRO_CUTOFF(__unused int adjFunc)
+int adjustmentGet_YAW_GYRO_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->gyro_cutoff[PID_YAW];
 }
 
-ADJ_CODE void adjustmentSet_YAW_GYRO_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_YAW_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_YAW] = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_DTERM_CUTOFF(__unused int adjFunc)
+int adjustmentGet_PITCH_DTERM_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->dterm_cutoff[PID_PITCH];
 }
 
-ADJ_CODE void adjustmentSet_PITCH_DTERM_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_DTERM_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->dterm_cutoff[PID_PITCH] = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_DTERM_CUTOFF(__unused int adjFunc)
+int adjustmentGet_ROLL_DTERM_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->dterm_cutoff[PID_ROLL];
 }
 
-ADJ_CODE void adjustmentSet_ROLL_DTERM_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_DTERM_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->dterm_cutoff[PID_ROLL] = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_DTERM_CUTOFF(__unused int adjFunc)
+int adjustmentGet_YAW_DTERM_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->dterm_cutoff[PID_YAW];
 }
 
-ADJ_CODE void adjustmentSet_YAW_DTERM_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_YAW_DTERM_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->dterm_cutoff[PID_YAW] = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ANGLE_LEVEL_GAIN(__unused int adjFunc)
+int adjustmentGet_ANGLE_LEVEL_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->angle.level_strength;
 }
 
-ADJ_CODE void adjustmentSet_ANGLE_LEVEL_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ANGLE_LEVEL_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->angle.level_strength = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_HORIZON_LEVEL_GAIN(__unused int adjFunc)
+int adjustmentGet_HORIZON_LEVEL_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->horizon.level_strength;
 }
 
-ADJ_CODE void adjustmentSet_HORIZON_LEVEL_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_HORIZON_LEVEL_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->horizon.level_strength = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ACRO_TRAINER_GAIN(__unused int adjFunc)
+int adjustmentGet_ACRO_TRAINER_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->trainer.gain;
 }
 
-ADJ_CODE void adjustmentSet_ACRO_TRAINER_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ACRO_TRAINER_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->trainer.gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_B_GAIN(__unused int adjFunc)
+int adjustmentGet_PITCH_B_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].B;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_B_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_B_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].B = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_B_GAIN(__unused int adjFunc)
+int adjustmentGet_ROLL_B_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_ROLL].B;
 }
 
-ADJ_CODE void adjustmentSet_ROLL_B_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_B_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].B = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_B_GAIN(__unused int adjFunc)
+int adjustmentGet_YAW_B_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_YAW].B;
 }
 
-ADJ_CODE void adjustmentSet_YAW_B_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_YAW_B_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_YAW].B = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_PITCH_O_GAIN(__unused int adjFunc)
+int adjustmentGet_PITCH_O_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_PITCH].O;
 }
 
-ADJ_CODE void adjustmentSet_PITCH_O_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_PITCH_O_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_PITCH].O = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_ROLL_O_GAIN(__unused int adjFunc)
+int adjustmentGet_ROLL_O_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->pid[PID_ROLL].O;
 }
 
-ADJ_CODE void adjustmentSet_ROLL_O_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_ROLL_O_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->pid[PID_ROLL].O = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_CROSS_COUPLING_GAIN(__unused int adjFunc)
+int adjustmentGet_CROSS_COUPLING_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->cyclic_cross_coupling_gain;
 }
 
-ADJ_CODE void adjustmentSet_CROSS_COUPLING_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_CROSS_COUPLING_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->cyclic_cross_coupling_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_CROSS_COUPLING_RATIO(__unused int adjFunc)
+int adjustmentGet_CROSS_COUPLING_RATIO(__unused int adjFunc)
 {
     return currentPidProfile->cyclic_cross_coupling_ratio;
 }
 
-ADJ_CODE void adjustmentSet_CROSS_COUPLING_RATIO(__unused int adjFunc, int value)
+void adjustmentSet_CROSS_COUPLING_RATIO(__unused int adjFunc, int value)
 {
     currentPidProfile->cyclic_cross_coupling_ratio = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_CROSS_COUPLING_CUTOFF(__unused int adjFunc)
+int adjustmentGet_CROSS_COUPLING_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->cyclic_cross_coupling_cutoff;
 }
 
-ADJ_CODE void adjustmentSet_CROSS_COUPLING_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_CROSS_COUPLING_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->cyclic_cross_coupling_cutoff = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_INERTIA_PRECOMP_GAIN(__unused int adjFunc)
+int adjustmentGet_INERTIA_PRECOMP_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->yaw_inertia_precomp_gain;
 }
 
-ADJ_CODE void adjustmentSet_INERTIA_PRECOMP_GAIN(__unused int adjFunc, int value)
+void adjustmentSet_INERTIA_PRECOMP_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_inertia_precomp_gain = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc)
+int adjustmentGet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->yaw_inertia_precomp_cutoff;
 }
 
-ADJ_CODE void adjustmentSet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_INERTIA_PRECOMP_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_inertia_precomp_cutoff = value;
     pidLoadProfile(currentPidProfile);
 }
 
-ADJ_CODE int adjustmentGet_YAW_PRECOMP_CUTOFF(__unused int adjFunc)
+int adjustmentGet_YAW_PRECOMP_CUTOFF(__unused int adjFunc)
 {
     return currentPidProfile->yaw_precomp_cutoff;
 }
 
-ADJ_CODE void adjustmentSet_YAW_PRECOMP_CUTOFF(__unused int adjFunc, int value)
+void adjustmentSet_YAW_PRECOMP_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->yaw_precomp_cutoff = value;
     pidLoadProfile(currentPidProfile);
