@@ -95,37 +95,37 @@ static int            adjustmentValue  = 0;
 
 //// Get/Set Functions
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_NONE(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_NONE(__unused int adjFunc)
 {
     return 0;
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_NONE(__unused int adjFunc, __unused int value)
+static ADJ_CODE void adjustmentSet_NONE(__unused int adjFunc, __unused int value)
 {
     // Nothing
 }
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_PID_PROFILE(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_PID_PROFILE(__unused int adjFunc)
 {
     return getCurrentPidProfileIndex() + 1;
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_PID_PROFILE(__unused int adjFunc, int value)
+static ADJ_CODE void adjustmentSet_PID_PROFILE(__unused int adjFunc, int value)
 {
     changePidProfile(value - 1);
 }
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_RATE_PROFILE(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_RATE_PROFILE(__unused int adjFunc)
 {
     return getCurrentControlRateProfileIndex() + 1;
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_RATE_PROFILE(__unused int adjFunc, int value)
+static ADJ_CODE void adjustmentSet_RATE_PROFILE(__unused int adjFunc, int value)
 {
     changeControlRateProfile(value - 1);
 }
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_LED_PROFILE(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_LED_PROFILE(__unused int adjFunc)
 {
 #ifdef USE_LED_STRIP
     return getLedProfile() + 1;
@@ -134,14 +134,14 @@ static ADJ_CODE ADJ_CODE int adjustmentGet_LED_PROFILE(__unused int adjFunc)
 #endif
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_LED_PROFILE(__unused int adjFunc, int value)
+static ADJ_CODE void adjustmentSet_LED_PROFILE(__unused int adjFunc, int value)
 {
 #ifdef USE_LED_STRIP
     setLedProfile(value - 1);
 #endif
 }
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
 {
 #ifdef USE_OSD_PROFILES
     return getCurrentOsdProfileIndex();
@@ -150,29 +150,29 @@ static ADJ_CODE ADJ_CODE int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
 #endif
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_OSD_PROFILE(__unused int adjFunc, __unused int value)
+static ADJ_CODE void adjustmentSet_OSD_PROFILE(__unused int adjFunc, __unused int value)
 {
 #ifdef USE_OSD_PROFILES
     changeOsdProfileIndex(value);
 #endif
 }
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_ACC_TRIM_PITCH(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_ACC_TRIM_PITCH(__unused int adjFunc)
 {
     return accelerometerConfig()->accelerometerTrims.values.pitch;
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_ACC_TRIM_PITCH(__unused int adjFunc, int value)
+static ADJ_CODE void adjustmentSet_ACC_TRIM_PITCH(__unused int adjFunc, int value)
 {
     accelerometerConfigMutable()->accelerometerTrims.values.pitch = value;
 }
 
-static ADJ_CODE ADJ_CODE int adjustmentGet_ACC_TRIM_ROLL(__unused int adjFunc)
+static ADJ_CODE int adjustmentGet_ACC_TRIM_ROLL(__unused int adjFunc)
 {
     return accelerometerConfig()->accelerometerTrims.values.roll;
 }
 
-static ADJ_CODE ADJ_CODE void adjustmentSet_ACC_TRIM_ROLL(__unused int adjFunc, int value)
+static ADJ_CODE void adjustmentSet_ACC_TRIM_ROLL(__unused int adjFunc, int value)
 {
     accelerometerConfigMutable()->accelerometerTrims.values.roll = value;
 }
