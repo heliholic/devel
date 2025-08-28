@@ -29,6 +29,8 @@
 #include "build/build_config.h"
 #include "build/debug.h"
 
+#include "config/config.h"
+
 #ifdef USE_ACC
 
 #include "common/axis.h"

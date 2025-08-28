@@ -328,7 +328,7 @@ int adjustmentGet_PITCH_GYRO_CUTOFF(__unused int adjFunc)
 void adjustmentSet_PITCH_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_PITCH] = value;
-    lowpassFilterUpdate(&pid.gyrorFilter[PID_PITCH], currentPidProfile->gyro_filter_type, value, pid.freq);
+    filterUpdate(&pid.gyrorFilter[PID_PITCH], value, pid.freq);
 }
 
 int adjustmentGet_ROLL_GYRO_CUTOFF(__unused int adjFunc)
@@ -339,7 +339,7 @@ int adjustmentGet_ROLL_GYRO_CUTOFF(__unused int adjFunc)
 void adjustmentSet_ROLL_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_ROLL] = value;
-    lowpassFilterUpdate(&pid.gyrorFilter[PID_PITCH], currentPidProfile->gyro_filter_type, value, pid.freq);
+    filterUpdate(&pid.gyrorFilter[PID_PITCH], value, pid.freq);
 }
 
 int adjustmentGet_YAW_GYRO_CUTOFF(__unused int adjFunc)
@@ -350,7 +350,7 @@ int adjustmentGet_YAW_GYRO_CUTOFF(__unused int adjFunc)
 void adjustmentSet_YAW_GYRO_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->gyro_cutoff[PID_YAW] = value;
-    lowpassFilterUpdate(&pid.gyrorFilter[PID_YAW], currentPidProfile->gyro_filter_type, value, pid.freq);
+    filterUpdate(&pid.gyrorFilter[PID_YAW], value, pid.freq);
 }
 
 int adjustmentGet_PITCH_DTERM_CUTOFF(__unused int adjFunc)
@@ -384,28 +384,6 @@ void adjustmentSet_YAW_DTERM_CUTOFF(__unused int adjFunc, int value)
 {
     currentPidProfile->dterm_cutoff[PID_YAW] = value;
     difFilterUpdate(&pid.dtermFilter[PID_YAW], value, pid.freq);
-}
-
-int adjustmentGet_ANGLE_LEVEL_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->angle.level_strength;
-}
-
-void adjustmentSet_ANGLE_LEVEL_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->angle.level_strength = value;
-    pidLoadProfile(currentPidProfile);
-}
-
-int adjustmentGet_HORIZON_LEVEL_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->horizon.level_strength;
-}
-
-void adjustmentSet_HORIZON_LEVEL_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->horizon.level_strength = value;
-    pidLoadProfile(currentPidProfile);
 }
 
 int adjustmentGet_ACRO_TRAINER_GAIN(__unused int adjFunc)
