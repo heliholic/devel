@@ -24,6 +24,8 @@
 
 #include "pg/adjustments.h"
 
+// Compiler directive for getter/setter functions
+#define ADJ_CODE  INIT_CODE
 
 /*
  * Adjustment Function codes

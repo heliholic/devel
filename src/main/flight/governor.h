@@ -44,21 +44,21 @@ typedef enum {
 } govState_e;
 
 
-int adjustmentGet_GOV_GAIN(int adjFunc);
+ int adjustmentGet_GOV_GAIN(int adjFunc);
 void adjustmentSet_GOV_GAIN(int adjFunc, int value);
-int adjustmentGet_GOV_P_GAIN(int adjFunc);
+ int adjustmentGet_GOV_P_GAIN(int adjFunc);
 void adjustmentSet_GOV_P_GAIN(int adjFunc, int value);
-int adjustmentGet_GOV_I_GAIN(int adjFunc);
+ int adjustmentGet_GOV_I_GAIN(int adjFunc);
 void adjustmentSet_GOV_I_GAIN(int adjFunc, int value);
-int adjustmentGet_GOV_D_GAIN(int adjFunc);
+ int adjustmentGet_GOV_D_GAIN(int adjFunc);
 void adjustmentSet_GOV_D_GAIN(int adjFunc, int value);
-int adjustmentGet_GOV_F_GAIN(int adjFunc);
+ int adjustmentGet_GOV_F_GAIN(int adjFunc);
 void adjustmentSet_GOV_F_GAIN(int adjFunc, int value);
-int adjustmentGet_GOV_TTA_GAIN(int adjFunc);
+ int adjustmentGet_GOV_TTA_GAIN(int adjFunc);
 void adjustmentSet_GOV_TTA_GAIN(int adjFunc, int value);
-int adjustmentGet_GOV_CYCLIC_FF(int adjFunc);
+ int adjustmentGet_GOV_CYCLIC_FF(int adjFunc);
 void adjustmentSet_GOV_CYCLIC_FF(int adjFunc, int value);
-int adjustmentGet_GOV_COLLECTIVE_FF(int adjFunc);
+ int adjustmentGet_GOV_COLLECTIVE_FF(int adjFunc);
 void adjustmentSet_GOV_COLLECTIVE_FF(int adjFunc, int value);
 
 

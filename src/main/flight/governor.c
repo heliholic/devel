@@ -1012,89 +1012,89 @@ static inline float govCalcRate(uint16_t param, uint16_t min, uint16_t max)
 
 //// Adjustment functions
 
-int adjustmentGet_GOV_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.gain;
 }
 
-void adjustmentSet_GOV_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.gain = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_P_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_P_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.p_gain;
 }
 
-void adjustmentSet_GOV_P_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_P_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.p_gain = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_I_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_I_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.i_gain;
 }
 
-void adjustmentSet_GOV_I_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_I_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.i_gain = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_D_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_D_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.d_gain;
 }
 
-void adjustmentSet_GOV_D_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_D_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.d_gain = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_F_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_F_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.f_gain;
 }
 
-void adjustmentSet_GOV_F_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_F_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.f_gain = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_TTA_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_TTA_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.tta_gain;
 }
 
-void adjustmentSet_GOV_TTA_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_TTA_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.tta_gain = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_CYCLIC_FF(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_CYCLIC_FF(__unused int adjFunc)
 {
     return currentPidProfile->governor.cyclic_ff_weight;
 }
 
-void adjustmentSet_GOV_CYCLIC_FF(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_CYCLIC_FF(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.cyclic_ff_weight = value;
     governorInitProfile(currentPidProfile);
 }
 
-int adjustmentGet_GOV_COLLECTIVE_FF(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_GOV_COLLECTIVE_FF(__unused int adjFunc)
 {
     return currentPidProfile->governor.collective_ff_weight;
 }
 
-void adjustmentSet_GOV_COLLECTIVE_FF(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_GOV_COLLECTIVE_FF(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.collective_ff_weight = value;
     governorInitProfile(currentPidProfile);

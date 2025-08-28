@@ -39,17 +39,17 @@ typedef enum {
 } rescueState_e;
 
 
-int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(int adjFunc);
+ int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(int adjFunc);
 void adjustmentSet_RESCUE_CLIMB_COLLECTIVE(int adjFunc, int value);
-int adjustmentGet_RESCUE_HOVER_COLLECTIVE(int adjFunc);
+ int adjustmentGet_RESCUE_HOVER_COLLECTIVE(int adjFunc);
 void adjustmentSet_RESCUE_HOVER_COLLECTIVE(int adjFunc, int value);
-int adjustmentGet_RESCUE_HOVER_ALTITUDE(int adjFunc);
+ int adjustmentGet_RESCUE_HOVER_ALTITUDE(int adjFunc);
 void adjustmentSet_RESCUE_HOVER_ALTITUDE(int adjFunc, int value);
-int adjustmentGet_RESCUE_ALT_P_GAIN(int adjFunc);
+ int adjustmentGet_RESCUE_ALT_P_GAIN(int adjFunc);
 void adjustmentSet_RESCUE_ALT_P_GAIN(int adjFunc, int value);
-int adjustmentGet_RESCUE_ALT_I_GAIN(int adjFunc);
+ int adjustmentGet_RESCUE_ALT_I_GAIN(int adjFunc);
 void adjustmentSet_RESCUE_ALT_I_GAIN(int adjFunc, int value);
-int adjustmentGet_RESCUE_ALT_D_GAIN(int adjFunc);
+ int adjustmentGet_RESCUE_ALT_D_GAIN(int adjFunc);
 void adjustmentSet_RESCUE_ALT_D_GAIN(int adjFunc, int value);
 
 int getRescueState(void);
