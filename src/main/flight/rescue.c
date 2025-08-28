@@ -108,6 +108,8 @@ int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc)
 void adjustmentSet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.climb_collective = value;
+    rescue.climbCollective = currentPidProfile->rescue.climb_collective;
+
 }
 
 int adjustmentGet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc)
@@ -118,6 +120,7 @@ int adjustmentGet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc)
 void adjustmentSet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.hover_collective = value;
+    rescue.hoverCollective = currentPidProfile->rescue.hover_collective;
 }
 
 int adjustmentGet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc)
@@ -128,6 +131,7 @@ int adjustmentGet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc)
 void adjustmentSet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.hover_altitude = value;
+    rescue.hoverAltitude = currentPidProfile->rescue.hover_altitude / 100.0f;
 }
 
 int adjustmentGet_RESCUE_ALT_P_GAIN(__unused int adjFunc)
@@ -138,6 +142,7 @@ int adjustmentGet_RESCUE_ALT_P_GAIN(__unused int adjFunc)
 void adjustmentSet_RESCUE_ALT_P_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.alt_p_gain = value;
+    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain;
 }
 
 int adjustmentGet_RESCUE_ALT_I_GAIN(__unused int adjFunc)
@@ -148,6 +153,7 @@ int adjustmentGet_RESCUE_ALT_I_GAIN(__unused int adjFunc)
 void adjustmentSet_RESCUE_ALT_I_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.alt_i_gain = value;
+    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT() / 10.0f;
 }
 
 int adjustmentGet_RESCUE_ALT_D_GAIN(__unused int adjFunc)
@@ -158,6 +164,7 @@ int adjustmentGet_RESCUE_ALT_D_GAIN(__unused int adjFunc)
 void adjustmentSet_RESCUE_ALT_D_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.alt_d_gain = value;
+    rescue.alt_Kd = currentPidProfile->rescue.alt_d_gain * -1.0f;
 }
 
 
