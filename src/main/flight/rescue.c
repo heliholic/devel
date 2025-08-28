@@ -38,6 +38,7 @@
 
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_adjustments.h"
 
 #include "flight/position.h"
 #include "flight/rescue.h"
@@ -99,62 +100,62 @@ static FAST_DATA_ZERO_INIT rescueState_t rescue;
 
 //// Adjustment functions
 
-INIT_CODE ADJ_CODE int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc)
 {
     return currentPidProfile->rescue.climb_collective;
 }
 
-INIT_CODE ADJ_CODE void adjustmentSet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.climb_collective = value;
 }
 
-INIT_CODE ADJ_CODE int adjustmentGet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc)
 {
     return currentPidProfile->rescue.hover_collective;
 }
 
-INIT_CODE ADJ_CODE void adjustmentSet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.hover_collective = value;
 }
 
-INIT_CODE ADJ_CODE int adjustmentGet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc)
 {
     return currentPidProfile->rescue.hover_altitude;
 }
 
-INIT_CODE ADJ_CODE void adjustmentSet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.hover_altitude = value;
 }
 
-INIT_CODE ADJ_CODE int adjustmentGet_RESCUE_ALT_P_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_RESCUE_ALT_P_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->rescue.alt_p_gain;
 }
 
-INIT_CODE ADJ_CODE void adjustmentSet_RESCUE_ALT_P_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_RESCUE_ALT_P_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.alt_p_gain = value;
 }
 
-INIT_CODE ADJ_CODE int adjustmentGet_RESCUE_ALT_I_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_RESCUE_ALT_I_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->rescue.alt_i_gain;
 }
 
-INIT_CODE ADJ_CODE void adjustmentSet_RESCUE_ALT_I_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_RESCUE_ALT_I_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.alt_i_gain = value;
 }
 
-INIT_CODE ADJ_CODE int adjustmentGet_RESCUE_ALT_D_GAIN(__unused int adjFunc)
+ADJ_CODE int adjustmentGet_RESCUE_ALT_D_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->rescue.alt_d_gain;
 }
 
-INIT_CODE ADJ_CODE void adjustmentSet_RESCUE_ALT_D_GAIN(__unused int adjFunc, int value)
+ADJ_CODE void adjustmentSet_RESCUE_ALT_D_GAIN(__unused int adjFunc, int value)
 {
     currentPidProfile->rescue.alt_d_gain = value;
 }

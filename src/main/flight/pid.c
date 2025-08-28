@@ -46,8 +46,9 @@
 #include "fc/core.h"
 #include "fc/rc.h"
 #include "fc/rc_controls.h"
-#include "fc/runtime_config.h"
+#include "fc/rc_adjustments.h"
 #include "fc/rc_rates.h"
+#include "fc/runtime_config.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
