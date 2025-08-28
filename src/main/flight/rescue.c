@@ -38,6 +38,7 @@
 
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_adjustments.h"
 
 #include "flight/position.h"
 #include "flight/rescue.h"
@@ -95,6 +96,69 @@ typedef struct {
 } rescueState_t;
 
 static FAST_DATA_ZERO_INIT rescueState_t rescue;
+
+
+//// Adjustment functions
+
+int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc)
+{
+    return currentPidProfile->rescue.climb_collective;
+}
+
+void adjustmentSet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc, int value)
+{
+    currentPidProfile->rescue.climb_collective = value;
+}
+
+int adjustmentGet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc)
+{
+    return currentPidProfile->rescue.hover_collective;
+}
+
+void adjustmentSet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc, int value)
+{
+    currentPidProfile->rescue.hover_collective = value;
+}
+
+int adjustmentGet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc)
+{
+    return currentPidProfile->rescue.hover_altitude;
+}
+
+void adjustmentSet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc, int value)
+{
+    currentPidProfile->rescue.hover_altitude = value;
+}
+
+int adjustmentGet_RESCUE_ALT_P_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->rescue.alt_p_gain;
+}
+
+void adjustmentSet_RESCUE_ALT_P_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->rescue.alt_p_gain = value;
+}
+
+int adjustmentGet_RESCUE_ALT_I_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->rescue.alt_i_gain;
+}
+
+void adjustmentSet_RESCUE_ALT_I_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->rescue.alt_i_gain = value;
+}
+
+int adjustmentGet_RESCUE_ALT_D_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->rescue.alt_d_gain;
+}
+
+void adjustmentSet_RESCUE_ALT_D_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->rescue.alt_d_gain = value;
+}
 
 
 //// Internal functions
