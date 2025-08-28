@@ -41,6 +41,7 @@
 
 #include "flight/pid.h"
 #include "flight/mixer.h"
+#include "flight/rescue.h"
 #include "flight/governor.h"
 
 #include "io/beeper.h"
@@ -94,37 +95,37 @@ static int            adjustmentValue  = 0;
 
 //// Get/Set Functions
 
-static int adjustmentGet_NONE(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_NONE(__unused int adjFunc)
 {
     return 0;
 }
 
-static void adjustmentSet_NONE(__unused int adjFunc, __unused int value)
+static INIT_CODE void adjustmentSet_NONE(__unused int adjFunc, __unused int value)
 {
     // Nothing
 }
 
-static int adjustmentGet_PID_PROFILE(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_PID_PROFILE(__unused int adjFunc)
 {
     return getCurrentPidProfileIndex() + 1;
 }
 
-static void adjustmentSet_PID_PROFILE(__unused int adjFunc, int value)
+static INIT_CODE void adjustmentSet_PID_PROFILE(__unused int adjFunc, int value)
 {
     changePidProfile(value - 1);
 }
 
-static int adjustmentGet_RATE_PROFILE(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_RATE_PROFILE(__unused int adjFunc)
 {
     return getCurrentControlRateProfileIndex() + 1;
 }
 
-static void adjustmentSet_RATE_PROFILE(__unused int adjFunc, int value)
+static INIT_CODE void adjustmentSet_RATE_PROFILE(__unused int adjFunc, int value)
 {
     changeControlRateProfile(value - 1);
 }
 
-static int adjustmentGet_LED_PROFILE(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_LED_PROFILE(__unused int adjFunc)
 {
 #ifdef USE_LED_STRIP
     return getLedProfile() + 1;
@@ -133,14 +134,14 @@ static int adjustmentGet_LED_PROFILE(__unused int adjFunc)
 #endif
 }
 
-static void adjustmentSet_LED_PROFILE(__unused int adjFunc, int value)
+static INIT_CODE void adjustmentSet_LED_PROFILE(__unused int adjFunc, int value)
 {
 #ifdef USE_LED_STRIP
     setLedProfile(value - 1);
 #endif
 }
 
-static int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
 {
 #ifdef USE_OSD_PROFILES
     return getCurrentOsdProfileIndex();
@@ -149,29 +150,29 @@ static int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
 #endif
 }
 
-static void adjustmentSet_OSD_PROFILE(__unused int adjFunc, __unused int value)
+static INIT_CODE void adjustmentSet_OSD_PROFILE(__unused int adjFunc, __unused int value)
 {
 #ifdef USE_OSD_PROFILES
     changeOsdProfileIndex(value);
 #endif
 }
 
-static int adjustmentGet_ACC_TRIM_PITCH(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_ACC_TRIM_PITCH(__unused int adjFunc)
 {
     return accelerometerConfig()->accelerometerTrims.values.pitch;
 }
 
-static void adjustmentSet_ACC_TRIM_PITCH(__unused int adjFunc, int value)
+static INIT_CODE void adjustmentSet_ACC_TRIM_PITCH(__unused int adjFunc, int value)
 {
     accelerometerConfigMutable()->accelerometerTrims.values.pitch = value;
 }
 
-static int adjustmentGet_ACC_TRIM_ROLL(__unused int adjFunc)
+static INIT_CODE int adjustmentGet_ACC_TRIM_ROLL(__unused int adjFunc)
 {
     return accelerometerConfig()->accelerometerTrims.values.roll;
 }
 
-static void adjustmentSet_ACC_TRIM_ROLL(__unused int adjFunc, int value)
+static INIT_CODE void adjustmentSet_ACC_TRIM_ROLL(__unused int adjFunc, int value)
 {
     accelerometerConfigMutable()->accelerometerTrims.values.roll = value;
 }
