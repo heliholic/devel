@@ -140,18 +140,6 @@ static void adjustmentSet_LED_PROFILE(__unused int adjFunc, int value)
 #endif
 }
 
-static int adjustmentGet_(__unused int adjFunc)
-{
-    return 0;
-}
-
-static void adjustmentSet_(__unused int adjFunc, int value)
-{
-}
-
-
-
-
 static int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
 {
 #ifdef USE_OSD_PROFILES
@@ -161,7 +149,7 @@ static int adjustmentGet_OSD_PROFILE(__unused int adjFunc)
 #endif
 }
 
-static void adjustmentSet_OSD_PROFILE(__unused int adjFunc, int value)
+static void adjustmentSet_OSD_PROFILE(__unused int adjFunc, __unused int value)
 {
 #ifdef USE_OSD_PROFILES
     changeOsdProfileIndex(value);
@@ -724,8 +712,6 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_ENTRY(YAW_CCW_GAIN,                 25, 250),
     ADJ_ENTRY(YAW_CYCLIC_FF,                0, 250),
     ADJ_ENTRY(YAW_COLLECTIVE_FF,            0, 250),
-    ADJ_ENTRY(YAW_COLLECTIVE_DYN,           -125, 125),
-    ADJ_ENTRY(YAW_COLLECTIVE_DECAY,         1, 250),
 
     ADJ_ENTRY(PITCH_COLLECTIVE_FF,          0, 250),
 

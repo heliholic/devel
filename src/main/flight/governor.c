@@ -1010,103 +1010,8 @@ static inline float govCalcRate(uint16_t param, uint16_t min, uint16_t max)
 }
 
 
-//// Interface functions
+//// Adjustment functions
 
-void governorUpdate(void)
-{
-    // Calculate inputs even if governor not active
-    govUpdateInputs();
-
-    // Governor is active
-    if (gov.mode)
-    {
-        // Update internal state data
-        govUpdateData();
-
-        // Run state machine
-        govStateUpdate();
-    }
-    else
-    {
-        // Straight passthrough
-        if (gov.throttleInputLow)
-            gov.throttle = 0;
-        else
-            gov.throttle = gov.throttleInput;
-    }
-}
-
-
-INIT_CODE int adjustGovernorGet(int adjFunc)
-{
-    int value = 0;
-
-    switch (adjFunc)
-    {
-        case ADJUSTMENT_GOV_GAIN:
-            value = currentPidProfile->governor.gain;
-            break;
-        case ADJUSTMENT_GOV_P_GAIN:
-            value = currentPidProfile->governor.p_gain;
-            break;
-        case ADJUSTMENT_GOV_I_GAIN:
-            value = currentPidProfile->governor.i_gain;
-            break;
-        case ADJUSTMENT_GOV_D_GAIN:
-            value = currentPidProfile->governor.d_gain;
-            break;
-        case ADJUSTMENT_GOV_F_GAIN:
-            value = currentPidProfile->governor.f_gain;
-            break;
-        case ADJUSTMENT_GOV_TTA_GAIN:
-            value = currentPidProfile->governor.tta_gain;
-            break;
-        case ADJUSTMENT_GOV_CYCLIC_FF:
-            value = currentPidProfile->governor.cyclic_ff_weight;
-            break;
-        case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            value = currentPidProfile->governor.collective_ff_weight;
-            break;
-    }
-
-    return value;
-}
-
-INIT_CODE void adjustGovernorSet(int adjFunc, int value)
-{
-    switch (adjFunc)
-    {
-        case ADJUSTMENT_GOV_GAIN:
-            currentPidProfile->governor.gain = value;
-            break;
-        case ADJUSTMENT_GOV_P_GAIN:
-            currentPidProfile->governor.p_gain = value;
-            break;
-        case ADJUSTMENT_GOV_I_GAIN:
-            currentPidProfile->governor.i_gain = value;
-            break;
-        case ADJUSTMENT_GOV_D_GAIN:
-            currentPidProfile->governor.d_gain = value;
-            break;
-        case ADJUSTMENT_GOV_F_GAIN:
-            currentPidProfile->governor.f_gain = value;
-            break;
-        case ADJUSTMENT_GOV_TTA_GAIN:
-            currentPidProfile->governor.tta_gain = value;
-            break;
-        case ADJUSTMENT_GOV_CYCLIC_FF:
-            currentPidProfile->governor.cyclic_ff_weight = value;
-            break;
-        case ADJUSTMENT_GOV_COLLECTIVE_FF:
-            currentPidProfile->governor.collective_ff_weight = value;
-            break;
-    }
-
-    governorInitProfile(currentPidProfile);
-}
-
-
-// Governor-specific adjustment wrappers matching ADJ_ENTRY(...) names
 int adjustmentGet_GOV_GAIN(__unused int adjFunc)
 {
     return currentPidProfile->governor.gain;
@@ -1193,6 +1098,33 @@ void adjustmentSet_GOV_COLLECTIVE_FF(__unused int adjFunc, int value)
 {
     currentPidProfile->governor.collective_ff_weight = value;
     governorInitProfile(currentPidProfile);
+}
+
+
+//// Interface functions
+
+void governorUpdate(void)
+{
+    // Calculate inputs even if governor not active
+    govUpdateInputs();
+
+    // Governor is active
+    if (gov.mode)
+    {
+        // Update internal state data
+        govUpdateData();
+
+        // Run state machine
+        govStateUpdate();
+    }
+    else
+    {
+        // Straight passthrough
+        if (gov.throttleInputLow)
+            gov.throttle = 0;
+        else
+            gov.throttle = gov.throttleInput;
+    }
 }
 
 INIT_CODE void governorInitProfile(const pidProfile_t *pidProfile)

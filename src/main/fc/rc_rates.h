@@ -49,10 +49,40 @@ typedef struct ratesSettingsLimits_s {
 extern controlRateConfig_t * currentControlRateProfile;
 extern const ratesSettingsLimits_t ratesSettingLimits[RATES_TYPE_COUNT];
 
-float applyRatesCurve(const int axis, float rcCommandf);
+int adjustmentGet_PITCH_RATE(int adjFunc);
+void adjustmentSet_PITCH_RATE(int adjFunc, int value);
+int adjustmentGet_ROLL_RATE(int adjFunc);
+void adjustmentSet_ROLL_RATE(int adjFunc, int value);
+int adjustmentGet_YAW_RATE(int adjFunc);
+void adjustmentSet_YAW_RATE(int adjFunc, int value);
+int adjustmentGet_PITCH_RC_RATE(int adjFunc);
+void adjustmentSet_PITCH_RC_RATE(int adjFunc, int value);
+int adjustmentGet_ROLL_RC_RATE(int adjFunc);
+void adjustmentSet_ROLL_RC_RATE(int adjFunc, int value);
+int adjustmentGet_YAW_RC_RATE(int adjFunc);
+void adjustmentSet_YAW_RC_RATE(int adjFunc, int value);
+int adjustmentGet_PITCH_RC_EXPO(int adjFunc);
+void adjustmentSet_PITCH_RC_EXPO(int adjFunc, int value);
+int adjustmentGet_ROLL_RC_EXPO(int adjFunc);
+void adjustmentSet_ROLL_RC_EXPO(int adjFunc, int value);
+int adjustmentGet_YAW_RC_EXPO(int adjFunc);
+void adjustmentSet_YAW_RC_EXPO(int adjFunc, int value);
+int adjustmentGet_PITCH_SP_BOOST_GAIN(int adjFunc);
+void adjustmentSet_PITCH_SP_BOOST_GAIN(int adjFunc, int value);
+int adjustmentGet_ROLL_SP_BOOST_GAIN(int adjFunc);
+void adjustmentSet_ROLL_SP_BOOST_GAIN(int adjFunc, int value);
+int adjustmentGet_YAW_SP_BOOST_GAIN(int adjFunc);
+void adjustmentSet_YAW_SP_BOOST_GAIN(int adjFunc, int value);
+int adjustmentGet_COLL_SP_BOOST_GAIN(int adjFunc);
+void adjustmentSet_COLL_SP_BOOST_GAIN(int adjFunc, int value);
+int adjustmentGet_YAW_DYN_CEILING_GAIN(int adjFunc);
+void adjustmentSet_YAW_DYN_CEILING_GAIN(int adjFunc, int value);
+int adjustmentGet_YAW_DYN_DEADBAND_GAIN(int adjFunc);
+void adjustmentSet_YAW_DYN_DEADBAND_GAIN(int adjFunc, int value);
+int adjustmentGet_YAW_DYN_DEADBAND_FILTER(int adjFunc);
+void adjustmentSet_YAW_DYN_DEADBAND_FILTER(int adjFunc, int value);
 
-int adjustControlRateGet(int adjFunc);
-void adjustControlRateSet(int adjFunc, int value);
+float applyRatesCurve(const int axis, float rcCommandf);
 
 void loadControlRateProfile(void);
 void changeControlRateProfile(uint8_t controlRateProfileIndex);

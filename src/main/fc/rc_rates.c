@@ -164,127 +164,180 @@ float applyRatesCurve(const int axis, float rcCommandf)
     return rate;
 }
 
-int adjustControlRateGet(int adjFunc)
+
+int adjustmentGet_PITCH_RATE(__unused int adjFunc)
 {
-    int value = 0;
-
-    switch (adjFunc)
-    {
-        case ADJUSTMENT_PITCH_RATE:
-            value = currentControlRateProfile->rates[FD_PITCH];
-            break;
-        case ADJUSTMENT_ROLL_RATE:
-            value = currentControlRateProfile->rates[FD_ROLL];
-            break;
-        case ADJUSTMENT_YAW_RATE:
-            value = currentControlRateProfile->rates[FD_YAW];
-            break;
-
-        case ADJUSTMENT_PITCH_RC_RATE:
-            value = currentControlRateProfile->rcRates[FD_PITCH];
-            break;
-        case ADJUSTMENT_ROLL_RC_RATE:
-            value = currentControlRateProfile->rcRates[FD_ROLL];
-            break;
-        case ADJUSTMENT_YAW_RC_RATE:
-            value = currentControlRateProfile->rcRates[FD_YAW];
-            break;
-
-        case ADJUSTMENT_PITCH_RC_EXPO:
-            value = currentControlRateProfile->rcExpo[FD_PITCH];
-            break;
-        case ADJUSTMENT_ROLL_RC_EXPO:
-            value = currentControlRateProfile->rcExpo[FD_ROLL];
-            break;
-        case ADJUSTMENT_YAW_RC_EXPO:
-            value = currentControlRateProfile->rcExpo[FD_YAW];
-            break;
-
-        case ADJUSTMENT_PITCH_SP_BOOST_GAIN:
-            value = currentControlRateProfile->setpoint_boost_gain[FD_PITCH];
-            break;
-        case ADJUSTMENT_ROLL_SP_BOOST_GAIN:
-            value = currentControlRateProfile->setpoint_boost_gain[FD_ROLL];
-            break;
-        case ADJUSTMENT_YAW_SP_BOOST_GAIN:
-            value = currentControlRateProfile->setpoint_boost_gain[FD_YAW];
-            break;
-        case ADJUSTMENT_COLL_SP_BOOST_GAIN:
-            value = currentControlRateProfile->setpoint_boost_gain[FD_COLL];
-            break;
-
-        case ADJUSTMENT_YAW_DYN_CEILING_GAIN:
-            value = currentControlRateProfile->yaw_dynamic_ceiling_gain;
-            break;
-        case ADJUSTMENT_YAW_DYN_DEADBAND_GAIN:
-            value = currentControlRateProfile->yaw_dynamic_deadband_gain;
-            break;
-        case ADJUSTMENT_YAW_DYN_DEADBAND_FILTER:
-            value = currentControlRateProfile->yaw_dynamic_deadband_filter;
-            break;
-    }
-
-    return value;
+    return currentControlRateProfile->rates[FD_PITCH];
 }
 
-void adjustControlRateSet(int adjFunc, int value)
+void adjustmentSet_PITCH_RATE(__unused int adjFunc, int value)
 {
-    switch (adjFunc)
-    {
-        case ADJUSTMENT_PITCH_RATE:
-            currentControlRateProfile->rates[FD_PITCH] = value;
-            break;
-        case ADJUSTMENT_ROLL_RATE:
-            currentControlRateProfile->rates[FD_ROLL] = value;
-            break;
-        case ADJUSTMENT_YAW_RATE:
-            currentControlRateProfile->rates[FD_YAW] = value;
-            break;
+    currentControlRateProfile->rates[FD_PITCH] = value;
+    setpointInitProfile();
+}
 
-        case ADJUSTMENT_PITCH_RC_RATE:
-            currentControlRateProfile->rcRates[FD_PITCH] = value;
-            break;
-        case ADJUSTMENT_ROLL_RC_RATE:
-            currentControlRateProfile->rcRates[FD_ROLL] = value;
-            break;
-        case ADJUSTMENT_YAW_RC_RATE:
+int adjustmentGet_ROLL_RATE(__unused int adjFunc)
+{
+    return currentControlRateProfile->rates[FD_ROLL];
+}
 
-            currentControlRateProfile->rcRates[FD_YAW] = value;
-            break;
-        case ADJUSTMENT_PITCH_RC_EXPO:
-            currentControlRateProfile->rcExpo[FD_PITCH] = value;
-            break;
-        case ADJUSTMENT_ROLL_RC_EXPO:
-            currentControlRateProfile->rcExpo[FD_ROLL] = value;
-            break;
-        case ADJUSTMENT_YAW_RC_EXPO:
-            currentControlRateProfile->rcExpo[FD_YAW] = value;
-            break;
+void adjustmentSet_ROLL_RATE(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rates[FD_ROLL] = value;
+    setpointInitProfile();
+}
 
-        case ADJUSTMENT_PITCH_SP_BOOST_GAIN:
-            currentControlRateProfile->setpoint_boost_gain[FD_PITCH] = value;
-            break;
-        case ADJUSTMENT_ROLL_SP_BOOST_GAIN:
-            currentControlRateProfile->setpoint_boost_gain[FD_ROLL] = value;
-            break;
-        case ADJUSTMENT_YAW_SP_BOOST_GAIN:
-            currentControlRateProfile->setpoint_boost_gain[FD_YAW] = value;
-            break;
-        case ADJUSTMENT_COLL_SP_BOOST_GAIN:
-            currentControlRateProfile->setpoint_boost_gain[FD_COLL] = value;
-            break;
+int adjustmentGet_YAW_RATE(__unused int adjFunc)
+{
+    return currentControlRateProfile->rates[FD_YAW];
+}
 
-        case ADJUSTMENT_YAW_DYN_CEILING_GAIN:
-            currentControlRateProfile->yaw_dynamic_ceiling_gain = value;
-            break;
-        case ADJUSTMENT_YAW_DYN_DEADBAND_GAIN:
-            currentControlRateProfile->yaw_dynamic_deadband_gain = value;
-            break;
-        case ADJUSTMENT_YAW_DYN_DEADBAND_FILTER:
-            currentControlRateProfile->yaw_dynamic_deadband_filter = value;
-            break;
-    }
+void adjustmentSet_YAW_RATE(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rates[FD_YAW] = value;
+    setpointInitProfile();
+}
 
+int adjustmentGet_PITCH_RC_RATE(__unused int adjFunc)
+{
+    return currentControlRateProfile->rcRates[FD_PITCH];
+}
+
+void adjustmentSet_PITCH_RC_RATE(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rcRates[FD_PITCH] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_ROLL_RC_RATE(__unused int adjFunc)
+{
+    return currentControlRateProfile->rcRates[FD_ROLL];
+}
+
+void adjustmentSet_ROLL_RC_RATE(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rcRates[FD_ROLL] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_YAW_RC_RATE(__unused int adjFunc)
+{
+    return currentControlRateProfile->rcRates[FD_YAW];
+}
+
+void adjustmentSet_YAW_RC_RATE(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rcRates[FD_YAW] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_PITCH_RC_EXPO(__unused int adjFunc)
+{
+    return currentControlRateProfile->rcExpo[FD_PITCH];
+}
+
+void adjustmentSet_PITCH_RC_EXPO(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rcExpo[FD_PITCH] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_ROLL_RC_EXPO(__unused int adjFunc)
+{
+    return currentControlRateProfile->rcExpo[FD_ROLL];
+}
+
+void adjustmentSet_ROLL_RC_EXPO(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rcExpo[FD_ROLL] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_YAW_RC_EXPO(__unused int adjFunc)
+{
+    return currentControlRateProfile->rcExpo[FD_YAW];
+}
+
+void adjustmentSet_YAW_RC_EXPO(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->rcExpo[FD_YAW] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_PITCH_SP_BOOST_GAIN(__unused int adjFunc)
+{
+    return currentControlRateProfile->setpoint_boost_gain[FD_PITCH];
+}
+
+void adjustmentSet_PITCH_SP_BOOST_GAIN(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->setpoint_boost_gain[FD_PITCH] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_ROLL_SP_BOOST_GAIN(__unused int adjFunc)
+{
+    return currentControlRateProfile->setpoint_boost_gain[FD_ROLL];
+}
+
+void adjustmentSet_ROLL_SP_BOOST_GAIN(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->setpoint_boost_gain[FD_ROLL] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_YAW_SP_BOOST_GAIN(__unused int adjFunc)
+{
+    return currentControlRateProfile->setpoint_boost_gain[FD_YAW];
+}
+
+void adjustmentSet_YAW_SP_BOOST_GAIN(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->setpoint_boost_gain[FD_YAW] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_COLL_SP_BOOST_GAIN(__unused int adjFunc)
+{
+    return currentControlRateProfile->setpoint_boost_gain[FD_COLL];
+}
+
+void adjustmentSet_COLL_SP_BOOST_GAIN(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->setpoint_boost_gain[FD_COLL] = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_YAW_DYN_CEILING_GAIN(__unused int adjFunc)
+{
+    return currentControlRateProfile->yaw_dynamic_ceiling_gain;
+}
+
+void adjustmentSet_YAW_DYN_CEILING_GAIN(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->yaw_dynamic_ceiling_gain = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_YAW_DYN_DEADBAND_GAIN(__unused int adjFunc)
+{
+    return currentControlRateProfile->yaw_dynamic_deadband_gain;
+}
+
+void adjustmentSet_YAW_DYN_DEADBAND_GAIN(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->yaw_dynamic_deadband_gain = value;
+    setpointInitProfile();
+}
+
+int adjustmentGet_YAW_DYN_DEADBAND_FILTER(__unused int adjFunc)
+{
+    return currentControlRateProfile->yaw_dynamic_deadband_filter;
+}
+
+void adjustmentSet_YAW_DYN_DEADBAND_FILTER(__unused int adjFunc, int value)
+{
+    currentControlRateProfile->yaw_dynamic_deadband_filter = value;
     setpointInitProfile();
 }
 
