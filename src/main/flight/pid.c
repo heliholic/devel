@@ -74,6 +74,8 @@ static const uint8_t offset_charge_curve[PID_LOOKUP_CURVE_POINTS]      = { 0,100
 static const uint8_t offset_flood_curve[PID_LOOKUP_CURVE_POINTS]       = { 0,0,0,20,50,100,180,220,220,220,220,220,220,220,220,220 };
 
 
+//// Access functions
+
 float pidGetDT()
 {
     return pid.dT;
