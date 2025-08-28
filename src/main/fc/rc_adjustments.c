@@ -156,69 +156,6 @@ static void adjustmentSet_OSD_PROFILE(__unused int adjFunc, __unused int value)
 #endif
 }
 
-
-// Rescue-specific adjustment wrappers matching ADJ_ENTRY(...) names
-static int adjustmentGet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc)
-{
-    return currentPidProfile->rescue.climb_collective;
-}
-
-static void adjustmentSet_RESCUE_CLIMB_COLLECTIVE(__unused int adjFunc, int value)
-{
-    currentPidProfile->rescue.climb_collective = value;
-}
-
-static int adjustmentGet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc)
-{
-    return currentPidProfile->rescue.hover_collective;
-}
-
-static void adjustmentSet_RESCUE_HOVER_COLLECTIVE(__unused int adjFunc, int value)
-{
-    currentPidProfile->rescue.hover_collective = value;
-}
-
-static int adjustmentGet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc)
-{
-    return currentPidProfile->rescue.hover_altitude;
-}
-
-static void adjustmentSet_RESCUE_HOVER_ALTITUDE(__unused int adjFunc, int value)
-{
-    currentPidProfile->rescue.hover_altitude = value;
-}
-
-static int adjustmentGet_RESCUE_ALT_P_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->rescue.alt_p_gain;
-}
-
-static void adjustmentSet_RESCUE_ALT_P_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->rescue.alt_p_gain = value;
-}
-
-static int adjustmentGet_RESCUE_ALT_I_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->rescue.alt_i_gain;
-}
-
-static void adjustmentSet_RESCUE_ALT_I_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->rescue.alt_i_gain = value;
-}
-
-static int adjustmentGet_RESCUE_ALT_D_GAIN(__unused int adjFunc)
-{
-    return currentPidProfile->rescue.alt_d_gain;
-}
-
-static void adjustmentSet_RESCUE_ALT_D_GAIN(__unused int adjFunc, int value)
-{
-    currentPidProfile->rescue.alt_d_gain = value;
-}
-
-
 static int adjustmentGet_ACC_TRIM_PITCH(__unused int adjFunc)
 {
     return accelerometerConfig()->accelerometerTrims.values.pitch;
