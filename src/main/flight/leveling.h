@@ -23,9 +23,12 @@
 #include <stdbool.h>
 
 #include "common/axis.h"
-
+#include "pg/adjustments.h"
 
 void levelingInit(const pidProfile_t *pidProfile);
 
 float angleModeApply(int axis, float pidSetpoint);
 float horizonModeApply(int axis, float pidSetpoint);
+
+ADJFUN_DECLARE(ANGLE_LEVEL_GAIN)
+ADJFUN_DECLARE(HORIZON_LEVEL_GAIN)

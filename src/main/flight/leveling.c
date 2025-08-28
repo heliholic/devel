@@ -77,6 +77,28 @@ INIT_CODE void levelingInit(const pidProfile_t *pidProfile)
     horizon.FactorRatio = (100 - pidProfile->horizon.tilt_effect) * 0.01f;
 }
 
+int adjustmentGet_ANGLE_LEVEL_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->angle.level_strength;
+}
+
+void adjustmentSet_ANGLE_LEVEL_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->angle.level_strength = value;
+    level.Gain = value / 10.0f;
+}
+
+int adjustmentGet_HORIZON_LEVEL_GAIN(__unused int adjFunc)
+{
+    return currentPidProfile->horizon.level_strength;
+}
+
+void adjustmentSet_HORIZON_LEVEL_GAIN(__unused int adjFunc, int value)
+{
+    currentPidProfile->horizon.level_strength = value;
+    horizon.Gain = value / 10.0f;
+}
+
 // calculate the stick deflection while applying level mode expo
 static inline float getLevelModeDeflection(uint8_t axis)
 {
