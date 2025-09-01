@@ -37,6 +37,19 @@ at least once per second to keep the override active (#304).
 
 This legacy MSP call is disabled, as it does not have a timeout (#304).
 
+### MSP_GOVERNOR_PROFILE
+
+Added: `fallback_drop`, `flags`
+
+### MSP_GOVERNOR_CONFIG
+
+Removed: `gov_lost_headspeed_timeout`, `gov_autorotation_timeout`, `gov_autorotation_bailout_time`, `gov_autorotation_min_entry_time`, `gov_spoolup_min_throttle`
+
+Added: `gov_d_filter`, `gov_spooldown_time`, `gov_throttle_type`, `gov_idle_collective`,
+`gov_wot_collective`, `gov_idle_throttle`, `gov_auto_throttle`
+
+Changed: `gov_mode`
+
 
 ## CLI Changes
 
@@ -56,6 +69,28 @@ the PID loop rate to half too.
 
 `rc_min_throttle` and `rc_max_throttle` parameters default to zero, indicating that
 the actual values are calculated automatically (#332).
+
+`gov_mode` now accepts values `OFF`, `EXTERNAL`, `ELECTRIC`, `NITRO`. (#314)
+
+`gov_throttle_type` has been added, with possible values `NORMAL`, `OFF_ON`, `OFF_IDLE_ON`, `IDLE_AUTO_ON`. (#314)
+
+`gov_spooldown_time` has been added. Value in 1/10s increments.
+
+`gov_idle_throttle` has been added. Value in 0%..100%.
+
+`gov_auto_throttle` has been added. Value in 0%..100%.
+
+`gov_wot_collective` has been added. Value in -100%..100%.
+
+`gov_idle_collective` has been added. Value in -100%..100%.
+
+`gov_use_bypass`, `gov_use_suspend`, `gov_use_fc_throttle_curve`, `gov_use_fallback_precomp`, `gov_use_hs_adjustment`,
+`gov_use_pid_spoolup`, `gov_use_voltage_comp`, `gov_use_min_dyn_throttle`, `gov_use_autorotation` flags
+have been added. Value is `OFF` or `ON`.
+
+`gov_fallback_drop` has been added. Value in 0..50%.
+
+`gov_collective_curve` has been added. Value in 5..40.
 
 
 ## Defaults
@@ -115,6 +150,10 @@ input throttle is well below `rc_min_throttle`.
 
 The default pole count is now zero, which is effectively disabling the RPM input.
 This forces the user to enter the correct number, before the RPM input can be used.
+
+### Governor Refactoring (#314)
+
+The Governor has been refactored to accomodate I.C./nitro.
 
 
 ## Bug Fixes
