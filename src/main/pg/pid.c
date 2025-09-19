@@ -105,6 +105,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .rescue.max_collective = 500,
         .rescue.max_setpoint_rate = 300,
         .rescue.max_setpoint_accel = 3000,
+        .rescue.max_climb_speed = 30,
         .governor.flags = 0,
         .governor.headspeed = 1000,
         .governor.max_throttle = 100,
