@@ -91,7 +91,7 @@ typedef enum {
     ADJUSTMENT_RESCUE_HOVER_ALTITUDE    = 41,
     ADJUSTMENT_RESCUE_ALT_P_GAIN        = 42,
     ADJUSTMENT_RESCUE_ALT_I_GAIN        = 43,
-    ADJUSTMENT_RESCUE_ALT_D_GAIN        = 44,
+    ADJUSTMENT_RESCUE_ALT_C_GAIN        = 44,
 
     // Leveling
     ADJUSTMENT_ANGLE_LEVEL_GAIN         = 45,
@@ -147,6 +147,10 @@ typedef enum {
     // Governor
     ADJUSTMENT_GOV_IDLE_THROTTLE        = 76,
     ADJUSTMENT_GOV_AUTO_THROTTLE        = 77,
+
+    // Rescue
+    ADJUSTMENT_RESCUE_MAX_COLL_RATE     = 78,
+    ADJUSTMENT_RESCUE_MAX_CLIMB_RATE    = 79,
 
     ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunc_e;
