@@ -75,11 +75,15 @@ typedef struct {
 
     float           hoverAltitude;
 
+    float           maxVSpeed;
+    float           maxVError;
+
     float           alt_Kp;
     float           alt_Ki;
     float           alt_Kd;
 
-    float           alt_Iterm;
+    float           alt_I;
+    float           max_I;
 
     /* Setpoint limits */
 
@@ -141,7 +145,7 @@ int get_ADJUSTMENT_RESCUE_ALT_P_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_P_GAIN(int value)
 {
     currentPidProfile->rescue.alt_p_gain = value;
-    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain;
+    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain * 0.01f;
 }
 
 int get_ADJUSTMENT_RESCUE_ALT_I_GAIN(void)
@@ -152,7 +156,7 @@ int get_ADJUSTMENT_RESCUE_ALT_I_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_I_GAIN(int value)
 {
     currentPidProfile->rescue.alt_i_gain = value;
-    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT() / 10.0f;
+    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT() * 0.01f;
 }
 
 int get_ADJUSTMENT_RESCUE_ALT_D_GAIN(void)
@@ -163,7 +167,7 @@ int get_ADJUSTMENT_RESCUE_ALT_D_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_D_GAIN(int value)
 {
     currentPidProfile->rescue.alt_d_gain = value;
-    rescue.alt_Kd = currentPidProfile->rescue.alt_d_gain * -1.0f;
+    rescue.alt_Kd = currentPidProfile->rescue.alt_d_gain * 0.01f;
 }
 
 
@@ -175,7 +179,7 @@ static inline void rescueChangeState(uint8_t newState)
     rescue.stateEntryTime = millis();
 
     if (newState == RESCUE_STATE_CLIMB)
-        rescue.alt_Iterm = rescue.hoverCollective;
+        rescue.alt_I = rescue.climbCollective;
 }
 
 static inline timeDelta_t rescueStateTime(void)
@@ -303,28 +307,34 @@ static void rescueApplyStabilisation(bool allow_inverted)
 static float rescueApplyAltitudePID(float altitude)
 {
     const float tilt = getCosTiltAngle();
+    const float alt = getAltitude();
+    const float var = getVario();
 
-    const float error = altitude - getAltitude();
-    const float sqerr = copysignf(sqrtf(fabsf(error)), error);
+    const float alt_err = altitude - alt;
+    const float alt_adj = alt_err * rescue.alt_Kd;
 
-    float Pterm = error * rescue.alt_Kp;
-    float Iterm = error * rescue.alt_Ki * tilt * tilt + rescue.alt_Iterm;
-    float Dterm = getVario() * rescue.alt_Kd;
+    const float speed = limitf(alt_adj, rescue.maxVSpeed);
+    const float error = limitf(speed - var, rescue.maxVError);
 
-    Iterm = constrainf(Iterm, 0, rescue.maxColl);
+    const float var_P = error * rescue.alt_Kp;
+    const float var_I = error * rescue.alt_Ki * tilt * tilt + rescue.alt_I;
 
-    rescue.alt_Iterm = Iterm;
+    rescue.alt_I = constrainf(var_I, 0, rescue.max_I);
 
-    float pidSum = fminf(Pterm + Iterm + Dterm, rescue.maxColl);
+    const float pidSum = constrainf(var_P + var_I, 0, rescue.maxColl);
 
-    DEBUG(RESCUE_ALTHOLD, 0, error * 100);
-    DEBUG(RESCUE_ALTHOLD, 1, sqerr * 100);
-    DEBUG(RESCUE_ALTHOLD, 2, Pterm);
-    DEBUG(RESCUE_ALTHOLD, 3, Iterm);
-    DEBUG(RESCUE_ALTHOLD, 4, Dterm);
-    DEBUG(RESCUE_ALTHOLD, 5, pidSum);
+    DEBUG(RESCUE_ALTHOLD, 0, alt_err * 100);
+    DEBUG(RESCUE_ALTHOLD, 1, alt_adj * 100);
+    DEBUG(RESCUE_ALTHOLD, 2, speed * 100);
+    DEBUG(RESCUE_ALTHOLD, 3, error * 100);
 
-    return pidSum;
+    DEBUG(RESCUE_ALTHOLD, 4, var_P * 100);
+    DEBUG(RESCUE_ALTHOLD, 5, var_I * 100);
+    DEBUG(RESCUE_ALTHOLD, 6, pidSum * 100);
+    DEBUG(RESCUE_ALTHOLD, 7, tilt * 100);
+
+    // Collective "setpoint" is -1000..1000
+    return pidSum * 1000;
 }
 
 static void rescueApplyClimbCollective(void)
@@ -545,7 +555,12 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
-    rescue.alt_Kp = pidProfile->rescue.alt_p_gain;
-    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() / 10.0f;
-    rescue.alt_Kd = pidProfile->rescue.alt_d_gain * -1.0f;
+    rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
+    rescue.maxVError = 5.0f;
+
+    rescue.max_I = 0.75f;
+
+    rescue.alt_Kd = pidProfile->rescue.alt_d_gain * 0.01f;
+    rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.01f;
+    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() * 0.01f;
 }

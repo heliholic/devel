@@ -1180,6 +1180,7 @@ const clivalue_t valueTable[] = {
     { "rescue_max_sp_rate",         VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_setpoint_rate) },
     { "rescue_max_sp_accel",        VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 10000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_setpoint_accel) },
     { "rescue_max_collective",      VAR_UINT16 | PROFILE_VALUE, .config.minmaxUnsigned = { 1, 1000 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_collective) },
+    { "rescue_max_climb_speed",     VAR_UINT8  | PROFILE_VALUE, .config.minmaxUnsigned = { 0, 250 }, PG_PID_PROFILE, offsetof(pidProfile_t, rescue.max_climb_speed) },
 
     { "gov_use_bypass",             VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_BYPASS, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
     { "gov_use_suspend",            VAR_UINT32 | PROFILE_VALUE | MODE_BITSET, .config.bitpos = GOV_FLAG_SUSPEND, PG_PID_PROFILE, offsetof(pidProfile_t, governor.flags) },
