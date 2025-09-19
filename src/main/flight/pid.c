@@ -483,7 +483,9 @@ int get_ADJUSTMENT_YAW_PRECOMP_CUTOFF(void)
 void set_ADJUSTMENT_YAW_PRECOMP_CUTOFF(int value)
 {
     currentPidProfile->yaw_precomp_cutoff = value;
-    filterUpdate(&pid.precomp.yawPrecompFilter, value, pid.freq);
+    filterUpdate(&pid.precomp.yawPrecompFilter,
+        (pid.pidMode == 4) ? pidProfile->yaw_precomp_cutoff / 10.0f : pidProfile->yaw_precomp_cutoff,
+        pid.freq);
 }
 
 int get_ADJUSTMENT_CROSS_COUPLING_GAIN(void)
