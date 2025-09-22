@@ -177,9 +177,6 @@ static inline void rescueChangeState(uint8_t newState)
 {
     rescue.state = newState;
     rescue.stateEntryTime = millis();
-
-    if (newState == RESCUE_STATE_CLIMB)
-        rescue.alt_I = rescue.climbCollective;
 }
 
 static inline timeDelta_t rescueStateTime(void)
@@ -333,7 +330,7 @@ static float rescueApplyAltitudePID(float altitude)
     DEBUG(RESCUE_ALTHOLD, 6, pidSum * 100);
     DEBUG(RESCUE_ALTHOLD, 7, tilt * 100);
 
-    // Collective "setpoint" is -1000..1000
+    // Rescue collective "setpoint" is 0..1000
     return pidSum * 1000;
 }
 
@@ -342,11 +339,13 @@ static void rescueApplyClimbCollective(void)
     const float tilt = getCosTiltAngle();
     const float factor = tilt * fabsf(tilt);
 
+    rescue.alt_I = rescue.hoverCollective;
+
     if (rescue.mode == RESCUE_MODE_CLIMB) {
         rescue.setpoint[FD_COLL] = rescue.climbCollective * factor;
     }
     else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
-        rescue.setpoint[FD_COLL] = rescueApplyAltitudePID(rescue.hoverAltitude) * factor;
+        rescue.setpoint[FD_COLL] = rescue.climbCollective * factor;
     }
 }
 
@@ -413,7 +412,7 @@ static inline bool rescueClimbDone(void)
         return (rescueStateTime() > rescue.climbTime);
     }
     else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
-        return (rescueStateTime() > rescue.climbTime || fabsf(rescue.hoverAltitude - getAltitude()) < 0.5f);
+        return (rescueStateTime() > rescue.climbTime || fabsf(rescue.hoverAltitude - getAltitude()) < 1.0f);
     }
 
     return true;
@@ -556,11 +555,11 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
     rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
-    rescue.maxVError = 5.0f;
+    rescue.maxVError = rescue.maxVSpeed;
 
     rescue.max_I = 0.75f;
 
     rescue.alt_Kd = pidProfile->rescue.alt_d_gain * 0.01f;
-    rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.01f;
-    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() * 0.01f;
+    rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.0002f;
+    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() * 0.001f;
 }
