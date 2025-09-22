@@ -212,7 +212,7 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
     ADJ_ENTRY(RESCUE_HOVER_ALTITUDE,        0, 2500),
     ADJ_ENTRY(RESCUE_ALT_P_GAIN,            0, 1000),
     ADJ_ENTRY(RESCUE_ALT_I_GAIN,            0, 1000),
-    ADJ_ENTRY(RESCUE_ALT_D_GAIN,            0, 1000),
+    ADJ_ENTRY(RESCUE_ALT_C_GAIN,            0, 1000),
 
     ADJ_ENTRY(GOV_GAIN,                     0, 250),
     ADJ_ENTRY(GOV_P_GAIN,                   0, 250),

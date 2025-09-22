@@ -145,7 +145,7 @@ int get_ADJUSTMENT_RESCUE_ALT_P_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_P_GAIN(int value)
 {
     currentPidProfile->rescue.alt_p_gain = value;
-    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain * 0.01f;
+    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain * 0.0002f;
 }
 
 int get_ADJUSTMENT_RESCUE_ALT_I_GAIN(void)
@@ -156,18 +156,18 @@ int get_ADJUSTMENT_RESCUE_ALT_I_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_I_GAIN(int value)
 {
     currentPidProfile->rescue.alt_i_gain = value;
-    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT() * 0.01f;
+    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT() * 0.001f;
 }
 
-int get_ADJUSTMENT_RESCUE_ALT_D_GAIN(void)
+int get_ADJUSTMENT_RESCUE_ALT_C_GAIN(void)
 {
-    return currentPidProfile->rescue.alt_d_gain;
+    return currentPidProfile->rescue.alt_c_gain;
 }
 
-void set_ADJUSTMENT_RESCUE_ALT_D_GAIN(int value)
+void set_ADJUSTMENT_RESCUE_ALT_C_GAIN(int value)
 {
-    currentPidProfile->rescue.alt_d_gain = value;
-    rescue.alt_Kd = currentPidProfile->rescue.alt_d_gain * 0.01f;
+    currentPidProfile->rescue.alt_c_gain = value;
+    rescue.alt_Kd = currentPidProfile->rescue.alt_c_gain * 0.01f;
 }
 
 
@@ -559,7 +559,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.max_I = 0.75f;
 
-    rescue.alt_Kd = pidProfile->rescue.alt_d_gain * 0.01f;
+    rescue.alt_Kd = pidProfile->rescue.alt_c_gain * 0.01f;
     rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.0002f;
     rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() * 0.001f;
 }

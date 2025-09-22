@@ -117,7 +117,7 @@ typedef struct {
     uint16_t    hover_altitude;
     uint16_t    alt_p_gain;
     uint16_t    alt_i_gain;
-    uint16_t    alt_d_gain;
+    uint16_t    alt_c_gain;
     uint16_t    max_collective;
     uint8_t     max_climb_speed;
     uint16_t    max_setpoint_rate;
