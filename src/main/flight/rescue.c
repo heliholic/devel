@@ -83,7 +83,6 @@ typedef struct {
     float           alt_Kd;
 
     float           alt_I;
-    float           max_I;
 
     /* Setpoint limits */
 
@@ -340,7 +339,7 @@ static float rescueApplyAltitudePID(float altitude)
     const float var_P = error * rescue.alt_Kp;
     const float var_I = error * rescue.alt_Ki * factor + rescue.alt_I;
 
-    rescue.alt_I = constrainf(var_I, 0, rescue.max_I);
+    rescue.alt_I = constrainf(var_I, 0, rescue.maxCollective);
 
     const float pidSum = constrainf(var_P + var_I, 0, rescue.maxCollective);
 
@@ -562,7 +561,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.maxRate = pidProfile->rescue.max_setpoint_rate;
     rescue.maxAccel = pidProfile->rescue.max_setpoint_accel * pidGetDT() * 10.0f;
-    rescue.maxCollective = pidProfile->rescue.max_collective;
+    rescue.maxCollective = pidProfile->rescue.max_collective / 1000.0f;
     rescue.maxCollRate = pidProfile->rescue.max_collective_rate * pidGetDT();
 
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100;
@@ -578,8 +577,6 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
     rescue.maxVError = rescue.maxVSpeed * 2;
-
-    rescue.max_I = 0.75f;
 
     rescue.alt_Kd = pidProfile->rescue.alt_c_gain * 0.01f;
     rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.0002f;
