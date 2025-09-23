@@ -210,7 +210,17 @@ static inline bool rescueActive(void)
     return FLIGHT_MODE(RESCUE_MODE);
 }
 
-static inline float rescueSetpoint(uint8_t axis, float setpoint)
+static inline bool rescueIsInverted(void)
+{
+    return getCosTiltAngle() < 0;
+}
+
+static inline bool rescueIsLeveled(void)
+{
+    return fabsf(getCosTiltAngle()) > 0.866f; // less than 30deg error from level
+}
+
+static float rescueCalculateSetpoint(uint8_t axis, float setpoint)
 {
     if (rescue.state == RESCUE_STATE_OFF) {
         rescue.prevSetpoint[axis] = rescue.setpoint[axis] = setpoint;
@@ -224,16 +234,6 @@ static inline float rescueSetpoint(uint8_t axis, float setpoint)
     }
 
     return setpoint;
-}
-
-static inline bool rescueIsInverted(void)
-{
-    return getCosTiltAngle() < 0;
-}
-
-static inline bool rescueIsLeveled(void)
-{
-    return fabsf(getCosTiltAngle()) > 0.866f; // less than 30deg error from level
 }
 
 static void rescueApplyLimits(void)
@@ -547,7 +547,7 @@ void rescueUpdate(void)
 float rescueApply(uint8_t axis, float setpoint)
 {
     if (rescue.mode)
-        setpoint = rescueSetpoint(axis, setpoint);
+        setpoint = rescueCalculateSetpoint(axis, setpoint);
 
     return setpoint;
 }
