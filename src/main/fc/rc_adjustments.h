@@ -148,6 +148,10 @@ typedef enum {
     ADJUSTMENT_GOV_IDLE_THROTTLE        = 76,
     ADJUSTMENT_GOV_AUTO_THROTTLE        = 77,
 
+    // Rescue
+    ADJUSTMENT_RESCUE_MAX_COLL_RATE     = 78,
+    ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED   = 79,
+
     ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunc_e;
 

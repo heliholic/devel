@@ -227,6 +227,9 @@ static const adjustmentConfig_t adjustmentConfigs[ADJUSTMENT_FUNCTION_COUNT] =
 
     ADJ_ENTRY(ACC_TRIM_PITCH,               -300, 300),
     ADJ_ENTRY(ACC_TRIM_ROLL,                -300, 300),
+
+    ADJ_ENTRY(RESCUE_MAX_COLL_RATE,         10, 2500),
+    ADJ_ENTRY(RESCUE_MAX_CLIMB_SPEED,       1, 250),
 };
 
 

@@ -1895,6 +1895,8 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, currentPidProfile->rescue.max_collective);
         sbufWriteU16(dst, currentPidProfile->rescue.max_setpoint_rate);
         sbufWriteU16(dst, currentPidProfile->rescue.max_setpoint_accel);
+        sbufWriteU16(dst, currentPidProfile->rescue.max_collective_rate);
+        sbufWriteU8(dst, currentPidProfile->rescue.max_climb_speed);
         break;
 
     case MSP_GOVERNOR_PROFILE:
@@ -2733,6 +2735,10 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         currentPidProfile->rescue.max_collective = sbufReadU16(src);
         currentPidProfile->rescue.max_setpoint_rate = sbufReadU16(src);
         currentPidProfile->rescue.max_setpoint_accel = sbufReadU16(src);
+        if (sbufBytesRemaining(src) >= 3) {
+            currentPidProfile->rescue.max_collective_rate = sbufReadU16(src);
+            currentPidProfile->rescue.max_climb_speed = sbufReadU8(src);
+        }
         /* Load new values */
         rescueInitProfile(currentPidProfile);
         break;

@@ -89,7 +89,8 @@ typedef struct {
 
     float           maxRate;
     float           maxAccel;
-    float           maxColl;
+    float           maxCollective;
+    float           maxCollRate;
 
     /* Setpoint output */
 
@@ -170,6 +171,26 @@ void set_ADJUSTMENT_RESCUE_ALT_C_GAIN(int value)
     rescue.alt_Kd = currentPidProfile->rescue.alt_c_gain * 0.01f;
 }
 
+int get_ADJUSTMENT_RESCUE_MAX_COLL_RATE(void)
+{
+    return currentPidProfile->rescue.max_collective_rate;
+}
+
+void set_ADJUSTMENT_RESCUE_MAX_COLL_RATE(int value)
+{
+    currentPidProfile->rescue.max_collective_rate = value;
+}
+
+int get_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(void)
+{
+    return currentPidProfile->rescue.max_climb_speed;
+}
+
+void set_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(int value)
+{
+    currentPidProfile->rescue.max_climb_speed = value;
+}
+
 
 //// Internal functions
 
@@ -222,6 +243,9 @@ static void rescueApplyLimits(void)
         rescue.setpoint[i] = limitf(rescue.setpoint[i], rescue.maxRate);
         rescue.setpoint[i] = slewLimit(rescue.prevSetpoint[i], rescue.setpoint[i], rescue.maxAccel);
     }
+
+    // Rate limit for Collective
+    rescue.setpoint[COLLECTIVE] = slewLimit(rescue.prevSetpoint[COLLECTIVE], rescue.setpoint[COLLECTIVE], rescue.maxCollRate);
 
     // Previous values
     for (int i=0; i<4; i++) {
@@ -303,7 +327,7 @@ static void rescueApplyStabilisation(bool allow_inverted)
 
 static float rescueApplyAltitudePID(float altitude)
 {
-    const float tilt = getCosTiltAngle();
+    const float factor = fabs(getCosTiltAngle());
     const float alt = getAltitude();
     const float var = getVario();
 
@@ -314,21 +338,21 @@ static float rescueApplyAltitudePID(float altitude)
     const float error = limitf(speed - var, rescue.maxVError);
 
     const float var_P = error * rescue.alt_Kp;
-    const float var_I = error * rescue.alt_Ki * tilt * tilt + rescue.alt_I;
+    const float var_I = error * rescue.alt_Ki * factor + rescue.alt_I;
 
     rescue.alt_I = constrainf(var_I, 0, rescue.max_I);
 
-    const float pidSum = constrainf(var_P + var_I, 0, rescue.maxColl);
+    const float pidSum = constrainf(var_P + var_I, 0, rescue.maxCollective);
 
     DEBUG(RESCUE_ALTHOLD, 0, alt_err * 100);
     DEBUG(RESCUE_ALTHOLD, 1, alt_adj * 100);
     DEBUG(RESCUE_ALTHOLD, 2, speed * 100);
     DEBUG(RESCUE_ALTHOLD, 3, error * 100);
 
-    DEBUG(RESCUE_ALTHOLD, 4, var_P * 100);
-    DEBUG(RESCUE_ALTHOLD, 5, var_I * 100);
-    DEBUG(RESCUE_ALTHOLD, 6, pidSum * 100);
-    DEBUG(RESCUE_ALTHOLD, 7, tilt * 100);
+    DEBUG(RESCUE_ALTHOLD, 4, var_P * 1000);
+    DEBUG(RESCUE_ALTHOLD, 5, var_I * 1000);
+    DEBUG(RESCUE_ALTHOLD, 6, pidSum * 1000);
+    DEBUG(RESCUE_ALTHOLD, 7, factor * 1000);
 
     // Rescue collective "setpoint" is 0..1000
     return pidSum * 1000;
@@ -337,37 +361,34 @@ static float rescueApplyAltitudePID(float altitude)
 static void rescueApplyClimbCollective(void)
 {
     const float tilt = getCosTiltAngle();
-    const float factor = tilt * fabsf(tilt);
 
     rescue.alt_I = rescue.hoverCollective;
 
     if (rescue.mode == RESCUE_MODE_CLIMB) {
-        rescue.setpoint[FD_COLL] = rescue.climbCollective * factor;
+        rescue.setpoint[FD_COLL] = rescue.climbCollective * tilt;
     }
     else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
-        rescue.setpoint[FD_COLL] = rescue.climbCollective * factor;
+        rescue.setpoint[FD_COLL] = rescue.climbCollective * tilt;
     }
 }
 
 static void rescueApplyHoverCollective(void)
 {
     const float tilt = getCosTiltAngle();
-    const float factor = tilt * fabsf(tilt);
 
     if (rescue.mode == RESCUE_MODE_CLIMB) {
-        rescue.setpoint[FD_COLL] = rescue.hoverCollective * factor + 0.25f * getSetpoint(FD_COLL);
+        rescue.setpoint[FD_COLL] = rescue.hoverCollective * tilt + 0.25f * getSetpoint(FD_COLL);
     }
     else if (rescue.mode == RESCUE_MODE_ALT_HOLD) {
-        rescue.setpoint[FD_COLL] = rescueApplyAltitudePID(rescue.hoverAltitude) * factor;
+        rescue.setpoint[FD_COLL] = rescueApplyAltitudePID(rescue.hoverAltitude) * tilt;
     }
 }
 
 static void rescueApplyCollective(float collective)
 {
     const float tilt = getCosTiltAngle();
-    const float factor = tilt * fabsf(tilt);
 
-    rescue.setpoint[FD_COLL] = collective * factor;
+    rescue.setpoint[FD_COLL] = collective * tilt;
 }
 
 static void rescuePullUp(void)
@@ -541,7 +562,8 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.maxRate = pidProfile->rescue.max_setpoint_rate;
     rescue.maxAccel = pidProfile->rescue.max_setpoint_accel * pidGetDT() * 10.0f;
-    rescue.maxColl = pidProfile->rescue.max_collective;
+    rescue.maxCollective = pidProfile->rescue.max_collective;
+    rescue.maxCollRate = pidProfile->rescue.max_collective_rate * pidGetDT();
 
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100;
     rescue.climbTime = pidProfile->rescue.climb_time * 100;
@@ -555,7 +577,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
     rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
-    rescue.maxVError = rescue.maxVSpeed;
+    rescue.maxVError = rescue.maxVSpeed * 2;
 
     rescue.max_I = 0.75f;
 
