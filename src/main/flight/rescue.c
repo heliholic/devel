@@ -178,6 +178,7 @@ int get_ADJUSTMENT_RESCUE_MAX_COLL_RATE(void)
 void set_ADJUSTMENT_RESCUE_MAX_COLL_RATE(int value)
 {
     currentPidProfile->rescue.max_collective_rate = value;
+    rescue.maxCollRate = currentPidProfile->rescue.max_collective_rate * pidGetDT();
 }
 
 int get_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(void)
@@ -188,6 +189,7 @@ int get_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(void)
 void set_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(int value)
 {
     currentPidProfile->rescue.max_climb_speed = value;
+    rescue.maxVSpeed = currentPidProfile->rescue.max_climb_speed / 10.0f;
 }
 
 
