@@ -90,7 +90,7 @@ typedef struct {
     float           maxCollective;
     float           maxCollRate;
 
-    /* Setpoint output */
+    /* Setpoint output (0..1000) */
 
     float           setpoint[4];
     float           prevSetpoint[4];
@@ -144,7 +144,7 @@ int get_ADJUSTMENT_RESCUE_ALT_P_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_P_GAIN(int value)
 {
     currentPidProfile->rescue.alt_p_gain = value;
-    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain * 0.0002f;
+    rescue.alt_Kp = currentPidProfile->rescue.alt_p_gain * 0.2f;
 }
 
 int get_ADJUSTMENT_RESCUE_ALT_I_GAIN(void)
@@ -155,7 +155,7 @@ int get_ADJUSTMENT_RESCUE_ALT_I_GAIN(void)
 void set_ADJUSTMENT_RESCUE_ALT_I_GAIN(int value)
 {
     currentPidProfile->rescue.alt_i_gain = value;
-    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT() * 0.001f;
+    rescue.alt_Ki = currentPidProfile->rescue.alt_i_gain * pidGetDT();
 }
 
 int get_ADJUSTMENT_RESCUE_ALT_C_GAIN(void)
@@ -349,9 +349,9 @@ static float rescueApplyAltitudePID(float altitude)
     DEBUG(RESCUE_ALTHOLD, 2, speed * 100);
     DEBUG(RESCUE_ALTHOLD, 3, error * 100);
 
-    DEBUG(RESCUE_ALTHOLD, 4, var_P * 1000);
-    DEBUG(RESCUE_ALTHOLD, 5, var_I * 1000);
-    DEBUG(RESCUE_ALTHOLD, 6, pidSum * 1000);
+    DEBUG(RESCUE_ALTHOLD, 4, var_P);
+    DEBUG(RESCUE_ALTHOLD, 5, var_I);
+    DEBUG(RESCUE_ALTHOLD, 6, pidSum);
     DEBUG(RESCUE_ALTHOLD, 7, factor * 1000);
 
     // Rescue collective "setpoint" is 0..1000
@@ -562,7 +562,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.maxRate = pidProfile->rescue.max_setpoint_rate;
     rescue.maxAccel = pidProfile->rescue.max_setpoint_accel * pidGetDT() * 10.0f;
-    rescue.maxCollective = pidProfile->rescue.max_collective / 1000.0f;
+    rescue.maxCollective = pidProfile->rescue.max_collective;
     rescue.maxCollRate = pidProfile->rescue.max_collective_rate * pidGetDT();
 
     rescue.pullUpTime = pidProfile->rescue.pull_up_time * 100;
@@ -579,6 +579,6 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.maxVSpeed = pidProfile->rescue.max_climb_rate / 10.0f;
 
     rescue.alt_Kd = pidProfile->rescue.alt_c_gain * 0.01f;
-    rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.0002f;
-    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT() * 0.001f;
+    rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.2f;
+    rescue.alt_Ki = pidProfile->rescue.alt_i_gain * pidGetDT();
 }
