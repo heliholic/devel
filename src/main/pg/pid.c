@@ -100,7 +100,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .rescue.hover_collective = 350,
         .rescue.hover_altitude = 500,
         .rescue.alt_p_gain = 50,
-        .rescue.alt_i_gain = 60,
+        .rescue.alt_i_gain = 100,
         .rescue.alt_c_gain = 50,
         .rescue.max_collective = 750,
         .rescue.max_climb_rate = 25,
