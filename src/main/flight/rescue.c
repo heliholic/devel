@@ -76,7 +76,6 @@ typedef struct {
     float           hoverAltitude;
 
     float           maxVSpeed;
-    float           maxVError;
 
     float           alt_Kp;
     float           alt_Ki;
@@ -190,7 +189,6 @@ void set_ADJUSTMENT_RESCUE_MAX_CLIMB_RATE(int value)
 {
     currentPidProfile->rescue.max_climb_rate = value;
     rescue.maxVSpeed = currentPidProfile->rescue.max_climb_rate / 10.0f;
-    rescue.maxVError = rescue.maxVSpeed * 2;
 }
 
 
@@ -337,7 +335,7 @@ static float rescueApplyAltitudePID(float altitude)
     const float alt_adj = alt_err * rescue.alt_Kd;
 
     const float speed = limitf(alt_adj, rescue.maxVSpeed);
-    const float error = limitf(speed - var, rescue.maxVError);
+    const float error = speed - var;
 
     const float var_P = error * rescue.alt_Kp;
     const float var_I = error * rescue.alt_Ki * factor + rescue.alt_I;
@@ -579,7 +577,6 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
     rescue.maxVSpeed = pidProfile->rescue.max_climb_rate / 10.0f;
-    rescue.maxVError = rescue.maxVSpeed * 2;
 
     rescue.alt_Kd = pidProfile->rescue.alt_c_gain * 0.01f;
     rescue.alt_Kp = pidProfile->rescue.alt_p_gain * 0.0002f;
