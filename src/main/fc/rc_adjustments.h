@@ -150,7 +150,7 @@ typedef enum {
 
     // Rescue
     ADJUSTMENT_RESCUE_MAX_COLL_RATE     = 78,
-    ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED   = 79,
+    ADJUSTMENT_RESCUE_MAX_CLIMB_RATE    = 79,
 
     ADJUSTMENT_FUNCTION_COUNT
 } adjustmentFunc_e;

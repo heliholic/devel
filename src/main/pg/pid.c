@@ -103,7 +103,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .rescue.alt_i_gain = 60,
         .rescue.alt_c_gain = 50,
         .rescue.max_collective = 750,
-        .rescue.max_climb_speed = 30,
+        .rescue.max_climb_rate = 25,
         .rescue.max_setpoint_rate = 250,
         .rescue.max_setpoint_accel = 2500,
         .rescue.max_collective_rate = 2500,

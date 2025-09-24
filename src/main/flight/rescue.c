@@ -181,15 +181,16 @@ void set_ADJUSTMENT_RESCUE_MAX_COLL_RATE(int value)
     rescue.maxCollRate = currentPidProfile->rescue.max_collective_rate * pidGetDT();
 }
 
-int get_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(void)
+int get_ADJUSTMENT_RESCUE_MAX_CLIMB_RATE(void)
 {
-    return currentPidProfile->rescue.max_climb_speed;
+    return currentPidProfile->rescue.max_climb_rate;
 }
 
-void set_ADJUSTMENT_RESCUE_MAX_CLIMB_SPEED(int value)
+void set_ADJUSTMENT_RESCUE_MAX_CLIMB_RATE(int value)
 {
-    currentPidProfile->rescue.max_climb_speed = value;
-    rescue.maxVSpeed = currentPidProfile->rescue.max_climb_speed / 10.0f;
+    currentPidProfile->rescue.max_climb_rate = value;
+    rescue.maxVSpeed = currentPidProfile->rescue.max_climb_rate / 10.0f;
+    rescue.maxVError = rescue.maxVSpeed * 2;
 }
 
 
@@ -577,7 +578,7 @@ void INIT_CODE rescueInitProfile(const pidProfile_t *pidProfile)
 
     rescue.hoverAltitude = pidProfile->rescue.hover_altitude / 100.0f;
 
-    rescue.maxVSpeed = pidProfile->rescue.max_climb_speed / 10.0f;
+    rescue.maxVSpeed = pidProfile->rescue.max_climb_rate / 10.0f;
     rescue.maxVError = rescue.maxVSpeed * 2;
 
     rescue.alt_Kd = pidProfile->rescue.alt_c_gain * 0.01f;

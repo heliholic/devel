@@ -119,7 +119,7 @@ typedef struct {
     uint16_t    alt_i_gain;
     uint16_t    alt_c_gain;
     uint16_t    max_collective;
-    uint8_t     max_climb_speed;
+    uint8_t     max_climb_rate;
     uint16_t    max_setpoint_rate;
     uint16_t    max_setpoint_accel;
     uint16_t    max_collective_rate;
