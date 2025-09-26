@@ -354,8 +354,7 @@ static float rescueApplyAltitudePID(float altitude)
     DEBUG(RESCUE_ALTHOLD, 6, pidSum);
     DEBUG(RESCUE_ALTHOLD, 7, factor * 1000);
 
-    // Rescue collective "setpoint" is 0..1000
-    return pidSum * 1000;
+    return pidSum;
 }
 
 static void rescueApplyClimbCollective(void)
