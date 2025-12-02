@@ -155,8 +155,16 @@ void gyroSetSampleRate(gyroDev_t *gyro)
         case ICM_45686_SPI:
         case ICM_45605_SPI:
         case ICM_45606_SPI:
+#if defined(STM32H7)
             gyroRateKHz = GYRO_RATE_6400_Hz;
             gyroSampleRateHz = 6400;
+#elif defined(STM32F4) || defined(STM32F7)
+            gyroRateKHz = GYRO_RATE_3200_Hz;
+            gyroSampleRateHz = 3200;
+#else
+            gyroRateKHz = GYRO_RATE_1600_Hz;
+            gyroSampleRateHz = 1600;
+#endif
             accSampleRateHz = 1600;
             break;
 
