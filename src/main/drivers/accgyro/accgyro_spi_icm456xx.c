@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605)
+#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605) || defined(USE_ACCGYRO_ICM45606)
 
 #include "common/axis.h"
 #include "common/utils.h"
@@ -378,6 +378,7 @@ void icm456xxAccInit(accDev_t *acc)
         acc->gyro->accSampleRateHz = 1600;
         break;
     case ICM_45605_SPI:
+    case ICM_45606_SPI:
     default:
         acc->acc_1G = 2048; // 16g scale
         acc->gyro->accSampleRateHz = 1600;
@@ -419,6 +420,7 @@ void icm456xxGyroInit(gyroDev_t *gyro)
     switch (gyro->mpuDetectionResult.sensor) {
     case ICM_45686_SPI:
     case ICM_45605_SPI:
+    case ICM_45606_SPI:
         spiWriteReg(dev, ICM456XX_ACCEL_CONFIG0, ICM456XX_ACCEL_FS_SEL_16G | ICM456XX_ACCEL_ODR_1K6_LN);
         delay(ICM456XX_ACCEL_STARTUP_TIME_MS); // Per datasheet Table 9-6: 10ms minimum startup time
         break;
@@ -441,6 +443,7 @@ void icm456xxGyroInit(gyroDev_t *gyro)
     switch (gyro->mpuDetectionResult.sensor) {
     case ICM_45686_SPI:
     case ICM_45605_SPI:
+    case ICM_45606_SPI:
     default:
         gyro->scale = GYRO_SCALE_2000DPS;
         gyro->gyroRateKHz = GYRO_RATE_6400_Hz;
@@ -500,6 +503,9 @@ uint8_t icm456xxSpiDetect(const extDevice_t *dev)
         case ICM45605_WHO_AM_I_CONST:
             icmDetected = ICM_45605_SPI;
             break;
+        case ICM45606_WHO_AM_I_CONST:
+            icmDetected = ICM_45606_SPI;
+            break;
         default:
             icmDetected = MPU_NONE;
             break;
@@ -532,6 +538,7 @@ bool icm456xxSpiAccDetect(accDev_t *acc)
     switch (acc->mpuDetectionResult.sensor) {
     case ICM_45686_SPI:
     case ICM_45605_SPI:
+    case ICM_45606_SPI:
         acc->initFn = icm456xxAccInit;
         acc->readFn = icm456xxAccReadSPI;
         break;
@@ -608,6 +615,7 @@ bool icm456xxSpiGyroDetect(gyroDev_t *gyro)
     switch (gyro->mpuDetectionResult.sensor) {
     case ICM_45686_SPI:
     case ICM_45605_SPI:
+    case ICM_45606_SPI:
         gyro->initFn = icm456xxGyroInit;
         gyro->readFn = icm456xxGyroReadSPI;
         break;
@@ -618,4 +626,4 @@ bool icm456xxSpiGyroDetect(gyroDev_t *gyro)
     return true;
 }
 
-#endif // USE_ACCGYRO_ICM45686 || USE_ACCGYRO_ICM45605
+#endif // USE_ACCGYRO_ICM45686 || USE_ACCGYRO_ICM45605 || USE_ACCGYRO_ICM45606
