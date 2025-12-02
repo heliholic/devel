@@ -80,8 +80,10 @@ typedef enum {
 typedef enum {
     GYRO_RATE_1_kHz,
     GYRO_RATE_1100_Hz,
+    GYRO_RATE_1600_Hz,
     GYRO_RATE_2000_Hz,
     GYRO_RATE_3200_Hz,
+    GYRO_RATE_4000_Hz,
     GYRO_RATE_6400_Hz,
     GYRO_RATE_6664_Hz,
     GYRO_RATE_8_kHz,
