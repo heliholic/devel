@@ -281,22 +281,46 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #define ICM456XX_DATA_LENGTH                    6  // 3 axes * 2 bytes per axis
 #define ICM456XX_SPI_BUFFER_SIZE                (1 + ICM456XX_DATA_LENGTH) // 1 byte register + 6 bytes data
 
-static uint8_t getGyroLpfConfig(const gyroHardwareLpf_e hardwareLpf)
+static uint8_t getGyroLpfConfig(gyroDev_t *gyro, const gyroHardwareLpf_e hardwareLpf)
 {
+    uint8_t odrN, odr1, odr2;
+
+    switch (gyro->gyroRateKHz) {
+    case GYRO_RATE_6400_Hz:
+        odrN = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_16;
+        odr1 = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_32;
+        odr2 = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_8;
+        break;
+    case GYRO_RATE_3200_Hz:
+        odrN = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_8;
+        odr1 = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_16;
+        odr2 = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_4;
+        break;
+    case GYRO_RATE_1600_Hz:
+        odrN = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_4;
+        odr1 = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_8;
+        odr2 = ICM456XX_GYRO_UI_LPFBW_ODR_DIV_4;
+        break;
+    default:
+        odrN = ICM456XX_GYRO_UI_LPFBW_BYPASS;
+        odr1 = ICM456XX_GYRO_UI_LPFBW_BYPASS;
+        odr2 = ICM456XX_GYRO_UI_LPFBW_BYPASS;
+        break;
+    }
+
     switch (hardwareLpf) {
     case GYRO_HARDWARE_LPF_NORMAL:
-        // ODR/16 = 400 Hz, comparable to ~258 Hz AAF on ICM426xx
-        return ICM456XX_GYRO_UI_LPFBW_ODR_DIV_16;
+        // 400 Hz, comparable to ~258 Hz AAF on ICM426xx
+        return odrN;
     case GYRO_HARDWARE_LPF_OPTION_1:
-        // ODR/32 = 200 Hz for cleaner filtering
-        return ICM456XX_GYRO_UI_LPFBW_ODR_DIV_32;
+        // 200 Hz for cleaner filtering
+        return odr1;
     case GYRO_HARDWARE_LPF_OPTION_2:
-        // ODR/8 = 800 Hz for lowest latency
-        return ICM456XX_GYRO_UI_LPFBW_ODR_DIV_8;
+        // 800 Hz for lowest latency
+        return odr2;
 #ifdef USE_GYRO_DLPF_EXPERIMENTAL
     case GYRO_HARDWARE_LPF_EXPERIMENTAL:
-        // ODR/4 = 1600 Hz for minimal filtering
-        return ICM456XX_GYRO_UI_LPFBW_ODR_DIV_4;
+        return ICM456XX_GYRO_UI_LPFBW_BYPASS;
 #endif
     default:
         return ICM456XX_GYRO_UI_LPFBW_BYPASS;
@@ -433,20 +457,35 @@ void icm456xxGyroInit(gyroDev_t *gyro)
     }
 
     // Set the Gyro UI LPF bandwidth cut-off (Section 7.3 of datasheet)
-    if (!icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, getGyroLpfConfig(gyroConfig()->gyro_hardware_lpf))) {
+    if (!icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, getGyroLpfConfig(gyro, gyroConfig()->gyro_hardware_lpf))) {
         // If LPF configuration fails, fallback to BYPASS
         icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, ICM456XX_GYRO_UI_LPFBW_BYPASS);
     }
 
+    uint32_t gyro_odr = 0;
+
     switch (gyro->mpuDetectionResult.sensor) {
     case ICM_45686_SPI:
     case ICM_45605_SPI:
-    default:
+        switch (gyro->gyroRateKHz) {
+        case GYRO_RATE_6400_Hz:
+            gyro_odr = ICM456XX_GYRO_ODR_6K4_LN;
+            break;
+        case GYRO_RATE_3200_Hz:
+            gyro_odr = ICM456XX_GYRO_ODR_3K2_LN;
+            break;
+        case GYRO_RATE_1600_Hz:
+            gyro_odr = ICM456XX_GYRO_ODR_1K6_LN;
+            break;
+        default:
+            gyro_odr = ICM456XX_GYRO_ODR_6K4_LN;
+            break;
+        }
         gyro->scale = GYRO_SCALE_2000DPS;
-        gyro->gyroRateKHz = GYRO_RATE_6400_Hz;
-        gyro->gyroSampleRateHz = 6400;
-        spiWriteReg(dev, ICM456XX_GYRO_CONFIG0, ICM456XX_GYRO_FS_SEL_2000DPS | ICM456XX_GYRO_ODR_6K4_LN);
+        spiWriteReg(dev, ICM456XX_GYRO_CONFIG0, ICM456XX_GYRO_FS_SEL_2000DPS | gyro_odr);
         delay(ICM456XX_GYRO_STARTUP_TIME_MS); // Per datasheet Table 9-6: 35ms minimum startup time
+        break;
+    default:
         break;
     }
 
