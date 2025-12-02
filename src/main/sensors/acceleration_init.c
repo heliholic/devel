@@ -265,9 +265,10 @@ retry:
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605)
+#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605) || defined(USE_ACCGYRO_ICM45606)
     case ACC_ICM45686:
     case ACC_ICM45605:
+    case ACC_ICM45606:
         if (icm456xxSpiAccDetect(dev)) {
             switch (dev->mpuDetectionResult.sensor) {
             case ICM_45686_SPI:
@@ -275,6 +276,9 @@ retry:
                 break;
             case ICM_45605_SPI:
                 accHardware = ACC_ICM45605;
+                break;
+            case ICM_45606_SPI:
+                accHardware = ACC_ICM45606;
                 break;
             default:
                 accHardware = ACC_NONE;
