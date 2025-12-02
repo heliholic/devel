@@ -47,6 +47,8 @@
 #define ICM42688P_WHO_AM_I_CONST            (0x47)
 #define IIM42652_WHO_AM_I_CONST             (0x6F)
 #define IIM42653_WHO_AM_I_CONST             (0x56)
+#define ICM45686_WHO_AM_I_CONST             (0xE9)
+#define ICM45605_WHO_AM_I_CONST             (0xE5)
 
 // RA = Register Address
 
@@ -208,7 +210,9 @@ typedef enum {
     BMI_270_SPI,
     LSM6DSO_SPI,
     L3GD20_SPI,
-    BMI_088_SPI
+    BMI_088_SPI,
+    ICM_45605_SPI,
+    ICM_45686_SPI,
 } mpuSensor_e;
 
 typedef enum {
@@ -234,3 +238,5 @@ uint8_t mpuGyroReadRegister(const extDevice_t *dev, uint8_t reg);
 struct accDev_s;
 bool mpuAccRead(struct accDev_s *acc);
 bool mpuAccReadSPI(struct accDev_s *acc);
+
+busStatus_e mpuIntcallback(uint32_t arg);
