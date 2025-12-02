@@ -229,6 +229,7 @@ void gyroInitSensor(gyroSensor_t *gyroSensor, const gyroDeviceConfig_t *config)
     case GYRO_IIM42653:
     case GYRO_ICM45686:
     case GYRO_ICM45605:
+    case GYRO_ICM45606:
         gyroSensor->gyroDev.gyroHasOverflowProtection = true;
         break;
 
@@ -385,7 +386,7 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605)
+#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605) || defined(USE_ACCGYRO_ICM45606)
     case GYRO_ICM45686:
     case GYRO_ICM45605:
         if (icm456xxSpiGyroDetect(dev)) {
@@ -395,6 +396,9 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
                 break;
             case ICM_45605_SPI:
                 gyroHardware = GYRO_ICM45605;
+                break;
+            case ICM_45606_SPI:
+                gyroHardware = GYRO_ICM45606;
                 break;
             default:
                 gyroHardware = GYRO_NONE;
