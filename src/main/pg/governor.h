@@ -42,6 +42,31 @@ typedef enum {
     GOV_FLAG_DYN_MIN_THROTTLE       = 6,
 } govFlags_e;
 
+typedef struct {
+    uint32_t    flags;
+    uint16_t    headspeed;
+    uint8_t     min_throttle;
+    uint8_t     max_throttle;
+    uint8_t     idle_throttle;
+    uint8_t     auto_throttle;
+    uint8_t     gain;
+    uint8_t     p_gain;
+    uint8_t     i_gain;
+    uint8_t     d_gain;
+    uint8_t     f_gain;
+    uint8_t     p_limit;
+    uint8_t     i_limit;
+    uint8_t     d_limit;
+    uint8_t     f_limit;
+    uint8_t     tta_gain;
+    uint8_t     tta_limit;
+    uint8_t     yaw_weight;
+    uint8_t     cyclic_weight;
+    uint8_t     collective_weight;
+    uint8_t     collective_curve;
+    uint8_t     fallback_drop;
+    uint8_t     dyn_min_level;
+} governorProfile_t;
 
 #define GOV_THROTTLE_CURVE_POINTS    9
 
