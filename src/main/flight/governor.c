@@ -1362,7 +1362,8 @@ int get_ADJUSTMENT_GOV_MAX_THROTTLE(void)
 void set_ADJUSTMENT_GOV_MAX_THROTTLE(int value)
 {
     currentPidProfile->governor.max_throttle = value;
-    gov.maxThrottle = value / 100.0f;
+    gov.maxThrottle = fmaxf(currentPidProfile->governor.max_throttle / 100.0f, gov.handoverThrottle);
+    gov.minActiveThrottle = fminf(currentPidProfile->governor.min_throttle / 100.0f, gov.maxThrottle);
     gov.maxSpoolupThrottle = gov.maxThrottle;
 }
 
@@ -1374,7 +1375,7 @@ int get_ADJUSTMENT_GOV_MIN_THROTTLE(void)
 void set_ADJUSTMENT_GOV_MIN_THROTTLE(int value)
 {
     currentPidProfile->governor.min_throttle = value;
-    gov.minActiveThrottle = value / 100.0f;
+    gov.minActiveThrottle = fminf(currentPidProfile->governor.min_throttle / 100.0f, gov.maxThrottle);
 }
 
 int get_ADJUSTMENT_GOV_HEADSPEED(void)
@@ -1482,8 +1483,8 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.minD = -gov.maxD;
         gov.minF = 0;
 
-        gov.minActiveThrottle = fmaxf(pidProfile->governor.min_throttle / 100.0f, gov.handoverThrottle);
-        gov.maxThrottle = fmaxf(pidProfile->governor.max_throttle / 100.0f, gov.minActiveThrottle);
+        gov.maxThrottle = fmaxf(pidProfile->governor.max_throttle / 100.0f, gov.handoverThrottle);
+        gov.minActiveThrottle = fminf(pidProfile->governor.min_throttle / 100.0f, gov.maxThrottle);
 
         gov.minSpoolupThrottle = gov.idleThrottle;
         gov.maxSpoolupThrottle = gov.maxThrottle;
