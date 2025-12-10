@@ -472,7 +472,7 @@ static const char * const lookupTableGovernorMode[] = {
 };
 
 static const char * const lookupTableGovernorThrottleType[] = {
-    "NORMAL", "RANGE", "SWITCH",
+    "NORMAL", "SWITCH", "FUNCTION",
 };
 
 const char * const lookupTableErrorRelaxType[] = {

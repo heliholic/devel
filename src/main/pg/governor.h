@@ -31,8 +31,8 @@ typedef enum {
 
 typedef enum {
     GOV_THROTTLE_NORMAL = 0,
-    GOV_THROTTLE_RANGE,
     GOV_THROTTLE_SWITCH,
+    GOV_THROTTLE_FUNCTION,
 } govThrottle_e;
 
 typedef enum {

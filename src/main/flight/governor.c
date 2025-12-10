@@ -434,7 +434,7 @@ static void govGetInputThrottle(void)
             // Throttle used as-is
             break;
 
-        case GOV_THROTTLE_RANGE:
+        case GOV_THROTTLE_SWITCH:
             if (!gov.throttleInputOff) {
                 if (gov.throttleInput > gov.handoverThrottle) {
                     gov.requestedHeadSpeed = fmaxf(gov.throttleInput * gov.fullHeadSpeed, 100);
@@ -443,7 +443,7 @@ static void govGetInputThrottle(void)
             }
             break;
 
-        case GOV_THROTTLE_SWITCH:
+        case GOV_THROTTLE_FUNCTION:
             if (!gov.throttleInputOff) {
                 if (gov.throttleInput < 0.333f) {
                     gov.throttleInput = gov.idleThrottle;
@@ -1409,7 +1409,7 @@ void set_ADJUSTMENT_GOV_YAW_FF(int value)
 void INIT_CODE validateAndFixGovernorConfig(void)
 {
     if (governorConfig()->gov_mode == GOV_MODE_EXTERNAL) {
-        if (governorConfig()->gov_throttle_type == GOV_THROTTLE_RANGE) {
+        if (governorConfig()->gov_throttle_type == GOV_THROTTLE_SWITCH) {
             governorConfigMutable()->gov_throttle_type = GOV_THROTTLE_NORMAL;
         }
     }
@@ -1458,7 +1458,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.stateResetReq = true;
 
-        gov.useHsAdjustment = (gov.throttleType == GOV_THROTTLE_RANGE);
+        gov.useHsAdjustment = (gov.throttleType == GOV_THROTTLE_SWITCH);
         gov.useFallbackPrecomp = (pidProfile->governor.flags & BIT(GOV_FLAG_FALLBACK_PRECOMP));
         gov.usePidSpoolup = (pidProfile->governor.flags & BIT(GOV_FLAG_PID_SPOOLUP));
         gov.useElectricMotor = (gov.govMode == GOV_MODE_ELECTRIC);
