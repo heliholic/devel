@@ -65,7 +65,7 @@ typedef struct {
     uint8_t     collective_weight;
     uint8_t     collective_curve;
     uint8_t     fallback_drop;
-    uint8_t     dyn_min_level;
+    uint8_t     dyn_min_throttle;
 } governorProfile_t;
 
 #define GOV_THROTTLE_CURVE_POINTS    9

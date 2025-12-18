@@ -168,7 +168,7 @@ typedef struct {
     float           voltageCompGain;
 
     // Dynamic min throttle limit
-    float           dynMinLevel;
+    float           dynMinThrottle;
 
     // PID terms
     float           P;
@@ -535,7 +535,7 @@ static float govCalcDynMinThrottle(float minThrottle)
     if (gov.useDynMinThrottle) {
         if (gov.motorRPMGood && gov.motorRPMK > gov.fullHeadSpeed) {
             const float throttleEst = gov.targetHeadSpeed / gov.motorRPMK;
-            minThrottle = fmaxf(minThrottle, throttleEst * gov.dynMinLevel);
+            minThrottle = fmaxf(minThrottle, throttleEst * gov.dynMinThrottle);
             DEBUG(GOV_MOTOR, 2, throttleEst);
             DEBUG(GOV_MOTOR, 3, minThrottle);
         }
@@ -1493,7 +1493,7 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
 
         gov.fallbackRatio = (100 - constrain(pidProfile->governor.fallback_drop, 0, 50)) / 100.0f;
 
-        gov.dynMinLevel = pidProfile->governor.dyn_min_level / 100.0f;
+        gov.dynMinThrottle = pidProfile->governor.dyn_min_throttle / 100.0f;
 
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
