@@ -83,7 +83,7 @@ typedef struct governorConfig_s {
     uint8_t  gov_idle_throttle;
     uint8_t  gov_auto_throttle;
     uint8_t  gov_handover_throttle;
-    uint8_t  gov_throttle_curve[GOV_THROTTLE_CURVE_POINTS];
+    uint8_t  gov_bypass_throttle[GOV_THROTTLE_CURVE_POINTS];
     uint8_t  gov_pwr_filter;
     uint8_t  gov_rpm_filter;
     uint8_t  gov_tta_filter;

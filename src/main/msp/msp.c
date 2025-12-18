@@ -2033,7 +2033,7 @@ static bool mspProcessOutCommand(int16_t cmdMSP, sbuf_t *dst)
         sbufWriteU8(dst, governorConfig()->gov_idle_throttle);
         sbufWriteU8(dst, governorConfig()->gov_auto_throttle);
         for (int i=0; i<GOV_THROTTLE_CURVE_POINTS; i++)
-            sbufWriteU8(dst, governorConfig()->gov_throttle_curve[i]);
+            sbufWriteU8(dst, governorConfig()->gov_bypass_throttle[i]);
         break;
 
     default:
@@ -3523,7 +3523,7 @@ static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t cmdMSP, 
         }
         if (sbufBytesRemaining(src) >= GOV_THROTTLE_CURVE_POINTS) {
             for (int i=0; i<GOV_THROTTLE_CURVE_POINTS; i++)
-                governorConfigMutable()->gov_throttle_curve[i] = sbufReadU8(src);
+                governorConfigMutable()->gov_bypass_throttle[i] = sbufReadU8(src);
         }
         break;
 

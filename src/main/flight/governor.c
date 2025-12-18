@@ -1566,7 +1566,7 @@ void INIT_CODE governorInit(const pidProfile_t *pidProfile)
             gov.handoverThrottle = constrain(governorConfig()->gov_handover_throttle, 1, 100) / 100.0f;
 
             for (int i=0; i<GOV_THROTTLE_CURVE_POINTS; i++)
-                gov.throttleCurve[i] = governorConfig()->gov_throttle_curve[i] / 200.0f;
+                gov.throttleCurve[i] = governorConfig()->gov_bypass_throttle[i] / 200.0f;
 
             difFilterInit(&gov.differentiator, governorConfig()->gov_d_filter / 10.0f, gyro.targetRateHz);
 
