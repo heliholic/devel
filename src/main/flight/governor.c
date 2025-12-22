@@ -457,15 +457,15 @@ static void govGetInputThrottle(void)
     }
 }
 
-static inline float precompCurve(float angle, uint8_t curve)
+static inline float precompCurve(float angle)
 {
-    return pow_approx(fabsf(angle), curve / 10.0f);
+    return angle * angle;
 }
 
 static float govCalcFeedforward(void)
 {
     // Collective deflection
-    const float collectiveFF = gov.collectiveWeight * precompCurve(getCollectiveDeflectionAbs(), gov.collectiveCurve);
+    const float collectiveFF = gov.collectiveWeight * precompCurve(getCollectiveDeflectionAbs());
 
     // Cyclic deflection
     const float cyclicFF = gov.cyclicWeight * getCyclicDeflection();
@@ -1544,7 +1544,6 @@ void INIT_CODE governorInitProfile(const pidProfile_t *pidProfile)
         gov.yawWeight = pidProfile->governor.yaw_weight / 100.0f;
         gov.cyclicWeight = pidProfile->governor.cyclic_weight / 100.0f;
         gov.collectiveWeight = pidProfile->governor.collective_weight / 100.0f;
-        gov.collectiveCurve = pidProfile->governor.collective_curve;
 
         gov.fullHeadSpeed = constrainf(pidProfile->governor.headspeed, 100, 50000);
         gov.fullHeadSpeedRatio = 1.0f;
