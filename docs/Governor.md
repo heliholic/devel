@@ -465,10 +465,6 @@ A relative weight for the cyclic precomp.
 
 A relative weight for the collective precomp.
 
-### Collective Precomp Curve `gov_collective_curve`
-
-Collective curve exponent (/10). Values 15..25 are likely good.
-
 ### Dynamic Throttle Minimum `gov_dyn_min_throttle`
 
 The percentage that the throttle is allowed to suddenly drop from
