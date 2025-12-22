@@ -90,8 +90,6 @@ the actual values are calculated automatically (#332).
 
 `gov_dyn_min_throttle` is added. Value in 0..100%.
 
-`gov_collective_curve` is added. Value in 5..40.
-
 `gov_autorotation_bailout_time` is removed.
 
 `gov_autorotation_min_entry_time` is removed.
