@@ -232,6 +232,7 @@ static FAST_DATA_ZERO_INIT govData_t gov;
 //// Prototypes
 
 static void governorInitTTA(const pidProfile_t *pidProfile);
+static void govThrottleSetBypass(const float *throttleCurve, float minThrottle, float maxThrottle);
 
 
 //// Access functions
@@ -713,7 +714,7 @@ static void govUpdateDirectThrottle(void)
             govThrottleSlewControl(gov.minSpoolupThrottle, gov.maxSpoolupThrottle, gov.throttleRecoveryRate, gov.throttleRecoveryRate);
             break;
         case GOV_STATE_BYPASS:
-            govGetBypassThrottle(gov.throttleCurve, gov.idleThrottle, gov.maxThrottle);
+            govThrottleSetBypass(gov.throttleCurve, gov.idleThrottle, gov.maxThrottle);
             break;
         default:
             break;
