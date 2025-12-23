@@ -655,7 +655,10 @@ static void govThrottleSlewControl(float minThrottle, float maxThrottle, float u
 
 static void govUpdateLimitedThrottle(void)
 {
-    gov.throttleOutput = isThrottleOff() ? 0 : constrainf(getThrottle(), gov.idleThrottle, gov.maxThrottle);
+    const float minThrottle = fmaxf(gov.idleThrottle, gov.minActiveThrottle);
+    const float maxThrottle = gov.maxThrottle;
+
+    gov.throttleOutput = isThrottleOff() ? 0 : constrainf(getThrottle(), minThrottle, maxThrottle);
 }
 
 
