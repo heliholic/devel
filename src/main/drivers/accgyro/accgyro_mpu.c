@@ -52,6 +52,8 @@
 #include "drivers/accgyro/accgyro_spi_icm20649.h"
 #include "drivers/accgyro/accgyro_spi_icm20689.h"
 #include "drivers/accgyro/accgyro_spi_icm426xx.h"
+#include "drivers/accgyro/accgyro_spi_icm456xx.h"
+#include "drivers/accgyro/accgyro_spi_icm40609.h"
 #include "drivers/accgyro/accgyro_spi_lsm6dso.h"
 #include "drivers/accgyro/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro/accgyro_spi_mpu6500.h"
@@ -364,14 +366,20 @@ static gyroSpiDetectFn_t gyroSpiDetectFnTable[] = {
 #ifdef USE_ACCGYRO_SPI_BMI088
     bmi088SpiDetect,
 #endif
-#if defined(USE_GYRO_SPI_ICM42605) || defined(USE_GYRO_SPI_ICM42688P)
+#if defined(USE_GYRO_SPI_ICM42605) || defined(USE_GYRO_SPI_ICM42688P) || defined(USE_ACCGYRO_IIM42653)
     icm426xxSpiDetect,
 #endif
 #ifdef USE_GYRO_SPI_ICM20649
     icm20649SpiDetect,
 #endif
+#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605)
+    icm456xxSpiDetect,
+#endif
 #ifdef USE_GYRO_L3GD20
     l3gd20Detect,
+#endif
+#ifdef USE_ACCGYRO_ICM40609D
+    icm40609SpiDetect,
 #endif
     NULL // Avoid an empty array
 };

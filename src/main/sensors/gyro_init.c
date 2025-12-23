@@ -47,6 +47,8 @@
 #include "drivers/accgyro/accgyro_spi_icm20689.h"
 #include "drivers/accgyro/accgyro_spi_icm20689.h"
 #include "drivers/accgyro/accgyro_spi_icm426xx.h"
+#include "drivers/accgyro/accgyro_spi_icm456xx.h"
+#include "drivers/accgyro/accgyro_spi_icm40609.h"
 #include "drivers/accgyro/accgyro_spi_lsm6dso.h"
 #include "drivers/accgyro/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro/accgyro_spi_mpu6500.h"
@@ -222,6 +224,13 @@ void gyroInitSensor(gyroSensor_t *gyroSensor, const gyroDeviceConfig_t *config)
     case GYRO_MPU6500:
     case GYRO_MPU9250:
     case GYRO_LSM6DSO:
+    case GYRO_ICM42605:
+    case GYRO_ICM42688P:
+    case GYRO_IIM42652:
+    case GYRO_IIM42653:
+    case GYRO_ICM45686:
+    case GYRO_ICM45605:
+    case GYRO_ICM45606:
         gyroSensor->gyroDev.gyroHasOverflowProtection = true;
         break;
 
@@ -352,7 +361,7 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_GYRO_SPI_ICM42605) || defined(USE_GYRO_SPI_ICM42688P)
+#if defined(USE_GYRO_SPI_ICM42605) || defined(USE_GYRO_SPI_ICM42688P) || defined(USE_ACCGYRO_IIM42652) || defined(USE_ACCGYRO_IIM42653)
     case GYRO_ICM42605:
     case GYRO_ICM42688P:
         if (icm426xxSpiGyroDetect(dev)) {
@@ -362,6 +371,35 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
                 break;
             case ICM_42688P_SPI:
                 gyroHardware = GYRO_ICM42688P;
+                break;
+            case IIM_42652_SPI:
+                gyroHardware = GYRO_IIM42652;
+                break;
+            case IIM_42653_SPI:
+                gyroHardware = GYRO_IIM42653;
+                break;
+            default:
+                gyroHardware = GYRO_NONE;
+                break;
+            }
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#if defined(USE_ACCGYRO_ICM45686) || defined(USE_ACCGYRO_ICM45605) || defined(USE_ACCGYRO_ICM45606)
+    case GYRO_ICM45686:
+    case GYRO_ICM45605:
+        if (icm456xxSpiGyroDetect(dev)) {
+            switch (dev->mpuDetectionResult.sensor) {
+            case ICM_45686_SPI:
+                gyroHardware = GYRO_ICM45686;
+                break;
+            case ICM_45605_SPI:
+                gyroHardware = GYRO_ICM45605;
+                break;
+            case ICM_45606_SPI:
+                gyroHardware = GYRO_ICM45606;
                 break;
             default:
                 gyroHardware = GYRO_NONE;
@@ -403,6 +441,15 @@ STATIC_UNIT_TESTED gyroHardware_e gyroDetect(gyroDev_t *dev)
     case GYRO_LSM6DSO:
         if (lsm6dsoSpiGyroDetect(dev)) {
             gyroHardware = GYRO_LSM6DSO;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_ACCGYRO_ICM40609D
+    case GYRO_ICM40609D:
+        if (icm40609SpiGyroDetect(dev)) {
+            gyroHardware = GYRO_ICM40609D;
             break;
         }
         FALLTHROUGH;
