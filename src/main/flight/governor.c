@@ -772,7 +772,7 @@ static void govUpdateDirectState(void)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.throttleOutput >= gov.throttleInput)
+                else if (gov.throttleOutput >= gov.throttleInput && gov.throttleInput >= gov.minActiveThrottle)
                     govChangeState(GOV_STATE_ACTIVE);
                 break;
 
@@ -806,7 +806,7 @@ static void govUpdateDirectState(void)
                     govChangeState(GOV_STATE_THROTTLE_OFF);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_THROTTLE_IDLE);
-                else if (gov.throttleOutput >= gov.throttleInput)
+                else if (gov.throttleOutput >= gov.throttleInput && gov.throttleInput >= gov.minActiveThrottle)
                     govChangeState(GOV_STATE_ACTIVE);
                 break;
 
@@ -832,7 +832,7 @@ static void govUpdateDirectState(void)
                     govChangeState(GOV_STATE_THROTTLE_HOLD);
                 else if (gov.throttleInput < gov.handoverThrottle)
                     govChangeState(GOV_STATE_AUTOROTATION);
-                else if (gov.throttleOutput >= gov.throttleInput)
+                else if (gov.throttleOutput >= gov.throttleInput && gov.throttleInput >= gov.minActiveThrottle)
                     govChangeState(GOV_STATE_ACTIVE);
                 break;
 
