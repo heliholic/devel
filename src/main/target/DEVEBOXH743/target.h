@@ -62,6 +62,8 @@
 #define CURRENT_TASK_FREQ_HZ     250
 #define ESC_SENSOR_TASK_FREQ_HZ  250
 
+#define USE_LEDSTRIP_CACHE_MGMT
+
 
 // Treat the target as unified, and expect manufacturer id / board name
 // to be supplied when the board is configured for the first time
@@ -71,7 +73,6 @@
 
 #define USE_BEEPER
 
-// MPU interrupt
 #undef  USE_GYRO_DLPF_EXPERIMENTAL
 
 #define USE_ACC
@@ -132,8 +133,6 @@
 #define USE_FLASH_W25M02G          // 2Gb (1Gb x 2 stacked) NAND flash support
 #define USE_FLASH_W25Q128FV        // 16MB Winbond 25Q128
 
-#define USE_MAX7456
-
 #define USE_SPI
 #define SPI_FULL_RECONFIGURABILITY
 
@@ -147,40 +146,41 @@
 
 #define UNIFIED_SERIAL_PORT_COUNT       3
 
-#define USE_USB_DETECT
-
 #define USE_ESCSERIAL
 
 #define USE_ADC
 
 #define USE_FREQ_SENSOR
 
-#define USE_OSD
-#define USE_CMS
-#define USE_MAX7456
-#define USE_RCDEVICE
-#define USE_VTX_COMMON
-#define USE_VTX_CONTROL
-#define USE_VTX_SMARTAUDIO
-#define USE_VTX_TRAMP
-#define USE_CAMERA_CONTROL
+#define USE_SERVO_GEOMETRY_CORRECTION
 
-#ifdef USE_RX_SPI
-#define USE_RX_FRSKY_SPI_D
-#define USE_RX_FRSKY_SPI_X
-#define USE_RX_SFHSS_SPI
-#define USE_RX_REDPINE_SPI
-#define USE_RX_FRSKY_SPI_TELEMETRY
-#define USE_RX_CC2500_SPI_PA_LNA
-#define USE_RX_CC2500_SPI_DIVERSITY
-#define USE_RX_FLYSKY
-#define USE_RX_FLYSKY_SPI_LED
-#define USE_RX_SPEKTRUM
-#define USE_RX_SPEKTRUM_TELEMETRY
-#define USE_RX_EXPRESSLRS
-#define USE_RX_SX1280
-#define USE_RX_SX127X
-#endif
+#define USE_CMS
+
+#undef USE_CRSF_V3
+
+#undef USE_OSD
+#undef USE_MAX7456
+#undef USE_RCDEVICE
+#undef USE_VTX_COMMON
+#undef USE_VTX_CONTROL
+#undef USE_VTX_SMARTAUDIO
+#undef USE_VTX_TRAMP
+#undef USE_CAMERA_CONTROL
+
+#undef USE_RX_FRSKY_SPI_D
+#undef USE_RX_FRSKY_SPI_X
+#undef USE_RX_SFHSS_SPI
+#undef USE_RX_REDPINE_SPI
+#undef USE_RX_FRSKY_SPI_TELEMETRY
+#undef USE_RX_CC2500_SPI_PA_LNA
+#undef USE_RX_CC2500_SPI_DIVERSITY
+#undef USE_RX_FLYSKY
+#undef USE_RX_FLYSKY_SPI_LED
+#undef USE_RX_SPEKTRUM
+#undef USE_RX_SPEKTRUM_TELEMETRY
+#undef USE_RX_EXPRESSLRS
+#undef USE_RX_SX1280
+#undef USE_RX_SX127X
 
 #ifdef USE_VTX_CONTROL
 #define USE_VTX_RTC6705
