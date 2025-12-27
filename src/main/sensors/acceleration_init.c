@@ -49,6 +49,7 @@
 #include "drivers/accgyro/accgyro_spi_icm20689.h"
 #include "drivers/accgyro/accgyro_spi_icm426xx.h"
 #include "drivers/accgyro/accgyro_spi_icm456xx.h"
+#include "drivers/accgyro/accgyro_spi_icm40609.h"
 #include "drivers/accgyro/accgyro_spi_lsm6dso.h"
 #include "drivers/accgyro/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro/accgyro_spi_mpu6500.h"
@@ -320,6 +321,15 @@ retry:
     case ACC_LSM6DSO:
         if (lsm6dsoSpiAccDetect(dev)) {
             accHardware = ACC_LSM6DSO;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_ACCGYRO_ICM40609D
+    case ACC_ICM40609D:
+        if (icm40609SpiAccDetect(dev)) {
+            accHardware = ACC_ICM40609D;
             break;
         }
         FALLTHROUGH;
