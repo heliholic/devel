@@ -35,6 +35,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_spi_icm456xx.h"
+#include "drivers/accgyro/gyro_sync.h"
 #include "drivers/bus_spi.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
@@ -114,6 +115,8 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #define ICM456XX_GYRO_CONFIG0                   0x1C
 #define ICM456XX_ACCEL_CONFIG0                  0x1B
 #define ICM456XX_PWR_MGMT0                      0x10
+#define ICM456XX_RTC_CONFIG                     0x26
+#define ICM456XX_IOC_PAD_SCENARIO_OVRD          0x31
 
 // Register map IPREG_TOP1 (for future use)
 // Note: SREG_CTRL register provides endian selection capability.
@@ -164,6 +167,17 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #define ICM456XX_INT1_STATUS_DRDY               (1 << 2)
 #define ICM456XX_INT1_STATUS_FIFO_THS           (1 << 1)
 #define ICM456XX_INT1_STATUS_FIFO_FULL          (1 << 0)
+
+// RTC_CONFIG - 0x26
+#define ICM456XX_RTC_ALIGN                      (1 << 6)
+#define ICM456XX_RTC_ENABLE                     (1 << 5)
+
+// IOC_PAD_SCENARIO_OVRD - 0x31
+#define ICM456XX_PADS_INT2_CFG_OVRD             (1 << 2)
+#define ICM456XX_PADS_INT2_CFG_OVRD_INT2        (0 << 0)
+#define ICM456XX_PADS_INT2_CFG_OVRD_FSYNC       (1 << 0)
+#define ICM456XX_PADS_INT2_CFG_OVRD_CLKIN       (2 << 0)
+#define ICM456XX_PADS_INT2_CFG_OVRD_MASK        (3 << 0)
 
 // REG_MISC2 - 0x7F
 #define ICM456XX_SOFT_RESET                     (1 << 1)
@@ -235,7 +249,6 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #define ICM456XX_REG_IREG_ADDR_7_0              0x7D
 #define ICM456XX_REG_IREG_DATA                  0x7E
 
-
 // IPREG_SYS1_REG_172 - 0xAC
 #define ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR       0xA4AC // To access register in IPREG_SYS1, add base address 0xA400 + offset
 
@@ -267,6 +280,8 @@ Note: Now implemented only UI Interface with Low-Noise Mode
 #else
 #define ICM456XX_MAX_SPI_CLK_HZ                 ICM456XX_CLOCK
 #endif
+
+#define ICM456XX_CLKIN_FREQ                     32000
 
 #define HZ_TO_US(hz)                            ((int32_t)((1000 * 1000) / (hz)))
 
@@ -364,6 +379,22 @@ static bool icm456xx_write_ireg(const extDevice_t *dev, uint16_t reg, uint8_t va
     return false; // timeout
 }
 
+#if defined(USE_GYRO_CLK)
+static void icm456xx_enableExternalClock(const extDevice_t *dev)
+{
+    if (gyroExternalClockInit(dev, ICM456XX_CLKIN_FREQ)) {
+        uint8_t ioc_pad = spiReadRegMsk(dev, ICM456XX_IOC_PAD_SCENARIO_OVRD);
+        ioc_pad &= ~ICM456XX_PADS_INT2_CFG_OVRD_MASK;
+        ioc_pad |= ICM456XX_PADS_INT2_CFG_OVRD | ICM456XX_PADS_INT2_CFG_OVRD_CLKIN;
+        spiWriteReg(dev, ICM456XX_IOC_PAD_SCENARIO_OVRD, ioc_pad);
+
+        uint8_t rtc_config = spiReadRegMsk(dev, ICM456XX_RTC_CONFIG);
+        rtc_config |= ICM456XX_RTC_ENABLE;
+        spiWriteReg(dev, ICM456XX_RTC_CONFIG, rtc_config);
+    }
+}
+#endif
+
 static bool icm456xx_enableAAFandInterpolator(const extDevice_t *dev, uint16_t reg, bool enableAAF, bool enableInterp)
 {
     const uint8_t value = (enableAAF ? ICM456XX_SRC_CTRL_AAF_ENABLE_BIT : 0)
@@ -391,22 +422,32 @@ static void icm456xx_enableSensors(const extDevice_t *dev, bool enable)
 
 void icm456xxAccInit(accDev_t *acc)
 {
-    const extDevice_t *dev = &acc->gyro->dev;
+    acc->acc_1G = 2048; // 16g scale
+    acc->gyro->accSampleRateHz = 1600;
+}
 
-    // ICM-45686 does not use bank switching (register 0x75 is reserved)
-    // Configure accelerometer directly
+void icm456xxGyroInit(gyroDev_t *gyro)
+{
+    const extDevice_t *dev = &gyro->dev;
 
-    switch (acc->mpuDetectionResult.sensor) {
-    case ICM_45686_SPI:
-        acc->acc_1G = 2048; // 16g scale
-        acc->gyro->accSampleRateHz = 1600;
-        break;
-    case ICM_45605_SPI:
-    case ICM_45606_SPI:
-    default:
-        acc->acc_1G = 2048; // 16g scale
-        acc->gyro->accSampleRateHz = 1600;
-        break;
+    spiSetClkDivisor(dev, spiCalculateDivider(ICM456XX_MAX_SPI_CLK_HZ));
+
+    mpuGyroInit(gyro);
+
+    // Enable both accelerometer and gyroscope sensors
+    icm456xx_enableSensors(dev, true);
+    delay(ICM456XX_SENSOR_ENABLE_DELAY_MS); // Allow sensors to power on and stabilize
+
+    // Enable Anti-Alias (AAF) Filter and Interpolator for Gyro (Section 7.2 of datasheet)
+    if (!icm456xx_enableAAFandInterpolator(dev, ICM456XX_GYRO_SRC_CTRL_IREG_ADDR, true, true)) {
+        // AAF/Interpolator initialization failed, fallback to disabled state
+        icm456xx_enableAAFandInterpolator(dev, ICM456XX_GYRO_SRC_CTRL_IREG_ADDR, false, false);
+    }
+
+    // Set the Gyro UI LPF bandwidth cut-off (Section 7.3 of datasheet)
+    if (!icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, getGyroLpfConfig(gyro, gyroConfig()->gyro_hardware_lpf))) {
+        // If LPF configuration fails, fallback to BYPASS
+        icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, ICM456XX_GYRO_UI_LPFBW_BYPASS);
     }
 
     // Enable Anti-Alias Filter and Interpolator for Accel (Section 7.2 of datasheet)
@@ -421,76 +462,36 @@ void icm456xxAccInit(accDev_t *acc)
         icm456xx_configureLPF(dev, ICM456XX_ACCEL_UI_LPF_CFG_IREG_ADDR, ICM456XX_ACCEL_UI_LPFBW_BYPASS);
     }
 
-    // Set up register addresses for combined DMA reads
-    // Accel and gyro data are contiguous: accel at 0x00, gyro at 0x06
-    acc->gyro->accDataReg = ICM456XX_ACCEL_DATA_X1_UI;  // 0x00
-}
+#if defined(USE_GYRO_CLK)
+    icm456xx_enableExternalClock(dev);
+#endif
 
-void icm456xxGyroInit(gyroDev_t *gyro)
-{
-    const extDevice_t *dev = &gyro->dev;
-
-    spiSetClkDivisor(dev, spiCalculateDivider(ICM456XX_MAX_SPI_CLK_HZ));
-
-    mpuGyroInit(gyro);
-
-    // ICM-45686 does not use bank switching (register 0x75 is reserved)
-    // Enable both accelerometer and gyroscope sensors
-
-    icm456xx_enableSensors(dev, true);
-    delay(ICM456XX_SENSOR_ENABLE_DELAY_MS); // Allow sensors to power on and stabilize
-
-    // Configure accelerometer full-scale range (16g mode)
-    switch (gyro->mpuDetectionResult.sensor) {
-    case ICM_45686_SPI:
-    case ICM_45605_SPI:
-    case ICM_45606_SPI:
-        spiWriteReg(dev, ICM456XX_ACCEL_CONFIG0, ICM456XX_ACCEL_FS_SEL_16G | ICM456XX_ACCEL_ODR_1K6_LN);
-        delay(ICM456XX_ACCEL_STARTUP_TIME_MS); // Per datasheet Table 9-6: 10ms minimum startup time
-        break;
-    default:
-        break;
-    }
-
-    // Enable Anti-Alias (AAF) Filter and Interpolator for Gyro (Section 7.2 of datasheet)
-    if (!icm456xx_enableAAFandInterpolator(dev, ICM456XX_GYRO_SRC_CTRL_IREG_ADDR, true, true)) {
-        // AAF/Interpolator initialization failed, fallback to disabled state
-        icm456xx_enableAAFandInterpolator(dev, ICM456XX_GYRO_SRC_CTRL_IREG_ADDR, false, false);
-    }
-
-    // Set the Gyro UI LPF bandwidth cut-off (Section 7.3 of datasheet)
-    if (!icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, getGyroLpfConfig(gyro, gyroConfig()->gyro_hardware_lpf))) {
-        // If LPF configuration fails, fallback to BYPASS
-        icm456xx_configureLPF(dev, ICM456XX_GYRO_UI_LPF_CFG_IREG_ADDR, ICM456XX_GYRO_UI_LPFBW_BYPASS);
-    }
-
+    // Configure gyro Output Data Rate
     uint32_t gyro_odr = 0;
 
-    switch (gyro->mpuDetectionResult.sensor) {
-    case ICM_45686_SPI:
-    case ICM_45605_SPI:
-    case ICM_45606_SPI:
-        switch (gyro->gyroRateKHz) {
-        case GYRO_RATE_6400_Hz:
-            gyro_odr = ICM456XX_GYRO_ODR_6K4_LN;
-            break;
-        case GYRO_RATE_3200_Hz:
-            gyro_odr = ICM456XX_GYRO_ODR_3K2_LN;
-            break;
-        case GYRO_RATE_1600_Hz:
-            gyro_odr = ICM456XX_GYRO_ODR_1K6_LN;
-            break;
-        default:
-            gyro_odr = ICM456XX_GYRO_ODR_6K4_LN;
-            break;
-        }
-        gyro->scale = GYRO_SCALE_2000DPS;
-        spiWriteReg(dev, ICM456XX_GYRO_CONFIG0, ICM456XX_GYRO_FS_SEL_2000DPS | gyro_odr);
-        delay(ICM456XX_GYRO_STARTUP_TIME_MS); // Per datasheet Table 9-6: 35ms minimum startup time
+    switch (gyro->gyroRateKHz) {
+    case GYRO_RATE_6400_Hz:
+        gyro_odr = ICM456XX_GYRO_ODR_6K4_LN;
+        break;
+    case GYRO_RATE_3200_Hz:
+        gyro_odr = ICM456XX_GYRO_ODR_3K2_LN;
+        break;
+    case GYRO_RATE_1600_Hz:
+        gyro_odr = ICM456XX_GYRO_ODR_1K6_LN;
         break;
     default:
+        gyro_odr = ICM456XX_GYRO_ODR_6K4_LN;
         break;
     }
+
+    // Configure gyro 2000DPS mode
+    spiWriteReg(dev, ICM456XX_GYRO_CONFIG0, ICM456XX_GYRO_FS_SEL_2000DPS | gyro_odr);
+    delay(ICM456XX_GYRO_STARTUP_TIME_MS); // Per datasheet Table 9-6: 35ms minimum startup time
+    gyro->scale = GYRO_SCALE_2000DPS;
+
+    // Configure accelerometer full-scale range (16g mode)
+    spiWriteReg(dev, ICM456XX_ACCEL_CONFIG0, ICM456XX_ACCEL_FS_SEL_16G | ICM456XX_ACCEL_ODR_1K6_LN);
+    delay(ICM456XX_ACCEL_STARTUP_TIME_MS); // Per datasheet Table 9-6: 10ms minimum startup time
 
     gyro->gyroShortPeriod = clockMicrosToCycles(HZ_TO_US(gyro->gyroSampleRateHz));
 
