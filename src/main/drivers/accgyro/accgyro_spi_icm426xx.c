@@ -37,6 +37,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_spi_icm426xx.h"
+#include "drivers/accgyro/gyro_sync.h"
 #include "drivers/bus_spi.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
@@ -181,6 +182,26 @@ static void setUserBank(const extDevice_t *dev, const uint8_t user_bank)
     spiWriteReg(dev, ICM426XX_RA_REG_BANK_SEL, user_bank & 7);
 }
 
+#if defined(USE_GYRO_CLK)
+static void icm426xxEnableExternalClock(const extDevice_t *dev)
+{
+    if (gyroExternalClockInit(dev, ICM426XX_CLKIN_FREQ)) {
+        // Switch to Bank 1 and set bits 2:1 in INTF_CONFIG5 (0x7B) to enable CLKIN on PIN9
+        setUserBank(dev, ICM426XX_BANK_SELECT1);
+        uint8_t intf_config5 = spiReadRegMsk(dev, ICM426XX_INTF_CONFIG5);
+        intf_config5 &= ~ICM426XX_INTF_CONFIG5_PIN9_FUNCTION_MASK;
+        intf_config5 |= ICM426XX_INTF_CONFIG5_PIN9_FUNCTION_CLKIN;  // Set bits 2:1 to 0b10 for CLKIN
+        spiWriteReg(dev, ICM426XX_INTF_CONFIG5, intf_config5);
+
+        // Switch to Bank 0 and set bit 2 in RTC_MODE (0x4D) to enable external CLK signal
+        setUserBank(dev, ICM426XX_BANK_SELECT0);
+        uint8_t rtc_mode = spiReadRegMsk(dev, ICM426XX_INTF_CONFIG1);
+        rtc_mode |= ICM426XX_INTF_CONFIG1_CLKIN; // Enable external CLK signal
+        spiWriteReg(dev, ICM426XX_INTF_CONFIG1, rtc_mode);
+    }
+}
+#endif
+
 static void icm426xxSoftReset(const extDevice_t *dev)
 {
     setUserBank(dev, ICM426XX_BANK_SELECT0);
@@ -288,6 +309,10 @@ void icm426xxGyroInit(gyroDev_t *gyro)
     // See section 12.9 in ICM-42688-P datasheet v1.7
     setUserBank(dev, ICM426XX_BANK_SELECT0);
     turnGyroAccOff(dev);
+
+#if defined(USE_GYRO_CLK)
+    icm426xxEnableExternalClock(dev);
+#endif
 
     // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
     const mpuSensor_e gyroModel = gyro->mpuDetectionResult.sensor;
