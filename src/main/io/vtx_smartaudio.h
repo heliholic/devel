@@ -28,7 +28,6 @@
 #ifdef USE_SMARTAUDIO_DPRINTF
 #include "io/serial.h"
 #include "common/printf.h"
-#include "common/printf_serial.h"
 #endif
 
 #define VTX_SMARTAUDIO_MIN_BAND 1

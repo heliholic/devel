@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#include "common/printf.h"
+
 #define DEBUG_VALUE_COUNT 8
 
 extern uint8_t debugMode;
