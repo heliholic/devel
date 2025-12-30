@@ -783,7 +783,7 @@ static void osdElementUpDownReference(osdElementParms_t *element)
     if (fabsf(earthUpinBodyFrame[2]) < SINE_25_DEG && fabsf(earthUpinBodyFrame[1]) < SINE_25_DEG) {
         float thetaB; // pitch from body frame to zenith/nadir
         float psiB; // psi from body frame to zenith/nadir
-        char *symbol[2] = {"U", "D"}; // character buffer
+        char symbol[2] = {'U', 'D'}; // character buffer
         int direction;
 
         if (attitude.values.pitch > 0.0f){ //nose down
@@ -923,12 +923,12 @@ static void osdElementCurrentDraw(osdElementParms_t *element)
 
 static void osdElementDebug(osdElementParms_t *element)
 {
-    tfp_sprintf(element->buff, "DBG %5d %5d %5d %5d", debug[0], debug[1], debug[2], debug[3]);
+    tfp_sprintf(element->buff, "DBG %5ld %5ld %5ld %5ld", debug[0], debug[1], debug[2], debug[3]);
 }
 
 static void osdElementDebug2(osdElementParms_t *element)
 {
-    tfp_sprintf(element->buff, "D2  %5d %5d %5d %5d", debug[4], debug[5], debug[6], debug[7]);
+    tfp_sprintf(element->buff, "D2  %5ld %5ld %5ld %5ld", debug[4], debug[5], debug[6], debug[7]);
 }
 
 static void osdElementDisarmed(osdElementParms_t *element)
@@ -951,7 +951,7 @@ static void osdBackgroundPilotName(osdElementParms_t *element)
 static void osdElementTotalFlights(osdElementParms_t *element)
 {
     const int32_t total_flights = statsConfig()->stats_total_flights;
-    tfp_sprintf(element->buff, "#%d", total_flights);
+    tfp_sprintf(element->buff, "#%ld", total_flights);
 }
 #endif
 
@@ -1150,7 +1150,7 @@ static void osdElementGpsSats(osdElementParms_t *element)
 static void osdElementGpsSpeed(osdElementParms_t *element)
 {
     if (STATE(GPS_FIX)) {
-        tfp_sprintf(element->buff, "%c%3d%c", SYM_SPEED, osdGetSpeedToSelectedUnit(gpsConfig()->gps_use_3d_speed ? gpsSol.speed3d : gpsSol.groundSpeed), osdGetSpeedToSelectedUnitSymbol());
+        tfp_sprintf(element->buff, "%c%3ld%c", SYM_SPEED, osdGetSpeedToSelectedUnit(gpsConfig()->gps_use_3d_speed ? gpsSol.speed3d : gpsSol.groundSpeed), osdGetSpeedToSelectedUnitSymbol());
     } else {
         tfp_sprintf(element->buff, "%c%c%c", SYM_SPEED, SYM_HYPHEN, osdGetSpeedToSelectedUnitSymbol());
     }
@@ -1258,7 +1258,7 @@ static void osdElementLogStatus(osdElementParms_t *element)
         } else {
             int32_t logNumber = blackboxGetLogNumber();
             if (logNumber >= 0) {
-                tfp_sprintf(element->buff, "%c%d", SYM_BBLOG, logNumber);
+                tfp_sprintf(element->buff, "%c%ld", SYM_BBLOG, logNumber);
             } else {
                 tfp_sprintf(element->buff, "%c", SYM_BBLOG);
             }
@@ -1288,7 +1288,7 @@ static void osdElementWattHoursDrawn(osdElementParms_t *element)
     }
 
     if (wattHoursDrawn < 1.0f) {
-        tfp_sprintf(element->buff, "%3dMWH", lrintf(wattHoursDrawn * 1000));
+        tfp_sprintf(element->buff, "%3ldMWH", lrintf(wattHoursDrawn * 1000));
     } else {
         int wattHourWholeNumber = (int)wattHoursDrawn;
         int wattHourDecimalValue = (int)((wattHoursDrawn - wattHourWholeNumber) * 100);
@@ -1449,7 +1449,7 @@ static void osdElementPidsYaw(osdElementParms_t *element)
 
 static void osdElementPower(osdElementParms_t *element)
 {
-    tfp_sprintf(element->buff, "%4dW", getAmperage() * getBatteryVoltage() / 10000);
+    tfp_sprintf(element->buff, "%4ldW", getAmperage() * getBatteryVoltage() / 10000);
 }
 
 static void osdElementRcChannels(osdElementParms_t *element)

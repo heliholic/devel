@@ -188,7 +188,7 @@ static const void *setupPopupMenuOnDisplayUpdate(displayPort_t *pDisp, const OSD
 #endif
 #ifdef USE_BATTERY_CONTINUE
     if (hasUsedMAh()) {
-        tfp_sprintf(batteryContinueAmount, "RESTORE %5d MAH", statsConfig()->stats_mah_used);
+        tfp_sprintf(batteryContinueAmount, "RESTORE %5ld MAH", statsConfig()->stats_mah_used);
     }
 #endif
 

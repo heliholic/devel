@@ -402,7 +402,7 @@ static void showGpsPage(void)
     i2c_OLED_set_line(dev, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "La/Lo: %d/%d", gpsSol.llh.lat / GPS_DEGREES_DIVIDER, gpsSol.llh.lon / GPS_DEGREES_DIVIDER);
+    tfp_sprintf(lineBuffer, "La/Lo: %ld/%ld", gpsSol.llh.lat / GPS_DEGREES_DIVIDER, gpsSol.llh.lon / GPS_DEGREES_DIVIDER);
     padLineBuffer();
     i2c_OLED_set_line(dev, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
@@ -417,22 +417,22 @@ static void showGpsPage(void)
     i2c_OLED_set_xy(dev, HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "RX: %d", dashboardGpsPacketCount);
+    tfp_sprintf(lineBuffer, "RX: %ld", dashboardGpsPacketCount);
     padHalfLineBuffer();
     i2c_OLED_set_line(dev, rowIndex);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "ERRs: %d", gpsData.errors);
+    tfp_sprintf(lineBuffer, "ERRs: %ld", gpsData.errors);
     padHalfLineBuffer();
     i2c_OLED_set_xy(dev, HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "Dt: %d", gpsSol.navIntervalMs);
+    tfp_sprintf(lineBuffer, "Dt: %ld", gpsSol.navIntervalMs);
     padHalfLineBuffer();
     i2c_OLED_set_line(dev, rowIndex);
     i2c_OLED_send_string(dev, lineBuffer);
 
-    tfp_sprintf(lineBuffer, "TOs: %d", gpsData.timeouts);
+    tfp_sprintf(lineBuffer, "TOs: %ld", gpsData.timeouts);
     padHalfLineBuffer();
     i2c_OLED_set_xy(dev, HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
     i2c_OLED_send_string(dev, lineBuffer);
@@ -464,7 +464,7 @@ static void showBatteryPage(void)
         int32_t amperage = getAmperage();
         // 123456789012345678901
         // Amp: DDD.D mAh: DDDDD
-        tfp_sprintf(lineBuffer, "Amp: %d.%d mAh: %d", amperage / 100, (amperage % 100) / 10, getMAhDrawn());
+        tfp_sprintf(lineBuffer, "Amp: %ld.%ld mAh: %ld", amperage / 100, (amperage % 100) / 10, getMAhDrawn());
         padLineBuffer();
         i2c_OLED_set_line(dev, rowIndex++);
         i2c_OLED_send_string(dev, lineBuffer);
@@ -600,7 +600,7 @@ static void showBBPage(void)
 static void showDebugPage(void)
 {
     for (int rowIndex = 0; rowIndex < 4; rowIndex++) {
-        tfp_sprintf(lineBuffer, "%d = %5d", rowIndex, debug[rowIndex]);
+        tfp_sprintf(lineBuffer, "%d = %5ld", rowIndex, debug[rowIndex]);
         padLineBuffer();
         i2c_OLED_set_line(dev, rowIndex + PAGE_TITLE_LINE_COUNT);
         i2c_OLED_send_string(dev, lineBuffer);
