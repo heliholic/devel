@@ -24,39 +24,7 @@
 
 #include "platform.h"
 
-#include "build/build_config.h"
 #include "maths.h"
-
-#ifdef REQUIRE_PRINTF_LONG_SUPPORT
-
-void uli2a(unsigned long int num, unsigned int base, int uc, char *bf)
-{
-    unsigned int d = 1;
-
-    while (num / d >= base)
-        d *= base;
-
-    while (d != 0) {
-        int dgt = num / d;
-    *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
-
-    // Next digit
-        num %= d;
-        d /= base;
-    }
-    *bf = 0;
-}
-
-void li2a(long num, char *bf)
-{
-    if (num < 0) {
-        num = -num;
-        *bf++ = '-';
-    }
-    uli2a(num, 10, 0, bf);
-}
-
-#endif
 
 void ui2a(unsigned int num, unsigned int base, int uc, char *bf)
 {

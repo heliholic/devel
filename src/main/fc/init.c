@@ -37,7 +37,7 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/maths.h"
-#include "common/printf_serial.h"
+#include "common/printf.h"
 
 #include "config/config.h"
 #include "config/config_eeprom.h"
@@ -261,9 +261,7 @@ static void swdPinsInit(void)
 
 void init(void)
 {
-#ifdef SERIAL_PORT_COUNT
-    printfSerialInit();
-#endif
+    printfITMInit();
 
     systemInit();
 
@@ -530,6 +528,9 @@ void init(void)
 #else
     serialInit(featureIsEnabled(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
+
+    // Move printf to a serial port
+    //printfSerialInit(SERIAL_PORT_USART3, 921600, 0);
 
     mixerInit();
 
