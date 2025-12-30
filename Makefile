@@ -43,8 +43,15 @@ DEBUG     ?=
 # releases should not be built with this flag as it does not disable pwm output
 DEBUG_HARDFAULTS ?=
 
-# Use ITM for realtime debugging
-USE_ITM_DEBUG ?=
+# Use printf for debugging:
+#    empty  - no printf support
+#    NULL   - printf supported, but optimised out
+#    ITM    - use ITM SWO channel 0 for printf
+#    SERIAL - use a serial port for printf
+USE_PRINTF ?=
+
+# Use ITM for realtime debugging with DEBUG()
+USE_ITM_DEBUG ?= no
 
 # Serial port/Device for flashing
 SERIAL_DEVICE   ?= $(firstword $(wildcard /dev/ttyACM*) $(firstword $(wildcard /dev/ttyUSB*) no-port-found))
@@ -158,6 +165,10 @@ OPTIMISE_SPEED        := -Ofast
 OPTIMISE_SIZE         := -Os
 
 LTO_FLAGS             := $(OPTIMISATION_BASE) $(OPTIMISE_SPEED)
+endif
+
+ifneq ($(USE_PRINTF),)
+DEBUG_FLAGS           += -DUSE_PRINTF -DUSE_$(USE_PRINTF)_PRINTF
 endif
 
 ifeq ($(USE_ITM_DEBUG),yes)

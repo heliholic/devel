@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#include "drivers/itm.h"
+#include "common/printf.h"
 
 #define DEBUG_VALUE_COUNT 8
 

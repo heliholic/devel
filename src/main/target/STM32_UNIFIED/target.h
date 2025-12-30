@@ -302,6 +302,9 @@
 #error "No resources defined for this Unified Target."
 #endif
 
+#ifdef DEBUG_BUILD
+#define USE_PRINTF
+#endif
 
 // Treat the target as unified, and expect manufacturer id / board name
 // to be supplied when the board is configured for the first time
