@@ -148,7 +148,10 @@ void gyroInitFilters(void)
         gyroConfig()->gyro_lpf1_type,
         gyroConfig()->gyro_lpf1_static_hz,
         gyro.filterRateHz,
-        gyro.dynLpfFilter ? LPF_UPDATE : 0
+#ifdef USE_DYN_LPF
+        gyro.dynLpfFilter ? LPF_UPDATE :
+#endif
+        0
     );
 
     gyroInitLowpassFilter(
