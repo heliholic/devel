@@ -303,8 +303,18 @@
 #endif
 
 #ifdef DEBUG_BUILD
+
+// printf support to ITM or a serial port
 #define USE_PRINTF
-#endif
+
+// DEBUG() writes to ITM directly
+#define USE_REALTIME_ITM_DEBUG
+
+// Use fast macro for ITM_SendUx()
+#define USE_ITM_SEND_MACRO
+
+#endif /* DEBUG_BUILD */
+
 
 // Treat the target as unified, and expect manufacturer id / board name
 // to be supplied when the board is configured for the first time
