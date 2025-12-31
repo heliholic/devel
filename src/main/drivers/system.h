@@ -98,3 +98,13 @@ typedef void extiCallbackHandlerFunc(void);
 void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn);void unregisterExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn);
 
 void unusedPinsInit(void);
+
+#ifdef USE_ITM_SEND_MACRO
+#define ITM_SendU8(port,data)           (ITM->PORT[(port)].u8  = (data))
+#define ITM_SendU16(port,data)          (ITM->PORT[(port)].u16 = (data))
+#define ITM_SendU32(port,data)          (ITM->PORT[(port)].u32 = (data))
+#else
+uint8_t  ITM_SendU8(const size_t port, uint8_t data);
+uint16_t ITM_SendU16(const size_t port, uint16_t data);
+uint32_t ITM_SendU32(const size_t port, uint32_t data);
+#endif
