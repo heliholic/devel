@@ -24,6 +24,9 @@
 
 #include "common/printf.h"
 
+#include "drivers/system.h"
+
+
 #define DEBUG_VALUE_COUNT 8
 
 extern uint8_t debugMode;
@@ -33,16 +36,22 @@ extern int32_t debug[DEBUG_VALUE_COUNT];
 
 extern uint32_t __timing[DEBUG_VALUE_COUNT];
 
-#define DEBUG_SET(mode, index, value)             do { if (debugMode == (mode)) { debug[(index)] = (value); } } while (0)
-#define DEBUG_AXIS_SET(mode, axis, index, value)  do { if (debugAxis == (axis) && debugMode == (mode)) { debug[(index)] = (value); } } while (0)
-#define DEBUG_COND_SET(mode, cond, index, value)  do { if ((cond) && debugMode == (mode)) { debug[(index)] = (value); } } while (0)
+#ifdef USE_REALTIME_ITM_DEBUG
+#define SET_DEBUG_VALUE(index, value)             (debug[(index)] = ITM_SendU32((index) | 0x10, (value)))
+#else
+#define SET_DEBUG_VALUE(index, value)             (debug[(index)] = (value))
+#endif
+
+#define DEBUG_SET(mode, index, value)             do { if (debugMode == (mode)) { SET_DEBUG_VALUE(index,value); } } while (0)
+#define DEBUG_AXIS_SET(mode, axis, index, value)  do { if (debugAxis == (axis) && debugMode == (mode)) { SET_DEBUG_VALUE(index,value); } } while (0)
+#define DEBUG_COND_SET(mode, cond, index, value)  do { if ((cond) && debugMode == (mode)) { SET_DEBUG_VALUE(index,value); } } while (0)
 
 #define DEBUG(mode, index, value)                 DEBUG_SET(DEBUG_ ## mode, index, value)
 #define DEBUG_AXIS(mode, axis, index, value)      DEBUG_AXIS_SET(DEBUG_ ## mode, axis, index, value)
 #define DEBUG_COND(mode, cond, index, value)      DEBUG_COND_SET(DEBUG_ ## mode, cond, index, value)
 
 #define DEBUG_TIME_START(mode, index)             do { if (debugMode == (DEBUG_ ## mode)) { __timing[(index)] = micros(); } } while (0)
-#define DEBUG_TIME_END(mode, index)               do { if (debugMode == (DEBUG_ ## mode)) { debug[(index)] = micros() - __timing[(index)]; } } while (0)
+#define DEBUG_TIME_END(mode, index)               do { if (debugMode == (DEBUG_ ## mode)) { SET_DEBUG_VALUE(index, micros() - __timing[(index)]); } } while (0)
 
 
 typedef enum {

@@ -263,6 +263,54 @@ void failureMode(failureMode_e mode)
 #endif
 }
 
+#ifndef USE_ITM_SEND_MACRO
+
+uint8_t ITM_SendU8(const size_t port, const uint8_t data)
+{
+#ifdef USE_NONBLOCKING_ITM_SEND
+    if (ITM->PORT[port].u32 != 0UL)
+    {
+#else
+    if ((ITM->TCR & BIT(0)) && (ITM->TER & BIT(port)))
+    {
+        while (ITM->PORT[port].u32 == 0UL) __NOP();
+#endif
+        ITM->PORT[port].u8 = data;
+    }
+    return data;
+}
+
+uint16_t ITM_SendU16(const size_t port, const uint16_t data)
+{
+#ifdef USE_NONBLOCKING_ITM_SEND
+    if (ITM->PORT[port].u32 != 0UL)
+    {
+#else
+    if ((ITM->TCR & BIT(0)) && (ITM->TER & BIT(port)))
+    {
+        while (ITM->PORT[port].u32 == 0UL) __NOP();
+#endif
+        ITM->PORT[port].u16 = data;
+    }
+    return data;
+}
+
+uint32_t ITM_SendU32(const size_t port, const uint32_t data)
+{
+#ifdef USE_NONBLOCKING_ITM_SEND
+    if (ITM->PORT[port].u32 != 0UL)
+    {
+#else
+    if ((ITM->TCR & BIT(0)) && (ITM->TER & BIT(port)))
+    {
+        while (ITM->PORT[port].u32 == 0UL) __NOP();
+#endif
+        ITM->PORT[port].u32 = data;
+    }
+    return data;
+}
+#endif /* USE_ITM_SEND_MACRO */
+
 void initialiseMemorySections(void)
 {
 #ifdef USE_ITCM_RAM
