@@ -54,6 +54,10 @@
 // PP_CALL(TAKE3, MULTI2, C) expands to ABC
 #define PP_CALL(macro, ...) macro(__VA_ARGS__)
 
+#ifndef __unused
+#define __unused __attribute__((__unused__))
+#endif
+
 #if !defined(UNUSED)
 #define UNUSED(x) (void)(x) // Variables and parameters that are not used
 #endif
