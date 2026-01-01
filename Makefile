@@ -155,6 +155,16 @@ FATFS_DIR        = $(ROOT)/lib/main/FatFS
 FATFS_SRC        = $(notdir $(wildcard $(FATFS_DIR)/*.c))
 CSOURCES        := $(shell find $(SRC_DIR) -name '*.c')
 
+FC_VER_MAJOR := $(shell grep ' FC_VERSION_MAJOR' src/main/build/version.h | awk '{print $$3}' )
+FC_VER_MINOR := $(shell grep ' FC_VERSION_MINOR' src/main/build/version.h | awk '{print $$3}' )
+FC_VER_PATCH := $(shell grep ' FC_VERSION_PATCH' src/main/build/version.h | awk '{print $$3}' )
+
+ifneq ($(FC_VER_SUFFIX),)
+FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)-$(FC_VER_SUFFIX)
+else
+FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+endif
+
 # import config handling (must occur after tool discovery and hydration)
 include $(MAKE_SCRIPT_DIR)/config.mk
 
@@ -226,6 +236,10 @@ ifneq ($(CONFIG),)
 TARGET_FLAGS := $(TARGET_FLAGS) -DUSE_CONFIG
 endif
 
+ifneq ($(FC_VER_SUFFIX),)
+TARGET_FLAGS += -DFC_VERSION_SUFFIX="$(FC_VER_SUFFIX)"
+endif
+
 SPEED_OPTIMISED_SRC :=
 SIZE_OPTIMISED_SRC  :=
 
@@ -295,11 +309,6 @@ CC_DEFAULT_OPTIMISATION := $(filter-out $(CFLAGS_DISABLED), $(CC_DEFAULT_OPTIMIS
 CC_SPEED_OPTIMISATION   := $(filter-out $(CFLAGS_DISABLED), $(CC_SPEED_OPTIMISATION))
 CC_SIZE_OPTIMISATION    := $(filter-out $(CFLAGS_DISABLED), $(CC_SIZE_OPTIMISATION))
 CC_NO_OPTIMISATION      := $(filter-out $(CFLAGS_DISABLED), $(CC_NO_OPTIMISATION))
-
-
-# Extract version from the version header
-# Expand FC_VERSION_STRING via the preprocessor; compute before finalizing CFLAGS
-FC_VER           := $(call pp_def_value_str,src/main/build/version.h,FC_VERSION_STRING)
 
 #
 # Added after GCC version update, remove once the warnings have been fixed
