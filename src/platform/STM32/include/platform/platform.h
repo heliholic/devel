@@ -553,3 +553,6 @@ extern uint8_t _dmaram_end__;
 #define RAM_CODE                   __attribute__((section(".ram_code")))
 #endif
 
+// Save space with initialization code
+#define INIT_CODE                  __attribute__((optimize("-Os")))
+

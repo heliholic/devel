@@ -49,6 +49,10 @@
 #define DEFAULT_AUX_CHANNEL_COUNT       6
 #endif
 
+#ifndef INIT_CODE
+#define INIT_CODE
+#endif
+
 #ifndef FAST_CODE
 #define FAST_CODE
 #endif
