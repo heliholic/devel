@@ -139,7 +139,7 @@ extern const uint8_t __pg_resetdata_end[];
     /**/
 
 #define PG_REGISTER_WITH_RESET_FN(_type, _name, _pgn, _version)         \
-    static void pgResetFn_ ## _name(_type *);                           \
+    extern void pgResetFn_ ## _name(_type *);                           \
     PG_REGISTER_I(_type, _name, _pgn, _version, .reset = {.fn = (pgResetFunc*)&pgResetFn_ ## _name }) \
     /**/
 
