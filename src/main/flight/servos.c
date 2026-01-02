@@ -63,7 +63,6 @@ void pgResetFn_servoConfig(servoConfig_t *servoConfig)
     servoConfig->dev.servoPwmRate = 50;
     servoConfig->tri_unarmed_servo = 1;
     servoConfig->servo_lowpass_freq = 0;
-    servoConfig->channelForwardingStartChannel = AUX1;
 
 #ifdef SERVO1_PIN
     servoConfig->dev.ioTags[0] = IO_TAG(SERVO1_PIN);
@@ -103,7 +102,6 @@ void pgResetFn_servoParams(servoParam_t *instance)
             .max = DEFAULT_SERVO_MAX,
             .middle = DEFAULT_SERVO_MIDDLE,
             .rate = 100,
-            .forwardFromChannel = CHANNEL_FORWARDING_DISABLED
         );
     }
 }
@@ -216,14 +214,8 @@ const mixerRules_t servoMixers[] = {
     { 0, NULL },
 };
 
-static int16_t determineServoMiddleOrForwardFromChannel(servoIndex_e servoIndex)
+static int16_t determineServoMiddle(servoIndex_e servoIndex)
 {
-    const uint8_t channelToForwardFrom = servoParams(servoIndex)->forwardFromChannel;
-
-    if (channelToForwardFrom != CHANNEL_FORWARDING_DISABLED && channelToForwardFrom < rxRuntimeState.channelCount) {
-        return scaleRangef(constrainf(rcData[channelToForwardFrom], PWM_RANGE_MIN, PWM_RANGE_MAX), PWM_RANGE_MIN, PWM_RANGE_MAX, servoParams(servoIndex)->min, servoParams(servoIndex)->max);
-    }
-
     return servoParams(servoIndex)->middle;
 }
 
@@ -279,7 +271,7 @@ void servosInit(void)
     // enable servos for mixes that require them. note, this shifts motor counts.
     useServo = mixers[getMixerMode()].useServo;
     // if we want camstab/trig, that also enables servos, even if mixer doesn't
-    if (featureIsEnabled(FEATURE_SERVO_TILT) || featureIsEnabled(FEATURE_CHANNEL_FORWARDING)) {
+    if (featureIsEnabled(FEATURE_SERVO_TILT)) {
         useServo = 1;
     }
 
@@ -305,16 +297,6 @@ void servoMixerLoadMix(int index)
     }
     for (int i = 0; i < servoMixers[index].servoRuleCount; i++) {
         *customServoMixersMutable(i) = servoMixers[index].rule[i];
-    }
-}
-
-STATIC_UNIT_TESTED void forwardAuxChannelsToServos(uint8_t firstServoIndex)
-{
-    // start forwarding from this channel
-    int channelOffset = servoConfig()->channelForwardingStartChannel;
-    const int maxAuxChannelCount = MIN(MAX_AUX_CHANNEL_COUNT, rxConfig()->max_aux_channel);
-    for (int servoOffset = 0; servoOffset < maxAuxChannelCount && channelOffset < MAX_SUPPORTED_RC_CHANNEL_COUNT; servoOffset++) {
-        servoWrite(firstServoIndex + servoOffset, rcData[channelOffset++]);
     }
 }
 
@@ -401,20 +383,6 @@ void writeServos(void)
         updateGimbalServos(servoIndex);
         servoIndex += 2;
     }
-
-    // Scan servos and write those marked forwarded and not written yet
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        const uint8_t channelToForwardFrom = servoParams(i)->forwardFromChannel;
-        if ((channelToForwardFrom != CHANNEL_FORWARDING_DISABLED) && !(servoWritten & (1 << i))) {
-            servoWrite(servoIndex++, servo[i]);
-        }
-    }
-
-    // forward AUX to remaining servo outputs (not constrained)
-    if (featureIsEnabled(FEATURE_CHANNEL_FORWARDING)) {
-        forwardAuxChannelsToServos(servoIndex);
-        servoIndex += MAX_AUX_CHANNEL_COUNT;
-    }
 }
 
 void servoMixer(void)
@@ -485,7 +453,7 @@ void servoMixer(void)
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = ((int32_t)servoParams(i)->rate * servo[i]) / 100L;
-        servo[i] += determineServoMiddleOrForwardFromChannel(i);
+        servo[i] += determineServoMiddle(i);
     }
 }
 
@@ -522,8 +490,8 @@ static void servoTable(void)
     // camera stabilization
     if (featureIsEnabled(FEATURE_SERVO_TILT)) {
         // center at fixed position, or vary either pitch or roll by RC channel
-        servo[SERVO_GIMBAL_PITCH] = determineServoMiddleOrForwardFromChannel(SERVO_GIMBAL_PITCH);
-        servo[SERVO_GIMBAL_ROLL] = determineServoMiddleOrForwardFromChannel(SERVO_GIMBAL_ROLL);
+        servo[SERVO_GIMBAL_PITCH] = determineServoMiddle(SERVO_GIMBAL_PITCH);
+        servo[SERVO_GIMBAL_ROLL] = determineServoMiddle(SERVO_GIMBAL_ROLL);
 
         if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
             if (gimbalConfig()->mode == GIMBAL_MODE_MIXTILT) {
