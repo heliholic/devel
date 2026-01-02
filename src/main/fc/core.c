@@ -179,7 +179,6 @@ static bool accNeedsCalibration(void)
             isModeActivationConditionPresent(BOXALTHOLD) ||
             isModeActivationConditionPresent(BOXPOSHOLD) ||
             isModeActivationConditionPresent(BOXGPSRESCUE) ||
-            isModeActivationConditionPresent(BOXCAMSTAB) ||
             isModeActivationConditionPresent(BOXCALIB) ||
             isModeActivationConditionPresent(BOXACROTRAINER)) {
 
