@@ -83,23 +83,6 @@ typedef enum {
 
 extern float rcCommand[4];
 
-typedef struct rcSmoothingFilter_s {
-    pt3Filter_t filterSetpoint[PRIMARY_CHANNEL_COUNT];
-    pt3Filter_t filterRcDeflection[RP_AXIS_COUNT];
-    pt3Filter_t filterFeedforward[XYZ_AXIS_COUNT];
-
-    uint8_t setpointCutoffSetting;
-    uint8_t throttleCutoffSetting;
-
-    uint16_t setpointCutoffFrequency;
-    uint16_t throttleCutoffFrequency;
-
-    uint8_t debugAxis;
-
-    float autoSmoothnessFactorSetpoint;
-    float autoSmoothnessFactorThrottle;
-} rcSmoothingFilter_t;
-
 typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.

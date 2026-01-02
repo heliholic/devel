@@ -3650,7 +3650,7 @@ static void cliPrintGyroRegisters(uint8_t whichSensor)
     // ICM-456xx uses different register addresses than MPU/ICM-426xx sensors
     // Register 0x75 (MPU_RA_WHO_AM_I) is RESERVED on ICM-456xx
     const mpuDetectionResult_t *mpuDetection = gyroMpuDetectionResult();
-    
+
     if (mpuDetection->sensor == ICM_45686_SPI || mpuDetection->sensor == ICM_45605_SPI) {
         // ICM-456xx register addresses (from DS-000577 datasheet)
         cliPrintLinef("# WHO_AM_I      0x%X (0x72)", gyroReadRegister(whichSensor, 0x72));  // Should be 0xE9 or 0xE5
@@ -4988,30 +4988,6 @@ static void cliVersion(const char *cmdName, char *cmdline)
 
     printVersion(true);
 }
-
-#ifdef USE_RC_SMOOTHING_FILTER
-static void cliRcSmoothing(const char *cmdName, char *cmdline)
-{
-    UNUSED(cmdName);
-    UNUSED(cmdline);
-    rcSmoothingFilter_t *rcSmoothingData = getRcSmoothingData();
-    cliPrint("# Detected Rx frequency: ");
-    if (getRxRateValid()) {
-        cliPrintLinef("%dHz", lrintf(getCurrentRxRateHz()));
-    } else {
-        cliPrintLine("NO SIGNAL");
-    }
-    cliPrint("# RC Smoothing: ");
-    cliPrintLine(rxConfig()->rc_smoothing ? "ON" : "OFF");
-
-    if (!rxConfig()->rc_smoothing) return;
-
-    cliPrintf("# Active setpoint and FF cutoff: %dHz ", rcSmoothingData->setpointCutoffFrequency);
-    cliPrintLine(rcSmoothingData->setpointCutoffSetting ? "(manual)" : "(auto)");
-    cliPrintf("# Active throttle cutoff: %dHz ", rcSmoothingData->throttleCutoffFrequency);
-    cliPrintLine(rcSmoothingData->throttleCutoffSetting ? "(manual)" : "(auto)");
-}
-#endif // USE_RC_SMOOTHING_FILTER
 
 #if defined(USE_RESOURCE_MGMT)
 
@@ -6640,9 +6616,6 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("profile", "change profile", "[<index>]", cliProfile),
     CLI_COMMAND_DEF("rateprofile", "change rate profile", "[<index>]", cliRateProfile),
-#ifdef USE_RC_SMOOTHING_FILTER
-    CLI_COMMAND_DEF("rc_smoothing_info", "show rc_smoothing operational settings", NULL, cliRcSmoothing),
-#endif // USE_RC_SMOOTHING_FILTER
 #ifdef USE_RESOURCE_MGMT
     CLI_COMMAND_DEF("resource", "show/set resources", "<> | <resource name> <index> [<pin>|none] | show [all]", cliResource),
 #endif

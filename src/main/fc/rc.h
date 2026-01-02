@@ -24,11 +24,6 @@
 
 #include "fc/rc_controls.h"
 
-#ifdef USE_RC_SMOOTHING_FILTER
-#define RC_SMOOTHING_AUTO_FACTOR_MIN 0
-#define RC_SMOOTHING_AUTO_FACTOR_MAX 250
-#endif
-
 typedef struct feedforwardData_s {
     float prevRcCommand[XYZ_AXIS_COUNT];
     float prevRcCommandDeltaAbs[XYZ_AXIS_COUNT];
@@ -50,7 +45,6 @@ float getMaxRcDeflectionAbs(void);
 void updateRcCommands(void);
 void resetYawAxis(void);
 void initRcProcessing(void);
-rcSmoothingFilter_t *getRcSmoothingData(void);
 
 float getMaxRcRate(int axis);
 
