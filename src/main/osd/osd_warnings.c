@@ -49,7 +49,6 @@
 #include "flight/gps_rescue.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
-#include "flight/mixer_init.h"
 #include "flight/pid.h"
 #include "flight/pos_hold.h"
 
@@ -75,7 +74,8 @@
 #define ESC_ALARM_CHARS_SIZE 4 // ESC_ALARM_<chars> + '\0'
 
 static inline bool isMotorActive(uint8_t motorIndex) {
-    return (motor[motorIndex] > mixerRuntime.disarmMotorOutput);
+    UNUSED(motorIndex);
+    return true; // FIXME (motor[motorIndex] > mixerRuntime.disarmMotorOutput);
 }
 
 static bool checkEscAlarmConditions(const escSensorData_t *data, uint8_t motorIndex, char *buffer)
