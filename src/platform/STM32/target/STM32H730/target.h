@@ -134,3 +134,7 @@
 #if defined(USE_LED_STRIP) && !defined(USE_LED_STRIP_CACHE_MGMT)
 #define USE_LED_STRIP_CACHE_MGMT
 #endif
+
+#ifdef USE_CONFIG_ERASE
+#undef USE_CONFIG_ERASE
+#endif

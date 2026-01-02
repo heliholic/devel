@@ -34,6 +34,9 @@ RAM_BASED ?= no
 # reserve space for custom defaults
 CUSTOM_DEFAULTS_EXTENDED ?= no
 
+# generate image that erases config
+FLASH_CONFIG_ERASE ?= no
+
 # Debugger optons:
 #   empty - ordinary build with all optimizations enabled
 #   INFO - ordinary build with debug symbols and all optimizations enabled. Only builds touched files.
@@ -187,6 +190,10 @@ endif
 
 LD_FLAGS        :=
 EXTRA_LD_FLAGS  :=
+
+ifeq ($(FLASH_CONFIG_ERASE),yes)
+EXTRA_LD_FLAGS += -DFLASH_CONFIG_ERASE
+endif
 
 #
 # Default Tool options - can be overridden in {mcu}.mk files.

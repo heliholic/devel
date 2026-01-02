@@ -96,24 +96,24 @@ SECTIONS
   } >FLASH1
 
   /* Critical program code goes into ITCM RAM */
-  /* Copy specific fast-executing code to ITCM RAM */ 
-  tcm_code = LOADADDR(.tcm_code); 
+  /* Copy specific fast-executing code to ITCM RAM */
+  tcm_code = LOADADDR(.tcm_code);
   .tcm_code :
   {
     . = ALIGN(4);
-    tcm_code_start = .; 
+    tcm_code_start = .;
     *(.tcm_code)
     *(.tcm_code*)
     . = ALIGN(4);
-    tcm_code_end = .; 
+    tcm_code_end = .;
   } >ITCM_RAM AT >FLASH1
 
-  .ARM.extab   : 
-  { 
-    *(.ARM.extab* .gnu.linkonce.armextab.*) 
+  .ARM.extab   :
+  {
+    *(.ARM.extab* .gnu.linkonce.armextab.*)
   } >FLASH
-  
-  .ARM : 
+
+  .ARM :
   {
     __exidx_start = .;
     *(.ARM.exidx*) __exidx_end = .;
@@ -126,13 +126,21 @@ SECTIONS
     KEEP (*(SORT(.pg_registry.*)))
     PROVIDE_HIDDEN (__pg_registry_end = .);
   } >FLASH
-  
+
   .pg_resetdata :
   {
     PROVIDE_HIDDEN (__pg_resetdata_start = .);
     KEEP (*(.pg_resetdata))
     PROVIDE_HIDDEN (__pg_resetdata_end = .);
   } >FLASH
+
+#ifdef FLASH_CONFIG_ERASE
+  .flash_config :
+  {
+    FILL(0xFFFFFFFF);
+    . = ORIGIN(FLASH_CONFIG) + LENGTH(FLASH_CONFIG);
+  } >FLASH_CONFIG
+#endif
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);

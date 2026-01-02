@@ -74,10 +74,10 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH1
 
-  /* 
+  /*
     Critical program code goes into RAM
-  */ 
-  tcm_code = LOADADDR(.tcm_code); 
+  */
+  tcm_code = LOADADDR(.tcm_code);
   .tcm_code :
   {
     . = ALIGN(4);
@@ -85,7 +85,7 @@ SECTIONS
     *(.tcm_code)
     *(.tcm_code*)
     . = ALIGN(4);
-    tcm_code_end = .; 
+    tcm_code_end = .;
   } >RAM AT >FLASH1
 
    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
@@ -128,6 +128,14 @@ SECTIONS
     KEEP (*(.pg_resetdata))
     PROVIDE_HIDDEN (__pg_resetdata_end = .);
   } >FLASH1
+
+#ifdef FLASH_CONFIG_ERASE
+  .flash_config :
+  {
+    FILL(0xFFFFFFFF);
+    . = ORIGIN(FLASH_CONFIG) + LENGTH(FLASH_CONFIG);
+  } >FLASH_CONFIG
+#endif
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
