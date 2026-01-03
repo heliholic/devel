@@ -25,12 +25,9 @@
 
 #include "platform.h"
 
-#include "build/build_config.h"
 #include "common/maths.h"
 
 #include "typeconversion.h"
-
-#ifdef REQUIRE_PRINTF_LONG_SUPPORT
 
 void uli2a(unsigned long int num, unsigned int base, int uc, char *bf)
 {
@@ -58,8 +55,6 @@ void li2a(long num, char *bf)
     }
     uli2a(num, 10, 0, bf);
 }
-
-#endif
 
 void ui2a(unsigned int num, unsigned int base, int uc, char *bf)
 {

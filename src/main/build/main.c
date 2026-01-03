@@ -42,6 +42,8 @@
 
 #include "scheduler/scheduler.h"
 
+#include "common/printf.h"
+
 void run(void);
 
 int main(int argc, char * argv[])
@@ -53,8 +55,8 @@ int main(int argc, char * argv[])
     UNUSED(argv);
 #endif
 
-#if SERIAL_PORT_COUNT > 0
-    printfSerialInit();
+#if USE_ITM_PRINTF
+    printfITMInit();
 #endif
 
     // Do basic system initialisation including multicore support if applicable

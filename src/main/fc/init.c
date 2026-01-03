@@ -37,7 +37,7 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/maths.h"
-#include "common/printf_serial.h"
+#include "common/printf.h"
 
 #include "config/config.h"
 #include "config/config_eeprom.h"
@@ -502,6 +502,10 @@ void initPhase2(void)
 #endif
 
     serialInit(featureIsEnabled(FEATURE_SOFTSERIAL));
+
+#ifdef USE_SERIAL_PRINTF
+    printfSerialInit(PRINTF_SERIAL_PORT, PRINTF_SERIAL_SPEED, PRINTF_SERIAL_OPTIONS);
+#endif
 
     //mixerInit();
 

@@ -48,7 +48,6 @@ bool cliMode = false;
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
-#include "common/printf_serial.h"
 #include "common/strtol.h"
 #include "common/rtc.h"
 #include "common/typeconversion.h"

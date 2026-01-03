@@ -54,10 +54,6 @@
 #define SMARTAUDIO_POLLING_INTERVAL  150    // Minimum time between state polling
 #define SMARTAUDIO_POLLING_WINDOW   1000    // Time window after command polling for state change
 
-#ifdef USE_SMARTAUDIO_DPRINTF
-serialPort_t *debugSerialPort = NULL;
-#endif // USE_SMARTAUDIO_DPRINTF
-
 static serialPort_t *smartAudioSerialPort = NULL;
 
 smartAudioDevice_t saDevice;
@@ -699,12 +695,6 @@ bool vtxSmartAudioInit(void)
     }
 #endif
 #ifdef USE_SMARTAUDIO_DPRINTF
-    // Setup debugSerialPort
-
-    debugSerialPort = openSerialPort(DPRINTF_SERIAL_PORT, FUNCTION_NONE, NULL, NULL, 115200, MODE_RXTX, 0);
-    if (debugSerialPort) {
-        setPrintfSerialPort(debugSerialPort);
-    }
     dprintf(("smartAudioInit: OK\r\n"));
 #endif
 
