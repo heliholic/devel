@@ -33,4 +33,8 @@ void debugInit(void)
     if (IOGetOwner(io) == OWNER_FREE) {
         IOInit(io, OWNER_SWD, 0);
     }
+    io = IOGetByTag(DEFIO_TAG_E(PB3));       // SWO
+    if (IOGetOwner(io) == OWNER_FREE) {
+        IOInit(io, OWNER_SWD, 0);
+    }
 }
