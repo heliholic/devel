@@ -20,6 +20,8 @@
 #include "platform.h"
 #include "types.h"
 
+#include "platform/itm.h"
+
 #define DEBUG_VALUE_COUNT       8
 #define DEBUG16_VALUE_COUNT     8
 
@@ -30,7 +32,11 @@ extern int32_t debug[DEBUG_VALUE_COUNT];
 
 extern uint32_t __timing[DEBUG_VALUE_COUNT];
 
+#ifdef USE_ITM_DEBUG
+#define DEBUG_ASSIGN(index, value)                (debug[(index)] = ITM_SendU32((index) | 0x10, (value)))
+#else
 #define DEBUG_ASSIGN(index, value)                (debug[(index)] = (value))
+#endif
 
 #define DEBUG_SET(mode, index, value)             do { if (debugMode == (mode)) { DEBUG_ASSIGN((index),(value)); } } while (0)
 #define DEBUG_AXIS_SET(mode, axis, index, value)  do { if (debugAxis == (axis) && debugMode == (mode)) { DEBUG_ASSIGN((index),(value)); } } while (0)
