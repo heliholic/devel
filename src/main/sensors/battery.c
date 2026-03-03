@@ -179,6 +179,11 @@ uint16_t getBatteryCurrentSample(void)
     return currentMeter.sample / 10;
 }
 
+uint16_t getBatteryCapacity(void)
+{
+    return batteryConfig()->batteryCapacity[batteryConfig()->batteryProfile];
+}
+
 uint32_t getBatteryCapacityUsed(void)
 {
     return currentMeter.capacity;
@@ -210,7 +215,7 @@ const char * getBatteryStateString(void)
 uint8_t calculateBatteryPercentageRemaining(void)
 {
     int batteryPercentage = 0;
-    int batteryCapacity = batteryConfig()->batteryCapacity;
+    int batteryCapacity = getBatteryCapacity();
 
     if (batteryCapacity > 0) {
         batteryPercentage = 100 * (batteryCapacity - (int)currentMeter.capacity) / batteryCapacity;
@@ -220,6 +225,23 @@ uint8_t calculateBatteryPercentageRemaining(void)
     }
 
     return constrain(batteryPercentage, 0, 100);
+}
+
+void changeBatteryType(uint8_t typeIndex)
+{
+    if (typeIndex < BATTERY_PROFILE_MAX) {
+        batteryConfigMutable()->batteryProfile = typeIndex;
+    }
+}
+
+int get_ADJUSTMENT_BATTERY_PROFILE(void)
+{
+    return batteryConfig()->batteryProfile + 1;
+}
+
+void set_ADJUSTMENT_BATTERY_PROFILE(int value)
+{
+    changeBatteryType(value - 1);
 }
 
 
@@ -371,7 +393,7 @@ static void batteryUpdateLVC(timeUs_t currentTimeUs)
 
 static void batteryUpdateConsumptionState(void)
 {
-    if (batteryConfig()->useConsumptionAlerts && batteryConfig()->batteryCapacity > 0 && batteryCellCount > 0) {
+    if (batteryConfig()->useConsumptionAlerts && getBatteryCapacity() > 0 && batteryCellCount > 0) {
         uint8_t batteryPercentageRemaining = calculateBatteryPercentageRemaining();
 
         if (batteryPercentageRemaining == 0) {
@@ -477,6 +499,10 @@ void taskBatteryCurrentUpdate(timeUs_t currentTimeUs)
 
 void batteryInit(void)
 {
+    if (batteryConfig()->batteryProfile >= BATTERY_PROFILE_MAX) {
+        batteryConfigMutable()->batteryProfile = 0;
+    }
+
     voltageMeterReset(&voltageMeter);
     currentMeterReset(&currentMeter);
 
@@ -513,4 +539,3 @@ void batteryInit(void)
     // current
     consumptionState = BATTERY_OK;
 }
-
