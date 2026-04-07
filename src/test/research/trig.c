@@ -30,6 +30,87 @@ typedef struct {
 } sincosf_t;
 
 
+
+/* Degree-9 sin and degree-10 cos polynomials over r ∈ [-0.5, 0.5],
+ * where the argument is r = x*(2/π) and the polynomials approximate
+ * sin(r*π/2) and cos(r*π/2).  Taylor coefficients; truncation error
+ * is well below a float ULP at this degree. */
+
+ static inline float sin_poly9(float r)
+ {
+     const float c1 =  1.5707963267948966f;
+     const float c3 = -0.6459640975062462f;
+     const float c5 =  0.07969262624616703f;
+     const float c7 = -0.004681754135318685f;
+     const float c9 =  1.6044118478735963e-4f;
+     const float r2 = r * r;
+     return r * (c1 + r2 * (c3 + r2 * (c5 + r2 * (c7 + r2 * c9))));
+ }
+
+ static inline float cos_poly10(float r)
+ {
+     const float c2 = -1.2337005501361698f;
+     const float c4 =  0.25366920193218095f;
+     const float c6 = -0.020862209263265985f;
+     const float c8 =  9.192661394714042e-4f;
+     const float c10 = -2.2969903187012496e-5f;
+     const float r2 = r * r;
+     return 1.0f + r2 * (c2 + r2 * (c4 + r2 * (c6 + r2 * (c8 + r2 * c10))));
+ }
+
+ /* sin_precise / cos_precise use the same degree-9/10 polynomials but
+  * perform argument reduction in double precision so that the reduced
+  * residual r is accurate to ~1 ULP even for large inputs.  The final
+  * result is still float; only the reduction step uses double. */
+
+ static inline int32_t precise_reduce(float rad, float *r_out)
+ {
+     const double TWO_OVER_PI = 0.6366197723675813430755350534900566;
+     double x = (double)rad * TWO_OVER_PI;
+     int32_t q = (int32_t)round(x);
+     *r_out = (float)(x - (double)q);
+     return q;
+ }
+
+ float sin_precise(float rad)
+ {
+     float r;
+     int32_t q = precise_reduce(rad, &r);
+     float y = (q & 1) ? cos_poly10(r) : sin_poly9(r);
+     float s = (q & 2) ? -y : y;
+     return s;
+ }
+
+ float cos_precise(float rad)
+ {
+     float r;
+     int32_t q = precise_reduce(rad, &r);
+     float y = (q & 1) ? -sin_poly9(r) : cos_poly10(r);
+     float c = (q & 2) ? -y : y;
+     return c;
+ }
+
+ sincosf_t sincos_precise(float rad)
+ {
+     float r;
+     int32_t q = precise_reduce(rad, &r);
+
+     float sb = sin_poly9(r);
+     float cb = cos_poly10(r);
+
+     float s = (q & 1) ? cb : sb;
+     float c = (q & 1) ? -sb : cb;
+
+     s = (q & 2) ? -s : s;
+     c = (q & 2) ? -c : c;
+
+     return (sincosf_t){ s, c };
+ }
+
+
+
+ // Rotorflight math approximations
+
 float sin_approx(float x)
 {
     int32_t xint = x;
@@ -94,6 +175,9 @@ float sin_approx2(float rad)
     return y;
 }
 
+
+
+// New Betaflight approximations
 
 inline float sin_poly5(float r)
 {
@@ -165,6 +249,8 @@ float tan_approx3(float rad)
     return t;
 }
 
+
+// Like Betaflight, but with degree-7 and degree-8 polynomials.
 
 static inline float sin_poly7(float r)
 {
@@ -251,6 +337,7 @@ const sin_func_t sin_funcs[] = {
     { "sin_approx2", sin_approx2  },
     { "sin_approx3", sin_approx3  },
     { "sin_approx4", sin_approx4  },
+    { "sin_precise", sin_precise  },
 };
 
 

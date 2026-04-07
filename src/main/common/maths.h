@@ -32,9 +32,16 @@
 #define M_PI2f          1.57079632679489661923f
 #define M_2PIf          6.28318530717958647693f
 #define M_1_2PIf        0.15915494309189533577f
+#define M_2_PIf         0.63661977236758134308f
 
 #define M_RADf          0.01745329251994329577f
 #define RAD             M_RADf
+
+
+typedef struct {
+    float sin;
+    float cos;
+} sincosf_t;
 
 
 /*
@@ -45,17 +52,15 @@
 
 float sin_approx(float x);
 float cos_approx(float x);
+float tan_approx(float x);
+sincosf_t sincos_approx(float x);
+
 float atan2_approx(float y, float x);
 float asin_approx(float x);
 float acos_approx(float x);
 float exp_approx(float val);
 float log_approx(float val);
 float pow_approx(float a, float b);
-
-static inline float tan_approx(float x)
-{
-    return sin_approx(x) / cos_approx(x);
-}
 
 #else /* USE_STANDARD_MATH */
 

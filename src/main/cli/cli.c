@@ -47,6 +47,7 @@ bool cliMode = false;
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/maths.h"
+#include "common/bench.h"
 #include "common/printf.h"
 #include "common/strtol.h"
 #include "common/time.h"
@@ -2080,7 +2081,7 @@ static void printServoStatus(uint8_t index)
 {
     const bool hasBusServos = hasBusServosConfigured();
     const bool isBusServo = hasBusServos && index >= BUS_SERVO_OFFSET;
-    
+
     if (isBusServo) {
         // Bus servos: S9-S26 (indices 8-25) displayed as S1-S18
         const int busServoNum = index - BUS_SERVO_OFFSET + 1;
@@ -2109,7 +2110,7 @@ static void printServoOverride(uint8_t index)
 {
     const bool hasBusServos = hasBusServosConfigured();
     const bool isBusServo = hasBusServos && index >= BUS_SERVO_OFFSET;
-    
+
     if (isBusServo) {
         // Bus servos: S9-S26 (indices 8-25) displayed as S1-S18
         const int busServoNum = index - BUS_SERVO_OFFSET + 1;
@@ -5069,31 +5070,31 @@ static void cliStatus(const char *cmdName, char *cmdline)
 static void cliFbusSensors(const char *cmdName, char *cmdline)
 {
     UNUSED(cmdName);
-    
+
     if (!isEmpty(cmdline) && strncasecmp(cmdline, "clear", 5) == 0) {
         fbusSensorClearObserved();
         cliPrintLine("Observed FBUS sensors cleared");
         return;
     }
-    
+
     const uint8_t count = fbusSensorGetObservedCount();
-    
+
     if (count == 0) {
         cliPrintLine("No FBUS sensors observed yet");
         return;
     }
-    
+
     cliPrintLinefeed();
     cliPrintLine("Observed FBUS Sensors:");
     cliPrintLine("Physical ID | Sensor Name       | Forwarded | App IDs                                   | Packets");
     cliPrintLine("----------- | ----------------- | --------- | ----------------------------------------- | -------");
-    
+
     for (uint8_t i = 0; i < count; i++) {
         const fbusObservedSensor_t *sensor = fbusSensorGetObserved(i);
         if (!sensor) {
             break;
         }
-        
+
         // Print physical ID and sensor name
         const char *sensorName = fbusSensorGetName(sensor->physicalId);
         // For unknown sensors, display as "ID_XXX" instead of "UNKNOWN"
@@ -5165,10 +5166,10 @@ static void cliFbusSensors(const char *cmdName, char *cmdline)
 
         // Print packet count
         cliPrintf(" | %7u", sensor->packetCount);
-        
+
         cliPrintLinefeed();
     }
-    
+
     cliPrintLinefeed();
 }
 #endif
@@ -6657,6 +6658,33 @@ static void cliMsc(const char *cmdName, char *cmdline)
 }
 #endif
 
+#ifdef USE_MATH_BENCH
+static void cliMathBench(const char *cmdName, char *cmdline)
+{
+    UNUSED(cmdName);
+    UNUSED(cmdline);
+
+    mathBenchRun();
+
+    cliPrintLine("Function   Cycles  Bits");
+
+    for (int i = 0; i < mathBenchEntryCount; i++) {
+        const mathBenchEntry_t *e = &mathBenchEntries[i];
+        if (!e->name) {
+            cliPrintLine("");
+        } else {
+            cliPrint(e->name);
+            for (int k = strlen(e->name); k < 12; k++)
+                cliPrint(" ");
+            if (e->ref)
+                cliPrintLinef("  %u  %u", e->cycles, e->bits);
+            else
+                cliPrintLinef("  %u", e->cycles);
+        }
+    }
+}
+#endif
+
 typedef void cliCommandFn(const char* name, char *cmdline);
 
 typedef struct {
@@ -6781,6 +6809,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("manufacturer_id", "get / set the id of the board manufacturer", "[manufacturer id]", cliManufacturerId),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
+#ifdef USE_MATH_BENCH
+    CLI_COMMAND_DEF("mathbench", "benchmark math approximation functions", NULL, cliMathBench),
+#endif
     CLI_COMMAND_DEF("mcu_id", "id of the microcontroller", NULL, cliMcuId),
     CLI_COMMAND_DEF("mixer", "configure mixer",
                     "status\r\n\t"
@@ -7106,6 +7137,10 @@ void cliEnter(serialPort_t *serialPort)
     cliPrintLine("\r\nCLI");
 #endif
     setArmingDisabled(ARMING_DISABLED_CLI);
+
+#ifdef USE_MATH_BENCH
+    cliMathBench(NULL, NULL);
+#endif
 
     cliPrompt();
 
