@@ -31,11 +31,11 @@
 #ifndef USE_STANDARD_MATH
 
 
-// Fast sin approximation for rad ∈ [-π/4, π/4].
+// Fast sin approximation for rad ∈ [-π/4, π/4].  Minimax-optimised degree-7 odd polynomial.
 float sin_quadrant(float x)
 {
     float x2 = x * x;
-    return x * (1.0f + x2 * (-0.16674333935710625f + x2 * (0.0087303640460478088f + x2 * (-0.00064335021043186204f))));
+    return x * (1.0f + x2 * (-0.16666650669294222f + x2 * (0.00833197866315977f + x2 * (-0.00019495636237996f))));
 }
 
 float cos_quadrant(float x)
