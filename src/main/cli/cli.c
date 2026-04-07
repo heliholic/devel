@@ -6664,18 +6664,20 @@ static void cliMathBench(const char *cmdName, char *cmdline)
     UNUSED(cmdName);
     UNUSED(cmdline);
 
-    const mathBenchResults_t *r = &mathBenchResults;
+    mathBenchRun();
 
-    cliPrintLinef("sinf:           %u cycles/call", r->sinf_lib);
-    cliPrintLinef("sin_approx:     %u cycles/call", r->sin_approx);
-    cliPrintLinef("sin_approx2:    %u cycles/call", r->sin_approx2);
-    cliPrintLinef("sin_approx3:    %u cycles/call", r->sin_approx3);
-    cliPrintLinef("cosf:           %u cycles/call", r->cosf_lib);
-    cliPrintLinef("cos_approx:     %u cycles/call", r->cos_approx);
-    cliPrintLinef("cos_approx3:    %u cycles/call", r->cos_approx3);
-    cliPrintLinef("sincos_approx3: %u cycles/call", r->sincos_approx3);
-    cliPrintLinef("tan_approx:     %u cycles/call", r->tan_approx);
-    cliPrintLinef("tan_approx3:    %u cycles/call", r->tan_approx3);
+    cliPrintLine("Function  cycles  bits");
+
+    for (int i = 0; i < mathBenchEntryCount; i++) {
+        const mathBenchEntry_t *e = &mathBenchEntries[i];
+        if (!e->name) {
+            cliPrintLine("");
+        } else if (e->ref) {
+            cliPrintLinef("%s  %u  %u", e->name, e->cycles, e->bits);
+        } else {
+            cliPrintLinef("%s  %u", e->name, e->cycles);
+        }
+    }
 }
 #endif
 

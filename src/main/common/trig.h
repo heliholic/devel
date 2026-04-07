@@ -31,9 +31,10 @@ typedef struct {
     float cos;
 } sincosf_t;
 
-#ifndef USE_STANDARD_MATH
-
 float sin_approx2(float x);
+float cos_approx2(float x);
+float tan_approx2(float x);
+sincosf_t sincos_approx2(float x);
 
 float sin_approx3(float x);
 float cos_approx3(float x);
@@ -47,38 +48,5 @@ sincosf_t sincos_approx4(float x);
 
 float sin_precise(float x);
 float cos_precise(float x);
+float tan_precise(float x);
 sincosf_t sincos_precise(float x);
-
-#else /* USE_STANDARD_MATH */
-
-#include <math.h>
-
-#define sin_approx2(x)      sinf(x)
-
-#define sin_approx3(x)      sinf(x)
-#define cos_approx3(x)      cosf(x)
-#define tan_approx3(x)      tanf(x)
-
-#define sin_approx4(x)      sinf(x)
-#define cos_approx4(x)      cosf(x)
-#define tan_approx4(x)      tanf(x)
-
-#define sin_precise(x)      sinf(x)
-#define cos_precise(x)      cosf(x)
-
-static inline sincosf_t sincos_approx3(float x)
-{
-    return (sincosf_t){ sinf(x), cosf(x) };
-}
-
-static inline sincosf_t sincos_approx4(float x)
-{
-    return (sincosf_t){ sinf(x), cosf(x) };
-}
-
-static inline sincosf_t sincos_precise(float x)
-{
-    return (sincosf_t){ sinf(x), cosf(x) };
-}
-
-#endif /* USE_STANDARD_MATH */

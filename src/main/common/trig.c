@@ -45,6 +45,58 @@ float sin_approx2(float rad)
     return f * (1.5707910110756176f + g * (-0.64589284954843862f + g * (0.079434344616858263f + g * (-0.0043330952924842871f))));
 }
 
+float cos_approx2(float rad)
+{
+    float x = rad * M_2_PIf + 1.0f;
+    int32_t q = (int32_t)floorf(x);
+    float f = x - (float)q;
+    f = (q & 1) ? (1.0f - f) : f;
+    f = (q & 2) ? -f : f;
+    const float g = f * f;
+    return f * (1.5707910110756176f + g * (-0.64589284954843862f + g * (0.079434344616858263f + g * (-0.0043330952924842871f))));
+}
+
+sincosf_t sincos_approx2(float rad)
+{
+    float x = rad * M_2_PIf;
+    int32_t q = (int32_t)floorf(x);
+    float f = x - (float)q;
+
+    // unsigned sin/cos magnitudes; cos complement of sin in [0, 0.5]
+    float fs = (q & 1) ? (1.0f - f) : f;
+    float fc = 1.0f - fs;
+
+    float gs = fs * fs;
+    float gc = fc * fc;
+
+    float s = fs * (1.5707910110756176f + gs * (-0.64589284954843862f + gs * (0.079434344616858263f + gs * (-0.0043330952924842871f))));
+    float c = fc * (1.5707910110756176f + gc * (-0.64589284954843862f + gc * (0.079434344616858263f + gc * (-0.0043330952924842871f))));
+
+    s = (q & 2) ? -s : s;
+    c = ((q + 1) & 2) ? -c : c;
+
+    return (sincosf_t){ s, c };
+}
+
+float tan_approx2(float rad)
+{
+    float x = rad * M_2_PIf;
+    int32_t q = (int32_t)floorf(x);
+    float f = x - (float)q;
+
+    float fs = (q & 1) ? (1.0f - f) : f;
+    float fc = 1.0f - fs;
+
+    float gs = fs * fs;
+    float gc = fc * fc;
+
+    float s = fs * (1.5707910110756176f + gs * (-0.64589284954843862f + gs * (0.079434344616858263f + gs * (-0.0043330952924842871f))));
+    float c = fc * (1.5707910110756176f + gc * (-0.64589284954843862f + gc * (0.079434344616858263f + gc * (-0.0043330952924842871f))));
+
+    // (q & 2) sign cancels in the ratio; only quadrant parity matters
+    return (q & 1) ? -s / c : s / c;
+}
+
 
 // Degree-5 sin / degree-6 cos paired polynomials over r ∈ [-0.5, 0.5],
 // approximating sin(r·π/2) and cos(r·π/2).
@@ -85,6 +137,19 @@ float cos_approx3(float rad)
     return (q & 2) ? -y : y;
 }
 
+float tan_approx3(float rad)
+{
+    float x = rad * M_2_PIf;
+    int32_t q = lrintf(x);
+    float r = x - (float)q;
+
+    float sb = sin_poly5(r);
+    float cb = cos_poly6(r);
+
+    // (q & 2) sign flip cancels in the ratio; only quadrant parity matters
+    return (q & 1) ? -cb / sb : sb / cb;
+}
+
 sincosf_t sincos_approx3(float rad)
 {
     float x = rad * M_2_PIf;
@@ -101,19 +166,6 @@ sincosf_t sincos_approx3(float rad)
     c = (q & 2) ? -c : c;
 
     return (sincosf_t){ s, c };
-}
-
-float tan_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly5(r);
-    float cb = cos_poly6(r);
-
-    // (q & 2) sign flip cancels in the ratio; only quadrant parity matters
-    return (q & 1) ? -cb / sb : sb / cb;
 }
 
 
@@ -158,6 +210,18 @@ float cos_approx4(float rad)
     return (q & 2) ? -y : y;
 }
 
+float tan_approx4(float rad)
+{
+    float x = rad * M_2_PIf;
+    int32_t q = lrintf(x);
+    float r = x - (float)q;
+
+    float sb = sin_poly7(r);
+    float cb = cos_poly8(r);
+
+    return (q & 1) ? -cb / sb : sb / cb;
+}
+
 sincosf_t sincos_approx4(float rad)
 {
     float x = rad * M_2_PIf;
@@ -174,18 +238,6 @@ sincosf_t sincos_approx4(float rad)
     c = (q & 2) ? -c : c;
 
     return (sincosf_t){ s, c };
-}
-
-float tan_approx4(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly7(r);
-    float cb = cos_poly8(r);
-
-    return (q & 1) ? -cb / sb : sb / cb;
 }
 
 
@@ -230,6 +282,18 @@ float cos_precise(float rad)
     float r = x - (float)q;
     float y = (q & 1) ? -sin_poly9(r) : cos_poly10(r);
     return (q & 2) ? -y : y;
+}
+
+float tan_precise(float rad)
+{
+    float x = rad * M_2_PIf;
+    int32_t q = lrintf(x);
+    float r = x - (float)q;
+
+    float sb = sin_poly9(r);
+    float cb = cos_poly10(r);
+
+    return (q & 1) ? -cb / sb : sb / cb;
 }
 
 sincosf_t sincos_precise(float rad)

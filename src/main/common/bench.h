@@ -25,37 +25,19 @@
 
 #ifndef USE_STANDARD_MATH
 
-typedef struct {
-    // Timing — cycles per call
-    uint32_t sinf_lib;
-    uint32_t cosf_lib;
-    uint32_t tanf_lib;
-    uint32_t sin_approx;
-    uint32_t cos_approx;
-    uint32_t tan_approx;
-    uint32_t sin_approx2;
-    uint32_t sin_approx3;
-    uint32_t cos_approx3;
-    uint32_t tan_approx3;
-    uint32_t sincos_approx3;
-    uint32_t sin_approx4;
-    uint32_t cos_approx4;
-    uint32_t tan_approx4;
-    uint32_t sincos_approx4;
-    uint32_t sin_precise;
-    uint32_t cos_precise;
-    uint32_t sincos_precise;
-    // Precision — max absolute error vs sin_precise / cos_precise reference
-    float sin_approx_err;
-    float cos_approx_err;
-    float sin_approx2_err;
-    float sin_approx3_err;
-    float cos_approx3_err;
-    float sin_approx4_err;
-    float cos_approx4_err;
-} mathBenchResults_t;
+#include "common/trig.h"
 
-extern mathBenchResults_t mathBenchResults;
+typedef struct {
+    const char    *name;        // NULL = blank-line separator in output
+    float        (*fn)(float);  // function under test; NULL for separator entries
+    const float   *ref;         // precision reference array, or NULL for no precision check
+    // filled by mathBenchRun():
+    uint32_t      cycles;
+    uint8_t       bits;
+} mathBenchEntry_t;
+
+extern mathBenchEntry_t mathBenchEntries[];
+extern const int        mathBenchEntryCount;
 
 void mathBenchRun(void);
 
