@@ -49,7 +49,7 @@ float cos_fast(float x)
     return (1.0f + x2 * (c2 + x2 * (c4 + x2 * c6)));
 }
 
-// Fast sin approximation for rad ∈ [-π/4, π/4].  Taylor series degree-7 odd polynomial.
+// Fast sin approximation for rad ∈ [-π/8, π/8].  Taylor series degree-7 odd polynomial.
 float sin_taylor(float x)
 {
     const float c3 = -0.16666666666666667f;         // -1/6
@@ -59,8 +59,8 @@ float sin_taylor(float x)
     return x * (1.0f + x2 * (c3 + x2 * (c5 + x2 * c7)));
 }
 
-// Fast cos approximation for rad ∈ [-π/4, π/4].  Taylor series degree-6 even polynomial.
-float cos_taylor(float x)
+// Fast cos approximation for rad ∈ [-π/8, π/8].  Taylor series degree-6 even polynomial.
+FAST_CODE float cos_taylor(float x)
 {
     const float c2 = -0.5f;                         // -1/2
     const float c4 =  0.041666666666666664f;        //  1/24
@@ -70,40 +70,35 @@ float cos_taylor(float x)
 }
 
 
-// Quadrant-folding single-polynomial approximation for sin.
+// Degree-5 sin / degree-6 cos paired polynomials over r ∈ [-1, 1],
+// approximating sin(r·π/4) and cos(r·π/4).
+
+static inline float sin_poly5o(float r)
+{
+    const float c1 =  1.570788468983057f;
+    const float c3 = -0.645711990181946f;
+    const float c5 =  0.077667393626301f;
+    const float r2 = r * r;
+    return r * (c1 + r2 * (c3 + r2 * c5));
+}
+
+static inline float cos_poly6o(float r)
+{
+    const float c2 = -1.233697953970536f;
+    const float c4 =  0.253606361920527f;
+    const float c6 = -0.020426250304794f;
+    const float r2 = r * r;
+    return 1.0f + r2 * (c2 + r2 * (c4 + r2 * c6));
+}
 
 float sin_approx2(float rad)
 {
-    const float c1 =  1.5707963050854579f;
-    const float c3 = -0.64596293816733275f;
-    const float c5 =  0.079675902970013021f;
-    const float c7 = -0.0045922890757518504f;
-
-    float x = rad * M_1_PIf;
-    float q = roundf(x);
-    float f = x - q;
-    int32_t i = q;
-    f = (i & 1) ? (1.0f - f) : f;
-    float f2 = f * f;
-    float y = f * (c1 + f2 * (c3 + f2 * (c5 + f2 * c7)));
-    return (i & 2) ? -y : y;
+    return rad;
 }
 
 float cos_approx2(float rad)
 {
-    const float c1 =  1.5707963050854579f;
-    const float c3 = -0.64596293816733275f;
-    const float c5 =  0.079675902970013021f;
-    const float c7 = -0.0045922890757518504f;
-
-    float x = rad * M_1_PIf;
-    float q = roundf(x);
-    float f = x - q;
-    int32_t i = q + 1;
-    f = (i & 1) ? (1.0f - f) : f;
-    float f2 = f * f;
-    float y = f * (c1 + f2 * (c3 + f2 * (c5 + f2 * c7)));
-    return (i & 2) ? -y : y;
+    return rad;
 }
 
 
