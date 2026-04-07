@@ -268,7 +268,7 @@ void init(void)
 
     systemInit();
 
-#ifndef USE_STANDARD_MATH
+#ifdef USE_MATH_BENCH
     mathBenchRun();
 #endif
 

@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 
-#ifndef USE_STANDARD_MATH
+#ifdef USE_MATH_BENCH
 
 #include "common/trig.h"
 

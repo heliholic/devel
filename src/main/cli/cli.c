@@ -6658,7 +6658,7 @@ static void cliMsc(const char *cmdName, char *cmdline)
 }
 #endif
 
-#ifndef USE_STANDARD_MATH
+#ifdef USE_MATH_BENCH
 static void cliMathBench(const char *cmdName, char *cmdline)
 {
     UNUSED(cmdName);
@@ -6805,7 +6805,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("manufacturer_id", "get / set the id of the board manufacturer", "[manufacturer id]", cliManufacturerId),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
-#ifndef USE_STANDARD_MATH
+#ifdef USE_MATH_BENCH
     CLI_COMMAND_DEF("mathbench", "benchmark math approximation functions", NULL, cliMathBench),
 #endif
     CLI_COMMAND_DEF("mcu_id", "id of the microcontroller", NULL, cliMcuId),

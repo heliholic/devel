@@ -30,20 +30,20 @@
 
 #include "bench.h"
 
-#ifndef USE_STANDARD_MATH
+#ifdef USE_MATH_BENCH
 
 static float sin_ref[256];
 static float cos_ref[256];
 static float tan_ref[256];
 
 mathBenchEntry_t mathBenchEntries[] = {
-    { .name = "sinf",        .fn = sinf,        .ref = sin_ref },
-    { .name = "cosf",        .fn = cosf,        .ref = cos_ref },
-    { .name = "tanf",        .fn = tanf,        .ref = tan_ref },
+    { .name = "sinf       ", .fn = sinf,        .ref = sin_ref },
+    { .name = "cosf       ", .fn = cosf,        .ref = cos_ref },
+    { .name = "tanf       ", .fn = tanf,        .ref = tan_ref },
     { .name = NULL },
-    { .name = "sin_approx",  .fn = sin_approx,  .ref = sin_ref },
-    { .name = "cos_approx",  .fn = cos_approx,  .ref = cos_ref },
-    { .name = "tan_approx",  .fn = tan_approx,  .ref = tan_ref },
+    { .name = "sin_approx ", .fn = sin_approx,  .ref = sin_ref },
+    { .name = "cos_approx ", .fn = cos_approx,  .ref = cos_ref },
+    { .name = "tan_approx ", .fn = tan_approx,  .ref = tan_ref },
     { .name = NULL },
     { .name = "sin_approx2", .fn = sin_approx2, .ref = sin_ref },
     { .name = "cos_approx2", .fn = cos_approx2, .ref = cos_ref },
@@ -63,6 +63,7 @@ mathBenchEntry_t mathBenchEntries[] = {
 };
 
 const int mathBenchEntryCount = sizeof(mathBenchEntries) / sizeof(mathBenchEntries[0]);
+
 
 void mathBenchRun(void)
 {
@@ -96,6 +97,7 @@ void mathBenchRun(void)
             uint32_t t1 = getCycleCounter();
             cycles += t1 - t0;
         }
+        e->cycles = cycles / N;
 
         if (e->ref) {
             float maxErr = 0.0f;
