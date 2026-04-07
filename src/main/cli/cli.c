@@ -6657,6 +6657,26 @@ static void cliMsc(const char *cmdName, char *cmdline)
 }
 #endif
 
+#ifndef USE_STANDARD_MATH
+static void cliMathBench(const char *cmdName, char *cmdline)
+{
+    UNUSED(cmdName);
+    UNUSED(cmdline);
+
+    const mathBenchResults_t *r = &mathBenchResults;
+
+    cliPrintLinef("sinf:           %u cycles/call", r->sinf_lib);
+    cliPrintLinef("sin_approx:     %u cycles/call", r->sin_approx);
+    cliPrintLinef("sin_approx2:    %u cycles/call", r->sin_approx2);
+    cliPrintLinef("sin_approx3:    %u cycles/call", r->sin_approx3);
+    cliPrintLinef("cos_approx:     %u cycles/call", r->cos_approx);
+    cliPrintLinef("cos_approx3:    %u cycles/call", r->cos_approx3);
+    cliPrintLinef("sincos_approx3: %u cycles/call", r->sincos_approx3);
+    cliPrintLinef("tan_approx:     %u cycles/call", r->tan_approx);
+    cliPrintLinef("tan_approx3:    %u cycles/call", r->tan_approx3);
+}
+#endif
+
 typedef void cliCommandFn(const char* name, char *cmdline);
 
 typedef struct {
@@ -6781,6 +6801,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("manufacturer_id", "get / set the id of the board manufacturer", "[manufacturer id]", cliManufacturerId),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
+#ifndef USE_STANDARD_MATH
+    CLI_COMMAND_DEF("mathbench", "benchmark math approximation functions", NULL, cliMathBench),
+#endif
     CLI_COMMAND_DEF("mcu_id", "id of the microcontroller", NULL, cliMcuId),
     CLI_COMMAND_DEF("mixer", "configure mixer",
                     "status\r\n\t"

@@ -267,6 +267,10 @@ void init(void)
 
     systemInit();
 
+#ifndef USE_STANDARD_MATH
+    mathBenchRun();
+#endif
+
     // Initialize task data as soon as possible. Has to be done before tasksInit(),
     // and any init code that may try to modify task behaviour before tasksInit().
     tasksInitData();

@@ -32,6 +32,7 @@
 #define M_PI2f          1.57079632679489661923f
 #define M_2PIf          6.28318530717958647693f
 #define M_1_2PIf        0.15915494309189533577f
+#define M_2_PIf         0.63661977236758134308f  // 2/π
 
 #define M_RADf          0.01745329251994329577f
 #define RAD             M_RADf
@@ -40,6 +41,11 @@
 /*
  * Fast math routines
  */
+
+typedef struct {
+    float sin;
+    float cos;
+} sincosf_t;
 
 #ifndef USE_STANDARD_MATH
 
@@ -52,10 +58,33 @@ float exp_approx(float val);
 float log_approx(float val);
 float pow_approx(float a, float b);
 
+float sin_approx3(float x);
+float cos_approx3(float x);
+float tan_approx3(float x);
+sincosf_t sincos_approx3(float x);
+
+float sin_approx2(float x);
+
 static inline float tan_approx(float x)
 {
     return sin_approx(x) / cos_approx(x);
 }
+
+typedef struct {
+    uint32_t sinf_lib;
+    uint32_t sin_approx;
+    uint32_t sin_approx2;
+    uint32_t sin_approx3;
+    uint32_t cos_approx;
+    uint32_t cos_approx3;
+    uint32_t sincos_approx3;
+    uint32_t tan_approx;
+    uint32_t tan_approx3;
+} mathBenchResults_t;
+
+extern mathBenchResults_t mathBenchResults;
+
+void mathBenchRun(void);
 
 #else /* USE_STANDARD_MATH */
 
@@ -68,6 +97,15 @@ static inline float tan_approx(float x)
 #define exp_approx(x)       expf(x)
 #define log_approx(x)       logf(x)
 #define pow_approx(a, b)    powf(b, a)
+
+#define sin_approx3(x)      sinf(x)
+#define cos_approx3(x)      cosf(x)
+#define tan_approx3(x)      tanf(x)
+
+static inline sincosf_t sincos_approx3(float x)
+{
+    return (sincosf_t){ sinf(x), cosf(x) };
+}
 
 #endif /* USE_STANDARD_MATH */
 
