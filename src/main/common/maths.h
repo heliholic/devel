@@ -64,27 +64,13 @@ float tan_approx3(float x);
 sincosf_t sincos_approx3(float x);
 
 float sin_approx2(float x);
+float sin_precise(float x);
 
 static inline float tan_approx(float x)
 {
     return sin_approx(x) / cos_approx(x);
 }
 
-typedef struct {
-    uint32_t sinf_lib;
-    uint32_t sin_approx;
-    uint32_t sin_approx2;
-    uint32_t sin_approx3;
-    uint32_t cos_approx;
-    uint32_t cos_approx3;
-    uint32_t sincos_approx3;
-    uint32_t tan_approx;
-    uint32_t tan_approx3;
-} mathBenchResults_t;
-
-extern mathBenchResults_t mathBenchResults;
-
-void mathBenchRun(void);
 
 #else /* USE_STANDARD_MATH */
 

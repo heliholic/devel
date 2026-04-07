@@ -37,6 +37,7 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/maths.h"
+#include "common/bench.h"
 #include "common/printf.h"
 
 #include "config/config.h"

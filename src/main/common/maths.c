@@ -27,7 +27,6 @@
 
 #include "axis.h"
 #include "maths.h"
-#include "drivers/system.h"
 
 #ifndef USE_STANDARD_MATH
 
@@ -96,6 +95,20 @@ FAST_CODE float sin_approx2(float rad)
     f = (q & 2) ? -f : f;
     const float g = f * f;
     return f * (1.5707910110756176f + g * (-0.64589284954843862f + g * (0.079434344616858263f + g * (-0.0043330952924842871f))));
+}
+
+// High-precision sin: same quadrant fold as sin_approx2, degree-11 minimax polynomial.
+// Polynomial error ~1.3e-11; actual error is float-arithmetic limited (~1e-7).
+
+FAST_CODE float sin_precise(float rad)
+{
+    float x = rad * M_2_PIf;
+    int32_t q = (int32_t)floorf(x);
+    float f = x - (float)q;
+    f = (q & 1) ? (1.0f - f) : f;
+    f = (q & 2) ? -f : f;
+    const float g = f * f;
+    return f * (1.5707963266218763f + g * (-0.64596409265269539f + g * (0.079692587335023435f + g * (-0.0046816203507796016f + g * (0.00016021724632607189f + g * (-3.4182130478857069e-06f))))));
 }
 
 // Improved sin/cos approximations using quadrant folding and separate polynomials.
@@ -199,41 +212,6 @@ FAST_CODE float atan2_approx(float y, float x)
     return res;
 }
 
-mathBenchResults_t mathBenchResults;
-
-void mathBenchRun(void)
-{
-    static float inputs[256];
-
-    for (int i = 0; i < 256; i++)
-        inputs[i] = (i / 256.0f) * M_2PIf;
-
-    const int N = 10000;
-    volatile float sink = 0;
-    volatile sincosf_t sc = { 0, 0 };
-    uint32_t t0, t1;
-
-#define BENCH(field, expr) \
-    t0 = getCycleCounter(); \
-    for (int i = 0; i < N; i++) { expr; } \
-    t1 = getCycleCounter(); \
-    mathBenchResults.field = (t1 - t0) / N;
-
-    BENCH(sinf_lib,       sink = sinf(inputs[i & 255]))
-    BENCH(sin_approx,     sink = sin_approx(inputs[i & 255]))
-    BENCH(sin_approx2,    sink = sin_approx2(inputs[i & 255]))
-    BENCH(sin_approx3,    sink = sin_approx3(inputs[i & 255]))
-    BENCH(cos_approx,     sink = cos_approx(inputs[i & 255]))
-    BENCH(cos_approx3,    sink = cos_approx3(inputs[i & 255]))
-    BENCH(sincos_approx3, sc   = sincos_approx3(inputs[i & 255]))
-    BENCH(tan_approx,     sink = tan_approx(inputs[i & 255]))
-    BENCH(tan_approx3,    sink = tan_approx3(inputs[i & 255]))
-
-#undef BENCH
-
-    (void)sink;
-    (void)sc;
-}
 
 #endif /* USE_STANDARD_MATH */
 

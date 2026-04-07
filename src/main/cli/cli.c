@@ -47,6 +47,7 @@ bool cliMode = false;
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/maths.h"
+#include "common/bench.h"
 #include "common/printf.h"
 #include "common/strtol.h"
 #include "common/time.h"
@@ -6669,6 +6670,7 @@ static void cliMathBench(const char *cmdName, char *cmdline)
     cliPrintLinef("sin_approx:     %u cycles/call", r->sin_approx);
     cliPrintLinef("sin_approx2:    %u cycles/call", r->sin_approx2);
     cliPrintLinef("sin_approx3:    %u cycles/call", r->sin_approx3);
+    cliPrintLinef("cosf:           %u cycles/call", r->cosf_lib);
     cliPrintLinef("cos_approx:     %u cycles/call", r->cos_approx);
     cliPrintLinef("cos_approx3:    %u cycles/call", r->cos_approx3);
     cliPrintLinef("sincos_approx3: %u cycles/call", r->sincos_approx3);
