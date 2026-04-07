@@ -23,6 +23,9 @@
 
 #include <stdint.h>
 
+// 1/π
+#define M_1_PIf   0.31830988618379067154f
+
 // 2/π
 #define M_2_PIf   0.63661977236758134308f
 
@@ -36,6 +39,8 @@ typedef struct {
 
 float sin_fast(float x);
 float cos_fast(float x);
+float sin_taylor(float x);
+float cos_taylor(float x);
 
 float sin_approx2(float x);
 float cos_approx2(float x);
@@ -46,6 +51,6 @@ float cos_approx3(float x);
 float sin_approx4(float x);
 float cos_approx4(float x);
 
-float sin_quickflash(float x);
-float cos_quickflash(float x);
+float sin_betaflight(float x);
+float cos_betaflight(float x);
 

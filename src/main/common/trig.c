@@ -32,35 +32,78 @@
 // Fast sin approximation for rad ∈ [-π/4, π/4].  Minimax-optimised degree-7 odd polynomial.
 float sin_fast(float x)
 {
-    float x2 = x * x;
-    return x * (1.0f + x2 * (-0.16666650669294222f + x2 * (0.00833197866315977f + x2 * (-0.00019495636237996f))));
+    const float c3 = -0.16666650669294222f;
+    const float c5 =  0.00833197866315977f;
+    const float c7 = -0.00019495636237996f;
+    const float x2 = x * x;
+    return x * (1.0f + x2 * (c3 + x2 * (c5 + x2 * c7)));
 }
 
 // Fast cos approximation for rad ∈ [-π/4, π/4].  Minimax-optimised degree-6 even polynomial.
 float cos_fast(float x)
 {
-    float x2 = x * x;
-    return (1.0f + x2 * (-0.49999894781370191f + x2 * (0.04165629457842692f + x2 * (-0.00135978231111122f))));
+    const float c2 = -0.49999894781370191f;
+    const float c4 =  0.04165629457842692f;
+    const float c6 = -0.00135978231111122f;
+    const float x2 = x * x;
+    return (1.0f + x2 * (c2 + x2 * (c4 + x2 * c6)));
+}
+
+// Fast sin approximation for rad ∈ [-π/4, π/4].  Taylor series degree-7 odd polynomial.
+float sin_taylor(float x)
+{
+    const float c3 = -0.16666666666666667f;         // -1/6
+    const float c5 =  0.0083333333333333332f;       //  1/120
+    const float c7 = -0.00019841269841269841f;      // -1/5040
+    const float x2 = x * x;
+    return x * (1.0f + x2 * (c3 + x2 * (c5 + x2 * c7)));
+}
+
+// Fast cos approximation for rad ∈ [-π/4, π/4].  Taylor series degree-6 even polynomial.
+float cos_taylor(float x)
+{
+    const float c2 = -0.5f;                         // -1/2
+    const float c4 =  0.041666666666666664f;        //  1/24
+    const float c6 = -0.001388888888888889f;        // -1/720
+    const float x2 = x * x;
+    return (1.0f + x2 * (c2 + x2 * (c4 + x2 * c6)));
 }
 
 
 // Quadrant-folding single-polynomial approximation for sin.
-// Reduces rad to [0,1) per quadrant, folds, then evaluates a degree-7 minimax polynomial.
 
 float sin_approx2(float rad)
 {
-    float x = rad * M_2_PIf;
-    int32_t q = (int32_t)floorf(x);
-    float f = x - (float)q;
-    f = (q & 1) ? (1.0f - f) : f;
-    f = (q & 2) ? -f : f;
-    const float g = f * f;
-    return f * (1.5707910110756176f + g * (-0.64589284954843862f + g * (0.079434344616858263f + g * (-0.0043330952924842871f))));
+    const float c1 =  1.5707963050854579f;
+    const float c3 = -0.64596293816733275f;
+    const float c5 =  0.079675902970013021f;
+    const float c7 = -0.0045922890757518504f;
+
+    float x = rad * M_1_PIf;
+    float q = roundf(x);
+    float f = x - q;
+    int32_t i = q;
+    f = (i & 1) ? (1.0f - f) : f;
+    float f2 = f * f;
+    float y = f * (c1 + f2 * (c3 + f2 * (c5 + f2 * c7)));
+    return (i & 2) ? -y : y;
 }
 
 float cos_approx2(float rad)
 {
-    return sin_approx2(rad + M_PI_2f);
+    const float c1 =  1.5707963050854579f;
+    const float c3 = -0.64596293816733275f;
+    const float c5 =  0.079675902970013021f;
+    const float c7 = -0.0045922890757518504f;
+
+    float x = rad * M_1_PIf;
+    float q = roundf(x);
+    float f = x - q;
+    int32_t i = q + 1;
+    f = (i & 1) ? (1.0f - f) : f;
+    float f2 = f * f;
+    float y = f * (c1 + f2 * (c3 + f2 * (c5 + f2 * c7)));
+    return (i & 2) ? -y : y;
 }
 
 
@@ -88,32 +131,21 @@ static inline float cos_poly6(float r)
 float sin_approx3(float rad)
 {
     float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? cos_poly6(r) : sin_poly5(r);
-    return (q & 2) ? -y : y;
+    float q = roundf(x);
+    float r = x - q;
+    int32_t i = q;
+    float y = (i & 1) ? cos_poly6(r) : sin_poly5(r);
+    return (i & 2) ? -y : y;
 }
 
 float cos_approx3(float rad)
 {
     float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? -sin_poly5(r) : cos_poly6(r);
-    return (q & 2) ? -y : y;
-}
-
-float tan_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly5(r);
-    float cb = cos_poly6(r);
-
-    // (q & 2) sign flip cancels in the ratio; only quadrant parity matters
-    return (q & 1) ? -cb / sb : sb / cb;
+    float q = roundf(x);
+    float r = x - q;
+    int32_t i = q;
+    float y = (i & 1) ? -sin_poly5(r) : cos_poly6(r);
+    return (i & 2) ? -y : y;
 }
 
 
@@ -143,27 +175,28 @@ static inline float cos_poly8(float r)
 float sin_approx4(float rad)
 {
     float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? cos_poly8(r) : sin_poly7(r);
-    return (q & 2) ? -y : y;
+    float q = roundf(x);
+    float r = x - q;
+    int32_t i = q;
+    float y = (i & 1) ? cos_poly8(r) : sin_poly7(r);
+    return (i & 2) ? -y : y;
 }
 
 float cos_approx4(float rad)
 {
     float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? -sin_poly7(r) : cos_poly8(r);
-    return (q & 2) ? -y : y;
+    float q = roundf(x);
+    float r = x - q;
+    int32_t i = q;
+    float y = (i & 1) ? -sin_poly7(r) : cos_poly8(r);
+    return (i & 2) ? -y : y;
 }
-
 
 
 
 #define INV_PIO2    M_2_PIf
 
-static inline float sin_poly5_qf(float r)
+static inline float sin_poly5_bf(float r)
 {
     // Pre-scaled for u = r*(π/2)
     const float c0 =  0x1.921f1cp0f; // 1.5707871913909912109375
@@ -173,7 +206,7 @@ static inline float sin_poly5_qf(float r)
     return r * ((c2 * s + c1) * s + c0);
 }
 
-static inline float cos_poly6_qf(float r)
+static inline float cos_poly6_bf(float r)
 {
     const float d1 = -0x1.3bd39cp0f; // -1.2336976528167724609375
     const float d2 =  0x1.03bp-2f; // 0.25360107421875
@@ -184,47 +217,47 @@ static inline float cos_poly6_qf(float r)
 
 // ---- Quadrant mapping helpers ----
 // r ∈ [-0.5, 0.5], q is quadrant index (…,-1,0,1,2,3,4,…).
-static inline float sinf_quadrant_qf(float r, int q)
+static inline float sinf_quadrant_bf(float r, int q)
 {
-    q &= 3;
+    //q &= 3;
     if (q & 1) { // odd: use cos, sign handled below
-        float v = cos_poly6_qf(r);
+        float v = cos_poly6_bf(r);
         return (q & 2) ? -v : v;
     } else {     // even: use sin
-        float v = sin_poly5_qf(r);
+        float v = sin_poly5_bf(r);
         return (q & 2) ? -v : v;
     }
 }
 
-static inline float cosf_quadrant_qf(float r, int q)
+static inline float cosf_quadrant_bf(float r, int q)
 {
-    q &= 3;
+    //q &= 3;
     if (q & 1) { // odd: -sin, sign handled below
-        float v = -sin_poly5_qf(r);
+        float v = -sin_poly5_bf(r);
         return (q & 2) ? -v : v;   // q=1 -> -sin, q=3 -> +sin
     } else {     // even: cos
-        float v = cos_poly6_qf(r);
+        float v = cos_poly6_bf(r);
         return (q & 2) ? -v : v;   // q=2 -> -cos
     }
 }
 
 
-float sin_quickflash(float x)
+float sin_betaflight(float x)
 {
     float t = x * INV_PIO2;     // in quadrant units
     float qf = roundf(t);       // nearest quadrant as float
     int   q  = (int)qf;
     float r  = t - qf;          // remainder in [-0.5, 0.5]
-    return sinf_quadrant_qf(r, q);
+    return sinf_quadrant_bf(r, q);
 }
 
-float cos_quickflash(float x)
+float cos_betaflight(float x)
 {
     float t = x * INV_PIO2;
     float qf = roundf(t);
     int   q  = (int)qf;
     float r  = t - qf;          // [-0.5, 0.5]
-    return cosf_quadrant_qf(r, q);
+    return cosf_quadrant_bf(r, q);
 }
 
 

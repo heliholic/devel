@@ -51,11 +51,14 @@ mathBenchEntry_t mathBenchEntries[] = {
     { .name = "sin_approx4", .fn = sin_approx4, .ref = sin_ref },
     { .name = "cos_approx4", .fn = cos_approx4, .ref = cos_ref },
     { .name = NULL },
-    { .name = "sin_fast", .fn = sin_fast, .ref = NULL },
-    { .name = "cos_fast", .fn = cos_fast, .ref = NULL },
+    { .name = "sin_fast   ", .fn = sin_fast,    .ref = sin_ref },
+    { .name = "cos_fast   ", .fn = cos_fast,    .ref = cos_ref },
     { .name = NULL },
-    { .name = "sin_quickflash", .fn = sin_quickflash, .ref = sin_ref },
-    { .name = "cos_quickflash", .fn = cos_quickflash, .ref = cos_ref },
+    { .name = "sin_taylor ", .fn = sin_taylor,  .ref = sin_ref },
+    { .name = "cos_taylor ", .fn = cos_taylor,  .ref = cos_ref },
+    { .name = NULL },
+    { .name = "sin_betaflight", .fn = sin_betaflight, .ref = sin_ref },
+    { .name = "cos_betaflight", .fn = cos_betaflight, .ref = cos_ref },
 };
 
 const int mathBenchEntryCount = sizeof(mathBenchEntries) / sizeof(mathBenchEntries[0]);
@@ -83,16 +86,22 @@ void mathBenchRun(void)
             continue;
 
         uint32_t cycles = 0;
+        uint32_t count = 0;
 
         for (int i = 0; i < N; i++) {
-            float (*func)(float) = e->fn;
-            float input = inputs[i & 255];
+            register float (*func)(float) = e->fn;
+            register float input = inputs[i & 255];
             uint32_t t0 = getCycleCounter();
             sink = func(input);
             uint32_t t1 = getCycleCounter();
-            cycles += t1 - t0;
+            uint32_t dt = t1 - t0;
+            if (dt < 1000) {
+                cycles += dt;
+                count += 1;
+            }
         }
-        e->cycles = cycles / N;
+        e->cycles = cycles / count;
+        e->cycles = cycles / count;
 
         if (e->ref) {
             double maxErr = 0;

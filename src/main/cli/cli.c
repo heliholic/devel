@@ -7138,6 +7138,10 @@ void cliEnter(serialPort_t *serialPort)
 #endif
     setArmingDisabled(ARMING_DISABLED_CLI);
 
+#ifdef USE_MATH_BENCH
+    cliMathBench(NULL, NULL);
+#endif
+
     cliPrompt();
 
 #ifdef USE_CLI_BATCH
