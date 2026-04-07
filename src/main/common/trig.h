@@ -26,6 +26,9 @@
 // 2/π
 #define M_2_PIf   0.63661977236758134308f
 
+// π/2
+#define M_PI_2f   1.57079632679489661923f
+
 typedef struct {
     float sin;
     float cos;
@@ -46,7 +49,7 @@ float cos_approx4(float x);
 float tan_approx4(float x);
 sincosf_t sincos_approx4(float x);
 
-float sin_precise(float x);
-float cos_precise(float x);
-float tan_precise(float x);
-sincosf_t sincos_precise(float x);
+float sin_approx5(float x);
+float cos_approx5(float x);
+float tan_approx5(float x);
+sincosf_t sincos_approx5(float x);

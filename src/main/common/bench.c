@@ -32,9 +32,9 @@
 
 #ifdef USE_MATH_BENCH
 
-static float sin_ref[256];
-static float cos_ref[256];
-static float tan_ref[256];
+static double sin_ref[256];
+static double cos_ref[256];
+static double tan_ref[256];
 
 mathBenchEntry_t mathBenchEntries[] = {
     { .name = "sinf       ", .fn = sinf,        .ref = sin_ref },
@@ -57,9 +57,9 @@ mathBenchEntry_t mathBenchEntries[] = {
     { .name = "cos_approx4", .fn = cos_approx4, .ref = cos_ref },
     { .name = "tan_approx4", .fn = tan_approx4, .ref = tan_ref },
     { .name = NULL },
-    { .name = "sin_precise", .fn = sin_precise, .ref = NULL    },
-    { .name = "cos_precise", .fn = cos_precise, .ref = NULL    },
-    { .name = "tan_precise", .fn = tan_precise, .ref = NULL    },
+    { .name = "sin_approx5", .fn = sin_approx5, .ref = sin_ref },
+    { .name = "cos_approx5", .fn = cos_approx5, .ref = cos_ref },
+    { .name = "tan_approx5", .fn = tan_approx5, .ref = tan_ref },
 };
 
 const int mathBenchEntryCount = sizeof(mathBenchEntries) / sizeof(mathBenchEntries[0]);
@@ -73,9 +73,9 @@ void mathBenchRun(void)
         inputs[i] = (i / 256.0f) * M_2PIf;
 
     for (int i = 0; i < 256; i++) {
-        sin_ref[i] = sin_precise(inputs[i]);
-        cos_ref[i] = cos_precise(inputs[i]);
-        tan_ref[i] = tan_precise(inputs[i]);
+        sin_ref[i] = sin(inputs[i]);
+        cos_ref[i] = cos(inputs[i]);
+        tan_ref[i] = tan(inputs[i]);
     }
 
     const int N = 10000;
@@ -100,15 +100,15 @@ void mathBenchRun(void)
         e->cycles = cycles / N;
 
         if (e->ref) {
-            float maxErr = 0.0f;
+            double maxErr = 0;
             for (int i = 0; i < 256; i++) {
                 if (!isfinite(e->ref[i]))
                     continue;
-                float err = fabsf(e->fn(inputs[i]) - e->ref[i]);
+                double err = fabs((double)e->fn(inputs[i]) - e->ref[i]);
                 if (err > maxErr)
                     maxErr = err;
             }
-            e->bits = (maxErr > 0.0f && maxErr < 1.0f) ? (uint8_t)(-log2f(maxErr)) : 0;
+            e->bits = (maxErr > 0 && maxErr < 1) ? (uint8_t)(-log2(maxErr)) : 0;
         }
     }
 

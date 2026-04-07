@@ -6666,16 +6666,20 @@ static void cliMathBench(const char *cmdName, char *cmdline)
 
     mathBenchRun();
 
-    cliPrintLine("Function  cycles  bits");
+    cliPrintLine("Function       cycles  bits");
 
     for (int i = 0; i < mathBenchEntryCount; i++) {
         const mathBenchEntry_t *e = &mathBenchEntries[i];
         if (!e->name) {
             cliPrintLine("");
-        } else if (e->ref) {
-            cliPrintLinef("%s  %u  %u", e->name, e->cycles, e->bits);
         } else {
-            cliPrintLinef("%s  %u", e->name, e->cycles);
+            cliPrint(e->name);
+            for (int k = strlen(e->name); k < 12; k++)
+                cliPrint(" ");
+            if (e->ref)
+                cliPrintLinef("  %u  %u", e->cycles, e->bits);
+            else
+                cliPrintLinef("  %u", e->cycles);
         }
     }
 }

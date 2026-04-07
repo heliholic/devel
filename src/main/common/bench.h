@@ -30,7 +30,7 @@
 typedef struct {
     const char    *name;        // NULL = blank-line separator in output
     float        (*fn)(float);  // function under test; NULL for separator entries
-    const float   *ref;         // precision reference array, or NULL for no precision check
+    const double  *ref;         // precision reference array, or NULL for no precision check
     // filled by mathBenchRun():
     uint32_t      cycles;
     uint8_t       bits;

@@ -47,13 +47,7 @@ float sin_approx2(float rad)
 
 float cos_approx2(float rad)
 {
-    float x = rad * M_2_PIf + 1.0f;
-    int32_t q = (int32_t)floorf(x);
-    float f = x - (float)q;
-    f = (q & 1) ? (1.0f - f) : f;
-    f = (q & 2) ? -f : f;
-    const float g = f * f;
-    return f * (1.5707910110756176f + g * (-0.64589284954843862f + g * (0.079434344616858263f + g * (-0.0043330952924842871f))));
+    return sin_approx2(rad + M_PI_2f);
 }
 
 sincosf_t sincos_approx2(float rad)
@@ -266,7 +260,7 @@ static inline float cos_poly10(float r)
     return 1.0f + r2 * (c2 + r2 * (c4 + r2 * (c6 + r2 * (c8 + r2 * c10))));
 }
 
-float sin_precise(float rad)
+float sin_approx5(float rad)
 {
     float x = rad * M_2_PIf;
     int32_t q = lrintf(x);
@@ -275,7 +269,7 @@ float sin_precise(float rad)
     return (q & 2) ? -y : y;
 }
 
-float cos_precise(float rad)
+float cos_approx5(float rad)
 {
     float x = rad * M_2_PIf;
     int32_t q = lrintf(x);
@@ -284,7 +278,7 @@ float cos_precise(float rad)
     return (q & 2) ? -y : y;
 }
 
-float tan_precise(float rad)
+float tan_approx5(float rad)
 {
     float x = rad * M_2_PIf;
     int32_t q = lrintf(x);
@@ -296,7 +290,7 @@ float tan_precise(float rad)
     return (q & 1) ? -cb / sb : sb / cb;
 }
 
-sincosf_t sincos_precise(float rad)
+sincosf_t sincos_approx5(float rad)
 {
     float x = rad * M_2_PIf;
     int32_t q = lrintf(x);
