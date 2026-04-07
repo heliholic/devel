@@ -34,22 +34,18 @@ typedef struct {
     float cos;
 } sincosf_t;
 
+float sin_fast(float x);
+float cos_fast(float x);
+
 float sin_approx2(float x);
 float cos_approx2(float x);
-float tan_approx2(float x);
-sincosf_t sincos_approx2(float x);
 
 float sin_approx3(float x);
 float cos_approx3(float x);
-float tan_approx3(float x);
-sincosf_t sincos_approx3(float x);
 
 float sin_approx4(float x);
 float cos_approx4(float x);
-float tan_approx4(float x);
-sincosf_t sincos_approx4(float x);
 
-float sin_approx5(float x);
-float cos_approx5(float x);
-float tan_approx5(float x);
-sincosf_t sincos_approx5(float x);
+float sin_quickflash(float x);
+float cos_quickflash(float x);
+

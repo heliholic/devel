@@ -51,8 +51,11 @@ mathBenchEntry_t mathBenchEntries[] = {
     { .name = "sin_approx4", .fn = sin_approx4, .ref = sin_ref },
     { .name = "cos_approx4", .fn = cos_approx4, .ref = cos_ref },
     { .name = NULL },
-    { .name = "sin_approx5", .fn = sin_approx5, .ref = sin_ref },
-    { .name = "cos_approx5", .fn = cos_approx5, .ref = cos_ref },
+    { .name = "sin_fast", .fn = sin_fast, .ref = NULL },
+    { .name = "cos_fast", .fn = cos_fast, .ref = NULL },
+    { .name = NULL },
+    { .name = "sin_quickflash", .fn = sin_quickflash, .ref = sin_ref },
+    { .name = "cos_quickflash", .fn = cos_quickflash, .ref = cos_ref },
 };
 
 const int mathBenchEntryCount = sizeof(mathBenchEntries) / sizeof(mathBenchEntries[0]);

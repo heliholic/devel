@@ -28,20 +28,19 @@
 
 #include "trig.h"
 
-#ifndef USE_STANDARD_MATH
-
 
 // Fast sin approximation for rad ∈ [-π/4, π/4].  Minimax-optimised degree-7 odd polynomial.
-float sin_quadrant(float x)
+float sin_fast(float x)
 {
     float x2 = x * x;
     return x * (1.0f + x2 * (-0.16666650669294222f + x2 * (0.00833197866315977f + x2 * (-0.00019495636237996f))));
 }
 
-float cos_quadrant(float x)
+// Fast cos approximation for rad ∈ [-π/4, π/4].  Minimax-optimised degree-6 even polynomial.
+float cos_fast(float x)
 {
     float x2 = x * x;
-    return (1.0f + x2 * (-0.49999851990214977f + x2 * (0.041654773848899991f + x2 * (-0.0013582643499402464f))));
+    return (1.0f + x2 * (-0.49999894781370191f + x2 * (0.04165629457842692f + x2 * (-0.00135978231111122f))));
 }
 
 
@@ -160,48 +159,72 @@ float cos_approx4(float rad)
 }
 
 
-// Degree-9 sin / degree-10 cos paired polynomials — Taylor coefficients.
-// Truncation error is well below a float ULP; actual error is float-arithmetic limited.
 
-static inline float sin_poly9(float r)
+
+#define INV_PIO2    M_2_PIf
+
+static inline float sin_poly5_qf(float r)
 {
-    const float c1 =  1.5707963267948966f;
-    const float c3 = -0.6459640975062462f;
-    const float c5 =  0.07969262624616703f;
-    const float c7 = -0.004681754135318685f;
-    const float c9 =  1.6044118478735963e-4f;
-    const float r2 = r * r;
-    return r * (c1 + r2 * (c3 + r2 * (c5 + r2 * (c7 + r2 * c9))));
+    // Pre-scaled for u = r*(π/2)
+    const float c0 =  0x1.921f1cp0f; // 1.5707871913909912109375
+    const float c1 = -0x1.4a974p-1f; // -0.6456851959228515625
+    const float c2 =  0x1.3db294p-4f; // 7.756288349628448486328125e-2
+    float s = r * r;
+    return r * ((c2 * s + c1) * s + c0);
 }
 
-static inline float cos_poly10(float r)
+static inline float cos_poly6_qf(float r)
 {
-    const float c2 = -1.2337005501361698f;
-    const float c4 =  0.25366920193218095f;
-    const float c6 = -0.020862209263265985f;
-    const float c8 =  9.192661394714042e-4f;
-    const float c10 = -2.2969903187012496e-5f;
-    const float r2 = r * r;
-    return 1.0f + r2 * (c2 + r2 * (c4 + r2 * (c6 + r2 * (c8 + r2 * c10))));
+    const float d1 = -0x1.3bd39cp0f; // -1.2336976528167724609375
+    const float d2 =  0x1.03bp-2f; // 0.25360107421875
+    const float d3 = -0x1.4e5eecp-6f; // -2.04083733260631561279296875e-2
+    float s = r * r;
+    return ((d3 * s + d2) * s + d1) * s + 1.0f;
 }
 
-float sin_approx5(float rad)
+// ---- Quadrant mapping helpers ----
+// r ∈ [-0.5, 0.5], q is quadrant index (…,-1,0,1,2,3,4,…).
+static inline float sinf_quadrant_qf(float r, int q)
 {
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? cos_poly10(r) : sin_poly9(r);
-    return (q & 2) ? -y : y;
+    q &= 3;
+    if (q & 1) { // odd: use cos, sign handled below
+        float v = cos_poly6_qf(r);
+        return (q & 2) ? -v : v;
+    } else {     // even: use sin
+        float v = sin_poly5_qf(r);
+        return (q & 2) ? -v : v;
+    }
 }
 
-float cos_approx5(float rad)
+static inline float cosf_quadrant_qf(float r, int q)
 {
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? -sin_poly9(r) : cos_poly10(r);
-    return (q & 2) ? -y : y;
+    q &= 3;
+    if (q & 1) { // odd: -sin, sign handled below
+        float v = -sin_poly5_qf(r);
+        return (q & 2) ? -v : v;   // q=1 -> -sin, q=3 -> +sin
+    } else {     // even: cos
+        float v = cos_poly6_qf(r);
+        return (q & 2) ? -v : v;   // q=2 -> -cos
+    }
 }
 
 
-#endif /* USE_STANDARD_MATH */
+float sin_quickflash(float x)
+{
+    float t = x * INV_PIO2;     // in quadrant units
+    float qf = roundf(t);       // nearest quadrant as float
+    int   q  = (int)qf;
+    float r  = t - qf;          // remainder in [-0.5, 0.5]
+    return sinf_quadrant_qf(r, q);
+}
+
+float cos_quickflash(float x)
+{
+    float t = x * INV_PIO2;
+    float qf = roundf(t);
+    int   q  = (int)qf;
+    float r  = t - qf;          // [-0.5, 0.5]
+    return cosf_quadrant_qf(r, q);
+}
+
+
