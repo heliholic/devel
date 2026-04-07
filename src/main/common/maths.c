@@ -30,22 +30,24 @@
 
 #ifndef USE_STANDARD_MATH
 
-static inline float sin_poly5(float r)
+static inline float sin_poly(float r)
 {
-    const float c1 =  1.570788468983057f;
-    const float c3 = -0.645711990181946f;
-    const float c5 =  0.077667393626301f;
+    const float c1 =  1.5707963050854579f;
+    const float c3 = -0.64596293816733275f;
+    const float c5 =  0.079675902970013021f;
+    const float c7 = -0.0045922890757518504f;
     const float r2 = r * r;
-    return r * (c1 + r2 * (c3 + r2 * c5));
+    return r * (c1 + r2 * (c3 + r2 * (c5 + r2 * c7)));
 }
 
-static inline float cos_poly6(float r)
+static inline float cos_poly(float r)
 {
-    const float c2 = -1.233697953970536f;
-    const float c4 =  0.253606361920527f;
-    const float c6 = -0.020426250304794f;
+    const float c2 = -1.2337005406473684f;
+    const float c4 =  0.25366920393921583f;
+    const float c6 = -0.020860071318401938f;
+    const float c8 =  0.00090363170248550532f;
     const float r2 = r * r;
-    return 1.0f + r2 * (c2 + r2 * (c4 + r2 * c6));
+    return 1.0f + r2 * (c2 + r2 * (c4 + r2 * (c6 + r2 * c8)));
 }
 
 FAST_CODE float sin_approx(float rad)
@@ -54,7 +56,7 @@ FAST_CODE float sin_approx(float rad)
     float q = roundf(x);
     float r = x - q;
     int32_t i = q;
-    float y = (i & 1) ? cos_poly6(r) : sin_poly5(r);
+    float y = (i & 1) ? cos_poly(r) : sin_poly(r);
     return (i & 2) ? -y : y;
 }
 
@@ -64,7 +66,7 @@ FAST_CODE float cos_approx(float rad)
     float q = roundf(x);
     float r = x - q;
     int32_t i = q;
-    float y = (i & 1) ? -sin_poly5(r) : cos_poly6(r);
+    float y = (i & 1) ? -sin_poly(r) : cos_poly(r);
     return (i & 2) ? -y : y;
 }
 
@@ -74,8 +76,8 @@ FAST_CODE sincosf_t sincos_approx(float rad)
     float q = roundf(x);
     float r = x - q;
     int32_t i = q;
-    float s = sin_poly5(r);
-    float c = cos_poly6(r);
+    float s = sin_poly(r);
+    float c = cos_poly(r);
     float sin = (i & 1) ?  c : s;
     float cos = (i & 1) ? -s : c;
     return (i & 2) ?
@@ -89,8 +91,8 @@ FAST_CODE float tan_approx(float rad)
     float q = roundf(x);
     float r = x - q;
     int32_t i = q;
-    float s = sin_poly5(r);
-    float c = cos_poly6(r);
+    float s = sin_poly(r);
+    float c = cos_poly(r);
     float sin = (i & 1) ?  c : s;
     float cos = (i & 1) ? -s : c;
     return sin / cos;
