@@ -70,27 +70,6 @@ FAST_CODE float cos_taylor(float x)
 }
 
 
-// Degree-5 sin / degree-6 cos paired polynomials over r ∈ [-1, 1],
-// approximating sin(r·π/4) and cos(r·π/4).
-
-static inline float sin_poly5o(float r)
-{
-    const float c1 =  1.570788468983057f;
-    const float c3 = -0.645711990181946f;
-    const float c5 =  0.077667393626301f;
-    const float r2 = r * r;
-    return r * (c1 + r2 * (c3 + r2 * c5));
-}
-
-static inline float cos_poly6o(float r)
-{
-    const float c2 = -1.233697953970536f;
-    const float c4 =  0.253606361920527f;
-    const float c6 = -0.020426250304794f;
-    const float r2 = r * r;
-    return 1.0f + r2 * (c2 + r2 * (c4 + r2 * c6));
-}
-
 float sin_approx2(float rad)
 {
     return rad;

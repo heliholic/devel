@@ -35,12 +35,15 @@
 static double sin_ref[256];
 static double cos_ref[256];
 
-mathBenchEntry_t mathBenchEntries[] = {
+mathBenchEntry_t mathBenchEntries[] =
+{
     { .name = "sinf       ", .fn = sinf,        .ref = sin_ref },
     { .name = "cosf       ", .fn = cosf,        .ref = cos_ref },
+    { .name = "tanf       ", .fn = tanf,        .ref = NULL    },
     { .name = NULL },
     { .name = "sin_approx ", .fn = sin_approx,  .ref = sin_ref },
     { .name = "cos_approx ", .fn = cos_approx,  .ref = cos_ref },
+    { .name = "tan_approx ", .fn = tan_approx,  .ref = NULL    },
     { .name = NULL },
     { .name = "sin_approx2", .fn = sin_approx2, .ref = sin_ref },
     { .name = "cos_approx2", .fn = cos_approx2, .ref = cos_ref },
