@@ -31,6 +31,20 @@
 #ifndef USE_STANDARD_MATH
 
 
+// Fast sin approximation for rad ∈ [-π/4, π/4].
+float sin_quadrant(float x)
+{
+    float x2 = x * x;
+    return x * (1.0f + x2 * (-0.16674333935710625f + x2 * (0.0087303640460478088f + x2 * (-0.00064335021043186204f))));
+}
+
+float cos_quadrant(float x)
+{
+    float x2 = x * x;
+    return (1.0f + x2 * (-0.49999851990214977f + x2 * (0.041654773848899991f + x2 * (-0.0013582643499402464f))));
+}
+
+
 // Quadrant-folding single-polynomial approximation for sin.
 // Reduces rad to [0,1) per quadrant, folds, then evaluates a degree-7 minimax polynomial.
 
@@ -48,47 +62,6 @@ float sin_approx2(float rad)
 float cos_approx2(float rad)
 {
     return sin_approx2(rad + M_PI_2f);
-}
-
-sincosf_t sincos_approx2(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = (int32_t)floorf(x);
-    float f = x - (float)q;
-
-    // unsigned sin/cos magnitudes; cos complement of sin in [0, 0.5]
-    float fs = (q & 1) ? (1.0f - f) : f;
-    float fc = 1.0f - fs;
-
-    float gs = fs * fs;
-    float gc = fc * fc;
-
-    float s = fs * (1.5707910110756176f + gs * (-0.64589284954843862f + gs * (0.079434344616858263f + gs * (-0.0043330952924842871f))));
-    float c = fc * (1.5707910110756176f + gc * (-0.64589284954843862f + gc * (0.079434344616858263f + gc * (-0.0043330952924842871f))));
-
-    s = (q & 2) ? -s : s;
-    c = ((q + 1) & 2) ? -c : c;
-
-    return (sincosf_t){ s, c };
-}
-
-float tan_approx2(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = (int32_t)floorf(x);
-    float f = x - (float)q;
-
-    float fs = (q & 1) ? (1.0f - f) : f;
-    float fc = 1.0f - fs;
-
-    float gs = fs * fs;
-    float gc = fc * fc;
-
-    float s = fs * (1.5707910110756176f + gs * (-0.64589284954843862f + gs * (0.079434344616858263f + gs * (-0.0043330952924842871f))));
-    float c = fc * (1.5707910110756176f + gc * (-0.64589284954843862f + gc * (0.079434344616858263f + gc * (-0.0043330952924842871f))));
-
-    // (q & 2) sign cancels in the ratio; only quadrant parity matters
-    return (q & 1) ? -s / c : s / c;
 }
 
 
@@ -144,24 +117,6 @@ float tan_approx3(float rad)
     return (q & 1) ? -cb / sb : sb / cb;
 }
 
-sincosf_t sincos_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly5(r);
-    float cb = cos_poly6(r);
-
-    float s = (q & 1) ? cb : sb;
-    float c = (q & 1) ? -sb : cb;
-
-    s = (q & 2) ? -s : s;
-    c = (q & 2) ? -c : c;
-
-    return (sincosf_t){ s, c };
-}
-
 
 // Degree-7 sin / degree-8 cos paired polynomials over r ∈ [-0.5, 0.5],
 // approximating sin(r·π/2) and cos(r·π/2).  Minimax-optimised coefficients.
@@ -202,36 +157,6 @@ float cos_approx4(float rad)
     float r = x - (float)q;
     float y = (q & 1) ? -sin_poly7(r) : cos_poly8(r);
     return (q & 2) ? -y : y;
-}
-
-float tan_approx4(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly7(r);
-    float cb = cos_poly8(r);
-
-    return (q & 1) ? -cb / sb : sb / cb;
-}
-
-sincosf_t sincos_approx4(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly7(r);
-    float cb = cos_poly8(r);
-
-    float s = (q & 1) ? cb : sb;
-    float c = (q & 1) ? -sb : cb;
-
-    s = (q & 2) ? -s : s;
-    c = (q & 2) ? -c : c;
-
-    return (sincosf_t){ s, c };
 }
 
 
@@ -276,36 +201,6 @@ float cos_approx5(float rad)
     float r = x - (float)q;
     float y = (q & 1) ? -sin_poly9(r) : cos_poly10(r);
     return (q & 2) ? -y : y;
-}
-
-float tan_approx5(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly9(r);
-    float cb = cos_poly10(r);
-
-    return (q & 1) ? -cb / sb : sb / cb;
-}
-
-sincosf_t sincos_approx5(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly9(r);
-    float cb = cos_poly10(r);
-
-    float s = (q & 1) ? cb : sb;
-    float c = (q & 1) ? -sb : cb;
-
-    s = (q & 2) ? -s : s;
-    c = (q & 2) ? -c : c;
-
-    return (sincosf_t){ s, c };
 }
 
 

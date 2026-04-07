@@ -2081,7 +2081,7 @@ static void printServoStatus(uint8_t index)
 {
     const bool hasBusServos = hasBusServosConfigured();
     const bool isBusServo = hasBusServos && index >= BUS_SERVO_OFFSET;
-    
+
     if (isBusServo) {
         // Bus servos: S9-S26 (indices 8-25) displayed as S1-S18
         const int busServoNum = index - BUS_SERVO_OFFSET + 1;
@@ -2110,7 +2110,7 @@ static void printServoOverride(uint8_t index)
 {
     const bool hasBusServos = hasBusServosConfigured();
     const bool isBusServo = hasBusServos && index >= BUS_SERVO_OFFSET;
-    
+
     if (isBusServo) {
         // Bus servos: S9-S26 (indices 8-25) displayed as S1-S18
         const int busServoNum = index - BUS_SERVO_OFFSET + 1;
@@ -5070,31 +5070,31 @@ static void cliStatus(const char *cmdName, char *cmdline)
 static void cliFbusSensors(const char *cmdName, char *cmdline)
 {
     UNUSED(cmdName);
-    
+
     if (!isEmpty(cmdline) && strncasecmp(cmdline, "clear", 5) == 0) {
         fbusSensorClearObserved();
         cliPrintLine("Observed FBUS sensors cleared");
         return;
     }
-    
+
     const uint8_t count = fbusSensorGetObservedCount();
-    
+
     if (count == 0) {
         cliPrintLine("No FBUS sensors observed yet");
         return;
     }
-    
+
     cliPrintLinefeed();
     cliPrintLine("Observed FBUS Sensors:");
     cliPrintLine("Physical ID | Sensor Name       | Forwarded | App IDs                                   | Packets");
     cliPrintLine("----------- | ----------------- | --------- | ----------------------------------------- | -------");
-    
+
     for (uint8_t i = 0; i < count; i++) {
         const fbusObservedSensor_t *sensor = fbusSensorGetObserved(i);
         if (!sensor) {
             break;
         }
-        
+
         // Print physical ID and sensor name
         const char *sensorName = fbusSensorGetName(sensor->physicalId);
         // For unknown sensors, display as "ID_XXX" instead of "UNKNOWN"
@@ -5166,10 +5166,10 @@ static void cliFbusSensors(const char *cmdName, char *cmdline)
 
         // Print packet count
         cliPrintf(" | %7u", sensor->packetCount);
-        
+
         cliPrintLinefeed();
     }
-    
+
     cliPrintLinefeed();
 }
 #endif
@@ -6666,7 +6666,7 @@ static void cliMathBench(const char *cmdName, char *cmdline)
 
     mathBenchRun();
 
-    cliPrintLine("Function       cycles  bits");
+    cliPrintLine("Function   Cycles  Bits");
 
     for (int i = 0; i < mathBenchEntryCount; i++) {
         const mathBenchEntry_t *e = &mathBenchEntries[i];

@@ -34,32 +34,25 @@
 
 static double sin_ref[256];
 static double cos_ref[256];
-static double tan_ref[256];
 
 mathBenchEntry_t mathBenchEntries[] = {
     { .name = "sinf       ", .fn = sinf,        .ref = sin_ref },
     { .name = "cosf       ", .fn = cosf,        .ref = cos_ref },
-    { .name = "tanf       ", .fn = tanf,        .ref = tan_ref },
     { .name = NULL },
     { .name = "sin_approx ", .fn = sin_approx,  .ref = sin_ref },
     { .name = "cos_approx ", .fn = cos_approx,  .ref = cos_ref },
-    { .name = "tan_approx ", .fn = tan_approx,  .ref = tan_ref },
     { .name = NULL },
     { .name = "sin_approx2", .fn = sin_approx2, .ref = sin_ref },
     { .name = "cos_approx2", .fn = cos_approx2, .ref = cos_ref },
-    { .name = "tan_approx2", .fn = tan_approx2, .ref = tan_ref },
     { .name = NULL },
     { .name = "sin_approx3", .fn = sin_approx3, .ref = sin_ref },
     { .name = "cos_approx3", .fn = cos_approx3, .ref = cos_ref },
-    { .name = "tan_approx3", .fn = tan_approx3, .ref = tan_ref },
     { .name = NULL },
     { .name = "sin_approx4", .fn = sin_approx4, .ref = sin_ref },
     { .name = "cos_approx4", .fn = cos_approx4, .ref = cos_ref },
-    { .name = "tan_approx4", .fn = tan_approx4, .ref = tan_ref },
     { .name = NULL },
     { .name = "sin_approx5", .fn = sin_approx5, .ref = sin_ref },
     { .name = "cos_approx5", .fn = cos_approx5, .ref = cos_ref },
-    { .name = "tan_approx5", .fn = tan_approx5, .ref = tan_ref },
 };
 
 const int mathBenchEntryCount = sizeof(mathBenchEntries) / sizeof(mathBenchEntries[0]);
@@ -75,7 +68,6 @@ void mathBenchRun(void)
     for (int i = 0; i < 256; i++) {
         sin_ref[i] = sin(inputs[i]);
         cos_ref[i] = cos(inputs[i]);
-        tan_ref[i] = tan(inputs[i]);
     }
 
     const int N = 10000;
