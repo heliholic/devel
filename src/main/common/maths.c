@@ -61,107 +61,6 @@ FAST_CODE float cos_approx(float x)
     return sin_approx(x + M_PI2f);
 }
 
-// Polynomial approximations for sin_approx3/cos_approx3/sincos_approx3.
-// Argument r is the reduced angle scaled by 2/π, so r ∈ [-0.5, 0.5].
-// sin_poly5 approximates sin(r·π/2); cos_poly6 approximates cos(r·π/2).
-
-static inline float sin_poly5(float r)
-{
-    const float c1 =  1.570788468983057f;
-    const float c3 = -0.645711990181946f;
-    const float c5 =  0.077667393626301f;
-    const float r2 = r * r;
-    return r * (c1 + r2 * (c3 + r2 * c5));
-}
-
-static inline float cos_poly6(float r)
-{
-    const float c2 = -1.233697953970536f;
-    const float c4 =  0.253606361920527f;
-    const float c6 = -0.020426250304794f;
-    const float r2 = r * r;
-    return 1.0f + r2 * (c2 + r2 * (c4 + r2 * c6));
-}
-
-// Quadrant-folding single-polynomial approximation for sin.
-// Reduces rad to [0,1) per quadrant, folds, then evaluates a degree-7 minimax polynomial.
-
-FAST_CODE float sin_approx2(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = (int32_t)floorf(x);
-    float f = x - (float)q;
-    f = (q & 1) ? (1.0f - f) : f;
-    f = (q & 2) ? -f : f;
-    const float g = f * f;
-    return f * (1.5707910110756176f + g * (-0.64589284954843862f + g * (0.079434344616858263f + g * (-0.0043330952924842871f))));
-}
-
-// High-precision sin: same quadrant fold as sin_approx2, degree-11 minimax polynomial.
-// Polynomial error ~1.3e-11; actual error is float-arithmetic limited (~1e-7).
-
-FAST_CODE float sin_precise(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = (int32_t)floorf(x);
-    float f = x - (float)q;
-    f = (q & 1) ? (1.0f - f) : f;
-    f = (q & 2) ? -f : f;
-    const float g = f * f;
-    return f * (1.5707963266218763f + g * (-0.64596409265269539f + g * (0.079692587335023435f + g * (-0.0046816203507796016f + g * (0.00016021724632607189f + g * (-3.4182130478857069e-06f))))));
-}
-
-// Improved sin/cos approximations using quadrant folding and separate polynomials.
-
-FAST_CODE float sin_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? cos_poly6(r) : sin_poly5(r);
-    return (q & 2) ? -y : y;
-}
-
-FAST_CODE float cos_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-    float y = (q & 1) ? -sin_poly5(r) : cos_poly6(r);
-    return (q & 2) ? -y : y;
-}
-
-FAST_CODE sincosf_t sincos_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly5(r);
-    float cb = cos_poly6(r);
-
-    float s = (q & 1) ? cb : sb;
-    float c = (q & 1) ? -sb : cb;
-
-    s = (q & 2) ? -s : s;
-    c = (q & 2) ? -c : c;
-
-    return (sincosf_t){ s, c };
-}
-
-FAST_CODE float tan_approx3(float rad)
-{
-    float x = rad * M_2_PIf;
-    int32_t q = lrintf(x);
-    float r = x - (float)q;
-
-    float sb = sin_poly5(r);
-    float cb = cos_poly6(r);
-
-    // (q & 2) sign flip cancels in the ratio; only quadrant parity matters
-    return (q & 1) ? -cb / sb : sb / cb;
-}
-
 FAST_CODE float asin_approx(float x)
 {
     return M_PI2f - acos_approx(x);
@@ -211,7 +110,6 @@ FAST_CODE float atan2_approx(float y, float x)
 
     return res;
 }
-
 
 #endif /* USE_STANDARD_MATH */
 
