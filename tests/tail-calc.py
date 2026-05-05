@@ -7,13 +7,13 @@ import numpy as np
 
 class config():
     blade_grip_arm       = 10.0
-    blade_grip_link      = 9.5
-    slider_arm           = 10.0
-    pivot_slider_dist    = 17.0
+    blade_grip_link      = 9.0
+    slider_arm           = 9.0
+    pivot_slider_arm     = 18.0
     pivot_slider_zero    = 0.0
     pivot_rod_arm        = 23.0
     pivot_angle          = 0.0      #math.radians(5.0)
-    servo_arm            = 12.0
+    servo_arm            = 14.0
     # Plotting
     plot_min_deg         = -50.0
     plot_max_deg         = 50.0
@@ -34,7 +34,7 @@ def pivot_angle_to_rod_deflection( angle: float ) -> float:
 
 def slider_to_pivot_angle( slider: float ) -> float:
     sx = slider + config.pivot_slider_zero
-    gamma = math.atan2(sx, config.pivot_slider_dist)
+    gamma = math.atan2(sx, config.pivot_slider_arm)
     return gamma
 
 def blade_angle_to_slider( alpha: float ) -> float:
@@ -81,7 +81,8 @@ def quantize_coeffs(coeffs, scale: int = 16384):
     coeffs_quantized = coeffs_int32.astype(np.float64) / scale
     return coeffs_int32, coeffs_quantized
 
-def print_poly_coeffs_int32(coeffs, degree: int, scale: int = 16384):
+def print_poly_coeffs_int32(degree: int, scale: int = 16384):
+    coeffs = polynomial_approx_blade_to_servo(degree)
     coeffs_int32, _ = quantize_coeffs(coeffs, scale=scale)
     coeffs_str = ", ".join([str(int(c)) for c in coeffs_int32])
     print(f"// degree={degree}, coefficients in radians, scale={scale}")
@@ -108,7 +109,7 @@ def plot_sweep():
         rod_deflections.append(rod_deflection)
         servo_angles_deg.append(math.degrees(servo_angle))
 
-    plt.figure(figsize=(16, 12), dpi=200)
+    plt.figure(figsize=(16, 12), dpi=160)
     plt.plot(angle_degrees, slider_positions, label="Slider distance (mm)")
     plt.plot(angle_degrees, pivot_angles_deg, label="Pivot angle (deg)")
     plt.plot(angle_degrees, rod_deflections, label="Rod deflection (mm)")
@@ -133,9 +134,6 @@ def plot_blade_to_servo_approx():
     for degree in range(4, 10):
         coeffs = polynomial_approx_blade_to_servo(degree=degree)
         poly = np.poly1d(coeffs)
-        print(f"Blade angle -> servo angle polynomial in radians (deg={degree}):")
-        print(poly)
-        print_poly_coeffs_int32(coeffs, degree, scale=coeff_scale)
         servo_approx_rad = np.array([evaluate_polynomial(coeffs, angle_rad) for angle_rad in blade_angles_rad])
         servo_approx_deg = np.degrees(servo_approx_rad)
         servo_error_deg = servo_approx_deg - servo_real_deg
@@ -167,6 +165,7 @@ def plot_blade_to_servo_approx():
 
 
 def main():
+    print_poly_coeffs_int32(6)
     plot_sweep()
     plot_blade_to_servo_approx()
 
