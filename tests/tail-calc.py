@@ -14,8 +14,10 @@ class config():
     pivot_rod_arm        = 23.0
     pivot_angle          = 0.0 #math.radians(5.0)
     servo_arm            = 12.0
-    plot_min_deg         = -45.0
-    plot_max_deg         = 45.0
+    # Plotting
+    plot_min_deg         = -50.0
+    plot_max_deg         = 50.0
+    # Approximation
     approx_min_deg       = -45.0
     approx_max_deg       = 45.0
 
@@ -110,12 +112,13 @@ def plot_sweep():
     plt.show()
 
 def plot_blade_to_servo_approx():
-    blade_angles_deg = np.arange(config.approx_min_deg, config.approx_max_deg + 1.0, 1.0)
+    blade_angles_deg = np.arange(config.plot_min_deg, config.plot_max_deg + 1.0, 1.0)
     blade_angles_rad = np.radians(blade_angles_deg)
     servo_real_rad = np.array([blade_angle_to_servo_angle(alpha) for alpha in blade_angles_rad])
     servo_real_deg = np.degrees(servo_real_rad)
+    coeff_scale = 16384
 
-    fig, (ax_curve, ax_error) = plt.subplots(2, 1, figsize=(16, 12), dpi=200, sharex=True)
+    fig, (ax_curve, ax_error, ax_int_error) = plt.subplots(3, 1, figsize=(16, 14), dpi=200, sharex=True)
     ax_curve.plot(blade_angles_deg, servo_real_deg, label="Real curve")
 
     for degree in range(4, 10):
@@ -123,12 +126,18 @@ def plot_blade_to_servo_approx():
         poly = np.poly1d(coeffs)
         print(f"Blade angle -> servo angle polynomial in radians (deg={degree}):")
         print(poly)
-        print_poly_coeffs_int32(coeffs, degree, scale=16384)
+        print_poly_coeffs_int32(coeffs, degree, scale=coeff_scale)
         servo_approx_rad = np.array([evaluate_polynomial(coeffs, angle_rad) for angle_rad in blade_angles_rad])
         servo_approx_deg = np.degrees(servo_approx_rad)
         servo_error_deg = servo_approx_deg - servo_real_deg
+        coeffs_int32 = np.round(np.array(coeffs) * coeff_scale).astype(np.int32)
+        coeffs_quantized = coeffs_int32.astype(np.float64) / coeff_scale
+        servo_approx_int_rad = np.array([evaluate_polynomial(coeffs_quantized, angle_rad) for angle_rad in blade_angles_rad])
+        servo_approx_int_deg = np.degrees(servo_approx_int_rad)
+        servo_error_int_deg = servo_approx_int_deg - servo_real_deg
         ax_curve.plot(blade_angles_deg, servo_approx_deg, "--", label=f"Polynomial approx (deg={degree})")
         ax_error.plot(blade_angles_deg, servo_error_deg, label=f"Error (deg={degree})")
+        ax_int_error.plot(blade_angles_deg, servo_error_int_deg, label=f"Int coeff error (deg={degree})")
 
     ax_curve.set_ylabel("Servo angle (deg)")
     ax_curve.set_title("Blade angle to servo angle: real vs polynomial approx sweep (deg 2..6)")
@@ -136,9 +145,14 @@ def plot_blade_to_servo_approx():
     ax_curve.grid(True)
 
     ax_error.set_xlabel("Blade angle (deg)")
-    ax_error.set_ylabel("Approx error (deg)")
+    ax_error.set_ylabel("Float coeff error (deg)")
     ax_error.legend()
     ax_error.grid(True)
+
+    ax_int_error.set_xlabel("Blade angle (deg)")
+    ax_int_error.set_ylabel("Int coeff error (deg)")
+    ax_int_error.legend()
+    ax_int_error.grid(True)
 
     fig.tight_layout()
     plt.show()
