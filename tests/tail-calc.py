@@ -12,7 +12,7 @@ class config():
     pivot_slider_dist    = 17.0
     pivot_slider_zero    = 0.0
     pivot_rod_arm        = 23.0
-    pivot_angle          = 0.0 #math.radians(5.0)
+    pivot_angle          = 0.0      #math.radians(5.0)
     servo_arm            = 12.0
     # Plotting
     plot_min_deg         = -50.0
@@ -59,6 +59,7 @@ def blade_angle_to_servo_angle( alpha: float ) -> float:
     return servo_angle
 
 
+## Approximation stuff
 
 def polynomial_approx_blade_to_servo( degree: int ):
     blade_angles_deg = np.arange(config.approx_min_deg, config.approx_max_deg + 1.0, 1.0)
@@ -75,11 +76,19 @@ def polynomial_approx_blade_to_servo( degree: int ):
 def evaluate_polynomial(coeffs, blade_angle_rad: float) -> float:
     return float(np.polyval(coeffs, blade_angle_rad))
 
-def print_poly_coeffs_int32(coeffs, degree: int, scale: int = 16384):
+def quantize_coeffs(coeffs, scale: int = 16384):
     coeffs_int32 = np.round(np.array(coeffs) * scale).astype(np.int32)
+    coeffs_quantized = coeffs_int32.astype(np.float64) / scale
+    return coeffs_int32, coeffs_quantized
+
+def print_poly_coeffs_int32(coeffs, degree: int, scale: int = 16384):
+    coeffs_int32, _ = quantize_coeffs(coeffs, scale=scale)
     coeffs_str = ", ".join([str(int(c)) for c in coeffs_int32])
     print(f"// degree={degree}, coefficients in radians, scale={scale}")
     print(f"static const int32_t blade_to_servo_poly_deg_{degree}[{len(coeffs_int32)}] = {{{coeffs_str}}};")
+
+
+## Plotting stuff
 
 def plot_sweep():
     angle_degrees = np.arange(config.plot_min_deg, config.plot_max_deg + 1.0, 1.0)
@@ -130,8 +139,7 @@ def plot_blade_to_servo_approx():
         servo_approx_rad = np.array([evaluate_polynomial(coeffs, angle_rad) for angle_rad in blade_angles_rad])
         servo_approx_deg = np.degrees(servo_approx_rad)
         servo_error_deg = servo_approx_deg - servo_real_deg
-        coeffs_int32 = np.round(np.array(coeffs) * coeff_scale).astype(np.int32)
-        coeffs_quantized = coeffs_int32.astype(np.float64) / coeff_scale
+        _, coeffs_quantized = quantize_coeffs(coeffs, scale=coeff_scale)
         servo_approx_int_rad = np.array([evaluate_polynomial(coeffs_quantized, angle_rad) for angle_rad in blade_angles_rad])
         servo_approx_int_deg = np.degrees(servo_approx_int_rad)
         servo_error_int_deg = servo_approx_int_deg - servo_real_deg
