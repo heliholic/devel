@@ -68,6 +68,24 @@ def blade_angle_to_servo_angle(alpha):
     return rod_deflection_to_servo_angle(rod_deflection)
 
 
+def tangent_slope_servo_per_blade_at_origin(k, blade_max_rad):
+    """
+    Slope d(servo)/d(blade) at the origin for the composed path u -> blade -> servo
+    (radians per radian; same as deg/deg on the plot).
+    """
+    du = 1e-7
+    b_m = thrust_to_blade_command(-du, k) * blade_max_rad
+    b_p = thrust_to_blade_command(du, k) * blade_max_rad
+    s_m = blade_angle_to_servo_angle(b_m)
+    s_p = blade_angle_to_servo_angle(b_p)
+    db = b_p - b_m
+    ds = s_p - s_m
+    if abs(db) < 1e-18:
+        h = 1e-10
+        return (blade_angle_to_servo_angle(h) - blade_angle_to_servo_angle(-h)) / (2.0 * h)
+    return ds / db
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Plot servo angle from requested normalized thrust."
@@ -133,7 +151,20 @@ def main():
         servo_deg_values,
         linewidth=2.2,
         color="C2",
+        zorder=3,
         label="Path as u spans [-1, 1]",
+    )
+    tangent_m = tangent_slope_servo_per_blade_at_origin(args.k, blade_max_rad)
+    x_lin_lo, x_lin_hi = -50.0, 50.0
+    tang_line, = ax1.plot(
+        [x_lin_lo, x_lin_hi],
+        [tangent_m * x_lin_lo, tangent_m * x_lin_hi],
+        color="gray",
+        linewidth=1.5,
+        linestyle="-",
+        zorder=2,
+        alpha=0.85,
+        label=f"Linear tangent at origin (slope≈{tangent_m:.3f})",
     )
     ax1.axhline(0.0, color="k", linestyle=":", linewidth=1.2)
     ax1.axvline(0.0, color="k", linestyle=":", linewidth=1.0, alpha=0.6)
@@ -171,6 +202,13 @@ def main():
         servo_line.set_ydata(servo_deg_new)
         blade_servo_line.set_xdata(blade_deg_new)
         blade_servo_line.set_ydata(servo_deg_new)
+        m_new = tangent_slope_servo_per_blade_at_origin(k, blade_max_rad)
+        tang_line.set_data(
+            [x_lin_lo, x_lin_hi],
+            [m_new * x_lin_lo, m_new * x_lin_hi],
+        )
+        tang_line.set_label(f"Linear tangent at origin (slope≈{m_new:.3f})")
+        ax1.legend()
         title.set_text(f"K={k:.3f}, blade_max=+/-{args.blade_max_deg:.1f} deg")
         fig.canvas.draw_idle()
 
