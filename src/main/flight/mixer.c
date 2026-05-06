@@ -63,6 +63,8 @@ typedef struct {
     uint16_t        saturation[MIXER_INPUT_COUNT];
 
     float           tailCenterTrim;
+    float           tailLinkCurve[6];
+
     float           tailMotorIdle;
     int8_t          tailMotorDirection;
 
@@ -368,15 +370,28 @@ static float mixerCollectiveScale(float SC, float SR, float SP)
     return SC * scale;
 }
 
-static void mixerUpdateMotorizedTail(void)
+static float mixerTailServoDeflection(float yaw)
 {
+    if (mixer.tailLinkCurve[0] > 0) {
+        const float *C = mixer.tailLinkCurve;
+        const float rad = yaw * 0.418879020479241f;
+        const float def = (((((C[5] * rad + C[4]) * rad + C[3]) * rad + C[2]) * rad + C[1]) * rad + C[0]) * rad;
+        yaw = 1.145915590261646f * def;
+    }
+
+    yaw += mixer.tailCenterTrim;
+
+    return yaw;
+}
+
+static float mixerTailMotorThrottle(float yaw)
+{
+    float throttle = 0;
+
     // Motorized tail control
     if (mixerIsTailMode(TAIL_MODE_MOTORIZED)) {
-        // Yaw input value - positive is against torque
-        const float yaw = mixer.input[MIXER_IN_STABILIZED_YAW] * mixerRotationSign();
-
-        // Add center trim
-        float throttle = yaw + mixer.tailCenterTrim;
+        // Throttle - positive is against torque
+        throttle = mixerRotationSign() * yaw + mixer.tailCenterTrim;
 
         // Apply minimum throttle
         throttle = fmaxf(throttle, mixer.tailMotorIdle);
@@ -386,17 +401,11 @@ static void mixerUpdateMotorizedTail(void)
             if (mixer.input[MIXER_IN_STABILIZED_THROTTLE] < 0.001f)
                 throttle = 0;
         }
-
-        // Yaw is now tail motor throttle
-        mixer.input[MIXER_IN_STABILIZED_YAW] = throttle;
     }
     // Bidirectional tail motor
     else if (mixerIsTailMode(TAIL_MODE_BIDIRECTIONAL)) {
-        // Yaw input value - positive is against torque
-        const float yaw = mixer.input[MIXER_IN_STABILIZED_YAW] * mixerRotationSign();
-
-        // Add center trim
-        float throttle = yaw + mixer.tailCenterTrim;
+        // Throttle - positive is against torque
+        throttle = mixerRotationSign() * yaw + mixer.tailCenterTrim;
 
         // Apply minimum throttle
         if (throttle > -mixer.tailMotorIdle && throttle < mixer.tailMotorIdle)
@@ -412,10 +421,9 @@ static void mixerUpdateMotorizedTail(void)
 
         // Direction sign
         mixer.tailMotorDirection = (throttle < 0) ? -1 : 1;
-
-        // Yaw is now tail motor throttle
-        mixer.input[MIXER_IN_STABILIZED_YAW] = throttle;
     }
+
+    return throttle;
 }
 
 #define inputValue(NAME)                (mixer.input[MIXER_IN_STABILIZED_##NAME] * mixerInputs(MIXER_IN_STABILIZED_##NAME)->rate / 1000.0f)
@@ -431,8 +439,6 @@ static void mixerUpdateSwash(void)
         float SY = inputValue(YAW);
         float SC = inputValue(COLLECTIVE);
         float ST = inputValue(THROTTLE);
-
-        float TC = mixer.tailCenterTrim;
 
         SC = mixerCollectiveCorrection(SC);
         SC = mixerCollectiveScale(SC, SR, SP);
@@ -479,10 +485,12 @@ static void mixerUpdateSwash(void)
 
         setMotorOutput(0, ST);
 
-        if (mixerMotorizedTail())
-            setMotorOutput(1, SY);
-        else
-            setServoOutput(3, SY + TC);
+        if (mixerMotorizedTail()) {
+            setMotorOutput(1, mixerTailMotorThrottle(SY));
+        }
+        else {
+            setServoOutput(3, mixerTailServoDeflection(SY));
+        }
     }
 }
 
@@ -543,9 +551,6 @@ static void mixerUpdateInputs(void)
 
     // Update throttle from governor
     mixerSetInput(MIXER_IN_STABILIZED_THROTTLE, getGovernorOutput());
-
-    // Update motorized tail (must be done after governor)
-    mixerUpdateMotorizedTail();
 
 #ifdef USE_MIXER_HISTORY
     // Update historical values
@@ -636,6 +641,9 @@ void INIT_CODE mixerInitConfig(void)
 
     mixer.collTTAGain = mixerConfig()->swash_tta_precomp / 100.0f;
     mixer.collGeoCorrection = mixerConfig()->swash_geo_correction / 1000.0f;
+
+    for (int i = 0; i < 6; i++)
+        mixer.tailLinkCurve[i] = mixerConfig()->tail_link_curve[i] / 16384.0f;
 
     mixer.tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
     mixer.tailCenterTrim = mixerConfig()->tail_center_trim / 1000.0f;
