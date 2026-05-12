@@ -10,7 +10,7 @@ class heli():
     blade_grip_link      = 9.0
     slider_arm           = 9.0
     pivot_slider_arm     = 18.0
-    pivot_slider_zero    = 0.0
+    pivot_slider_zero    = 0.25
     pivot_rod_arm        = 23.0
     pivot_angle          = 0.0      #math.radians(5.0)
     servo_arm            = 14.0
@@ -68,12 +68,7 @@ def polynomial_approx_blade_to_servo( degree: int ):
     blade_angles_deg = np.arange(config.approx_min_deg, config.approx_max_deg + 1.0, 1.0)
     blade_angles_rad = np.radians(blade_angles_deg)
     servo_angles_rad = np.array([blade_angle_to_servo_angle(alpha) for alpha in blade_angles_rad])
-
-    # Constrained fit: force constant term to zero by omitting x^0 from the basis.
-    vandermonde = np.vander(blade_angles_rad, degree + 1)
-    design_matrix = vandermonde[:, :-1]
-    coeffs_no_const, _, _, _ = np.linalg.lstsq(design_matrix, servo_angles_rad, rcond=None)
-    coeffs = np.append(coeffs_no_const, 0.0)
+    coeffs = np.polyfit(blade_angles_rad, servo_angles_rad, degree)
     return coeffs
 
 def evaluate_polynomial(coeffs, blade_angle_rad: float) -> float:
@@ -87,9 +82,9 @@ def quantize_coeffs(coeffs, scale: int = 16384):
 def print_poly_coeffs_int32(degree: int, scale: int = 16384):
     coeffs = polynomial_approx_blade_to_servo(degree)
     coeffs_int32, _ = quantize_coeffs(coeffs, scale=scale)
-    coeffs_str = ", ".join([str(int(c)) for c in coeffs_int32])
+    coeffs_str = ", ".join([str(int(c)) for c in coeffs_int32[::-1]])
     print(f"// degree={degree}, coefficients in radians, scale={scale}")
-    print(f"static const int32_t blade_to_servo_poly_deg_{degree}[{len(coeffs_int32)}] = {{{coeffs_str}}};")
+    print(coeffs_str)
 
 
 ## Plotting stuff
@@ -129,7 +124,9 @@ def plot_blade_to_servo_approx():
     blade_angles_rad = np.radians(blade_angles_deg)
     servo_real_rad = np.array([blade_angle_to_servo_angle(alpha) for alpha in blade_angles_rad])
     servo_real_deg = np.degrees(servo_real_rad)
-    coeff_scale = 16384
+    coeff_scale = 10000
+
+    print_poly_coeffs_int32(6, coeff_scale)
 
     fig, (ax_curve, ax_error, ax_int_error) = plt.subplots(3, 1, figsize=(16, 14), dpi=200, sharex=True)
     ax_curve.plot(blade_angles_deg, servo_real_deg, label="Real curve")
@@ -168,7 +165,6 @@ def plot_blade_to_servo_approx():
 
 
 def main():
-    print_poly_coeffs_int32(6)
     plot_sweep()
     plot_blade_to_servo_approx()
 
