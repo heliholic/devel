@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class config():
+class heli():
     blade_grip_arm       = 10.0
     blade_grip_link      = 9.0
     slider_arm           = 9.0
@@ -14,6 +14,9 @@ class config():
     pivot_rod_arm        = 23.0
     pivot_angle          = 0.0      #math.radians(5.0)
     servo_arm            = 14.0
+
+
+class config():
     # Plotting
     plot_min_deg         = -50.0
     plot_max_deg         = 50.0
@@ -23,30 +26,30 @@ class config():
 
 
 def rod_deflection_to_servo_angle( deflection: float ) -> float:
-    theta = math.asin(deflection / config.servo_arm)
+    theta = math.asin(deflection / heli.servo_arm)
     return theta
 
 def pivot_angle_to_rod_deflection( angle: float ) -> float:
-    Dx = math.sin(config.pivot_angle) * config.pivot_rod_arm
-    gamma = angle + config.pivot_angle
-    Rx = math.sin(gamma) * config.pivot_rod_arm
+    Dx = math.sin(heli.pivot_angle) * heli.pivot_rod_arm
+    gamma = angle + heli.pivot_angle
+    Rx = math.sin(gamma) * heli.pivot_rod_arm
     return Rx - Dx
 
 def slider_to_pivot_angle( slider: float ) -> float:
-    sx = slider + config.pivot_slider_zero
-    gamma = math.atan2(sx, config.pivot_slider_arm)
+    sx = slider + heli.pivot_slider_zero
+    gamma = math.atan2(sx, heli.pivot_slider_arm)
     return gamma
 
 def blade_angle_to_slider( alpha: float ) -> float:
     # Zero position
-    Ly = config.blade_grip_arm - config.slider_arm
-    Lr = config.blade_grip_link
+    Ly = heli.blade_grip_arm - heli.slider_arm
+    Lr = heli.blade_grip_link
     Lx = math.sqrt(Lr**2 - Ly**2)
     # Blade position
-    ax = math.sin(alpha) * config.blade_grip_arm
-    ay = math.cos(alpha) * config.blade_grip_arm
-    ly = ay - config.slider_arm
-    lr = config.blade_grip_link
+    ax = math.sin(alpha) * heli.blade_grip_arm
+    ay = math.cos(alpha) * heli.blade_grip_arm
+    ly = ay - heli.slider_arm
+    lr = heli.blade_grip_link
     lx = math.sqrt(lr**2 - ly**2)
     d = ax + lx - Lx
     return d
