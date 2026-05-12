@@ -926,6 +926,7 @@ const clivalue_t valueTable[] = {
     { "tail_motor_idle",            VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_motor_idle) },
     { "tail_center_trim",           VAR_INT16  | MASTER_VALUE,  .config.minmax = { -1000, 1000 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_center_trim) },
     { "tail_link_curve",            VAR_INT16  | MASTER_VALUE | MODE_ARRAY, .config.array.length = 6, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_link_curve) },
+    { "tail_link_deadband",         VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 250 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, tail_link_deadband) },
     { "swash_type",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_SWASH_TYPE }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_type) },
     { "swash_ring",                 VAR_UINT8  | MASTER_VALUE,  .config.minmaxUnsigned = { 0, 100 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_ring) },
     { "swash_phase",                VAR_INT16  | MASTER_VALUE,  .config.minmax = { -1800, 1800 }, PG_GENERIC_MIXER_CONFIG, offsetof(mixerConfig_t, swash_phase) },

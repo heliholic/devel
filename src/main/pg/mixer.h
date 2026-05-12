@@ -95,6 +95,7 @@ typedef struct
     uint8_t   tail_motor_idle;      // Idle throttle for tail motor
     int16_t   tail_center_trim;     // Tail center position offset
     int16_t   tail_link_curve[6];   // Tail link curve coefficients
+    uint8_t   tail_link_deadband;   // Tail link deadband
 
     uint8_t   swash_type;           // Swashplate type
     uint8_t   swash_ring;           // Swash ring size

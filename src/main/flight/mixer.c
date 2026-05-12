@@ -64,6 +64,7 @@ typedef struct {
 
     float           tailCenterTrim;
     float           tailLinkCurve[6];
+    float           tailLinkDeadband;
 
     float           tailMotorIdle;
     int8_t          tailMotorDirection;
@@ -370,6 +371,23 @@ static float mixerCollectiveScale(float SC, float SR, float SP)
     return SC * scale;
 }
 
+static float mixerTailAntiDeadband(float angle)
+{
+    if (mixer.tailLinkDeadband > 0) {
+        const float trans = 0.5f;
+        const float limit = mixer.tailLinkDeadband * trans;
+
+        if (angle > limit)
+            angle += mixer.tailLinkDeadband;
+        else if (angle < -limit)
+            angle -= mixer.tailLinkDeadband;
+        else
+            angle += angle / trans;
+    }
+
+    return angle;
+}
+
 static float mixerTailServoDeflection(float yaw)
 {
     if (mixer.tailLinkCurve[0] > 0) {
@@ -489,7 +507,8 @@ static void mixerUpdateSwash(void)
             setMotorOutput(1, mixerTailMotorThrottle(SY));
         }
         else {
-            setServoOutput(3, mixerTailServoDeflection(SY));
+            const float angle = mixerTailServoDeflection(mixerTailAntiDeadband(SY));
+            setServoOutput(3, angle);
         }
     }
 }
@@ -644,6 +663,8 @@ void INIT_CODE mixerInitConfig(void)
 
     for (int i = 0; i < 6; i++)
         mixer.tailLinkCurve[i] = mixerConfig()->tail_link_curve[i] / 16384.0f;
+
+    mixer.tailLinkDeadband = mixerConfig()->tail_link_deadband / 1000.0f;
 
     mixer.tailMotorIdle = mixerConfig()->tail_motor_idle / 1000.0f;
     mixer.tailCenterTrim = mixerConfig()->tail_center_trim / 1000.0f;
