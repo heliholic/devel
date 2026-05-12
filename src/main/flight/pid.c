@@ -94,12 +94,12 @@ float pidGetSetpoint(int axis)
 
 float pidGetOutput(int axis)
 {
-    return pid.data[axis].pidSum;
+    return pid.pidOutput[axis];
 }
 
 float pidGetCollective(void)
 {
-    return pid.collective;
+    return pid.pidOutput[FD_COLL];
 }
 
 const pidAxisData_t * pidGetAxisData(void)
@@ -675,6 +675,7 @@ void INIT_CODE pidLoadProfile(const pidProfile_t *pidProfile)
     // Tail/yaw PID parameters
     pid.yawCWStopGain = pidProfile->yaw_cw_stop_gain / 100.0f;
     pid.yawCCWStopGain = pidProfile->yaw_ccw_stop_gain / 100.0f;
+    pid.yawInflowRatio = pidProfile->yaw_inflow_ratio / 1000.0f;
 
     // Collective/cyclic deflection lowpass filters
     filterUpdate(&pid.precomp.yawPrecompFilter,
@@ -859,7 +860,19 @@ static void pidApplyCollective(void)
     // Apply rescue (override)
     collective = rescueApply(FD_COLL, collective);
 
-    pid.collective = collective / 1000;
+  //// PID Output
+
+    pid.pidOutput[FD_COLL] = collective / 1000;
+}
+
+static float pidApplyInflowCorrection(float ctrl, float ratio)
+{
+    if (ratio > 0) {
+        const float flow = copysignf(sqrtf(fabsf(ctrl)), ctrl);
+        ctrl = (1.0f - ratio) * ctrl + ratio * flow;
+    }
+
+    return ctrl;
 }
 
 static inline float dragCoef(float x)
@@ -923,6 +936,9 @@ static void pidApplyPrecomp(void)
     // Add to YAW feedforward
     pid.data[FD_YAW].F += totalPrecomp;
     pid.data[FD_YAW].pidSum += totalPrecomp;
+
+    // Apply inflow correction
+    pid.pidOutput[FD_YAW] = pidApplyInflowCorrection(pid.data[FD_YAW].pidSum, pid.yawInflowRatio);
 
     DEBUG(YAW_PRECOMP, 0, totalPrecomp * 1000);
     DEBUG(YAW_PRECOMP, 1, mainPrecomp * 1000);
@@ -1008,6 +1024,10 @@ static void pidApplyMode0(uint8_t axis)
 
     // Calculate PID sum
     pid.data[axis].pidSum = pid.data[axis].F;
+
+  //// PID Output
+
+    pid.pidOutput[axis] = pid.data[axis].pidSum;
 }
 
 
@@ -1257,6 +1277,11 @@ static void pidApplyCyclicMode3(uint8_t axis)
     // Calculate sum of all terms
     pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D +
                             pid.data[axis].F + pid.data[axis].B + pid.data[axis].O;
+
+  //// PID Output
+
+    pid.pidOutput[axis] = pid.data[axis].pidSum;
+
 }
 
 
@@ -1349,6 +1374,11 @@ static void pidApplyYawMode3(void)
     // Calculate sum of all terms
     pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D +
                             pid.data[axis].F + pid.data[axis].B;
+
+  //// PID Output
+
+  pid.pidOutput[axis] = pid.data[axis].pidSum;
+
 }
 
 
@@ -1599,8 +1629,12 @@ static void pidApplyCyclicMode4(uint8_t axis)
     // Calculate sum of all terms
     pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D +
                             pid.data[axis].F + pid.data[axis].B + pid.data[axis].O;
-}
 
+  //// PID Output
+
+    pid.pidOutput[axis] = pid.data[axis].pidSum;
+
+}
 
 static void pidApplyYawMode4(void)
 {
@@ -1691,6 +1725,11 @@ static void pidApplyYawMode4(void)
     // Calculate sum of all terms
     pid.data[axis].pidSum = pid.data[axis].P + pid.data[axis].I + pid.data[axis].D +
                             pid.data[axis].F + pid.data[axis].B;
+
+  //// PID Output
+
+    pid.pidOutput[axis] = pid.data[axis].pidSum;
+
 }
 
 

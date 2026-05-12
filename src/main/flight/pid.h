@@ -100,6 +100,8 @@ typedef struct pid_s {
     float dT;
     float freq;
 
+    float pidOutput[4];
+
     uint8_t pidMode;
 
     uint8_t itermRelaxType;
@@ -121,7 +123,7 @@ typedef struct pid_s {
 
     float cyclicCrossCouplingGain[XY_AXIS_COUNT];
 
-    float collective;
+    float yawInflowRatio;
 
     pidPrecomp_t precomp;
 

@@ -67,6 +67,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .gyro_cutoff = { 50, 50, 100 },
         .yaw_cw_stop_gain = 120,
         .yaw_ccw_stop_gain = 80,
+        .yaw_inflow_ratio = 0,
         .yaw_precomp_cutoff = 5,
         .yaw_cyclic_ff_gain = 10,
         .yaw_collective_ff_gain = 60,

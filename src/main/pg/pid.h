@@ -132,6 +132,7 @@ typedef struct pidProfile_s {
     uint8_t             yaw_cw_stop_gain;
     uint8_t             yaw_ccw_stop_gain;
 
+    uint8_t             yaw_inflow_ratio;
     uint8_t             yaw_precomp_cutoff;
 
     uint8_t             yaw_cyclic_ff_gain;
@@ -154,4 +155,3 @@ typedef struct pidProfile_s {
 } pidProfile_t;
 
 PG_DECLARE_ARRAY(pidProfile_t, PID_PROFILE_COUNT, pidProfiles);
-
