@@ -132,7 +132,9 @@ typedef struct pidProfile_s {
     uint8_t             yaw_cw_stop_gain;
     uint8_t             yaw_ccw_stop_gain;
 
-    uint8_t             yaw_inflow_ratio;
+    uint8_t             yaw_inflow_gain;
+    uint8_t             yaw_inflow_cutoff;
+
     uint8_t             yaw_precomp_cutoff;
 
     uint8_t             yaw_cyclic_ff_gain;

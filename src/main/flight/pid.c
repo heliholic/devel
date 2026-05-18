@@ -572,6 +572,9 @@ static void INIT_CODE pidInitFilters(const pidProfile_t *pidProfile)
     // Collective/cyclic deflection lowpass filters
     lowpassFilterInit(&pid.precomp.yawPrecompFilter, LPF_1ST_ORDER, 10, pid.freq, LPF_UPDATE);
 
+    // Yaw inflow filter
+    pt1FilterInit(&pid.yawInflowFilter, 1, pid.freq);
+
     // Cross-coupling filters
     firstOrderHPFInit(&pid.crossCouplingFilter[FD_PITCH], pidProfile->cyclic_cross_coupling_cutoff / 10.0f, pid.freq);
     firstOrderHPFInit(&pid.crossCouplingFilter[FD_ROLL], pidProfile->cyclic_cross_coupling_cutoff / 10.0f, pid.freq);
@@ -675,7 +678,10 @@ void INIT_CODE pidLoadProfile(const pidProfile_t *pidProfile)
     // Tail/yaw PID parameters
     pid.yawCWStopGain = pidProfile->yaw_cw_stop_gain / 100.0f;
     pid.yawCCWStopGain = pidProfile->yaw_ccw_stop_gain / 100.0f;
-    pid.yawInflowRatio = pidProfile->yaw_inflow_ratio / 1000.0f;
+
+    // Yaw inflow
+    pid.yawInflowGain = pidProfile->yaw_inflow_gain / 1000.0f;
+    pt1FilterUpdate(&pid.yawInflowFilter, pidProfile->yaw_inflow_cutoff, pid.freq);
 
     // Collective/cyclic deflection lowpass filters
     filterUpdate(&pid.precomp.yawPrecompFilter,
@@ -865,11 +871,11 @@ static void pidApplyCollective(void)
     pid.pidOutput[FD_COLL] = collective / 1000;
 }
 
-static float pidApplyInflowCorrection(float ctrl, float ratio)
+static float pidApplyInflowCorrection(float ctrl, float gain)
 {
-    if (ratio > 0) {
+    if (gain > 0) {
         const float flow = copysignf(sqrtf(fabsf(ctrl)), ctrl);
-        ctrl = (1.0f - ratio) * ctrl + ratio * flow;
+        ctrl += pt1FilterApply(&pid.yawInflowFilter, flow) * gain;
     }
 
     return ctrl;
@@ -938,7 +944,7 @@ static void pidApplyPrecomp(void)
     pid.data[FD_YAW].pidSum += totalPrecomp;
 
     // Apply inflow correction
-    pid.pidOutput[FD_YAW] = pidApplyInflowCorrection(pid.data[FD_YAW].pidSum, pid.yawInflowRatio);
+    pid.pidOutput[FD_YAW] = pidApplyInflowCorrection(pid.data[FD_YAW].pidSum, pid.yawInflowGain);
 
     DEBUG(YAW_PRECOMP, 0, totalPrecomp * 1000);
     DEBUG(YAW_PRECOMP, 1, mainPrecomp * 1000);

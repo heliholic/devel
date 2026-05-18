@@ -123,7 +123,8 @@ typedef struct pid_s {
 
     float cyclicCrossCouplingGain[XY_AXIS_COUNT];
 
-    float yawInflowRatio;
+    float yawInflowGain;
+    pt1Filter_t yawInflowFilter;
 
     pidPrecomp_t precomp;
 
