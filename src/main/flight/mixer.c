@@ -63,8 +63,10 @@ typedef struct {
     uint16_t        saturation[MIXER_INPUT_COUNT];
 
     float           tailCenterTrim;
-    float           tailLinkCurve[8];
     float           tailLinkDeadband;
+
+    bool            tailLinkCurve;
+    float           tailLinkCoeffs[8];
 
     float           tailMotorIdle;
     int8_t          tailMotorDirection;
@@ -390,8 +392,8 @@ static float mixerTailAntiDeadband(float angle)
 
 static float mixerTailServoDeflection(float yaw)
 {
-    if (mixer.tailLinkCurve[1] != 0) {
-        const float *C = mixer.tailLinkCurve;
+    if (mixer.tailLinkCurve) {
+        const float *C = mixer.tailLinkCoeffs;
         const float rad = yaw * 0.418879020479241f;
         const float def = (((((((C[7] * rad + C[6]) * rad + C[5]) * rad + C[4]) * rad + C[3]) * rad + C[2]) * rad + C[1]) * rad + C[0]);
         yaw = 1.145915590261646f * def;
@@ -661,8 +663,11 @@ void INIT_CODE mixerInitConfig(void)
     mixer.collTTAGain = mixerConfig()->swash_tta_precomp / 100.0f;
     mixer.collGeoCorrection = mixerConfig()->swash_geo_correction / 1000.0f;
 
-    for (int i = 0; i < 8; i++)
-        mixer.tailLinkCurve[i] = mixerConfig()->tail_link_curve[i] / 10000.0f;
+    mixer.tailLinkCurve = false;
+    for (int i = 0; i < 8; i++) {
+        mixer.tailLinkCoeffs[i] = mixerConfig()->tail_link_curve[i] / 10000.0f;
+        mixer.tailLinkCurve |= mixerConfig()->tail_link_curve[i];
+    }
 
     mixer.tailLinkDeadband = mixerConfig()->tail_link_deadband / 1000.0f;
 
