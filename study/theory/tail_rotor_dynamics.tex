@@ -706,66 +706,260 @@ almost always sufficient. We use it for the remainder of this note.
 \section{Inverse Problem: Blade Pitch from Commanded Thrust}
 % =====================================================================
 
-Given a desired thrust \(\Tcmd(t)\), find the pitch \(\thetat(t)\).
-The blade-element relation has no dynamics; all time-dependence enters
-through \(\vi\).
+The coupled model of Section~\ref{sec:inflow}---blade-element thrust
+\eqref{eq:T_coupled} and dynamic inflow \eqref{eq:vi_coupled}---maps a
+pitch input \(\thetat\) to a thrust output \(\Tt\). For control design
+we need to run this map \emph{backwards}: given a commanded thrust
+\(\Tcmd(t)\), what pitch \(\thetat(t)\) should we apply? The answer
+will sit inside the tail-rotor inner loop as a feedforward block: the
+outer loop (yaw control) produces a thrust demand, the inverse block
+translates it into pitch, and the servo drives the swashplate.
 
-\subsection{Instantaneous Inverse}
+The difficulty is that the plant has \emph{one input, one output, one
+state}---the state being the induced velocity \(\vi\). The blade-element
+relation \eqref{eq:T_coupled} is algebraic in \((\thetat, \vi)\), but
+\(\vi\) is itself governed by a first-order ODE and so carries history.
+There are two routes through this: invert algebraically and propagate the
+state alongside (Section~\ref{ssec:inst_inverse}), or linearise about a
+trim point and work in the Laplace domain
+(Sections~\ref{ssec:lin}--\ref{ssec:compensator}). Both have their place;
+the linearised form is what allows us to talk about \emph{bandwidth},
+\emph{phase margin}, and \emph{lead compensation} in the chapters that
+follow.
 
-Solving~\eqref{eq:linT} for \(\thetat\):
+\subsection{The Exact Instantaneous Inverse}\label{ssec:inst_inverse}
+
+The blade-element relation~\eqref{eq:linT} is algebraically invertible:
+solving for \(\thetat\) gives
 \begin{empheq}[box=\fbox]{equation}
 \thetat(t) \;=\; \frac{\Tcmd(t) + K_2\bigl(\vi(t)+V_\infty(t)\bigr)}{K_1}.
 \label{eq:inv_instant}
 \end{empheq}
-This is exact at every instant \emph{given the current} \(\vi\).
-The inflow state must still be propagated via~\eqref{eq:pittpeters}.
+This is the \emph{exact} inverse at every instant, conditional on knowing
+the current \(\vi\) and \(V_\infty\): apply pitch \eqref{eq:inv_instant}
+and the blade element will, instantaneously, produce thrust \(\Tcmd\).
 
-\subsection{Linearised Transfer Function (Hover)}
+Two practical issues prevent this from being the end of the story:
+\begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
+\item \(\vi\) is rarely measured directly on an RC platform. It must be
+      \emph{estimated}, typically by integrating the Pitt--Peters
+      ODE~\eqref{eq:pittpeters} in parallel with the controller, driven
+      by the commanded thrust or by a thrust estimate.
+\item \(V_\infty(t)\) varies with airframe motion (sideways translation
+      for a tail rotor). Even when the rotor parameters are stationary,
+      the external flow generally is not, and the inverse needs a
+      reasonably current estimate of \(V_\infty\) to be accurate.
+\end{itemize}
+With these caveats, \eqref{eq:inv_instant} together with the inflow
+ODE~\eqref{eq:pittpeters} \emph{is} a complete control law---a nonlinear
+dynamic inversion. Many practical tail-rotor controllers stop here. The
+remainder of the section develops the linearised form because it exposes
+the bandwidth structure of the plant and makes the lead-compensator
+design transparent.
 
-Linearise about a hover trim \((\bT,\bvi,\btheta)\). The hover relation
-\(\bT=2\rho\At\bvi^{\,2}\) gives
+\subsection{Linearisation About Hover Trim}\label{ssec:lin}
+
+A linearised plant model lets us bring frequency-domain tools---transfer
+functions, poles and zeros, Bode plots---to bear on a controller that
+will ultimately run on the full nonlinear plant. The cost is that the
+linear model is only accurate near the chosen trim point.
+
+\paragraph{Choosing trim.}
+By \emph{trim} we mean an equilibrium operating point of the plant: a
+constant pitch \(\btheta\) producing a constant thrust \(\bT\) with a
+constant induced velocity \(\bvi\), all satisfying both BEMT and
+momentum theory simultaneously. For a tail rotor on a hovering
+helicopter the natural choice is the trim that balances main-rotor
+anti-torque in still air. We specialise to hover (\(V_\infty=V_\perp=0\))
+because the algebra is cleanest and because the tail rotor spends most
+of its operating life near this condition; the non-hover case
+generalises by replacing \(\bvi\) with the hover-equivalent
+\(v_h=\sqrt{\bT/(2\rho\At)}\) and adjusting the trim accordingly.
+
+\paragraph{Perturbation convention.}
+Write each variable as a constant trim value plus a small perturbation:
 \begin{equation}
-\delta\viss = \frac{1}{4\rho\At\bvi}\,\delta T \;\equiv\; k_v\,\delta T.
+\thetat = \btheta + \delta\thetat,\quad
+\vi = \bvi + \delta\vi,\quad
+\Tt = \bT + \delta T.
+\end{equation}
+We retain terms linear in the \(\delta\)-quantities and discard products
+of two perturbations (assumed small\,\(\times\)\,small). The trim values
+themselves satisfy the steady model and cancel out of the perturbation
+equations, leaving a system in the \(\delta\)-variables alone.
+
+\paragraph{What needs linearising.}
+The blade-element relation \eqref{eq:linT}, \(\Tt = K_1\thetat - K_2\vi\),
+is \emph{already linear} in its two arguments at fixed \(\OmegaT\); its
+perturbation form is simply
+\begin{equation}
+\delta T \;=\; K_1\,\delta\thetat \;-\; K_2\,\delta\vi.
+\label{eq:bemt_perturbed}
+\end{equation}
+The nonlinearity is entirely in the momentum relation
+\(\bT = 2\rho\At\bvi^{\,2}\), which couples thrust to induced velocity
+through a square. Differentiating implicitly,
+\begin{equation}
+\frac{\partial T}{\partial \vi}\bigg|_{\text{trim}}
+   \;=\; 4\,\rho\At\,\bvi,
+\qquad\Longrightarrow\qquad
+\delta\viss \;=\; \frac{1}{4\rho\At\bvi}\,\delta T
+            \;\equiv\; k_v\,\delta T,
 \label{eq:kv}
 \end{equation}
-The Pitt--Peters dynamics become \((\tau_i s + 1)\delta\vi = k_v\delta T\),
-and the linearised BEMT relation is \(\delta T = K_1\delta\thetat - K_2\delta\vi\).
-Eliminating \(\delta\vi\):
+where \(k_v\) is the linearised sensitivity of steady-state induced
+velocity to thrust at the chosen trim:
+\begin{equation}
+k_v \;\equiv\; \frac{\partial \viss}{\partial T}\bigg|_{\text{trim}}
+   \;=\; \frac{1}{4\rho\At\bvi}
+   \;=\; \frac{\bvi}{2\bT},
+\qquad\text{units: \si{\metre\per\second\per\newton}}.
+\end{equation}
+The two forms come from the same expression via the hover relation
+\(\bT=2\rho\At\bvi^{2}\). Physically: \(k_v\) tells us \emph{how much
+extra induced velocity each newton of additional thrust will pull
+through the disc, in steady state}. It is large for low-thrust trims
+(where \(\bvi\) is small and any new thrust must accelerate a slow wake
+from near-rest) and small for high-thrust trims (where \(\bvi\) is
+already substantial and incremental thrust matters less proportionally).
+
+\paragraph{Linearised inflow dynamics.}
+The Pitt--Peters ODE \eqref{eq:pittpeters} is already linear in \(\vi\)
+at fixed \(\tau_i\). Substituting \(\viss = \bvi + k_v\,\delta T\) and
+subtracting the trim equation \(\bvi = \bvi\) leaves
+\begin{equation}
+\tau_i\,\dot{\delta\vi} + \delta\vi \;=\; k_v\,\delta T.
+\end{equation}
+Taking the Laplace transform with zero initial conditions
+(\(\dot{(\cdot)} \to s\,(\cdot)\)):
+\begin{equation}
+(\tau_i s + 1)\,\delta\vi(s) \;=\; k_v\,\delta T(s).
+\label{eq:dvi_laplace}
+\end{equation}
+
+\subsection{The Linearised Plant Transfer Function}\label{ssec:plant_tf}
+
+Equations~\eqref{eq:bemt_perturbed} and \eqref{eq:dvi_laplace} are a
+two-equation linear system in the three Laplace-domain quantities
+\(\delta\thetat(s)\), \(\delta T(s)\), \(\delta\vi(s)\). Eliminate
+\(\delta\vi\): from \eqref{eq:dvi_laplace},
+\begin{equation}
+\delta\vi(s) \;=\; \frac{k_v}{\tau_i s + 1}\,\delta T(s).
+\end{equation}
+Substitute into \eqref{eq:bemt_perturbed}:
+\begin{equation}
+\delta T(s) \;=\; K_1\,\delta\thetat(s)
+\;-\;
+K_2\,\frac{k_v}{\tau_i s + 1}\,\delta T(s).
+\end{equation}
+Collect \(\delta T\):
+\begin{equation}
+\delta T(s)\!\left[1 + \frac{K_2 k_v}{\tau_i s + 1}\right]
+\;=\; K_1\,\delta\thetat(s),
+\end{equation}
+and rearrange to standard form,
 \begin{empheq}[box=\fbox]{equation}
-\frac{\delta T(s)}{\delta\thetat(s)} \;=\; \frac{K_1(\tau_i s + 1)}{\tau_i s + (1+K_2k_v)}.
+\frac{\delta T(s)}{\delta\thetat(s)}
+ \;=\; \frac{K_1\,(\tau_i s + 1)}{\tau_i s + (1 + K_2 k_v)}.
 \label{eq:plant_tf}
 \end{empheq}
-This is a lead--lag response: a thrust spike of \(K_1\delta\thetat\) immediately,
-settling at the lower DC gain \(K_1/(1+K_2k_v)\) once inflow builds up.
+This is the linearised tail-rotor plant: thrust per radian of pitch
+perturbation about hover trim, valid for small \(\delta\thetat\) over
+a bandwidth limited by the linearisation.
 
-The inverse---a lead compensator---is
+\subsection{Reading the Plant: Lead--Lag Structure}\label{ssec:lead_lag}
+
+The plant \eqref{eq:plant_tf} has one zero and one pole, both on the
+negative real axis:
+\begin{equation}
+\text{zero at }s=-\frac{1}{\tau_i},
+\qquad
+\text{pole at }s=-\frac{1+K_2 k_v}{\tau_i}.
+\end{equation}
+Because \(K_2 k_v > 0\), the pole sits at a higher frequency than the
+zero. The high-frequency and DC limits of the gain are
+\begin{align}
+\lim_{s\to\infty} \frac{\delta T}{\delta\thetat}
+ &= K_1
+ \qquad\text{(instantaneous, ``open-loop'' gain)},\\
+\lim_{s\to 0} \frac{\delta T}{\delta\thetat}
+ &= \frac{K_1}{1+K_2 k_v}
+ \qquad\text{(steady-state, ``closed-wake'' gain)}.
+\end{align}
+\emph{The DC gain is lower than the instantaneous gain by a factor
+\(1+K_2 k_v\).} A step in pitch produces an immediate thrust spike of
+size \(K_1\,\delta\thetat\) (before the wake responds), which then
+relaxes over a timescale \(\tau_i/(1+K_2 k_v)\) to the lower steady
+value \(K_1\,\delta\thetat/(1+K_2 k_v)\). This is the \emph{lead--lag}
+response described qualitatively in the introduction, now in closed form.
+
+\paragraph{Physical reading of \(K_2 k_v\).}
+The dimensionless product \(K_2 k_v\) measures how strongly induced
+inflow couples back into the thrust. Tracing its factors:
+\(K_2\) is how much thrust each m/s of induced velocity steals; \(k_v\)
+is how much extra induced velocity each newton of thrust pulls
+through the disc. Their product closes the loop and gives the fractional
+thrust loss between the instantaneous and steady-state response:
+\begin{equation}
+\frac{\text{DC gain}}{\text{instantaneous gain}}
+   \;=\; \frac{1}{1+K_2 k_v}.
+\end{equation}
+For typical RC tail rotors at hover trim, \(K_2 k_v\) sits in the range
+\(0.4\)--\(1.0\)---meaning the DC gain is anywhere from \(50\%\) to
+\(70\%\) of the open-loop gain. The thrust the rotor delivers in steady
+state is significantly less than what its blade pitch suggests. This
+phenomenon is \emph{inflow softening}, and quantifying it across the
+operating envelope is the subject of Section~\ref{sec:linsoft}.
+
+\paragraph{Caveat: naive vs.\ self-consistent \(K_2 k_v\).}
+Computing \(K_2\) from \eqref{eq:K1K2} and \(k_v\) from \eqref{eq:kv}
+\emph{separately} and multiplying gives an answer that overstates the
+coupling, because the two factors are not independent at trim---they
+both depend on \(\bvi\). A self-consistent expression, derived from the
+coupled BEMT--momentum equilibrium in Section~\ref{sec:linsoft},
+replaces the naive product with a simpler closed form. For now we use
+\(K_2 k_v\) as a symbolic placeholder and refine its numerical value in
+the next chapter.
+
+\subsection{Inverting the Plant: The Lead Compensator}\label{ssec:compensator}
+
+A feedforward compensator that cancels the plant dynamics is, by
+definition, the inverse of the plant. Reciprocating \eqref{eq:plant_tf}:
 \begin{empheq}[box=\fbox]{equation}
-\frac{\delta\thetat(s)}{\delta T(s)} \;=\; \frac{\tau_i s + (1+K_2 k_v)}{K_1(\tau_i s + 1)}.
+\frac{\delta\thetat(s)}{\delta T(s)}
+ \;=\; \frac{\tau_i s + (1 + K_2 k_v)}{K_1\,(\tau_i s + 1)}.
 \label{eq:comp_tf}
 \end{empheq}
+The roles of pole and zero are now swapped: the compensator has its
+\emph{zero} where the plant had its \emph{pole}, and vice versa. The
+compensator is in the classical sense a \emph{lead network}: its zero
+sits at a lower frequency than its pole, so its phase contribution is
+positive across the intervening band. Cascading
+\eqref{eq:comp_tf}~\(\to\)~\eqref{eq:plant_tf} gives the identity
+transfer function, so applying the compensator's output as pitch
+produces exactly the commanded thrust at every frequency---at least
+within the validity of the linearisation.
 
-\paragraph{Interpretation of \(k_v\).} \(k_v\) is the linearised sensitivity of
-steady-state induced velocity to thrust at trim:
-\begin{equation}
-k_v = \frac{\partial \viss}{\partial T}\bigg|_{\text{trim}} = \frac{1}{4\rho\At\bvi} = \frac{\bvi}{2\bT}.
-\end{equation}
-Units: \si{\metre\per\second\per\newton}.
-The product \(K_2 k_v\) is dimensionless and captures the fractional thrust loss
-due to inflow build-up at low frequency:
-\begin{equation}
-\frac{\text{steady gain}}{\text{instantaneous gain}} = \frac{1}{1+K_2 k_v}.
-\end{equation}
+\paragraph{Time-domain reading.}
+In the time domain, \eqref{eq:comp_tf} responds to a thrust-command step
+by first applying an overdriving pitch transient
+(\(\delta\thetat \to \delta T/K_1 \cdot (1+K_2k_v)\) immediately---the
+high-frequency limit of the compensator), which then decays to the
+steady pitch \(\delta T/K_1\) (the low-frequency limit). In words: the
+compensator anticipates the rotor's tendency to fall back as inflow
+builds, and pre-emptively over-pitches by the softening factor to
+compensate. This is the linearised version of the nonlinear lead
+introduced in Section~\ref{sec:linsoft} and refined in Section~6.
 
-\paragraph{Self-consistent form.} Computing \(K_2\) and \(k_v\) separately and
-multiplying \emph{overestimates} the coupling, because both depend on \(\bvi\)
-through the trim condition. The self-consistent dimensionless coupling derived
-from the simultaneous BEMT--momentum balance (\S\ref{sec:soft}) is
-\begin{empheq}[box=\fbox]{equation}
-K_2 k_v \big|_{\text{self-consistent}} \;=\; \frac{\sigma a}{16\,\lambda_h},
-\qquad \lambda_h = \sqrt{C_T/2}.
-\label{eq:K2kv_consistent}
-\end{empheq}
-This is the formula to use in design.
+\paragraph{Limitations of the linear compensator.}
+The compensator \eqref{eq:comp_tf} has gain \(K_1\), zero
+\(\beta/\tau_i\), and pole \(1/\tau_i\), all of which depend on the trim
+point through \(\bvi\) (and hence through \(\bT\)). A single fixed
+compensator designed at hover will mis-track at other thrust levels by
+amounts quantified in Section~\ref{sec:linsoft}. Section~6 develops
+three constructions---an LPV-scheduled lead, an exact nonlinear static
+inverse, and a two-point interpolant---that handle this variation
+across the operating envelope.
 
 % =====================================================================
 \section{Inflow Softening and the Nonlinear Lead}\label{sec:linsoft}
@@ -808,7 +1002,17 @@ Then
 \label{eq:dCT_dtheta}
 \end{empheq}
 The factor \(\sigma a/6\) is the instantaneous (high-frequency) gain;
-\(S(\lambda)\) is the softening factor, confirming~\eqref{eq:K2kv_consistent}.
+\(S(\lambda)\) is the softening factor. Comparing with the linearised
+form \(S = 1/(1+K_2 k_v)\) from Section~\ref{ssec:lead_lag} identifies
+the self-consistent value of the coupling product as
+\begin{empheq}[box=\fbox]{equation}
+K_2 k_v \big|_{\text{self-consistent}} \;=\; \frac{\sigma a}{16\,\lambda_h},
+\qquad \lambda_h = \sqrt{C_T/2}.
+\label{eq:K2kv_consistent}
+\end{empheq}
+This is the expression to use in design: it bakes in the trim
+consistency between \(K_2\) and \(k_v\) that a naive separate
+calculation would miss.
 
 \subsection{Magnitude Across the Envelope}
 
