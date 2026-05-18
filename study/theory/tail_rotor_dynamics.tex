@@ -40,10 +40,10 @@
 \newcommand{\CTcmd}{C_T^{\text{cmd}}}
 \newcommand{\lcmd}{\lambda^{\text{cmd}}}
 
-\title{\textbf{Tail Rotor Dynamics for an RC Helicopter}\\[4pt]
+\title{\textbf{Tail Rotor Dynamics for an RC Helicopter}\\[6pt]
 \large Thrust, Induced Inflow, and Nonlinear Lead Compensation}
 \author{}
-\date{}
+\date{\today}
 
 \begin{document}
 \maketitle
@@ -62,6 +62,225 @@ inner loop. Realistic parameter ranges for RC tail rotors are tabulated.
 \vspace{1em}
 \hrule
 \vspace{1em}
+
+% =====================================================================
+\section*{Nomenclature}
+\addcontentsline{toc}{section}{Nomenclature}
+% =====================================================================
+
+\noindent The notation used throughout the note is collected below. Overbars
+denote trim (equilibrium) values; \(\delta(\cdot)\) denotes small perturbations
+about trim; a superscript ``cmd'' denotes a commanded (reference) quantity.
+SI units are used unless otherwise stated; angles are in radians except where a
+table lists degrees.
+
+\vspace{0.5em}
+\noindent\textit{Rotor geometry and operating condition}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\Rt\)         & Tail-rotor radius                                  & \si{\metre}\\
+\(r\)           & Radial coordinate of a blade element, \(0\le r\le \Rt\) & \si{\metre}\\
+\(c\)           & Blade chord (assumed rectangular blade)             & \si{\metre}\\
+\(N_b\)         & Number of blades                                    & --\\
+\(\At\)         & Rotor-disc area, \(\At=\pi\Rt^2\)                   & \si{\square\metre}\\
+\(\sigma\)      & Rotor solidity, \(\sigma = N_b c/(\pi\Rt)\)         & --\\
+\(\OmegaT\)     & Rotor angular speed                                 & \si{\radian\per\second}\\
+\(\OmegaT\Rt\)  & Blade tip speed                                     & \si{\metre\per\second}\\
+\(\rho\)        & Air density (taken as \(\SI{1.225}{\kilogram\per\cubic\metre}\)) & \si{\kilogram\per\cubic\metre}\\
+\(Re\)          & Blade-section Reynolds number                       & --\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Blade-element aerodynamics}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\thetat\)     & Blade collective pitch angle (control input)        & \si{\radian}\\
+\(U_T\)         & Tangential component of local flow at a blade section & \si{\metre\per\second}\\
+\(U_P\)         & Perpendicular (axial) component of local flow         & \si{\metre\per\second}\\
+\(\phi\)        & Local inflow angle, \(\phi\approx U_P/U_T\)           & \si{\radian}\\
+\(\alpha\)      & Effective angle of attack, \(\alpha=\thetat-\phi\)    & \si{\radian}\\
+\(a\)           & Two-dimensional lift-curve slope (\(\approx \SI{5.7}{\per\radian}\)) & \si{\per\radian}\\
+\(C_\ell\)      & Section lift coefficient, \(C_\ell = a\,\alpha\)      & --\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Inflow and free-stream velocities}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\vi\)         & Uniform induced velocity through the rotor disc (state) & \si{\metre\per\second}\\
+\(\viss\)       & Steady-state value of \(\vi\) for the current operating point & \si{\metre\per\second}\\
+\(v_h\)         & Hover induced velocity, \(v_h=\sqrt{\Tt/(2\rho\At)}\) & \si{\metre\per\second}\\
+\(V_\infty\)    & Axial component of the free-stream velocity through the rotor & \si{\metre\per\second}\\
+\(V_\perp\)     & In-plane component of the free-stream velocity         & \si{\metre\per\second}\\
+\(\mu_z\)       & Non-dimensional axial inflow, \(\mu_z = V_\infty/(\OmegaT\Rt)\) & --\\
+\(\mu\)         & Advance ratio (in-plane), \(\mu = V_\perp/(\OmegaT\Rt)\) & --\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Thrust and non-dimensional coefficients}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\Tt\)         & Tail-rotor thrust                                   & \si{\newton}\\
+\(C_T\)         & Thrust coefficient, \(C_T = \Tt/[\rho\At(\OmegaT\Rt)^2]\) & --\\
+\(\lambda\)     & Total inflow ratio, \(\lambda=(\vi+V_\infty)/(\OmegaT\Rt)\) & --\\
+\(\lambda_i\)   & Induced-inflow ratio, \(\lambda_i = \vi/(\OmegaT\Rt)\) & --\\
+\(\lambda_h\)   & Hover inflow ratio, \(\lambda_h=\sqrt{C_T/2}\)        & --\\
+\(\lambda_0\)   & Uniform component of inflow in three-state Pitt--Peters & --\\
+\(\lambda_s,\lambda_c\) & Longitudinal/lateral harmonic inflow components & --\\
+\(C_{Mx},C_{My}\) & Roll and pitch aerodynamic-moment coefficients on the disc & --\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Dynamic inflow model}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\tau_i\)      & First-order inflow time constant (Pitt--Peters)     & \si{\second}\\
+\(0.849\)       & Apparent-mass coefficient, \(8/(3\pi)\), in \(\tau_i\) & --\\
+\([M]\)         & Apparent-mass matrix in three-state Pitt--Peters    & --\\
+\([L]\)         & Inflow-gain matrix in three-state Pitt--Peters      & --\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Trim (equilibrium) quantities}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\bT\)         & Trim thrust (typically hover)                       & \si{\newton}\\
+\(\bvi\)        & Trim induced velocity                               & \si{\metre\per\second}\\
+\(\btheta\)     & Trim blade pitch                                    & \si{\radian}\\
+\(\blambda\)    & Trim inflow ratio                                   & --\\
+\(\bCT\)        & Trim thrust coefficient                             & --\\
+\(\bar{\tau}_i\) & Trim inflow time constant                          & \si{\second}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Linearisation, plant model and compensator}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\delta(\cdot)\) & Small perturbation of a quantity about its trim value & (varies)\\
+\(s\)             & Laplace variable                                    & \si{\per\second}\\
+\(t\)             & Time                                                & \si{\second}\\
+\(K_1\)           & Pitch-to-thrust gain, eq.~\eqref{eq:K1K2}           & \si{\newton\per\radian}\\
+\(K_2\)           & Inflow-to-thrust gain, eq.~\eqref{eq:K1K2}          & \si{\newton\second\per\metre}\\
+\(k_v\)           & Linearised sensitivity \(\partial\viss/\partial T\), eq.~\eqref{eq:kv} & \si{\metre\per\second\per\newton}\\
+\(K_2 k_v\)       & Dimensionless DC inflow-softening coupling          & --\\
+\(\beta\)         & Softening factor, \(\beta = 1+K_2 k_v\)             & --\\
+\(S(\lambda)\)    & Self-consistent BEMT softening factor, eq.~\eqref{eq:dCT_dtheta} & --\\
+\(x\)             & Internal state of the lead compensator              & \si{\radian}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Commanded (reference) quantities}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(\Tcmd\)              & Commanded tail-rotor thrust                   & \si{\newton}\\
+\(\CTcmd\)             & Commanded thrust coefficient                  & --\\
+\(\lcmd\)              & Inflow ratio at the commanded trim, \(\lcmd=\sqrt{\CTcmd/2}\) & --\\
+\(\thetat^{\text{ss,cmd}}\) & Steady-state pitch corresponding to \(\CTcmd\), eq.~\eqref{eq:static_inverse} & \si{\radian}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Acronyms}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l@{}}
+\toprule
+BEMT  & Blade Element Momentum Theory \\
+LPV   & Linear Parameter-Varying \\
+DC    & Direct current (steady-state, low-frequency limit) \\
+TF    & Transfer function \\
+RC    & Radio-controlled \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1em}
+\hrule
+\vspace{1em}
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+
+The tail rotor of a single-main-rotor helicopter is, in steady flight, a
+near-quasi-steady thrust generator: its job is to balance the anti-torque of
+the main rotor and, via the pilot's pedal input, to provide directional control.
+On a radio-controlled (RC) model helicopter the same physics applies, but
+the rotor operates at much lower Reynolds number, much higher rotational
+speed, and with a single collective control. From a flight-control perspective,
+the relevant question is how the commanded blade pitch \(\thetat\) maps to the
+thrust \(\Tt\) actually produced, in both steady and transient conditions.
+
+Two effects make this map non-trivial. First, the thrust produced at a given
+pitch depends on the induced velocity \(\vi\) through the rotor: as the rotor
+generates lift, it accelerates air downwards through the disc, which changes
+the local angle of attack of every blade element and reduces the effective
+incidence. Second, the induced velocity itself takes a finite time to
+develop, because the wake has inertia; the relationship between \(\vi\) and
+\(\Tt\) is therefore dynamic, not algebraic. The combined effect is a
+\emph{lead--lag} response in thrust to a step in pitch: an immediate transient
+of magnitude \(K_1\,\delta\thetat\), followed by partial relaxation to a lower
+steady value as inflow builds up.
+
+This note develops a compact, control-oriented model of these effects.
+Section~1 derives the blade-element thrust relation \(\Tt = K_1\thetat - K_2\vi\).
+Section~2 closes the loop on \(\vi\) using momentum theory and the first-order
+Pitt--Peters dynamic-inflow model. Section~3 inverts the coupled system to
+obtain the pitch required to track a thrust command and derives the
+linearised lead--lag transfer function. Section~4 shows how the gain and
+time constant of this plant vary with the trim point and quantifies the
+\emph{inflow-softening factor} \(\beta = 1+K_2 k_v\). Section~5 presents three
+forms of nonlinear lead compensator---an LPV scheduled lead, an exact static
+inverse, and a two-point interpolant---and compares their behaviour.
+Section~6 tabulates parameter ranges for typical RC-helicopter classes and
+works a representative numerical example.
 
 % =====================================================================
 \section{Tail Rotor Thrust vs.\ Blade Pitch}
@@ -405,7 +624,7 @@ Compensator & Initial \(\thetat\) & Settled \(\thetat\) & Notes \\
 None (\(1/K_1\) only) & correct & undershoots ~31\% & thrust slow to build \\
 Fixed lead at hover & correct & DC tracks at hover & overshoots at high thrust \\
 LPV lead (A) & correct & DC tracks everywhere & needs schedule \\
-Exact static inverse (B) & over-drives by \(\beta(\lcmd)\) & DC tracks exactly & cleanest, single expr.\ \\
+Exact static inverse (B) & exceeds \(\theta^{\text{ss,cmd}}\) by factor \(\beta(\lcmd)\) (intentional lead) & DC tracks exactly & cleanest, single expression\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -435,7 +654,7 @@ scheduling-variable bandwidth lies below the loop bandwidth.
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{llcccc}
 \toprule
-Symbol & Quantity & Micro & 450-class & 550--700 & 800+ \\
+Symbol & Quantity & Micro & 450 & 550--700 & 800+ \\
 \midrule
 \(\Rt\) & Tail radius [m]      & 0.03--0.05  & 0.06--0.08  & 0.10--0.13  & 0.14--0.17 \\
 \(c\)    & Blade chord [m]       & 0.008--0.012 & 0.015--0.020 & 0.022--0.028 & 0.028--0.035 \\
@@ -515,6 +734,10 @@ K_2k_v\big|_\text{consistent} &= \frac{\sigma a}{16\lambda_h} = \frac{0.787}{1.7
 Pitt--Peters time constants are systematically low compared to flight-test
 data on full-scale rotors (factor of 2--4 underestimate); RC practitioners
 often use \(\tau_i\approx 0.1\)--\(0.3\) rotor revolutions empirically.
+For design, the Pitt--Peters value should therefore be treated as a lower
+bound on the inflow lag, and either inflated by a fitted multiplier or
+verified against bench data before being used to set compensator
+coefficients.
 Blade lift-curve slope drops noticeably at low Reynolds numbers
 (\(Re\sim\num{30000}\)--\num{80000}) typical of RC tail-rotor tips,
 especially with thin symmetric sections. Solidity calculations assume
