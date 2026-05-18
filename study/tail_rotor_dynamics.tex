@@ -1,0 +1,547 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Packages ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{empheq}
+\usepackage{bm}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!50!black,
+    urlcolor=blue!50!black,
+    citecolor=blue!50!black
+}
+
+% ---------- Macros ----------
+\newcommand{\OmegaT}{\Omega_t}
+\newcommand{\Rt}{R_t}
+\newcommand{\At}{A_t}
+\newcommand{\Tt}{T_t}
+\newcommand{\thetat}{\theta_t}
+\newcommand{\vi}{v_i}
+\newcommand{\viss}{v_{i,\text{ss}}}
+\newcommand{\bvi}{\bar{v}_i}
+\newcommand{\bT}{\bar{T}}
+\newcommand{\btheta}{\bar{\theta}}
+\newcommand{\blambda}{\bar{\lambda}}
+\newcommand{\bCT}{\bar{C}_T}
+\newcommand{\Tcmd}{T_t^{\text{cmd}}}
+\newcommand{\CTcmd}{C_T^{\text{cmd}}}
+\newcommand{\lcmd}{\lambda^{\text{cmd}}}
+
+\title{\textbf{Tail Rotor Dynamics for an RC Helicopter}\\[4pt]
+\large Thrust, Induced Inflow, and Nonlinear Lead Compensation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent This note develops a control-oriented model of an RC helicopter tail rotor.
+Starting from blade-element momentum theory (BEMT), we derive the thrust-versus-pitch
+relation, add dynamic inflow via the Pitt--Peters first-order model, invert the
+coupled system to obtain the blade pitch required to track a commanded thrust, and
+then extend the inverse to handle the static and dynamic nonlinearities of inflow
+softening. The result is a nonlinear lead compensator suitable for a tail-rotor
+inner loop. Realistic parameter ranges for RC tail rotors are tabulated.
+\end{abstract}
+
+\tableofcontents
+\vspace{1em}
+\hrule
+\vspace{1em}
+
+% =====================================================================
+\section{Tail Rotor Thrust vs.\ Blade Pitch}
+% =====================================================================
+
+For a tail rotor with collective pitch \(\thetat\) (no cyclic), we use
+\emph{Blade Element Momentum Theory} (BEMT).
+
+\subsection{Blade Element Theory}
+
+Consider a blade element at radial station \(r\) on a blade of chord \(c\),
+rotating at \(\OmegaT\). The local flow has
+\begin{align}
+U_T &= \OmegaT\,r \qquad &&\text{(tangential)},\\
+U_P &= \vi + \mu_z\,\OmegaT\,\Rt \qquad &&\text{(perpendicular)},
+\end{align}
+where \(\vi\) is the induced velocity and \(\mu_z\) is the axial inflow from
+fuselage translation (sideways for a tail rotor).
+
+The inflow angle is
+\begin{equation}
+\phi = \tan^{-1}\!\left(\frac{U_P}{U_T}\right) \approx \frac{U_P}{U_T},
+\end{equation}
+and the effective angle of attack of the blade element is
+\(\alpha = \thetat - \phi\).
+Assuming a linear lift curve, \(C_\ell = a\,\alpha\) with
+\(a\approx \SI{5.7}{\per\radian}\), the elemental thrust per blade is
+\begin{equation}
+dT = \tfrac{1}{2}\rho\,(U_T^2+U_P^2)\,c\,C_\ell\,dr
+   \approx \tfrac{1}{2}\rho\,(\OmegaT r)^2\,c\,a\,(\thetat-\phi)\,dr.
+\end{equation}
+
+\subsection{Integrated Thrust (Uniform Inflow)}
+
+Using the non-dimensional inflow ratio
+\(\lambda = (\vi + V_\infty)/(\OmegaT\Rt)\) and integrating over the blade with
+\(N_b\) blades:
+\begin{empheq}[box=\fbox]{equation}
+C_T \;=\; \frac{\sigma a}{2}\!\left(\frac{\thetat}{3} - \frac{\lambda}{2}\right),
+\label{eq:CT_BEMT}
+\end{empheq}
+where \(\sigma = N_b c/(\pi\Rt)\) is the rotor solidity. The dimensional thrust is
+\begin{equation}
+\Tt = C_T\,\rho\,\At\,(\OmegaT\Rt)^2, \qquad \At = \pi\Rt^2.
+\end{equation}
+
+For a small RC tail rotor at constant \(\OmegaT\), this is almost linear in \(\thetat\):
+\begin{equation}
+\Tt \approx K_1\,\thetat - K_2\,\vi,
+\label{eq:linT}
+\end{equation}
+with
+\begin{equation}
+K_1 = \frac{\rho\At(\OmegaT\Rt)^2\,\sigma a}{6},
+\qquad
+K_2 = \frac{\rho\At\,\OmegaT\Rt\,\sigma a}{4}.
+\label{eq:K1K2}
+\end{equation}
+
+% =====================================================================
+\section{Induced Inflow: Momentum Theory}
+% =====================================================================
+
+\subsection{Steady Momentum Balance}
+
+Momentum theory at the rotor disk equates thrust to the rate of change of
+fluid momentum:
+\begin{equation}
+\Tt = 2\rho\At\,\vi\sqrt{(V_\infty+\vi)^2 + V_\perp^2}.
+\label{eq:momentum}
+\end{equation}
+In hover (\(V_\infty=V_\perp=0\)) this reduces to
+\begin{equation}
+v_h = \sqrt{\frac{\Tt}{2\rho\At}}.
+\label{eq:vh}
+\end{equation}
+In non-dimensional form, \(\lambda_i = C_T/\bigl(2\sqrt{\mu^2+\lambda^2}\bigr)\).
+Combining with~\eqref{eq:CT_BEMT} yields the implicit equation
+\begin{equation}
+\lambda_i \;=\; \frac{\sigma a}{16}\!\left[\sqrt{1+\frac{64\thetat}{3\sigma a}\sqrt{\mu^2+\lambda^2}}-1\right]
+\quad\text{(hover, }\mu=0\text{)}.
+\label{eq:lambda_implicit}
+\end{equation}
+
+\subsection{Dynamic Inflow (Pitt--Peters)}
+
+Steady momentum theory ignores the finite time taken by the wake to develop.
+For control design we model the uniform-inflow component as a state:
+\begin{empheq}[box=\fbox]{equation}
+\tau_i\,\dot{\vi} + \vi \;=\; \viss,
+\label{eq:pittpeters}
+\end{empheq}
+where \(\viss\) is the steady-state induced velocity from~\eqref{eq:momentum}.
+A common closed form for the time constant is
+\begin{equation}
+\tau_i \;=\; \frac{0.849}{4\,\OmegaT}\cdot\frac{1}{\lambda_i^{\text{trim}}}
+       \;=\; \frac{0.849\,\Rt}{4\,v_h}.
+\label{eq:tau_i}
+\end{equation}
+The factor \(0.849\) comes from the apparent-mass coefficient \(8/(3\pi)\) of
+an impermeable disk in the Pitt--Peters derivation.
+
+\subsection{Coupled State-Space Form}
+
+Combining BEMT with dynamic inflow:
+\begin{empheq}[box=\fbox]{align}
+\Tt &= \rho\At(\OmegaT\Rt)^2\,\frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\vi+V_\infty}{2\OmegaT\Rt}\right),\\[4pt]
+\dot{\vi} &= \frac{1}{\tau_i}\!\left(\frac{\Tt}{2\rho\At\sqrt{(V_\infty+\vi)^2+V_\perp^2}} - \vi\right).
+\end{empheq}
+
+\paragraph{Full Pitt--Peters (three-state).}
+For higher fidelity, Pitt--Peters extends this to three states---uniform inflow
+\(\lambda_0\) plus longitudinal and lateral harmonics \(\lambda_s,\lambda_c\):
+\begin{equation}
+[M]\begin{Bmatrix}\dot{\lambda}_0\\\dot{\lambda}_s\\\dot{\lambda}_c\end{Bmatrix}
++ [L]^{-1}\begin{Bmatrix}\lambda_0\\\lambda_s\\\lambda_c\end{Bmatrix}
+= \begin{Bmatrix}C_T\\ C_{Mx}\\ C_{My}\end{Bmatrix},
+\end{equation}
+with \([M]=\mathrm{diag}\!\bigl(\tfrac{8}{3\pi},\tfrac{16}{45\pi},\tfrac{16}{45\pi}\bigr)\)
+and \([L]\) depending on advance ratio and wake skew. For a small tail rotor in
+near-hover the one-state version is almost always sufficient.
+
+% =====================================================================
+\section{Inverse Problem: Blade Pitch from Commanded Thrust}
+% =====================================================================
+
+Given a desired thrust \(\Tcmd(t)\), find the pitch \(\thetat(t)\).
+The blade-element relation has no dynamics; all time-dependence enters
+through \(\vi\).
+
+\subsection{Instantaneous Inverse}
+
+Solving~\eqref{eq:linT} for \(\thetat\):
+\begin{empheq}[box=\fbox]{equation}
+\thetat(t) \;=\; \frac{\Tcmd(t) + K_2\bigl(\vi(t)+V_\infty(t)\bigr)}{K_1}.
+\label{eq:inv_instant}
+\end{empheq}
+This is exact at every instant \emph{given the current} \(\vi\).
+The inflow state must still be propagated via~\eqref{eq:pittpeters}.
+
+\subsection{Linearised Transfer Function (Hover)}
+
+Linearise about a hover trim \((\bT,\bvi,\btheta)\). The hover relation
+\(\bT=2\rho\At\bvi^{\,2}\) gives
+\begin{equation}
+\delta\viss = \frac{1}{4\rho\At\bvi}\,\delta T \;\equiv\; k_v\,\delta T.
+\label{eq:kv}
+\end{equation}
+The Pitt--Peters dynamics become \((\tau_i s + 1)\delta\vi = k_v\delta T\),
+and the linearised BEMT relation is \(\delta T = K_1\delta\thetat - K_2\delta\vi\).
+Eliminating \(\delta\vi\):
+\begin{empheq}[box=\fbox]{equation}
+\frac{\delta T(s)}{\delta\thetat(s)} \;=\; \frac{K_1(\tau_i s + 1)}{\tau_i s + (1+K_2k_v)}.
+\label{eq:plant_tf}
+\end{empheq}
+This is a lead--lag response: a thrust spike of \(K_1\delta\thetat\) immediately,
+settling at the lower DC gain \(K_1/(1+K_2k_v)\) once inflow builds up.
+
+The inverse---a lead compensator---is
+\begin{empheq}[box=\fbox]{equation}
+\frac{\delta\thetat(s)}{\delta T(s)} \;=\; \frac{\tau_i s + (1+K_2 k_v)}{K_1(\tau_i s + 1)}.
+\label{eq:comp_tf}
+\end{empheq}
+
+\paragraph{Interpretation of \(k_v\).} \(k_v\) is the linearised sensitivity of
+steady-state induced velocity to thrust at trim:
+\begin{equation}
+k_v = \frac{\partial \viss}{\partial T}\bigg|_{\text{trim}} = \frac{1}{4\rho\At\bvi} = \frac{\bvi}{2\bT}.
+\end{equation}
+Units: \si{\metre\per\second\per\newton}.
+The product \(K_2 k_v\) is dimensionless and captures the fractional thrust loss
+due to inflow build-up at low frequency:
+\begin{equation}
+\frac{\text{steady gain}}{\text{instantaneous gain}} = \frac{1}{1+K_2 k_v}.
+\end{equation}
+
+\paragraph{Self-consistent form.} Computing \(K_2\) and \(k_v\) separately and
+multiplying \emph{overestimates} the coupling, because both depend on \(\bvi\)
+through the trim condition. The self-consistent dimensionless coupling derived
+from the simultaneous BEMT--momentum balance (\S\ref{sec:soft}) is
+\begin{empheq}[box=\fbox]{equation}
+K_2 k_v \big|_{\text{self-consistent}} \;=\; \frac{\sigma a}{16\,\lambda_h},
+\qquad \lambda_h = \sqrt{C_T/2}.
+\label{eq:K2kv_consistent}
+\end{empheq}
+This is the formula to use in design.
+
+% =====================================================================
+\section{Inflow Softening and the Nonlinear Lead}
+% =====================================================================
+\label{sec:soft}
+
+\subsection{What Inflow Softening Means}
+
+The DC gain \(K_1/(1+K_2k_v)\) varies with the trim point because
+\(k_v\propto 1/\bvi \propto 1/\sqrt{\bT}\). The factor \((1+K_2k_v)\) is the
+\emph{inflow softening factor}---softening is strongest at low thrust.
+
+\subsection{BEMT Derivation of the Softening Factor}
+
+In hover, the coupled equations are
+\begin{align}
+C_T &= \frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\lambda}{2}\right), \tag{BEMT}\\
+\lambda &= \sqrt{C_T/2}. \tag{Momentum}
+\end{align}
+Eliminating \(C_T\):
+\begin{equation}
+\lambda^2 = \frac{\sigma a}{4}\!\left(\frac{\thetat}{3}-\frac{\lambda}{2}\right),
+\end{equation}
+with closed form
+\begin{equation}
+\lambda(\thetat) = \frac{\sigma a}{16}\!\left[\sqrt{1+\frac{64\thetat}{3\sigma a}}-1\right].
+\label{eq:lambda_of_theta}
+\end{equation}
+
+\paragraph{Trim sensitivity.} Differentiating implicitly:
+\begin{equation}
+2\lambda\,\frac{d\lambda}{d\thetat} = \frac{\sigma a}{4}\!\left(\frac{1}{3}-\frac{1}{2}\frac{d\lambda}{d\thetat}\right)
+\;\;\Longrightarrow\;\;
+\frac{d\lambda}{d\thetat} = \frac{\sigma a}{24\lambda + 3\sigma a/2}.
+\end{equation}
+Then
+\begin{empheq}[box=\fbox]{equation}
+\frac{dC_T}{d\thetat}\bigg|_{\text{steady}}
+= \frac{\sigma a}{6}\cdot\underbrace{\frac{1}{1+\dfrac{\sigma a}{16\lambda}}}_{S(\lambda)}.
+\label{eq:dCT_dtheta}
+\end{empheq}
+The factor \(\sigma a/6\) is the instantaneous (high-frequency) gain;
+\(S(\lambda)\) is the softening factor, confirming~\eqref{eq:K2kv_consistent}.
+
+\subsection{Magnitude Across the Envelope}
+
+For a 600-class tail rotor (\(\sigma=0.138\), \(a=5.7\), hover \(\bCT=0.024\),
+\(\blambda=0.110\)):
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcccc}
+\toprule
+Thrust & \(C_T\) & \(\lambda\) & \(K_2k_v=\sigma a/(16\lambda)\) & \(S(\lambda)\) \\
+\midrule
+25\% hover  & 0.006 & 0.055 & 0.89 & 0.53 \\
+50\% hover  & 0.012 & 0.078 & 0.63 & 0.61 \\
+Hover       & 0.024 & 0.110 & 0.45 & 0.69 \\
+150\% hover & 0.036 & 0.135 & 0.36 & 0.73 \\
+200\% hover & 0.048 & 0.156 & 0.32 & 0.76 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The DC gain varies by roughly \(40\%\) across the operating envelope. A
+fixed-gain lead compensator will mis-track by this amount at the extremes.
+
+\subsection{Time Constant Varies Too}
+
+The Pitt--Peters time constant
+\(\tau_i = 0.849/(4\OmegaT\lambda)\) scales as \(1/\lambda\propto 1/\sqrt{C_T}\).
+For the same 600-class rotor:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lc}
+\toprule
+Thrust & \(\tau_i\) [ms] \\
+\midrule
+25\% hover  & 5.5 \\
+Hover       & 2.7 \\
+200\% hover & 1.9 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Both gain and time constant of the rotor depend on the trim operating point.
+Both must be scheduled.
+
+% =====================================================================
+\section{Nonlinear Lead Compensator}
+% =====================================================================
+
+\subsection{Approach A: Gain Scheduling on Commanded Thrust (LPV)}
+
+Schedule the lead-compensator coefficients on the current trim \(\lcmd\)
+computed from the commanded thrust:
+\begin{equation}
+\lcmd(t) = \sqrt{\frac{\CTcmd(t)}{2}}
+        = \sqrt{\frac{\Tcmd(t)}{2\rho\At(\OmegaT\Rt)^2}}.
+\end{equation}
+The scheduled compensator is
+\begin{empheq}[box=\fbox]{equation}
+\begin{aligned}
+\tau_i(t) &= \frac{0.849}{4\,\OmegaT\,\lcmd(t)},\\[4pt]
+\beta(t) &\equiv 1+K_2k_v = 1 + \frac{\sigma a}{16\,\lcmd(t)},\\[4pt]
+\frac{\thetat(s)}{\Tt(s)} &= \frac{\tau_i(t)\,s+\beta(t)}{K_1\bigl(\tau_i(t)\,s+1\bigr)}.
+\end{aligned}
+\end{empheq}
+In continuous state form, with a single internal state \(x\),
+\begin{align}
+\dot{x} &= -\frac{1}{\tau_i(t)}\,x + \frac{\beta(t)-1}{\tau_i(t)\,K_1}\,\Tcmd,\\
+\thetat &= \frac{1}{K_1}\,\Tcmd + x.
+\end{align}
+The \(1/K_1\) feedforward gives the instantaneous inversion; the state \(x\)
+adds the low-frequency correction.
+
+\subsection{Approach B: Exact Static Inversion + Inflow Filter}
+
+Bypass linearisation. The steady-state map \(\thetat\leftrightarrow C_T\)
+is exact in closed form: from~\eqref{eq:CT_BEMT} with \(\lambda=\sqrt{C_T/2}\),
+\begin{empheq}[box=\fbox]{equation}
+\thetat^{\text{ss,cmd}} \;=\; \frac{6\,\CTcmd}{\sigma a} + \frac{3\,\lcmd}{2},
+\qquad \lcmd = \sqrt{\CTcmd/2}.
+\label{eq:static_inverse}
+\end{empheq}
+This static inverse, applied directly as feedforward, intentionally over-drives
+the rotor for the duration of the inflow lag: the rotor produces a brief thrust
+spike that builds inflow up to \(\lcmd\), after which thrust settles to \(\CTcmd\).
+This is the nonlinear analogue of the lead compensator, and is structurally
+simpler than the LPV form: a single algebraic expression in \(\CTcmd\).
+
+For completeness, an inflow state with scheduled time constant can be
+propagated alongside,
+\begin{equation}
+\dot{\lambda} = \frac{1}{\tau_i(\lcmd)}\bigl(\lcmd-\lambda\bigr),
+\end{equation}
+to expose the actual inflow as a state---useful for simulation, monitoring, or
+hybridising with feedback.
+
+\subsection{Approach C: Two-Point Approximation}
+
+For embedded implementations where LPV is too heavy, interpolate the
+compensator zero \(\beta/\tau_i\) and pole \(1/\tau_i\) linearly in
+\(\sqrt{\Tcmd}\) between two design points (low and high thrust).
+
+\subsection{Comparison}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{4cm}p{3cm}p{3cm}p{4cm}}
+\toprule
+Compensator & Initial \(\thetat\) & Settled \(\thetat\) & Notes \\
+\midrule
+None (\(1/K_1\) only) & correct & undershoots ~31\% & thrust slow to build \\
+Fixed lead at hover & correct & DC tracks at hover & overshoots at high thrust \\
+LPV lead (A) & correct & DC tracks everywhere & needs schedule \\
+Exact static inverse (B) & over-drives by \(\beta(\lcmd)\) & DC tracks exactly & cleanest, single expr.\ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The static-inverse approach (B) is generally preferred: the nonlinearity falls
+out of the BEMT algebra without a schedule, and the dynamic correction is a
+single first-order state. The LPV form (A) is more rigorous for control analysis
+but rarely justifies its complexity in a tail-rotor inner loop.
+
+\subsection{Scheduling Variable Choice}
+
+Should the schedule key on commanded thrust \(\Tcmd\) or on the actual
+(estimated) thrust \(\Tt\)? Both have drawbacks. Scheduling on the command
+assumes the rotor is tracking; scheduling on the measured thrust is
+self-consistent but susceptible to noise. A practical compromise is to schedule
+on a low-pass filtered command, with cutoff near \(1/\bar{\tau}_i\)---this is
+``scheduling on slow variables'' in LPV terminology and is sound provided the
+scheduling-variable bandwidth lies below the loop bandwidth.
+
+% =====================================================================
+\section{Parameter Ranges for RC Tail Rotors}
+% =====================================================================
+
+\subsection{Geometric and Operating Parameters}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llcccc}
+\toprule
+Symbol & Quantity & Micro & 450-class & 550--700 & 800+ \\
+\midrule
+\(\Rt\) & Tail radius [m]      & 0.03--0.05  & 0.06--0.08  & 0.10--0.13  & 0.14--0.17 \\
+\(c\)    & Blade chord [m]       & 0.008--0.012 & 0.015--0.020 & 0.022--0.028 & 0.028--0.035 \\
+\(N_b\)  & Number of blades       & 2 & 2 & 2 (occ.\ 4) & 2 or 4 \\
+\(\OmegaT\) & Rotor speed [\si{\radian\per\second}] & 800--1500 & 600--1000 & 500--800 & 400--700 \\
+\(\OmegaT\Rt\) & Tip speed [m/s] & 40--60 & 50--75 & 70--100 & 80--110 \\
+\(\sigma\) & Solidity              & 0.10--0.16 & 0.12--0.18 & 0.12--0.18 & 0.12--0.20 \\
+\(a\)    & Lift-curve slope [1/rad] & 5.5--5.75 & 5.5--5.75 & 5.5--5.75 & 5.5--5.75 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The lift-curve slope sits near \(2\pi\approx 6.28\) in theory,
+reduced to roughly 5.7 by finite-aspect-ratio and tip-loss effects, and falls
+further at very low Reynolds (\(Re<\num{50000}\)).
+
+\subsection{Aerodynamic Trim Values}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llcccc}
+\toprule
+Symbol & Quantity & Micro & 450 & 550--700 & 800+ \\
+\midrule
+\(\bT\)      & Hover thrust [N]              & 0.3--1 & 1--4 & 4--12 & 12--30 \\
+\(\bvi\)     & Hover induced vel.\ [m/s]     & 4--8 & 5--10 & 7--13 & 9--15 \\
+\(\btheta\)  & Trim pitch [deg]              & 6--10 & 6--10 & 6--10 & 6--10 \\
+\(\tau_i\)   & Inflow time constant [ms]     & 4--10 & 8--20 & 15--35 & 25--60 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Derived Coefficients}
+
+Using \(\rho = \SI{1.225}{\kilogram\per\cubic\metre}\):
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llcccc}
+\toprule
+Symbol & Quantity & Micro & 450 & 550--700 & 800+ \\
+\midrule
+\(\At\)      & Disc area [\si{\square\metre}]   & 0.003--0.008 & 0.011--0.020 & 0.031--0.053 & 0.062--0.091 \\
+\(K_1\)      & Pitch gain [N/rad]              & 3--10  & 10--40  & 40--150 & 150--400 \\
+\(K_2\)      & Inflow gain [N\,s/m]            & 0.3--1.0 & 0.8--2.5 & 2.5--8 & 8--20 \\
+\(k_v\)      & Inflow sensitivity [m/(s\,N)]   & 0.5--2.0 & 0.3--1.0 & 0.2--0.6 & 0.15--0.4 \\
+\(K_2 k_v\)  & DC softening factor            & 0.4--1.0 & 0.4--1.0 & 0.4--1.0 & 0.4--1.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The dimensionless product \(K_2 k_v\) is roughly the same across
+classes---a physical-similarity result, since both factors scale with similar
+combinations of \(\rho\At\), \(\OmegaT\Rt\), and \(\bvi\).
+
+\subsection{Worked Example: 600-class}
+
+\begin{align*}
+\Rt &= 0.115~\text{m}, & c &= 0.025~\text{m}, & N_b &= 2,\\
+\OmegaT &= 700~\text{rad/s}, & \OmegaT\Rt &= 80.5~\text{m/s},\\
+\sigma &= \tfrac{2\cdot 0.025}{\pi\cdot 0.115} = 0.138, & a &= 5.7,\\
+\bT &= 8~\text{N}, & \At &= 0.0415~\text{m}^2.
+\end{align*}
+Hence
+\begin{align*}
+\bvi &= \sqrt{8/(2\cdot 1.225\cdot 0.0415)} = 8.9~\text{m/s},\\
+\tau_i &= 0.849\cdot 0.115/(4\cdot 8.9) \approx 2.7~\text{ms (Pitt--Peters)},\\
+K_1 &= \tfrac{1.225\cdot 0.0415\cdot 80.5^2\cdot 0.138\cdot 5.7}{6} = 43~\text{N/rad},\\
+K_2 &= \tfrac{1.225\cdot 0.0415\cdot 80.5\cdot 0.138\cdot 5.7}{4} = 8.1~\text{N\,s/m},\\
+k_v &= 1/(4\cdot 1.225\cdot 0.0415\cdot 8.9) = 0.55~\text{m/(s\,N)},\\
+\lambda_h &= \sqrt{0.024/2} = 0.110,\\
+K_2k_v\big|_\text{consistent} &= \frac{\sigma a}{16\lambda_h} = \frac{0.787}{1.76} = 0.45.
+\end{align*}
+
+\subsection{Caveats}
+
+Pitt--Peters time constants are systematically low compared to flight-test
+data on full-scale rotors (factor of 2--4 underestimate); RC practitioners
+often use \(\tau_i\approx 0.1\)--\(0.3\) rotor revolutions empirically.
+Blade lift-curve slope drops noticeably at low Reynolds numbers
+(\(Re\sim\num{30000}\)--\num{80000}) typical of RC tail-rotor tips,
+especially with thin symmetric sections. Solidity calculations assume
+rectangular blades; tapered or paddle blades need an equivalent solidity
+weighted by \(r^2 c(r)\). Finally, the tail rotor sits in the main-rotor
+wake, so \(V_\perp\) in~\eqref{eq:momentum} is dominated by main-rotor
+inflow---the main source of tail-rotor effectiveness loss in turns.
+
+% =====================================================================
+\section{Summary}
+% =====================================================================
+
+The tail-rotor inner loop reduces to:
+
+\begin{enumerate}[leftmargin=*]
+\item A near-linear blade-element thrust law,
+      \(\Tt = K_1\thetat - K_2\vi\), with constants from~\eqref{eq:K1K2}.
+\item A first-order inflow state,
+      \(\tau_i\dot{\vi}+\vi=\viss(\Tt)\), with \(\tau_i\) from~\eqref{eq:tau_i}.
+\item A coupled steady-state map \(\thetat\leftrightarrow C_T\) with closed
+      form~\eqref{eq:lambda_of_theta}.
+\item A self-consistent DC softening factor \(\sigma a/(16\lambda_h)\) that
+      replaces the naive product \(K_2 k_v\).
+\item A nonlinear feedforward inverse---either the LPV lead
+      \eqref{eq:comp_tf} scheduled on \(\lcmd\), or the exact static
+      inverse~\eqref{eq:static_inverse}---that compensates for inflow
+      softening across the full thrust envelope.
+\end{enumerate}
+
+\end{document}
