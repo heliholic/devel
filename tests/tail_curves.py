@@ -18,7 +18,7 @@ class config():
 
 ## Plotting stuff
 
-def plot_sweep(h: heli):
+def plot_all(h: heli):
     angle_degrees = np.arange(config.plot_min_deg, config.plot_max_deg + 1.0, 1.0)
     slider_positions = []
     pivot_angles_deg = []
@@ -36,32 +36,32 @@ def plot_sweep(h: heli):
         rod_deflections.append(rod_deflection)
         servo_angles_deg.append(math.degrees(servo_angle))
 
-    plt.figure(figsize=(16, 12), dpi=160)
-    plt.plot(angle_degrees, slider_positions, label="Slider distance (mm)")
-    plt.plot(angle_degrees, pivot_angles_deg, label="Pivot angle (deg)")
-    plt.plot(angle_degrees, rod_deflections, label="Rod deflection (mm)")
-    plt.plot(angle_degrees, servo_angles_deg, label="Servo angle (deg)")
-    plt.xlabel("Blade angle (deg)")
-    plt.ylabel("Output value")
-    plt.title("Tail sweep: blade angle to slider and pivot")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-def plot_blade_to_servo_approx(h: heli):
-    blade_angles_deg = np.arange(config.plot_min_deg, config.plot_max_deg + 1.0, 1.0)
+    blade_angles_deg = angle_degrees
     blade_angles_rad = np.radians(blade_angles_deg)
     servo_real_rad = np.array([h.blade_angle_to_servo_angle(alpha) for alpha in blade_angles_rad])
     servo_real_deg = np.degrees(servo_real_rad)
     coeff_scale = 10000
 
-    fig, (ax_curve, ax_error, ax_int_error) = plt.subplots(3, 1, figsize=(16, 14), dpi=200, sharex=True)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12), dpi=200, sharex=True)
+    ax_sweep = axes[0, 0]
+    ax_curve = axes[0, 1]
+    ax_error = axes[1, 0]
+    ax_int_error = axes[1, 1]
+
+    ax_sweep.plot(angle_degrees, slider_positions, label="Slider distance (mm)")
+    ax_sweep.plot(angle_degrees, pivot_angles_deg, label="Pivot angle (deg)")
+    ax_sweep.plot(angle_degrees, rod_deflections, label="Rod deflection (mm)")
+    ax_sweep.plot(angle_degrees, servo_angles_deg, label="Servo angle (deg)")
+    ax_sweep.set_ylabel("Output value")
+    ax_sweep.set_title("Tail sweep: blade angle to slider and pivot")
+    ax_sweep.legend()
+    ax_sweep.grid(True)
+
     ax_curve.plot(blade_angles_deg, servo_real_deg, label="Real curve")
 
     for degree in range(4, 10):
         h.print_poly_coeffs_int32(degree, coeff_scale)
         coeffs = h.polynomial_approx_blade_to_servo(degree=degree)
-        poly = np.poly1d(coeffs)
         servo_approx_rad = np.array([h.evaluate_polynomial(coeffs, angle_rad) for angle_rad in blade_angles_rad])
         servo_approx_deg = np.degrees(servo_approx_rad)
         servo_error_deg = servo_approx_deg - servo_real_deg
@@ -96,8 +96,7 @@ def main():
     RF = heli()
     RF.load(sys.argv[1])
     RF.set(sys.argv[2:])
-    plot_sweep(RF)
-    plot_blade_to_servo_approx(RF)
+    plot_all(RF)
 
 if __name__ == "__main__":
     main()
