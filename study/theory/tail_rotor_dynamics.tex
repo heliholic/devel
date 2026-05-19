@@ -59,8 +59,10 @@ coupled system to obtain the blade pitch required to track a commanded thrust. T
 inverse is collected into a compact implementation-ready form for the inner control
 loop. A linearisation about hover trim is also developed, exposing the lead--lag
 structure of the plant and quantifying the inflow-softening factor that varies
-across the operating envelope. Realistic parameter ranges for RC tail rotors are
-tabulated.
+across the operating envelope. The axial flow through the disc is shown to include
+a body-yaw-rate contribution \(\ell_t\dot\psi\) that is of order the hover induced
+velocity at RC 3D yaw rates and must be carried explicitly in the inverse.
+Realistic parameter ranges for RC tail rotors are tabulated.
 \end{abstract}
 
 \tableofcontents
@@ -131,8 +133,11 @@ Symbol & Description & Units \\
 \(\vi\)         & Uniform induced velocity through the rotor disc (state) & \si{\metre\per\second}\\
 \(\viss\)       & Steady-state value of \(\vi\) for the current operating point & \si{\metre\per\second}\\
 \(v_h\)         & Hover induced velocity, \(v_h=\sqrt{\Tt/(2\rho\At)}\) & \si{\metre\per\second}\\
-\(V_\infty\)    & Axial component of the free-stream velocity through the rotor & \si{\metre\per\second}\\
+\(V_\infty\)    & Axial flow through the rotor disc, \(V_\infty=V_\infty^{\text{aero}}+\ell_t\dot\psi\) & \si{\metre\per\second}\\
+\(V_\infty^{\text{aero}}\) & Airframe-translation contribution to axial flow & \si{\metre\per\second}\\
 \(V_\perp\)     & In-plane component of the free-stream velocity         & \si{\metre\per\second}\\
+\(\dot\psi\)    & Body yaw rate                                          & \si{\radian\per\second}\\
+\(\ell_t\)      & Moment arm from airframe CG to tail-rotor hub          & \si{\metre}\\
 \(w_\infty\)   & Axial velocity in the far wake                         & \si{\metre\per\second}\\
 \(U_{\text{disc}}\) & Resultant velocity through/sweeping the actuator disc & \si{\metre\per\second}\\
 \(\mu_z\)       & Non-dimensional axial inflow, \(\mu_z = V_\infty/(\OmegaT\Rt)\) & --\\
@@ -356,12 +361,31 @@ U_P \;=\; \vi \;+\; V_\infty.
 \(\vi\) is the induced velocity produced by the rotor itself
 (present whenever the rotor produces thrust, drawn through the disc by
 the pressure jump the blades create), and \(V_\infty\) is any external
-axial component of the freestream---for a tail rotor on a translating
-airframe, this is the sideways translation along the rotor shaft. In
-hover, \(V_\infty=0\) and the perpendicular flow is purely the rotor's
-own induced velocity. The two notations \(V_\infty\) and
-\(\mu_z\OmegaT\Rt\) refer to the same quantity, with \(\mu_z\) the
-non-dimensional form used in some textbooks.
+axial component of the freestream---the air flow aligned with the
+rotor shaft. Two physical sources contribute to it:
+\begin{equation}
+V_\infty \;=\; V_\infty^{\text{aero}} \;+\; \ell_t\,\dot\psi.
+\label{eq:Vinf_composition}
+\end{equation}
+The first term, \(V_\infty^{\text{aero}}\), is the airframe-translation
+contribution: for a tail rotor on a sideways-translating airframe, this
+is the sideways translation along the rotor shaft. The second term is
+the velocity of the tail-rotor hub through the air due to body yaw rate
+\(\dot\psi\) about the airframe CG, with moment arm \(\ell_t\); the hub
+moves in an arc whose tangent at the rotor is along the rotor shaft,
+so this velocity is purely axial. The sign convention follows
+\(\Tt\): \(\dot\psi>0\) when the airframe rotates in the same sense
+the tail rotor's thrust is pushing it, so a sustained yaw in the
+``with-thrust'' direction produces \(V_\infty>0\)---air fed into the
+suction side of the disc, partially unloading the rotor. The
+yaw-rate contribution is quantified in
+Section~\ref{ssec:yaw_rate_axial} and shown there to be a first-order
+effect at the yaw rates encountered in RC operation, not a small
+correction.
+In hover with no airframe motion, both contributions vanish and the
+perpendicular flow is purely the rotor's own induced velocity. The two
+notations \(V_\infty\) and \(\mu_z\OmegaT\Rt\) refer to the same quantity,
+with \(\mu_z\) the non-dimensional form used in some textbooks.
 
 \paragraph{The velocity triangle.}
 Imagine looking edge-on at the blade element from outboard, so its
@@ -753,6 +777,87 @@ therefore has \emph{high} \(\vi\) compared with a main rotor of equal
 thrust---a numerical example in Section~\ref{sec:params} gives
 \(v_h\sim\SI{9}{\metre\per\second}\) for a typical 700 class tail rotor
 producing 12\,N of thrust.
+
+\subsection{Yaw Rate as a Source of Axial Flow}\label{ssec:yaw_rate_axial}
+
+The free-stream axial velocity \(V_\infty\) introduced in
+Section~\ref{ssec:velocity_triangle} has two sources, written together
+in~\eqref{eq:Vinf_composition} as \(V_\infty=V_\infty^{\text{aero}}+\ell_t\dot\psi\).
+The first is straightforward airframe translation along the rotor
+shaft. The second deserves a closer look because it is specific to
+yawing flight and is large enough at RC yaw rates to dominate the
+axial-flow contribution.
+
+When the airframe yaws at rate \(\dot\psi\) about a vertical axis
+through its centre of mass, the tail rotor hub---located at distance
+\(\ell_t\) behind the CG---swings through an arc at tangential
+velocity \(\ell_t\,\dot\psi\). Because the tail boom is normally
+perpendicular to the rotor shaft, the tangent to that arc at the rotor
+hub is aligned with the shaft. The yaw-induced hub motion is therefore
+axial through the disc, not edgewise, and it enters the momentum
+balance through \(V_\infty\) rather than \(V_\perp\):
+\begin{equation}
+V_\infty \;=\; V_\infty^{\text{aero}} \;+\; \ell_t\,\dot\psi,
+\qquad
+V_\perp \;=\; V_\perp^{\text{aero}}
+\quad\text{(no yaw-rate contribution).}
+\label{eq:Vinf_yaw_decomposition}
+\end{equation}
+The sign convention is fixed by demanding self-consistency with the
+thrust direction. In the document's convention \(V_\infty>0\) means flow
+into the rotor in the same direction as the wake it produces, so
+\(\dot\psi>0\) corresponds to airframe rotation in the same sense the
+tail-rotor thrust is pushing it---a ``with-thrust'' pirouette. In that
+case the rotor is moving \emph{into} its own wake direction; air is fed
+into the suction side of the disc; and the rotor needs less of its own
+induced velocity to deliver a given thrust. An ``against-thrust''
+pirouette gives \(\dot\psi<0\) and pushes the operating point toward
+the windmill-brake or vortex-ring states where the smooth-wake
+momentum closure breaks down (Section~\ref{ssec:actuator_disc}).
+
+\paragraph{Magnitude.}
+RC helicopters routinely reach yaw rates of \(\dot\psi=\SI{600}{\degree\per\second}
+\approx \SI{10.5}{\radian\per\second}\) in 3D flight, with extreme
+pirouette flips going higher. For a 700 class machine with
+\(\ell_t\approx\SI{0.95}{\metre}\) the resulting axial velocity is
+\(\ell_t\dot\psi\approx\SI{10}{\metre\per\second}\), comparable to or
+greater than the hover induced velocity \(\bvi\approx\SI{9}{\metre\per\second}\)
+of the same rotor (see Section~\ref{ssec:worked_example}). Smaller
+classes get smaller \(\ell_t\) but proportionally smaller \(\bvi\) too,
+so the dimensionless ratio \(\ell_t\dot\psi/\bvi\) reaches order unity
+across the size range. The non-dimensional axial inflow
+\(\mu_z=\ell_t\dot\psi/(\OmegaT\Rt)\) is then of order
+\(\lambda_h\approx 0.06\) or larger---the same order as the inflow
+ratio the rotor produces on its own. The yaw-rate contribution is
+therefore a first-order effect on the momentum balance, not a
+perturbation.
+
+\paragraph{What survives, what changes.}
+The momentum equation \eqref{eq:momentum} is already written in terms of
+the composite \(V_\infty\); using \eqref{eq:Vinf_yaw_decomposition} to
+include yaw rate requires no change of form. Likewise the BEMT thrust
+law \eqref{eq:linT} carries \(V_\infty\) symbolically and is unchanged
+in form by the yaw-rate contribution. What \emph{is} changed is the
+operating point: the trim is no longer the hover trim \(V_\infty=0\)
+unless \(\dot\psi=0\), so the hover-specialised forms
+(eqs.~\eqref{eq:vh}, \eqref{eq:lambda_implicit}, and the hover
+linearisation of Section~\ref{sec:linear}) no longer apply during a
+sustained pirouette. The full axial or edgewise momentum closure must
+be used.
+
+\paragraph{Effects not captured here.}
+Three further consequences of yaw rate are second order at RC
+amplitudes and are not modelled in this note. (i) The hub-motion
+component also varies azimuthally with each blade's position---the
+classic ``advancing/retreating'' asymmetry of edgewise flight---but
+for pure yaw the hub motion is along the shaft, so this asymmetry is
+small. (ii) The disc itself has angular velocity \(\dot\psi\) about a
+vertical axis, which introduces small flapping and gyroscopic effects
+on the blades; these are outside the thrust-only model. (iii) The
+absolute rotor spin rate differs from the shaft-relative
+\(\OmegaT\) by \(\dot\psi\), a fractional change of order
+\(\dot\psi/\OmegaT\lesssim 1\%\) at the limits considered here, and
+is neglected.
 
 \subsection{Non-Dimensional Form}\label{ssec:inflow_nondim}
 
@@ -1404,7 +1509,7 @@ each tick and then discarded.
 
 \paragraph{Fixed rotor parameters} (computed once, constant for given hardware):
 \begin{equation}
-K_1, \quad K_2, \quad \rho\At, \quad \Rt,
+K_1, \quad K_2, \quad \rho\At, \quad \Rt, \quad \ell_t,
 \end{equation}
 where \(K_1\) and \(K_2\) are the blade-element gains from
 Section~\ref{ssec:K1K2}, evaluated at the governed rotor speed:
@@ -1426,13 +1531,24 @@ treated as a tunable rotor parameter.
 \paragraph{Inputs} (provided each control tick):
 \begin{equation}
 \Tcmd(t)\quad\text{[N]},\qquad
-V_\infty(t)\quad\text{[m/s]},\qquad
-V_\perp(t)\quad\text{[m/s]}.
+V_\infty^{\text{aero}}(t)\quad\text{[m/s]},\qquad
+V_\perp(t)\quad\text{[m/s]},\qquad
+\dot\psi(t)\quad\text{[rad/s]}.
 \end{equation}
 \(\Tcmd\) comes from the yaw outer loop and is taken positive in the
 thrust-producing direction used throughout Section~\ref{sec:inflow}.
-\(V_\infty\) and \(V_\perp\) come from the airframe's airspeed estimator
-(or are set to zero in near-hover applications).
+\(V_\infty^{\text{aero}}\) and \(V_\perp\) come from the airframe's
+airspeed estimator (or are set to zero in near-hover applications).
+The body yaw rate \(\dot\psi\) is taken from the same gyro signal the
+outer yaw loop uses; together with the geometric constant \(\ell_t\),
+it gives the axial-flow contribution discussed in
+Section~\ref{ssec:yaw_rate_axial}. Inside the tick the inverse uses
+the composite
+\begin{equation}
+V_\infty(t) \;=\; V_\infty^{\text{aero}}(t) \;+\; \ell_t\,\dot\psi(t),
+\label{eq:impl_Vinf_composite}
+\end{equation}
+which is the only place \(\dot\psi\) enters the algebra below.
 
 \paragraph{State} (one scalar, evolved by the inverse block):
 \begin{equation}
@@ -1602,7 +1718,7 @@ the envelope tables in Section~\ref{ssec:envelope}.
 Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update} are the
 deliverable of this note from a control-implementation standpoint.
 Concrete numerical values for the fixed rotor parameters
-\((K_1, K_2, \rho\At, \Rt)\), and representative magnitudes for the
+\((K_1, K_2, \rho\At, \Rt, \ell_t)\), and representative magnitudes for the
 state \(\vi\) and the time constant \(\tau_i\) across the operating
 envelope, are tabulated in Section~\ref{sec:params}.
 
@@ -1629,6 +1745,7 @@ Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
 \(\Rt\) & Tail radius [m]      & 0.080--0.100  & 0.10--0.12  & 0.135--0.145 \\
 \(c\)    & Blade chord [m]       & 0.015--0.022 & 0.022--0.026 & 0.028--0.032 \\
 \(N_b\)  & Number of blades       & 2 & 2 & 2 (occ.\ 3) \\
+\(\ell_t\) & Tail moment arm [m]  & 0.45--0.60  & 0.65--0.80  & 0.85--1.00 \\
 \(\OmegaT\) & Rotor speed [\si{\radian\per\second}] & 1200--1700 & 1000--1300 & 900--1100 \\
 \(\OmegaT\Rt\) & Tip speed [m/s] & 95--170 & 100--155 & 120--160 \\
 \(\sigma\) & Solidity              & 0.10--0.18 & 0.12--0.17 & 0.12--0.15 \\
@@ -1692,7 +1809,7 @@ flying mass \(\sim 5\)~kg):
 \Rt &= 0.140~\text{m}, & c &= 0.030~\text{m}, & N_b &= 2,\\
 \OmegaT &= 1036~\text{rad/s}, & \OmegaT\Rt &= 145~\text{m/s},\\
 \sigma &= \tfrac{2\cdot 0.030}{\pi\cdot 0.140} = 0.136, & a &= 5.7,\\
-\bT &= 12~\text{N}, & \At &= 0.0616~\text{m}^2.
+\bT &= 12~\text{N}, & \At &= 0.0616~\text{m}^2, & \ell_t &= 0.95~\text{m}.
 \end{align*}
 Hence
 \begin{align*}
@@ -1708,6 +1825,20 @@ The DC softening factor is \(S = 1/(1+K_2k_v) = 0.56\): the steady-state
 thrust delivered for a given collective is about \(56\%\) of the
 open-loop (frozen-wake) value.
 
+\paragraph{Yaw-rate contribution.}
+At a sustained 3D yaw rate of \(\dot\psi=\SI{600}{\degree\per\second}=10.5\)
+rad/s, the axial-flow contribution from yawing alone is
+\begin{equation*}
+\ell_t\dot\psi \;=\; 0.95\cdot 10.5 \;=\; 9.95~\text{m/s},
+\end{equation*}
+slightly larger than the hover induced velocity \(\bvi=8.92\)~m/s
+itself, and giving \(\mu_z=\ell_t\dot\psi/(\OmegaT\Rt)=0.069\) against
+\(\lambda_h=0.0615\). In a with-thrust pirouette this axial flow
+reduces the rotor's own \(\viss\) substantially; in an against-thrust
+pirouette of the same magnitude the operating point approaches the
+windmill-brake state and the smooth-wake momentum closure should be
+treated with caution.
+
 \subsection{Caveats}\label{ssec:param_caveats}
 
 Pitt--Peters time constants are systematically low compared to flight-test
@@ -1721,9 +1852,18 @@ Blade lift-curve slope drops noticeably at low Reynolds numbers
 (\(Re\sim\num{30000}\)--\num{80000}) typical of RC tail-rotor tips,
 especially with thin symmetric sections. Solidity calculations assume
 rectangular blades; tapered or paddle blades need an equivalent solidity
-weighted by \(r^2 c(r)\). Finally, the tail rotor sits in the main-rotor
+weighted by \(r^2 c(r)\). The tail rotor sits in the main-rotor
 wake, so \(V_\perp\) in~\eqref{eq:momentum} is dominated by main-rotor
-inflow---the main source of tail-rotor effectiveness loss in turns.
+inflow---the main source of tail-rotor effectiveness loss in turns---and
+not by airframe sideslip alone. The axial flow \(V_\infty\), by
+contrast, is dominated in 3D flight by the yaw-rate contribution
+\(\ell_t\dot\psi\) rather than by the airframe-translation component
+\(V_\infty^{\text{aero}}\) (Section~\ref{ssec:yaw_rate_axial}); in
+slow forward flight or sustained hover the two contributions can be
+of comparable magnitude. Finally, the moment arm \(\ell_t\) is the
+geometric distance from the airframe yaw centre (close to the CG) to
+the tail-rotor hub; on machines with relocatable batteries or
+significant fuselage mass changes it shifts slightly with loadout.
 
 % =====================================================================
 \section{Summary}\label{sec:summary}
@@ -1747,9 +1887,15 @@ The tail-rotor inner loop reduces to:
       envelope.
 \item An implementation-ready nonlinear dynamic inverse for the inner
       loop, \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update}, taking
-      \(\Tcmd\) and the flight condition \((V_\infty, V_\perp)\) as
-      inputs and producing the servo pitch command \(\thetat\), with
-      the induced velocity \(\vi\) carried internally as a single state.
+      \(\Tcmd\) and the flight condition
+      \((V_\infty^{\text{aero}}, V_\perp, \dot\psi)\) as inputs and
+      producing the servo pitch command \(\thetat\), with the induced
+      velocity \(\vi\) carried internally as a single state. The body
+      yaw rate enters through the composite axial flow
+      \(V_\infty = V_\infty^{\text{aero}} + \ell_t\dot\psi\)
+      (Section~\ref{ssec:yaw_rate_axial}); at the yaw rates seen in
+      3D RC flight this contribution can match or exceed the hover
+      induced velocity and must not be omitted.
 \end{enumerate}
 
 \end{document}
