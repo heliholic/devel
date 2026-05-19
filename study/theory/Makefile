@@ -13,11 +13,10 @@ pdf: $(PDF)
 $(PDF): $(TEX)
 	latexmk -pdf -interaction=nonstopmode -halt-on-error $<
 
-view: $(PDF)
+view:
 	$(VIEWER) $(PDF) &
 
 install:
-	sudo apt-get update
 	sudo apt-get install -y $(APT_PKGS)
 
 clean:
