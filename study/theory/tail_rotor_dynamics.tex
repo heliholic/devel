@@ -283,159 +283,323 @@ compares their behaviour. Section~6 tabulates parameter ranges for typical
 RC-helicopter classes and works a representative numerical example.
 
 % =====================================================================
-\section{Tail Rotor Thrust vs.\ Blade Pitch}
+\section{Blade Pitch and Rotor Thrust}\label{sec:bemt}
 % =====================================================================
 
-For a tail rotor with collective pitch \(\thetat\) (no cyclic), we use
-\emph{Blade Element Momentum Theory} (BEMT). BEMT combines two independent
-views of the same rotor. The \emph{local} (blade-element) view treats each
-spanwise strip of the blade as a two-dimensional aerofoil that produces lift
-according to its own angle of attack; integrating across the span and around
-the disc gives total thrust as a function of \emph{both} the geometric pitch
-\(\thetat\) and the induced velocity \(\vi\) flowing through the disc. The
-\emph{global} (momentum) view treats the disc as a whole and uses conservation
-of momentum on the air column passing through it to fix \(\vi\) given the
-thrust it is producing. The two views share \(\vi\) as the coupling variable
-and must be solved together. This section develops the local half; the global
-half is taken up in Section~\ref{sec:inflow}.
+The Introduction set out the central problem: predict the thrust \(\Tt\)
+that a tail rotor produces given the pitch \(\thetat\) applied to its
+blades. This chapter builds the first half of that prediction---an
+expression for thrust from the geometry and kinematics of a single
+rotating blade, at a frozen instant in time, conditional on the induced
+velocity \(\vi\) through the disc. The second half (computing \(\vi\)
+itself) is taken up in Section~\ref{sec:inflow}.
 
-\subsection{Blade Element Theory}
+The tool is \emph{Blade Element Theory} (BET), which decomposes the
+rotor into thin radial strips, treats each strip as a two-dimensional
+aerofoil section, and integrates the resulting elemental lift across
+span and around the disc. Combined with momentum theory in
+Section~\ref{sec:inflow} it becomes \emph{Blade Element Momentum
+Theory} (BEMT). The blade-element half is purely kinematic and
+aerodynamic; it does not invoke any global mass or momentum balance.
+That is what makes it tractable as a standalone derivation.
 
-Consider a single blade element---a thin spanwise strip---at radial station
-\(r\) on a rectangular blade of chord \(c\), rotating at angular speed
-\(\OmegaT\). Two velocity components matter at this element:
-\begin{align}
-U_T &= \OmegaT\,r \qquad &&\text{(tangential, in-plane)},\\
-U_P &= \vi + V_\infty \qquad &&\text{(perpendicular, through-disc)}.
-\end{align}
-\(U_T\) is simply the speed the element sees from rotation: zero at the hub,
-linear in \(r\), peaking at \(\OmegaT\Rt\) at the tip. \(U_P\) is the
-\emph{through-disc} flow---air being drawn or pushed perpendicular to the
-disc plane. It has two contributions: the induced velocity \(\vi\) produced
-by the rotor itself (always present whenever the rotor is producing thrust),
-and an external axial component \(V_\infty\) from translation of the airframe
-along the rotor shaft (for a tail rotor on a helicopter in straight flight,
-this is sideways translation; in hover, \(V_\infty=0\)). The two notations
-\(V_\infty\) and \(\mu_z\OmegaT\Rt\) refer to the same quantity, with \(\mu_z\)
-its non-dimensional form.
+\subsection{The Rotor and the Blade-Element Abstraction}\label{ssec:abstraction}
 
-The element therefore sees an apparent wind whose direction is tilted out of
-the disc plane by the \emph{inflow angle}
+We model the tail rotor as \(N_b\) identical blades of length \(\Rt\)
+and chord \(c\), rotating at constant angular speed \(\OmegaT\) about a
+shaft, sweeping out a disc of area \(\At = \pi\Rt^2\). For an RC tail
+rotor \(N_b\) is typically 2; for full-scale tail rotors it may be 3
+or 4. The blades are set to a single \emph{collective} pitch
+\(\thetat\) common to all blades and to every azimuthal position. This
+is a meaningful simplification specific to tail rotors: main rotors
+additionally vary their pitch sinusoidally with azimuth (cyclic pitch)
+to control the disc's tilt, but tail rotors normally do not---they have
+only one degree of freedom, collective pitch, which acts as the thrust
+command.
+
+The blade-element idea is to chop each blade into thin radial strips
+of width \(dr\) at radial station \(r\), treat each strip as an
+isolated two-dimensional aerofoil section that sees its own local
+apparent wind, compute the elemental lift and drag on the strip from
+2D aerofoil theory, then sum (integrate) over the span and multiply by
+\(N_b\). The abstraction works because the spanwise extent of a strip
+is large compared with the chord: lift on any given strip is dominated
+by 2D mechanisms and depends only weakly on the flow at neighbouring
+spanwise stations. The cost is that 3D effects---tip vortices,
+trailing-edge wake roll-up, root flow distortion---are excluded by
+construction and must be patched back in afterwards if needed (see the
+assumptions list at the end of the chapter).
+
+\subsection{Velocity Components at the Blade Element}\label{ssec:velocity_triangle}
+
+At radial station \(r\) on the blade, two velocity components of the
+apparent wind matter. The first is \emph{tangential}, lying in the
+plane of the disc and pointing opposite to the blade's motion:
 \begin{equation}
-\phi = \tan^{-1}\!\left(\frac{U_P}{U_T}\right) \approx \frac{U_P}{U_T},
+U_T \;=\; \OmegaT\,r,
 \end{equation}
-where the small-angle approximation holds away from the root since
-\(U_P\ll U_T\) over most of the span (typical values: \(U_P\sim\)~few m/s,
-\(U_T\sim\)~tens of m/s).
+zero at the hub, linear in \(r\), peaking at \(\OmegaT\Rt\) at the
+tip. This is what the blade sees just from rotating: the element is
+moving forward through still air at speed \(\OmegaT r\), so the air
+appears to move backward past it at the same speed.
 
-The blade is set at geometric pitch \(\thetat\) relative to the disc plane,
-but because the apparent wind is tilted by \(\phi\), the element's effective
-angle of attack is
+The second is \emph{perpendicular}, normal to the disc plane, pointing
+through the disc:
 \begin{equation}
-\alpha = \thetat - \phi.
+U_P \;=\; \vi \;+\; V_\infty.
 \end{equation}
-This is the central mechanism of the entire section: \(\thetat\) is what we
-command, but induced inflow \emph{steals incidence} from the blade by
-increasing \(\phi\), and only the difference \(\alpha\) generates lift. The
-thrust loss that appears in the integrated result is the cumulative effect
-of this stolen incidence across the span.
+\(\vi\) is the induced velocity produced by the rotor itself
+(present whenever the rotor produces thrust, drawn through the disc by
+the pressure jump the blades create), and \(V_\infty\) is any external
+axial component of the freestream---for a tail rotor on a translating
+airframe, this is the sideways translation along the rotor shaft. In
+hover, \(V_\infty=0\) and the perpendicular flow is purely the rotor's
+own induced velocity. The two notations \(V_\infty\) and
+\(\mu_z\OmegaT\Rt\) refer to the same quantity, with \(\mu_z\) the
+non-dimensional form used in some textbooks.
 
-Assuming a linear two-dimensional lift curve, \(C_\ell = a\,\alpha\) with
-slope \(a\approx \SI{5.7}{\per\radian}\), the elemental thrust per blade is
+\paragraph{The velocity triangle.}
+Imagine looking edge-on at the blade element from outboard, so its
+chord is perpendicular to the page. The element moves forward in the
+disc plane at speed \(U_T\), and at the same time air is being drawn
+through the disc at speed \(U_P\). In the element's frame these
+combine into an apparent wind of magnitude
+\(U = \sqrt{U_T^2 + U_P^2}\) blowing toward the element at an angle
 \begin{equation}
-dT = \tfrac{1}{2}\rho\,(U_T^2+U_P^2)\,c\,C_\ell\,dr
-   \approx \tfrac{1}{2}\rho\,(\OmegaT r)^2\,c\,a\,(\thetat-\phi)\,dr,
+\phi \;=\; \tan^{-1}\!\left(\frac{U_P}{U_T}\right)
+       \;\approx\; \frac{U_P}{U_T}
 \end{equation}
-where in the second form we have dropped \(U_P^2\) against \(U_T^2\)
-(consistent with \(\phi\) small) and projected the section lift onto the disc
-normal (\(\cos\phi\approx 1\)). Section drag contributes only at second order
-in \(\phi\) and is ignored here.
+below the disc plane. \(\phi\) is the \emph{inflow angle}: the amount
+by which the apparent wind is tilted out of the plane in which the
+blade moves. Away from the root---where \(U_T\) is small and the
+small-angle approximation fails---typical values are
+\(U_P\sim\) a few m/s against \(U_T\sim\) tens of m/s, so
+\(\phi\sim 0.05\)--\(0.15\,\)rad. Small-angle is justified across most
+of the span.
 
-\subsection{Integrated Thrust (Uniform Inflow)}
+\subsection{Effective Angle of Attack and Elemental Thrust}\label{ssec:alpha_dT}
 
-Total rotor thrust is obtained by summing the elemental contribution over the
-span of one blade and multiplying by the number of blades \(N_b\):
+The blade is set at geometric pitch \(\thetat\) relative to the disc
+plane. But the section aerofoil cares only about its angle to the
+\emph{apparent wind}, not to the disc. Since the apparent wind is
+tilted down by \(\phi\), the angle that the chord line makes with the
+flow---the \emph{effective angle of attack}---is reduced:
+\begin{equation}
+\alpha \;=\; \thetat \;-\; \phi.
+\label{eq:alpha}
+\end{equation}
+This is the central kinematic mechanism of the chapter. The geometric
+pitch \(\thetat\) is what we command via the servo, but the element
+only feels \(\alpha\), and induced inflow---through \(\phi\)---steals
+incidence from the blade. Every newton of thrust the rotor produces
+makes its own future thrust slightly harder to produce. This is what
+the integrated result will quantify, and what every subsequent chapter
+must contend with.
+
+\paragraph{From angle of attack to elemental lift.}
+Assume a linear two-dimensional lift curve,
+\(C_\ell = a\,\alpha\), with slope \(a\). For an inviscid thin
+symmetric aerofoil the slope is \(2\pi\) per radian
+(\(\approx 6.28\,\text{rad}^{-1}\)); real aerofoils at typical RC tail
+rotor Reynolds numbers give \(a\approx 5.5\)--\(5.9\,\text{rad}^{-1}\),
+and we adopt \(a\approx \SI{5.7}{\per\radian}\) as a representative
+value. The elemental lift on a strip of width \(dr\) at station \(r\)
+is then
+\begin{equation}
+dL \;=\; \tfrac{1}{2}\rho\,U^2\,c\,C_\ell\,dr
+   \;=\; \tfrac{1}{2}\rho\,(U_T^2+U_P^2)\,c\,a\,\alpha\,dr,
+\end{equation}
+acting perpendicular to the apparent wind.
+
+\paragraph{From elemental lift to elemental thrust.}
+Thrust on the rotor is the component of aerodynamic force along the
+rotor axis, i.e.\ perpendicular to the disc plane. The lift vector
+sits perpendicular to the apparent wind, which is itself tilted by
+\(\phi\) below the disc plane, so the lift is tilted by \(\phi\)
+\emph{away from} the rotor axis. There is also a drag vector aligned
+with the apparent wind, contributing in the opposite sense. The exact
+projection is
+\begin{equation}
+dT \;=\; dL\cos\phi \;-\; dD\sin\phi.
+\end{equation}
+For small \(\phi\), \(\cos\phi\approx 1\) (the lift projects almost
+entirely onto the rotor axis), and \(\sin\phi\approx\phi\) so the drag
+term is of order \(\phi\,C_d/C_\ell\) times the lift term---small,
+since \(\phi\) is small and \(C_d\) is much less than \(C_\ell\) at
+typical angles of attack. Dropping both corrections, and additionally
+neglecting \(U_P^2\) against \(U_T^2\) in the apparent-wind magnitude
+(consistent with \(\phi\) small), we obtain
+\begin{equation}
+dT \;\approx\; \tfrac{1}{2}\rho\,(\OmegaT r)^2\,c\,a\,(\thetat-\phi)\,dr.
+\label{eq:dT}
+\end{equation}
+Each small-angle simplification is itself \(O(\phi^2)\); collectively
+they limit the validity of the derivation to a band of mostly small
+inflow angles.
+
+\subsection{Integration Across the Span}\label{ssec:integration}
+
+Total rotor thrust is the elemental thrust \eqref{eq:dT} summed across
+one blade's span and across all \(N_b\) blades:
 \begin{equation}
 \Tt \;=\; N_b\!\int_0^{\Rt} dT
      \;=\; \tfrac{1}{2}\rho\,a\,c\,N_b\,\OmegaT^2\!\int_0^{\Rt}\!
            (\thetat - \phi)\,r^2\,dr.
 \end{equation}
-Assuming \emph{uniform} induced velocity (\(\vi\) constant across the disc, a
-standard BEMT simplification), \(\phi\) varies with \(r\) only through its
-denominator: \(\phi(r) = U_P/(\OmegaT r) = (\vi+V_\infty)/(\OmegaT r)\). The
-integrand splits into two pieces,
+Assume the induced velocity is \emph{uniform} across the disc---i.e.\
+\(\vi\) does not vary with \(r\) or with azimuth. This is the standard
+BEMT simplification. Under it, \(U_P\) is constant in \(r\), and
+\(\phi(r) = U_P/(\OmegaT r) = (\vi+V_\infty)/(\OmegaT r)\) varies with
+\(r\) only through its denominator. The integrand splits into two
+pieces:
 \begin{equation}
-\int_0^{\Rt}\!\thetat\,r^2\,dr = \frac{\thetat\Rt^3}{3},
+\int_0^{\Rt}\!\thetat\,r^2\,dr \;=\; \frac{\thetat\,\Rt^3}{3},
 \qquad
 \int_0^{\Rt}\!\phi(r)\,r^2\,dr
-  = \frac{\vi+V_\infty}{\OmegaT}\,\frac{\Rt^2}{2},
+  \;=\; \frac{\vi+V_\infty}{\OmegaT}\,\frac{\Rt^2}{2}.
 \end{equation}
-each weighted toward the tip---the first as \(r^2\) (pitch contribution),
-the second as \(r\) (inflow loss). Non-dimensionalising by
-\(\rho\At(\OmegaT\Rt)^2\) and introducing the rotor solidity
-\(\sigma = N_b c/(\pi\Rt)\) and the inflow ratio
-\(\lambda = (\vi+V_\infty)/(\OmegaT\Rt)\) gives the standard BEMT result:
+Both pieces are tip-weighted---the pitch contribution as \(r^2\) and
+the inflow loss as \(r\)---because elemental thrust scales with
+dynamic pressure, which goes as \((\OmegaT r)^2\). Outboard stations
+do most of the work; inboard stations are nearly irrelevant. This is
+the reason rotors are conventionally analysed in terms of tip
+quantities.
+
+\subsection{Non-Dimensional Form}\label{ssec:nondim}
+
+Substituting the two integrals back into the thrust expression and
+collecting:
+\begin{equation}
+\Tt \;=\; \tfrac{1}{2}\rho\,a\,c\,N_b\,\OmegaT^2\!\left[
+\frac{\thetat\,\Rt^3}{3}
+- \frac{\vi+V_\infty}{\OmegaT}\,\frac{\Rt^2}{2}\right].
+\end{equation}
+Divide both sides by \(\rho\,\At\,(\OmegaT\Rt)^2\), the natural dynamic
+scale (air density times disc area times tip-speed squared). Two
+non-dimensional groups emerge:
+\begin{equation}
+\sigma \;\equiv\; \frac{N_b\,c}{\pi\Rt},
+\qquad
+\lambda \;\equiv\; \frac{\vi + V_\infty}{\OmegaT\Rt}.
+\end{equation}
+\(\sigma\) is the \emph{rotor solidity}: the fraction of the disc's
+swept area that is actually covered by blade planform. It is
+``how much rotor there is per unit disc area.'' Typical RC tail
+rotors have \(\sigma\approx 0.10\)--\(0.20\), somewhat higher than
+main rotors (\(\sigma\approx 0.05\)--\(0.10\)) because tail rotors
+are short-radius and need proportionally more blade chord to
+generate their share of thrust. \(\lambda\) is the \emph{inflow
+ratio}: the through-disc velocity expressed as a fraction of tip
+speed. It is small (\(\sim 0.05\)--\(0.15\) in hover) because the
+tip moves much faster than the wake.
+
+The thrust coefficient
+\begin{equation}
+C_T \;\equiv\; \frac{\Tt}{\rho\,\At\,(\OmegaT\Rt)^2}
+\end{equation}
+is thrust non-dimensionalised by the same scale---a kind of
+``thrust per unit tip dynamic pressure per unit disc area.''
+Substituting these groups gives the standard BEMT result:
 \begin{empheq}[box=\fbox]{equation}
-C_T \;=\; \frac{\sigma a}{2}\!\left(\frac{\thetat}{3} - \frac{\lambda}{2}\right).
+C_T \;=\; \frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\lambda}{2}\right).
 \label{eq:CT_BEMT}
 \end{empheq}
-The factor \(\tfrac{1}{3}\) on \(\thetat\) reflects the cubic radial weighting
-of the pitch contribution; the factor \(\tfrac{1}{2}\) on \(\lambda\) reflects
-the quadratic weighting of the inflow loss. The dimensional thrust is recovered as
+The factor \(1/3\) on \(\thetat\) is the \(r^2\) weighting of the
+pitch contribution; the factor \(1/2\) on \(\lambda\) is the \(r\)
+weighting of the inflow loss. Dimensional thrust is recovered as
 \begin{equation}
-\Tt = C_T\,\rho\,\At\,(\OmegaT\Rt)^2, \qquad \At = \pi\Rt^2.
+\Tt \;=\; C_T\,\rho\,\At\,(\OmegaT\Rt)^2.
+\label{eq:T_from_CT}
 \end{equation}
 
-For a small RC tail rotor operating at essentially constant \(\OmegaT\)
-(governor-controlled), \eqref{eq:CT_BEMT} becomes linear in its two arguments
-\(\thetat\) and \(\vi\):
-\begin{equation}
-\Tt \approx K_1\,\thetat - K_2\,\vi,
+\subsection{Dimensional Form: The Coefficients \texorpdfstring{\(K_1\)}{K1} and \texorpdfstring{\(K_2\)}{K2}}\label{ssec:K1K2}
+
+The BEMT result \eqref{eq:CT_BEMT} is exactly linear in \(\thetat\)
+and \(\lambda\) (and hence linear in \(\thetat\) and \(\vi\) at fixed
+\(V_\infty\), and linear in \(\thetat\) and \(\vi\) and \(V_\infty\)
+together). For control work it is convenient to absorb all the
+dimensional and aerodynamic constants into two coefficients, leaving
+a clean linear map from pitch and induced velocity to thrust:
+\begin{empheq}[box=\fbox]{equation}
+\Tt \;=\; K_1\,\thetat \;-\; K_2\,\vi \;-\; K_2\,V_\infty,
 \label{eq:linT}
-\end{equation}
-with (specialising to hover, \(V_\infty = 0\))
+\end{empheq}
+with
 \begin{equation}
-K_1 = \frac{\rho\At(\OmegaT\Rt)^2\,\sigma a}{6},
+K_1 \;=\; \frac{\rho\,\At\,(\OmegaT\Rt)^2\,\sigma\,a}{6},
 \qquad
-K_2 = \frac{\rho\At\,\OmegaT\Rt\,\sigma a}{4}.
+K_2 \;=\; \frac{\rho\,\At\,\OmegaT\Rt\,\sigma\,a}{4}.
 \label{eq:K1K2}
 \end{equation}
+At fixed \(\OmegaT\) (held by the main-rotor governor on an RC
+helicopter), \(K_1\) and \(K_2\) are constants of the rotor; they
+depend on geometry (\(\Rt, c, N_b\)), air density, lift-curve slope,
+and tip speed, but not on the operating point \((\thetat, \vi)\).
+\emph{Equation~\eqref{eq:linT} is exact within the BEMT assumptions
+listed below.} It is not a linearisation about any particular point;
+the linearity is a property of the underlying derivation.
 
 \paragraph{Physical interpretation of \(K_1\) and \(K_2\).}
-\(K_1\) is the thrust the rotor would produce per radian of collective if no
-induced inflow developed: the ``open-loop'' or ``frozen-wake'' pitch
-effectiveness. It is what the rotor delivers in the first instant after a
-pitch step, before the wake has had time to respond. \(K_2\) is the rate at
-which thrust is given back to the induced wake as that wake builds up; it
-quantifies how much thrust each m/s of induced velocity costs us. Both
-constants scale with the common factor \(\rho\At\sigma a\), but they differ
-in their tip-speed dependence: \(K_1\) carries \((\OmegaT\Rt)^2\) while
-\(K_2\) carries only \(\OmegaT\Rt\). Their ratio is purely kinematic,
+\(K_1\) is the thrust the rotor would produce per radian of
+collective if no induced inflow developed: the open-loop or
+``frozen-wake'' pitch effectiveness. It is what the rotor delivers in
+the first instant after a step command, before the wake has had time
+to react. \(K_2\) is the rate at which thrust is given back as the
+wake builds: how much thrust each m/s of induced velocity costs.
+Both coefficients share the common factor
+\(\rho\At\sigma a\)---air, geometry, aerofoil---but they differ in
+their tip-speed dependence. \(K_1\) carries \((\OmegaT\Rt)^2\) (it is
+dynamic-pressure-like), while \(K_2\) carries only \(\OmegaT\Rt\)
+(it is velocity-like). Their ratio is therefore purely kinematic:
 \begin{equation}
-\frac{K_2}{K_1} \;=\; \frac{3}{2\,\OmegaT\Rt},
+\frac{K_2}{K_1} \;=\; \frac{3}{2\,\OmegaT\Rt}.
+\label{eq:K2_K1_ratio}
 \end{equation}
-independent of blade geometry, density, or lift-curve slope. This ratio sets
-the scale of the inflow-softening effect quantified in Section~\ref{sec:linsoft}:
-faster-spinning rotors retain a larger fraction of their open-loop thrust
-gain.
+The ratio is independent of blade geometry, density, lift-curve
+slope, or solidity---it depends only on tip speed. Faster-spinning
+rotors are less penalised by inflow, in the precise sense that
+\(K_2/K_1\) is smaller. The inflow-softening factor that emerges in
+Section~\ref{sec:linsoft} inherits this scaling.
 
-\paragraph{Assumptions in force.}
-The derivation above relies on the following simplifications, each of which is
-revisited in Section~\ref{sec:params}:
+\subsection{Assumptions and Where Each Is Repaired}\label{ssec:bemt_assumptions}
+
+Equation \eqref{eq:linT}, and the BEMT result \eqref{eq:CT_BEMT} from
+which it descends, rest on the following simplifications:
 \begin{itemize}[leftmargin=*,itemsep=2pt,topsep=2pt]
-\item Uniform induced velocity \(\vi\) across the disc (no spanwise variation,
-      no harmonic components).
-\item Small inflow angle, \(\phi\ll 1\), justifying \(\tan\phi\approx\phi\),
-      \(\cos\phi\approx 1\), and \(U_P^2\ll U_T^2\).
-\item Linear two-dimensional lift curve up to stall, with no Reynolds- or
-      Mach-number correction.
-\item Rectangular, untwisted blade with constant chord \(c\).
-\item No tip loss and no root cutout (integration from \(0\) to \(\Rt\)).
-\item Thrust contribution from drag is ignored (\(O(\phi^2)\)).
-\item Constant rotor speed \(\OmegaT\) (held by the main-rotor governor).
+\item \emph{Uniform induced velocity \(\vi\) across the disc.}
+      Repaired in Section~\ref{sec:inflow} via momentum theory, which
+      \emph{supplies} the value of \(\vi\) given the thrust. The
+      one-state Pitt--Peters extension makes \(\vi\) dynamic; the
+      three-state version restores a degree of spanwise and azimuthal
+      non-uniformity.
+\item \emph{Small inflow angle, \(\phi\ll 1\)}, justifying
+      \(\tan\phi\approx\phi\), \(\cos\phi\approx 1\), and
+      \(U_P^2\ll U_T^2\). Holds across most of the span but breaks
+      down near the root, where \(U_T\) is small; root cutout
+      mitigates this.
+\item \emph{Linear two-dimensional lift curve}, \(C_\ell=a\alpha\),
+      up to stall. Stall, Reynolds-number effects, and Mach-number
+      effects (less relevant for RC) require empirical or
+      table-lookup corrections to \(a\).
+\item \emph{Rectangular, untwisted blade with constant chord \(c\).}
+      Non-rectangular or twisted blades introduce \(r\)-dependent
+      factors inside the span integrals but no change to the basic
+      structure.
+\item \emph{No tip loss and no root cutout} (integration from
+      \(0\) to \(\Rt\)). Tip loss is conventionally handled by
+      multiplying \(C_T\) by a Prandtl tip-loss factor
+      \(B\approx 0.97\); root cutout by truncating the lower
+      integration limit.
+\item \emph{Thrust contribution from section drag is ignored}
+      (\(O(\phi^2)\), see Section~\ref{ssec:alpha_dT}).
+\item \emph{Constant rotor speed} \(\OmegaT\), held by the
+      governor.
 \end{itemize}
-The first assumption is the one momentum theory must subsequently repair, by
-supplying the \(\vi\) that closes \eqref{eq:CT_BEMT}.
+Section~\ref{sec:params} quantifies where each of these breaks down
+for RC-scale tail rotors. The first item---uniform inflow---is the
+load-bearing one for what follows: the rest of the document is, in a
+sense, a careful study of what happens once \(\vi\) is allowed its
+own dynamics.
 
 % =====================================================================
 \section{Induced Inflow: Momentum Theory}\label{sec:inflow}
