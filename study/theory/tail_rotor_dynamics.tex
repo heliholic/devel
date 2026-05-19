@@ -205,6 +205,10 @@ Symbol & Description & Units \\
 \(t\)             & Time                                                & \si{\second}\\
 \(K_1\)           & Pitch-to-thrust gain, eq.~\eqref{eq:K1K2}           & \si{\newton\per\radian}\\
 \(K_2\)           & Inflow-to-thrust gain, eq.~\eqref{eq:K1K2}          & \si{\newton\second\per\metre}\\
+\(g_m\)           & Momentum coefficient, \(g_m=2\rho\At\), eq.~\eqref{eq:impl_gm} & \si{\kilogram\per\metre}\\
+\(g_T\)           & Collapsed thrust-to-pitch gain, eq.~\eqref{eq:impl_gT} & \si{\radian\per\newton}\\
+\(g_v\)           & Collapsed velocity-to-pitch gain, eq.~\eqref{eq:impl_gv} & \si{\second\per\metre}\\
+\(g_\tau\)        & Collapsed discrete inflow-update gain, eq.~\eqref{eq:impl_gtau} & \si{\second\per\metre}\\
 \(k_v\)           & Linearised sensitivity \(\partial\viss/\partial T\), eq.~\eqref{eq:kv} & \si{\metre\per\second\per\newton}\\
 \(K_2 k_v\)       & Dimensionless DC inflow-softening coupling          & --\\
 \(\beta\)         & Softening factor, \(\beta = 1+K_2 k_v\)             & --\\
@@ -1393,16 +1397,31 @@ loop itself.
 The system as derived has a long list of symbols. Many of them are
 fixed properties of the rotor and air, computed once at startup and
 held constant thereafter. Separating these from the live state and
-commands gives a compact specification for the inner loop.
+commands gives a compact specification for the inner loop. In this
+section, ``state'' means a value carried from one control tick to the
+next; quantities such as \(\viss\) and \(\tau_i\) are recomputed inside
+each tick and then discarded.
 
 \paragraph{Fixed rotor parameters} (computed once, constant for given hardware):
 \begin{equation}
-K_1, \quad K_2, \quad \rho\At, \quad \OmegaT\Rt,
+K_1, \quad K_2, \quad \rho\At, \quad \Rt,
 \end{equation}
-defined in \eqref{eq:K1K2} and the BEMT scaling of
-Section~\ref{sec:bemt}. The
+where \(K_1\) and \(K_2\) are the blade-element gains from
+Section~\ref{ssec:K1K2}, evaluated at the governed rotor speed:
+\begin{equation}
+K_1 = \frac{\rho\At(\OmegaT\Rt)^2\sigma a}{6},
+\qquad
+K_2 = \frac{\rho\At\OmegaT\Rt\sigma a}{4}.
+\label{eq:impl_K1K2_reminder}
+\end{equation}
+\(K_1\) converts pitch angle into thrust in a frozen wake; \(K_2\)
+converts through-disc velocity into the thrust loss that must be
+pitched back in. The product \(\rho\At\) is also needed separately
+because it sets the mass-flow scale in the momentum closure, and \(\Rt\)
+is needed by the Pitt--Peters time constant. The
 apparent-mass coefficient \(\kappa = 8/(3\pi) \approx 0.849\) is
-universal and need not be re-stored as a parameter.
+universal; it is shown explicitly in the equations below rather than
+treated as a tunable rotor parameter.
 
 \paragraph{Inputs} (provided each control tick):
 \begin{equation}
@@ -1410,14 +1429,26 @@ universal and need not be re-stored as a parameter.
 V_\infty(t)\quad\text{[m/s]},\qquad
 V_\perp(t)\quad\text{[m/s]}.
 \end{equation}
-\(\Tcmd\) comes from the yaw outer loop; \(V_\infty\) and \(V_\perp\)
-come from the airframe's airspeed estimator (or are set to zero in
-near-hover applications).
+\(\Tcmd\) comes from the yaw outer loop and is taken positive in the
+thrust-producing direction used throughout Section~\ref{sec:inflow}.
+\(V_\infty\) and \(V_\perp\) come from the airframe's airspeed estimator
+(or are set to zero in near-hover applications).
 
 \paragraph{State} (one scalar, evolved by the inverse block):
 \begin{equation}
 \vi(t)\quad\text{[m/s]}.
 \end{equation}
+\(\vi\) is the current induced-velocity estimate. It is the only memory
+in the inverse block.
+
+\paragraph{Algebraic quantities} (computed inside each control tick):
+\begin{equation}
+\viss(t)\quad\text{[m/s]},\qquad
+\tau_i(t)\quad\text{[s]}.
+\end{equation}
+\(\viss\) is the steady inflow target implied by the current thrust
+command and flight condition; \(\tau_i\) is the local wake-relaxation
+time used to advance \(\vi\).
 
 \paragraph{Outputs}:
 \begin{equation}
@@ -1426,7 +1457,11 @@ near-hover applications).
 
 \subsection{The Update Law}\label{ssec:impl_update}
 
-At each control tick of period \(\Delta t\):
+At each control tick of period \(\Delta t\), keep the order of ideas
+straight. First, the command and flight condition define the steady
+inflow target \(\viss\). Second, the current state \(\vi\), not
+\(\viss\), is used to compute the pitch needed right now. Third,
+\(\tau_i\) sets how far \(\vi\) moves toward \(\viss\) during this tick:
 \begin{empheq}[box=\fbox]{align}
 \Tcmd \;&=\; 2\rho\At\,\viss\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
    \label{eq:impl_viss}\\[2pt]
@@ -1438,29 +1473,120 @@ At each control tick of period \(\Delta t\):
 \vi \;&\leftarrow\; \vi \;+\; \Delta t\,\frac{\viss - \vi}{\tau_i}.
    \label{eq:impl_visi_update}
 \end{empheq}
-This is a complete control law for the tail-rotor inner loop: four
-numbers in (\(K_1, K_2, \rho\At, \Rt\)), three inputs in, one state
-held, one output out. The only implicit step is
-\eqref{eq:impl_viss}, a scalar solve for \(\viss\). In hover it has a
-closed form; with axial or edgewise flow it can be solved with a few
-Newton or bisection iterations because the positive working-state branch
-is one-dimensional. The update should still be safeguarded near rotor
-spin-up or near zero commanded thrust by clamping \(\vi\), \(\viss\), and
-\(\tau_i\) to physically meaningful lower bounds.
+The only implicit step is \eqref{eq:impl_viss}, a scalar solve for
+\(\viss\). In hover it has a closed form; with axial or edgewise flow it
+can be solved with a few Newton or bisection iterations because the
+positive working-state branch is one-dimensional. The pitch equation
+\eqref{eq:impl_theta} then uses \(\vi\), not \(\viss\), because pitch
+must cancel the inflow that exists at the blade element now. The update
+\eqref{eq:impl_visi_update} is what moves the estimate toward the
+future steady value.
+
+Near rotor spin-up or near zero commanded thrust, the denominator implied
+by \eqref{eq:impl_tau} can become too small. A practical implementation
+therefore clamps \(\vi\), \(\viss\), and \(\tau_i\) to physically
+meaningful lower bounds before applying the update.
+
+\paragraph{Collapsed implementation gains.}
+Equation~\eqref{eq:impl_theta} is often the best place to simplify the
+code. First collapse the constant that appears in the momentum equation:
+\begin{equation}
+g_m = 2\rho\At.
+\label{eq:impl_gm}
+\end{equation}
+The symbol \(g_m\) is not a new physical mass; it is the area-scaled
+mass-density coefficient used by the actuator-disc momentum equation.
+
+The pitch update also never needs \(K_1\) and \(K_2\) separately. The
+commanded-thrust part uses
+\begin{equation}
+g_T
+= \frac{1}{K_1}
+= \frac{6}{\rho\At(\OmegaT\Rt)^2\sigma a}
+= \frac{12}{g_m(\OmegaT\Rt)^2\sigma a}.
+\label{eq:impl_gT}
+\end{equation}
+This expanded form shows exactly what is inside the thrust-to-pitch
+gain: air density and disc area, tip speed, solidity, and lift-curve
+slope.
+
+The velocity-compensation part uses
+\begin{equation}
+g_v
+= \frac{K_2}{K_1}
+= \frac{3}{2\OmegaT\Rt}.
+\label{eq:impl_gv}
+\end{equation}
+Here \(g_T\) converts commanded thrust directly into pitch, while
+\(g_v\) converts the through-disc velocity term directly into extra
+pitch.
+
+The inflow-state update can be collapsed in the same spirit. From
+\eqref{eq:impl_tau},
+\begin{equation}
+\frac{\Delta t}{\tau_i}
+= g_\tau\,\vi,
+\qquad
+g_\tau = \frac{4\,\Delta t}{0.849\,\Rt}.
+\label{eq:impl_gtau}
+\end{equation}
+This gain now includes the control-loop period \(\Delta t\). It avoids
+computing \(\tau_i\), taking its reciprocal, and multiplying by
+\(\Delta t\) inside the control tick. If the loop rate changes,
+\(g_\tau\) must be recomputed.
+
+Using these collapsed implementation constants, the same update law can
+be written in a form closer to firmware:
+\begin{empheq}[box=\fbox]{align}
+\Tcmd \;&=\; g_m\,\viss\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
+   \label{eq:impl_viss_collapsed}\\[2pt]
+\thetat \;&=\; g_T\,\Tcmd \;+\; g_v(\vi + V_\infty),
+   \label{eq:impl_theta_collapsed}\\[2pt]
+\vi \;&\leftarrow\; \vi \;+\; g_\tau\,\vi\,(\viss - \vi).
+   \label{eq:impl_visi_update_collapsed}
+\end{empheq}
+Thus a minimal implementation may store
+\((g_T,g_v,g_m,g_\tau)\) instead of \((K_1,K_2,\rho\At,\Rt)\). This is
+the useful collapse for the control loop: \(K_1\), \(K_2\), and the
+repeated \(2\rho\At\) factor disappear from the tick calculation, and
+\(\Rt\) and \(\Delta t\) are carried only through the precomputed
+discrete inflow-update gain
+\(g_\tau\).
 
 \subsection{Common Simplifications}\label{ssec:impl_simplifications}
 
-Two simplifications are commonly made when fitting the inner loop into
-a constrained embedded environment.
+Several simplifications are commonly made when fitting the inner loop
+into a constrained embedded environment.
 
 \paragraph{Near-hover \(V_\infty, V_\perp \approx 0\).}
 The momentum closure \eqref{eq:impl_viss} collapses to
-\(\viss = \sqrt{\Tcmd/(2\rho\At)}\) on the positive-thrust branch,
-avoiding the scalar solve and the airspeed estimate. This is sound for
-a tail rotor whose airframe
+\(\viss = \sqrt{\Tcmd/(2\rho\At)}\), or
+\(\viss=\sqrt{\Tcmd/g_m}\) in the collapsed notation, on the
+positive-thrust branch. This avoids the scalar solve and the airspeed
+estimate. The simplification is sound for a tail rotor whose airframe
 spends most of its time in near-hover or low-speed translation; the
-error grows with edgewise flow and should be re-examined for
-operating points well outside hover.
+error grows with edgewise flow and should be re-examined for operating
+points well outside hover.
+
+\paragraph{Axial-only flow \(V_\perp = 0\).}
+If in-plane flow is neglected but axial flow through the tail rotor is
+kept, the momentum closure is no longer a general scalar solve. On the
+normal working branch, where \(V_\infty+\viss \ge 0\), it reduces to a
+quadratic:
+\begin{equation}
+\viss
+= \frac{-V_\infty
+   + \sqrt{V_\infty^2 + 4\Tcmd/(2\rho\At)}}{2}
+= \frac{-V_\infty
+   + \sqrt{V_\infty^2 + 4\Tcmd/g_m}}{2}.
+\label{eq:impl_viss_axial}
+\end{equation}
+This expression reduces to the near-hover result when \(V_\infty=0\).
+It is useful when the implementation has a reasonable axial-flow
+estimate but does not want to solve the full edgewise-flow equation each
+tick. For strongly negative axial flow, the branch condition should be
+checked and the guarded scalar solve in \eqref{eq:impl_viss} should be
+used instead.
 
 \paragraph{Frozen \(\tau_i\).}
 Hold \(\tau_i\) at a representative value (computed at the dominant
