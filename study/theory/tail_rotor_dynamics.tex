@@ -133,6 +133,8 @@ Symbol & Description & Units \\
 \(v_h\)         & Hover induced velocity, \(v_h=\sqrt{\Tt/(2\rho\At)}\) & \si{\metre\per\second}\\
 \(V_\infty\)    & Axial component of the free-stream velocity through the rotor & \si{\metre\per\second}\\
 \(V_\perp\)     & In-plane component of the free-stream velocity         & \si{\metre\per\second}\\
+\(w_\infty\)   & Axial velocity in the far wake                         & \si{\metre\per\second}\\
+\(U_{\text{disc}}\) & Resultant velocity through/sweeping the actuator disc & \si{\metre\per\second}\\
 \(\mu_z\)       & Non-dimensional axial inflow, \(\mu_z = V_\infty/(\OmegaT\Rt)\) & --\\
 \(\mu\)         & Advance ratio (in-plane), \(\mu = V_\perp/(\OmegaT\Rt)\) & --\\
 \bottomrule
@@ -148,13 +150,12 @@ Symbol & Description & Units \\
 Symbol & Description & Units \\
 \midrule
 \(\Tt\)         & Tail-rotor thrust                                   & \si{\newton}\\
+\(\dot{m}\)     & Mass-flow rate through the actuator disc            & \si{\kilogram\per\second}\\
+\(\Delta p\)    & Pressure jump across the actuator disc              & \si{\pascal}\\
 \(C_T\)         & Thrust coefficient, \(C_T = \Tt/[\rho\At(\OmegaT\Rt)^2]\) & --\\
 \(\lambda\)     & Total inflow ratio, \(\lambda=(\vi+V_\infty)/(\OmegaT\Rt)\) & --\\
 \(\lambda_i\)   & Induced-inflow ratio, \(\lambda_i = \vi/(\OmegaT\Rt)\) & --\\
 \(\lambda_h\)   & Hover inflow ratio, \(\lambda_h=\sqrt{C_T/2}\)        & --\\
-\(\lambda_0\)   & Uniform component of inflow in three-state Pitt--Peters & --\\
-\(\lambda_s,\lambda_c\) & Longitudinal/lateral harmonic inflow components & --\\
-\(C_{Mx},C_{My}\) & Roll and pitch aerodynamic-moment coefficients on the disc & --\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -169,8 +170,6 @@ Symbol & Description & Units \\
 \midrule
 \(\tau_i\)      & First-order inflow time constant (Pitt--Peters)     & \si{\second}\\
 \(0.849\)       & Apparent-mass coefficient, \(8/(3\pi)\), in \(\tau_i\) & --\\
-\([M]\)         & Apparent-mass matrix in three-state Pitt--Peters    & --\\
-\([L]\)         & Inflow-gain matrix in three-state Pitt--Peters      & --\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -247,7 +246,7 @@ RC    & Radio-controlled \\
 \vspace{1em}
 
 % =====================================================================
-\section{Introduction}
+\section{Introduction}\label{sec:intro}
 % =====================================================================
 
 The tail rotor of a single-main-rotor helicopter is, in steady flight, a
@@ -271,25 +270,26 @@ transient at the open-loop (no-inflow) gain, followed by partial relaxation
 to a lower steady value as inflow builds up.
 
 This note develops a compact, control-oriented model of these effects.
-Section~1 derives the blade-element thrust relation, an expression linear
-in pitch and in induced velocity. Section~2 closes the loop on \(\vi\)
-using momentum theory and the first-order Pitt--Peters dynamic-inflow model.
-Section~3 inverts the coupled system to obtain the pitch required to track
-a thrust command. Section~4 linearises the same plant about hover trim,
-exposing its lead--lag structure in the frequency domain and quantifying
-the \emph{inflow-softening factor} that varies across the operating
-envelope. Section~5 collects the inverse into a compact form suitable
-for direct implementation in an inner control loop. Section~6 tabulates
-parameter ranges for typical RC-helicopter classes and works a
+Section~\ref{sec:bemt} derives the blade-element thrust relation, an
+expression linear in pitch and in induced velocity. Section~\ref{sec:inflow}
+closes the loop on \(\vi\) using momentum theory and the first-order
+Pitt--Peters dynamic-inflow model. Section~\ref{sec:inverse} inverts the
+coupled system to obtain the pitch required to track a thrust command.
+Section~\ref{sec:linear} develops the transfer function about hover trim,
+exposing its lead--lag structure and quantifying the
+\emph{inflow-softening factor} that varies across the operating envelope.
+Section~\ref{sec:impl} collects the inverse into a compact form suitable for
+direct implementation in an inner control loop. Section~\ref{sec:params}
+tabulates parameter ranges for typical RC-helicopter classes and works a
 representative numerical example.
 
 % =====================================================================
 \section{Blade Pitch and Rotor Thrust}\label{sec:bemt}
 % =====================================================================
 
-The Introduction set out the central problem: predict the thrust \(\Tt\)
-that a tail rotor produces given the pitch \(\thetat\) applied to its
-blades. This chapter builds the first half of that prediction---an
+Section~\ref{sec:intro} set out the central problem: predict the thrust
+\(\Tt\) that a tail rotor produces given the pitch \(\thetat\) applied
+to its blades. This section builds the first half of that prediction---an
 expression for thrust from the geometry and kinematics of a single
 rotating blade, at a frozen instant in time, conditional on the induced
 velocity \(\vi\) through the disc. The second half (computing \(\vi\)
@@ -328,8 +328,8 @@ is large compared with the chord: lift on any given strip is dominated
 by 2D mechanisms and depends only weakly on the flow at neighbouring
 spanwise stations. The cost is that 3D effects---tip vortices,
 trailing-edge wake roll-up, root flow distortion---are excluded by
-construction and must be patched back in afterwards if needed (see the
-assumptions list at the end of the chapter).
+construction and must be patched back in afterwards if needed (see
+Section~\ref{ssec:bemt_assumptions}).
 
 \subsection{Velocity Components at the Blade Element}\label{ssec:velocity_triangle}
 
@@ -389,13 +389,13 @@ flow---the \emph{effective angle of attack}---is reduced:
 \alpha \;=\; \thetat \;-\; \phi.
 \label{eq:alpha}
 \end{equation}
-This is the central kinematic mechanism of the chapter. The geometric
+This is the central kinematic mechanism of this section. The geometric
 pitch \(\thetat\) is what we command via the servo, but the element
 only feels \(\alpha\), and induced inflow---through \(\phi\)---steals
 incidence from the blade. Every newton of thrust the rotor produces
 makes its own future thrust slightly harder to produce. This is what
-the integrated result will quantify, and what every subsequent chapter
-must contend with.
+the integrated result will quantify, and what the rest of the note must
+contend with.
 
 \paragraph{From angle of attack to elemental lift.}
 Assume a linear two-dimensional lift curve,
@@ -570,9 +570,7 @@ which it descends, rest on the following simplifications:
 \item \emph{Uniform induced velocity \(\vi\) across the disc.}
       Repaired in Section~\ref{sec:inflow} via momentum theory, which
       \emph{supplies} the value of \(\vi\) given the thrust. The
-      one-state Pitt--Peters extension makes \(\vi\) dynamic; the
-      three-state version restores a degree of spanwise and azimuthal
-      non-uniformity.
+      one-state Pitt--Peters extension makes \(\vi\) dynamic.
 \item \emph{Small inflow angle, \(\phi\ll 1\)}, justifying
       \(\tan\phi\approx\phi\), \(\cos\phi\approx 1\), and
       \(U_P^2\ll U_T^2\). Holds across most of the span but breaks
@@ -606,7 +604,7 @@ own dynamics.
 \section{Induced Inflow: Momentum Theory}\label{sec:inflow}
 % =====================================================================
 
-The blade-element derivation of Section~1 produced
+The blade-element derivation of Section~\ref{sec:bemt} produced
 \(C_T = (\sigma a/2)(\thetat/3 - \lambda/2)\), which contains \emph{two}
 unknowns: the pitch \(\thetat\) (which we set) and the inflow ratio
 \(\lambda\) (which we do not). To close the system we need a second
@@ -614,26 +612,45 @@ relationship between thrust and induced velocity. \emph{Momentum theory}
 supplies it by treating the rotor disc as a whole and applying conservation
 of mass and momentum to the column of air passing through it.
 
-\subsection{The Actuator Disc and the Mass-Flow Argument}
+For this section take positive velocity to mean flow in the thrust-producing
+direction through the rotor. Thus \(V_\infty\) is the already-existing axial
+flow through the disc, \(\vi\) is the extra velocity induced by the rotor, and
+\(V_\infty+\vi\) is the through-disc velocity seen by the actuator disc. The
+theory below describes the normal working state of the rotor, with a smooth
+wake; strongly reversed flow, vortex-ring operation, and separated blade
+aerodynamics are outside this ideal model.
+
+\subsection{The Actuator Disc and the Mass-Flow Argument}\label{ssec:actuator_disc}
 
 Replace the physical rotor by an idealised \emph{actuator disc}: an
 infinitesimally thin permeable surface of area \(\At\) that imparts a
-uniform pressure jump \(\Delta p\) to the air passing through it, without
-imparting swirl or losses. Draw a streamtube enclosing the disc, extending
-from far upstream (station~1, where the flow is undisturbed) through the
-disc (station~2, just below it---or station~3 just above, depending on
-orientation) and out to far downstream (station~4, where pressure has
-returned to ambient). For a rotor in hover the upstream flow is at rest
-and the streamtube contracts as the air accelerates; for a rotor in
-axial climb the upstream flow has velocity \(V_\infty\).
+uniform pressure jump \(\Delta p\) to the air passing through it. The
+disc does no modelling of individual blades; it is only a bookkeeping
+surface that adds energy to the flow. In the ideal actuator-disc model
+there is no swirl, no profile loss, and no non-uniform loading.
+
+Draw a streamtube enclosing the disc. Station~1 is far upstream, where
+the pressure is ambient and the axial velocity is \(V_\infty\). Stations
+2 and 3 are immediately on the upstream and downstream faces of the disc;
+the velocity is continuous through the disc, so both sides have axial
+velocity \(V_\infty+\vi\), but the pressure jumps by \(\Delta p\).
+Station~4 is far downstream, where the pressure has returned to ambient
+and the axial velocity is \(w_\infty\). In hover \(V_\infty=0\), so the
+upstream flow starts from rest and the streamtube contracts as the rotor
+pulls air through it.
 
 Three relationships govern this column of air:
 
 \begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
 \item \emph{Mass conservation.} The mass flow rate
-      \(\dot{m}=\rho\At U\) is the same at every station, where \(U\) is
-      the local axial velocity. At the disc, \(U = V_\infty + \vi\), where
-      \(\vi\) is the induced velocity \emph{at the disc}.
+      \(\dot{m}=\rho A(x)U(x)\) is the same at every cross-section of the
+      streamtube. The area \(A(x)\) changes as the streamtube contracts,
+      so only at the disc can we write the mass flow as
+      \begin{equation}
+      \dot{m} \;=\; \rho\At\,(V_\infty+\vi),
+      \label{eq:mdot_disc}
+      \end{equation}
+      where \(\vi\) is the induced velocity \emph{at the disc}.
 \item \emph{Momentum.} The thrust on the rotor is the reaction to the
       change in axial momentum of the air, evaluated between far upstream
       and far downstream:
@@ -641,10 +658,24 @@ Three relationships govern this column of air:
       the axial velocity in the far wake.
 \item \emph{Bernoulli, separately above and below the disc.} Energy is
       conserved along streamlines on each side of the disc, but \emph{not}
-      across it (the rotor does work on the fluid). Applying Bernoulli
-      from station~1 to just above the disc, and from just below the disc
-      to station~4, and using the pressure jump \(\Delta p\) at the disc
-      gives, after some algebra, the celebrated \emph{Froude result}:
+      across it, because the rotor does work on the fluid. Applying
+      Bernoulli from station~1 to station~2 and from station~3 to
+      station~4 gives
+      \begin{align}
+      p_\infty + \tfrac{1}{2}\rho V_\infty^2
+        &= p_2 + \tfrac{1}{2}\rho (V_\infty+\vi)^2,\\
+      p_3 + \tfrac{1}{2}\rho (V_\infty+\vi)^2
+        &= p_\infty + \tfrac{1}{2}\rho w_\infty^2.
+      \end{align}
+      The pressure jump is \(\Delta p=p_3-p_2\), and the disc force is
+      \(\Tt=\Delta p\,\At\). Subtracting the two Bernoulli equations gives
+      \begin{equation}
+      \frac{\Tt}{\At}
+      \;=\; \frac{1}{2}\rho\,(w_\infty^2 - V_\infty^2).
+      \label{eq:pressure_jump}
+      \end{equation}
+      Combining \eqref{eq:pressure_jump} with the momentum equation and
+      \eqref{eq:mdot_disc} gives the celebrated \emph{Froude result}:
       \begin{equation}
       w_\infty \;=\; V_\infty + 2\,\vi.
       \label{eq:froude}
@@ -653,11 +684,13 @@ Three relationships govern this column of air:
 
 \noindent
 The Froude result is non-obvious and worth dwelling on: \emph{half} the
-total velocity change is acquired upstream of the disc, and the other
-half downstream. The wake therefore contracts to half the disc area and
-moves at twice the induced velocity. This factor of two appears in every
-momentum-theory thrust expression and is the reason rotors are
-\emph{efficient} thrust generators at low disc loading.
+total velocity increment \(w_\infty-V_\infty\) has already appeared at
+the disc, and the other half is added downstream. In hover this means the
+far wake moves at \(2\vi\); by mass conservation its area is then
+\(\At/2\). This factor of two appears in every momentum-theory thrust
+expression and is the reason rotors are \emph{efficient} thrust generators
+at low disc loading: they create thrust by moving a large mass of air by a
+moderate speed, rather than a small mass of air by a very high speed.
 
 Substituting \(w_\infty - V_\infty = 2\vi\) into the momentum equation,
 together with \(\dot{m} = \rho\At(V_\infty+\vi)\), gives the
@@ -667,23 +700,31 @@ together with \(\dot{m} = \rho\At(V_\infty+\vi)\), gives the
 \label{eq:momentum_axial}
 \end{equation}
 
-\subsection{Edgewise Flow: The Full Momentum Balance}
+\subsection{Edgewise Flow: The Full Momentum Balance}\label{ssec:edgewise_flow}
 
 For a tail rotor mounted on a translating airframe, the free-stream is
 not generally aligned with the rotor axis. Decompose the airframe
 velocity at the rotor into a component along the rotor axis (axial,
 \(V_\infty\), which feeds the streamtube directly) and a component in
 the disc plane (edgewise, \(V_\perp\), which sweeps air sideways through
-the disc). The resultant velocity that the disc accelerates is the
-vector sum of the in-plane sweep \(V_\perp\) and the through-disc flow
-\(V_\infty + \vi\):
+the disc). A useful way to picture this is as a tilted streamtube: the
+wake is still accelerated mainly in the rotor-axis direction, but fresh
+air is also swept through the disc from the side. That extra sweeping
+increases the mass flow through the actuator disc, so for a given thrust
+the required induced velocity is smaller than it would be in pure hover.
+
+Glauert's approximation captures that effect by replacing the axial
+disc velocity in the mass-flow estimate with the resultant speed at the
+disc: the vector sum of the in-plane sweep \(V_\perp\) and the
+through-disc flow \(V_\infty + \vi\):
 \begin{equation}
 U_{\text{disc}} \;=\; \sqrt{(V_\infty+\vi)^2 + V_\perp^2}.
 \end{equation}
-Glauert's hypothesis takes the mass-flow rate through the disc to be
+The mass-flow rate through the disc is then modelled as
 \(\dot{m} = \rho\At\,U_{\text{disc}}\), and the axial momentum imparted
-to be \(2\vi\) (as in the purely axial case). The momentum equation then
-generalises to
+to the flow remains \(2\vi\), as in the purely axial case. This is not a
+new exact Bernoulli derivation; it is the standard control-oriented
+momentum closure used for oblique inflow. The momentum equation becomes
 \begin{empheq}[box=\fbox]{equation}
 \Tt \;=\; 2\,\rho\,\At\,\vi\,\sqrt{(V_\infty+\vi)^2 + V_\perp^2}.
 \label{eq:momentum}
@@ -709,7 +750,7 @@ thrust---a numerical example in Section~\ref{sec:params} gives
 \(v_h\sim\SI{9}{\metre\per\second}\) for a typical 700 class tail rotor
 producing 12\,N of thrust.
 
-\subsection{Non-Dimensional Form}
+\subsection{Non-Dimensional Form}\label{ssec:inflow_nondim}
 
 Dividing \eqref{eq:momentum} through by \(\rho\At(\OmegaT\Rt)^2\) converts
 it to a relation between non-dimensional groups. With the inflow ratios
@@ -724,7 +765,12 @@ C_T \;=\; 2\,\lambda_i\,\sqrt{\mu^2 + \lambda^2}
 The square-root \(\sqrt{\mu^2+\lambda^2}\) is the non-dimensional
 resultant velocity at the disc: \(\mu\) is the in-plane (edgewise)
 component, \(\lambda\) the through-disc component, and their hypotenuse
-is what the disc actually accelerates.
+is what the disc actually accelerates. Notice that
+\(\lambda=\mu_z+\lambda_i\), where
+\(\mu_z=V_\infty/(\OmegaT\Rt)\). Therefore the right-hand expression in
+\eqref{eq:momentum_nondim} is generally an \emph{implicit} equation for
+\(\lambda_i\), not a closed-form formula, because \(\lambda_i\) also
+appears inside \(\lambda\).
 
 \paragraph{Dimensional and non-dimensional forms in parallel.}
 From here on we move between the dimensional induced velocity \(\vi\)
@@ -732,24 +778,40 @@ and the inflow ratio \(\lambda_i\) freely; they encode the same
 physical quantity, related by
 \(\lambda_i = \vi/(\OmegaT\Rt)\). The dimensional form is convenient
 inside the dynamic-inflow ODE (Section~\ref{ssec:dyninflow}), the
-non-dimensional form inside BEMT algebra, and the hover form
-\(v_h\) for sizing arguments.
+non-dimensional form inside BEMT algebra, and the hover form \(v_h\) for
+sizing arguments. A useful reading rule is:
+\[
+\lambda \quad\text{means total through-disc inflow, whereas}\quad
+\lambda_i \quad\text{means the part caused by the rotor itself.}
+\]
 
-\subsection{Closing the Coupled System}
+\subsection{Closing the Coupled System}\label{ssec:closing_coupled_system}
 
 Equation~\eqref{eq:momentum_nondim} and the BEMT result
 \eqref{eq:CT_BEMT} are two relations between the same three quantities
-(\(\thetat\), \(C_T\), \(\lambda\)). For a given pitch \(\thetat\) they
-can be solved simultaneously for the steady-state inflow. In hover
-(\(\mu=0\) and \(V_\infty=0\), so \(\lambda=\lambda_i\)),
-substituting \(C_T\) from BEMT into the momentum result gives
+(\(\thetat\), \(C_T\), \(\lambda_i\), with
+\(\lambda=\mu_z+\lambda_i\)). For a given pitch \(\thetat\) they can be
+solved simultaneously for the steady-state inflow. In hover
+(\(\mu=0\) and \(V_\infty=0\), so \(\lambda=\lambda_i\)), the two
+equations reduce to
 \begin{equation}
-\lambda_i \;=\; \frac{(\sigma a / 2)(\thetat/3 - \lambda_i/2)}{2\lambda_i}
+C_T
+\;=\;
+\frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\lambda_i}{2}\right),
+\qquad
+C_T \;=\; 2\lambda_i^2.
+\end{equation}
+Equating them gives
+\begin{equation}
+2\lambda_i^2
+\;=\;
+\frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\lambda_i}{2}\right)
 \qquad\Longrightarrow\qquad
 \lambda_i^2 + \frac{\sigma a}{8}\lambda_i - \frac{\sigma a}{12}\thetat \;=\; 0.
 \end{equation}
-This is a quadratic in \(\lambda_i\) whose positive root is the standard
-hover-BEMT inflow:
+This is a quadratic in \(\lambda_i\). The two mathematical roots
+represent two possible signs of induced flow; for the positive-thrust
+hover branch we take the positive root:
 \begin{empheq}[box=\fbox]{equation}
 \lambda_i \;=\; \frac{\sigma a}{16}\!\left[
 \sqrt{1+\frac{64\,\thetat}{3\,\sigma a}}\;-\;1
@@ -760,6 +822,12 @@ hover-BEMT inflow:
 For small \(\thetat\) the bracket expands as
 \(\tfrac{32\thetat}{3\sigma a} - \mathcal{O}(\thetat^2)\), giving
 \(\lambda_i \approx 2\thetat/3\)---a useful order-of-magnitude check.
+It also explains a feature that can otherwise look strange: near zero
+pitch the BEMT term \(\thetat/3-\lambda_i/2\) cancels to first order, so
+the hover thrust itself grows quadratically with pitch in this ideal
+lossless model. Real rotors add profile drag, blade stall limits, and
+finite root/tip corrections, so this exact small-pitch behaviour should
+not be over-interpreted.
 
 \subsection{Wake Inertia}\label{ssec:dyninflow}
 
@@ -789,7 +857,22 @@ where \(\viss\) is the steady-state induced velocity that solves
 \(\viss\) is the target, \(\vi\) is the state, and \(\tau_i\) sets how
 quickly the state chases the target.
 
-\subsection{The Pitt--Peters Time Constant}
+The notation \(\viss\) deserves care. It does not mean a new physical
+velocity in the wake; it means ``the value that \(\vi\) would eventually
+settle to if the present thrust and flight condition were held fixed.''
+For example, in hover \(\viss=\sqrt{\Tt/(2\rho\At)}\). In edgewise or
+axial flow, \(\viss\) is defined implicitly by
+\begin{equation}
+\Tt
+\;=\;
+2\rho\At\,\viss\,
+\sqrt{(V_\infty+\viss)^2 + V_\perp^2}.
+\label{eq:viss_implicit}
+\end{equation}
+The dynamic model says that the real induced velocity \(\vi(t)\) lags
+behind this steady target.
+
+\subsection{The Pitt--Peters Time Constant}\label{ssec:pittpeters_tau}
 
 What sets \(\tau_i\)? Two mechanisms contribute. The first is the simple
 flow-traversal time: an air parcel takes roughly \(\Rt/v_h\) to cross
@@ -808,15 +891,25 @@ the lag of the uniform-inflow component, yielding
        \;=\; \frac{0.849\,\Rt}{4\,v_h},
 \label{eq:tau_i}
 \end{empheq}
-where the two forms are equivalent via
-\(\lambda_i^{\text{trim}} = v_h/(\OmegaT\Rt)\) at trim, and the
-substitution \(\OmegaT\,\lambda_i^{\text{trim}}\Rt = v_h\) collapses the
-first form into the second. The right-hand form is the easier to
-interpret: \(\tau_i\) is essentially the time for an air parcel
+where the two forms are equivalent because, at trim,
+\begin{equation}
+\lambda_i^{\text{trim}} = \frac{v_h}{\OmegaT\Rt},
+\qquad
+\OmegaT\,\lambda_i^{\text{trim}}\Rt = v_h.
+\end{equation}
+The right-hand form is the easier to interpret: \(\tau_i\) is essentially
+the time for an air parcel
 travelling at the hover induced velocity to cross a quarter of the disc
 radius, scaled by the apparent-mass coefficient. Higher disc loading
 \(\Rightarrow\) faster \(v_h\) \(\Rightarrow\) shorter \(\tau_i\): hard-working
 rotors have snappier wakes.
+
+In \eqref{eq:tau_i}, \(\lambda_i^{\text{trim}}\) and \(v_h\) are trim
+values, not instantaneous signals. This keeps the one-state model a
+linear first-order lag around the selected operating point. For a
+wide-envelope implementation one may update \(\tau_i\) slowly from the
+current or commanded thrust, but it should be bounded away from zero
+thrust because the formula becomes singular as \(v_h\to0\).
 
 \paragraph{Caveat on Pitt--Peters time constants.}
 The closed-form \eqref{eq:tau_i} is known to underpredict measured
@@ -824,52 +917,34 @@ inflow lag on full-scale rotors by a factor of 2--4. For RC tail rotors
 it likely underpredicts somewhat less, but the value should be regarded
 as a lower bound; see Section~\ref{sec:params}.
 
-\subsection{The Coupled Model}
+\subsection{The Coupled Model}\label{ssec:coupled_model}
 
 Combining the blade-element thrust relation with the dynamic-inflow
 state gives the complete tail-rotor model of this note:
 \begin{empheq}[box=\fbox]{align}
 \Tt &= \rho\At(\OmegaT\Rt)^2\,\frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\vi+V_\infty}{2\OmegaT\Rt}\right),\label{eq:T_coupled}\\[4pt]
-\dot{\vi} &= \frac{1}{\tau_i}\!\left(\frac{\Tt}{2\rho\At\sqrt{(V_\infty+\vi)^2+V_\perp^2}} - \vi\right).\label{eq:vi_coupled}
+\Tt &= 2\rho\At\,\viss\sqrt{(V_\infty+\viss)^2+V_\perp^2},\notag\\[4pt]
+\dot{\vi} &= \frac{1}{\tau_i}\bigl(\viss-\vi\bigr).
+\label{eq:vi_coupled}
 \end{empheq}
 Equation~\eqref{eq:T_coupled} is BEMT, algebraic in \(\thetat\) and
 \(\vi\). Equation~\eqref{eq:vi_coupled} is Pitt--Peters: a first-order
 ODE in \(\vi\) driven by the instantaneous thrust through the
-momentum-theory steady-state map. The pair is a one-state nonlinear
-system with input \(\thetat\) and output \(\Tt\), parameterised by the
-flight condition \((V_\infty, V_\perp)\) and the rotor constants. This
-pair is inverted in Section~3, analysed in the frequency domain---and
-characterised across the operating envelope---in
+momentum-theory steady-state map. In hover this ODE can be
+written explicitly as
+\(\dot{\vi}=(\sqrt{\Tt/(2\rho\At)}-\vi)/\tau_i\); away from hover the
+definition of \(\viss\) is implicit and is normally solved by a small
+scalar iteration or by using the equivalent residual form in software.
+The pair is a one-state nonlinear system with input \(\thetat\) and
+output \(\Tt\), parameterised by the flight condition
+\((V_\infty, V_\perp)\) and the rotor constants. This pair is inverted
+in Section~\ref{sec:inverse}, analysed in the frequency domain---and characterised
+across the operating envelope---in
 Section~\ref{sec:linear}, and packaged for implementation in
 Section~\ref{sec:impl}.
 
-\subsection{Three-State Pitt--Peters (Extension)}
-
-The one-state model captures only the \emph{uniform} component of
-induced velocity. In forward flight the inflow becomes non-uniform: the
-advancing-side blade sees different inflow from the retreating-side
-blade, and a longitudinal gradient develops as the wake skews backward
-under \(V_\perp\). Pitt and Peters captured these effects with two
-additional states---\(\lambda_s\) (longitudinal inflow harmonic,
-tilting the inflow front-to-back) and \(\lambda_c\) (lateral harmonic,
-tilting it side-to-side)---driven by the aerodynamic pitching and
-rolling moments on the disc:
-\begin{equation}
-[M]\begin{Bmatrix}\dot{\lambda}_0\\\dot{\lambda}_s\\\dot{\lambda}_c\end{Bmatrix}
-+ [L]^{-1}\begin{Bmatrix}\lambda_0\\\lambda_s\\\lambda_c\end{Bmatrix}
-= \begin{Bmatrix}C_T\\ C_{Mx}\\ C_{My}\end{Bmatrix},
-\end{equation}
-with apparent-mass matrix
-\([M]=\mathrm{diag}\bigl(\tfrac{8}{3\pi},\tfrac{16}{45\pi},\tfrac{16}{45\pi}\bigr)\)
-and gain matrix \([L]\) depending on advance ratio and wake skew.
-The harmonic components matter for main rotors in forward flight and
-for cyclic-pitch control, but for a tail rotor in near-hover, with no
-cyclic and only modest edgewise flow from main-rotor wake, the uniform
-component dominates and the one-state model \eqref{eq:pittpeters} is
-almost always sufficient. We use it for the remainder of this note.
-
 % =====================================================================
-\section{Inverse Problem: Blade Pitch from Commanded Thrust}
+\section{Inverse Problem: Blade Pitch from Commanded Thrust}\label{sec:inverse}
 % =====================================================================
 
 The coupled model of Section~\ref{sec:inflow}---blade-element thrust
@@ -879,9 +954,10 @@ we need to run this map \emph{backwards}: given a commanded thrust
 \(\Tcmd(t)\), what pitch \(\thetat(t)\) should we apply? The answer
 will sit inside the tail-rotor inner loop as a feedforward block: the
 outer loop (yaw control) produces a thrust demand, the inverse block
-translates it into pitch, and the servo drives the swashplate.
+translates it into pitch, and the servo drives the tail-rotor pitch
+mechanism.
 
-This chapter derives the inverse in two steps. First, we invert the
+This section derives the inverse in two steps. First, we invert the
 blade-element relation algebraically to obtain the \emph{instantaneous}
 pitch--thrust inverse, assuming the induced velocity is known
 (Section~\ref{ssec:inst_inverse}). Second, we expand to the dynamic
@@ -895,11 +971,27 @@ operating envelope; Section~\ref{sec:impl} then collects the
 inverse into a compact form for direct implementation in an inner
 control loop.
 
+It is useful to separate two ideas before doing the algebra. The blade
+element relation is an \emph{instantaneous map}: at the present value of
+\(\vi\), it tells us what thrust a chosen pitch will produce right now.
+The inflow equation is a \emph{state update}: it tells us how \(\vi\)
+will move after the thrust command is applied. The inverse therefore
+does not predict a future wake and then choose pitch from that future
+wake. It uses the current wake estimate to choose the present pitch,
+while the Pitt--Peters equation advances the wake estimate for the next
+instant.
+
 \subsection{The Instantaneous Inverse (Algebraic Step)}\label{ssec:inst_inverse}
 
 The blade-element relation~\eqref{eq:linT} is linear in
 \((\thetat, \vi, V_\infty)\) at fixed \(\OmegaT\), and therefore
 trivially invertible for \(\thetat\):
+\begin{equation}
+\Tt = K_1\thetat - K_2(\vi+V_\infty)
+\qquad\Longrightarrow\qquad
+K_1\thetat = \Tt + K_2(\vi+V_\infty).
+\end{equation}
+Setting the desired thrust to \(\Tcmd\) gives
 \begin{empheq}[box=\fbox]{equation}
 \thetat \;=\; \frac{\Tcmd \;+\; K_2\bigl(\vi+V_\infty\bigr)}{K_1}.
 \label{eq:inv_instant}
@@ -917,7 +1009,17 @@ inflow's stolen incidence: \(\vi\) and \(V_\infty\) together set the
 inflow angle \(\phi\), and the blade must be pitched up by the same
 amount just to retain its original effective angle of attack
 \(\alpha\). Equation~\eqref{eq:inv_instant} is, in essence, the
-control-theoretic restatement of the kinematic story from Section~1.
+control-theoretic restatement of the kinematic story from
+Section~\ref{sec:bemt}.
+
+The word \emph{instantaneous} is important. The pitch in
+\eqref{eq:inv_instant} compensates the inflow that exists now; it does
+not use the steady-state inflow that will exist after the wake has
+settled. Immediately after a thrust step, \(\vi\) is still close to its
+old value, so the pitch command initially looks like a frozen-wake
+inverse. As \(\vi\) evolves, the same formula automatically adds the
+extra pitch needed to hold the commanded thrust against the stronger
+induced flow.
 
 \subsection{Expanding to the Dynamic System}\label{ssec:dynamic_inverse}
 
@@ -927,33 +1029,39 @@ is no sensor that reports the induced velocity through the disc. The
 inverse must therefore carry an internal estimate of \(\vi\),
 propagated by the same physics that governs the real rotor's inflow---
 namely, the Pitt--Peters ODE \eqref{eq:pittpeters} closed by the
-momentum relation \eqref{eq:momentum}. Concretely:
+momentum relation \eqref{eq:momentum}. The commanded thrust first
+defines the steady inflow target \(\viss\):
 \begin{align}
-\dot{\vi} \;&=\; \frac{1}{\tau_i}\bigl(\viss - \vi\bigr),
-\label{eq:vi_dot} \\
-\viss \;&=\; \frac{\Tcmd}{2\rho\At\sqrt{(V_\infty+\vi)^2 + V_\perp^2}},
+\Tcmd \;&=\; 2\rho\At\,\viss
+\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
 \label{eq:viss_of_T}\\
+\dot{\vi} \;&=\; \frac{1}{\tau_i}\bigl(\viss - \vi\bigr),
+\label{eq:vi_dot}\\
 \tau_i \;&=\; \frac{0.849}{4\,\OmegaT\lambda_i}, \qquad \lambda_i = \vi/(\OmegaT\Rt).
 \label{eq:tau_of_vi}
 \end{align}
-Equation \eqref{eq:vi_dot} is the wake's relaxation: the induced
-velocity chases its steady-state target \(\viss\) on a timescale
-\(\tau_i\). Equation \eqref{eq:viss_of_T} is the momentum closure: the
-target \(\viss\) is determined by the thrust the rotor is asked to
-produce, with edgewise flow \(V_\perp\) modifying the disc's effective
-mass-flow rate. Equation \eqref{eq:tau_of_vi} is the apparent-mass time
-constant from Section~\ref{sec:inflow}, here written explicitly as a
-function of the current \(\vi\)---so \(\tau_i\) itself is mildly
-state-dependent.
+Equation \eqref{eq:viss_of_T} is the momentum closure: it asks, ``if
+the rotor were held at the commanded thrust and the flight condition
+were fixed, what induced velocity would the wake settle to?'' In hover
+this has the explicit solution \(\viss=\sqrt{\Tcmd/(2\rho\At)}\). With
+axial or edgewise flow it is a scalar nonlinear equation for \(\viss\);
+the positive working-state root is the one used here. Equation
+\eqref{eq:vi_dot} is then the wake's relaxation: the current induced
+velocity chases that target on the timescale \(\tau_i\). Equation
+\eqref{eq:tau_of_vi} is the apparent-mass time constant from
+Section~\ref{sec:inflow}, written in a scheduled form using the current
+inflow estimate. A fixed-trim implementation can instead hold
+\(\tau_i\) constant at the scheduled trim value.
 
 Substituting the algebraic inverse \eqref{eq:inv_instant} for
 \(\thetat\) and using the dynamic state \(\vi\) from
-\eqref{eq:vi_dot}--\eqref{eq:tau_of_vi}, we have a complete
+\eqref{eq:viss_of_T}--\eqref{eq:tau_of_vi}, we have a complete
 \emph{nonlinear dynamic inversion}: a one-state nonlinear system whose
 input is the commanded thrust and whose output is the pitch command.
 No linearisation is involved; no operating point has been fixed; no
 small-signal assumption has been made. The model is exact within the
-BEMT and Pitt--Peters assumptions inherited from Sections 1--2.
+BEMT and Pitt--Peters assumptions inherited from
+Sections~\ref{sec:bemt}--\ref{sec:inflow}.
 
 A subtle point: \(\viss\) in \eqref{eq:viss_of_T} appears to be driven
 by \(\Tcmd\) (what we want), not by \(\Tt\) (what we produce). At a
@@ -962,10 +1070,24 @@ working---\(\thetat\) is computed precisely so that \(\Tt = \Tcmd\) at
 the blade element---so driving the inflow estimator from \(\Tcmd\) is
 self-consistent and avoids needing a thrust measurement. The choice
 does become relevant when servo or sensor delays are introduced, but
-that is outside this chapter's scope.
+that is outside this section's scope.
+
+Putting the pieces together, the continuous-time inverse has a simple
+causal structure:
+\[
+\boxed{\text{current } \vi,\ \Tcmd,\ V_\infty,\ V_\perp}
+\quad\longrightarrow\quad
+\boxed{\thetat \text{ from } \eqref{eq:inv_instant}}
+\quad\text{and}\quad
+\boxed{\dot{\vi} \text{ from } \eqref{eq:viss_of_T}\text{--}\eqref{eq:tau_of_vi}}.
+\]
+The pitch output uses the current state; the state derivative prepares
+the wake estimate used by the next control instant. This is the same
+division of labour used in the implementation form of
+Section~\ref{sec:impl}.
 
 % =====================================================================
-\section{Linearised Plant Analysis}\label{sec:linear}
+\section{Transfer Function Analysis}\label{sec:linear}
 % =====================================================================
 
 The nonlinear plant \eqref{eq:T_coupled}--\eqref{eq:vi_coupled} of
@@ -975,7 +1097,7 @@ domain by linearising about a chosen trim point. The resulting
 transfer function exposes the pole and zero structure of the rotor,
 the ``lead--lag'' character of its thrust response to a step in
 pitch, and the inflow-softening factor that quantifies how much DC
-gain is lost to the wake. The chapter closes by showing how this
+gain is lost to the wake. This section closes by showing how this
 softening factor varies across the operating envelope. The
 linearised model is \emph{not} an alternative controller---the inner
 loop will run the full nonlinear inverse, packaged for implementation
@@ -1255,12 +1377,12 @@ controller to track across the envelope.
 % =====================================================================
 
 The instantaneous inverse \eqref{eq:inv_instant} together with the
-inflow ODE \eqref{eq:vi_dot}--\eqref{eq:tau_of_vi} is a complete
-nonlinear dynamic inversion of the tail-rotor plant. This chapter
+inflow model \eqref{eq:viss_of_T}--\eqref{eq:tau_of_vi} is a complete
+nonlinear dynamic inversion of the tail-rotor plant. This section
 collects those equations into a compact form suitable for direct
 implementation in an inner control loop, separating the fixed rotor
 parameters from the live signals and showing the update law in the
-form a practitioner would actually code. The linearised analysis of
+form a practitioner would actually code. The transfer-function analysis of
 Section~\ref{sec:linear}---including the envelope behaviour of the
 softening factor---informs how the resulting controller will behave
 across the thrust range, but is not a prerequisite for running the
@@ -1277,7 +1399,8 @@ commands gives a compact specification for the inner loop.
 \begin{equation}
 K_1, \quad K_2, \quad \rho\At, \quad \OmegaT\Rt,
 \end{equation}
-defined in \eqref{eq:K1K2} and the BEMT scaling of Section~1. The
+defined in \eqref{eq:K1K2} and the BEMT scaling of
+Section~\ref{sec:bemt}. The
 apparent-mass coefficient \(\kappa = 8/(3\pi) \approx 0.849\) is
 universal and need not be re-stored as a parameter.
 
@@ -1305,10 +1428,10 @@ near-hover applications).
 
 At each control tick of period \(\Delta t\):
 \begin{empheq}[box=\fbox]{align}
+\Tcmd \;&=\; 2\rho\At\,\viss\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
+   \label{eq:impl_viss}\\[2pt]
 \thetat \;&=\; \tfrac{1}{K_1}\bigl[\Tcmd \;+\; K_2(\vi + V_\infty)\bigr],
    \label{eq:impl_theta}\\[2pt]
-\viss \;&=\; \frac{\Tcmd}{2\rho\At\sqrt{(V_\infty+\vi)^2 + V_\perp^2}},
-   \label{eq:impl_viss}\\[2pt]
 \tau_i \;&=\; \frac{0.849\,\OmegaT\Rt}{4\,\OmegaT\,\vi}
         \;=\; \frac{0.849\,\Rt}{4\,\vi},
    \label{eq:impl_tau}\\[2pt]
@@ -1317,13 +1440,13 @@ At each control tick of period \(\Delta t\):
 \end{empheq}
 This is a complete control law for the tail-rotor inner loop: four
 numbers in (\(K_1, K_2, \rho\At, \Rt\)), three inputs in, one state
-held, one output out. A practitioner can transcribe
-\eqref{eq:impl_theta}--\eqref{eq:impl_visi_update} into firmware with no
-intermediate analytical steps. The square root in \eqref{eq:impl_viss}
-must be safeguarded against tiny denominators when both
-\(V_\infty+\vi\) and \(V_\perp\) approach zero (e.g.\ at rotor
-spin-up); a small \(\epsilon\) added inside, or a clamp on \(\vi\) from
-below, suffices.
+held, one output out. The only implicit step is
+\eqref{eq:impl_viss}, a scalar solve for \(\viss\). In hover it has a
+closed form; with axial or edgewise flow it can be solved with a few
+Newton or bisection iterations because the positive working-state branch
+is one-dimensional. The update should still be safeguarded near rotor
+spin-up or near zero commanded thrust by clamping \(\vi\), \(\viss\), and
+\(\tau_i\) to physically meaningful lower bounds.
 
 \subsection{Common Simplifications}\label{ssec:impl_simplifications}
 
@@ -1332,8 +1455,9 @@ a constrained embedded environment.
 
 \paragraph{Near-hover \(V_\infty, V_\perp \approx 0\).}
 The momentum closure \eqref{eq:impl_viss} collapses to
-\(\viss = \Tcmd/(2\rho\At\,\vi)\), avoiding the square root and the
-airspeed estimate. This is sound for a tail rotor whose airframe
+\(\viss = \sqrt{\Tcmd/(2\rho\At)}\) on the positive-thrust branch,
+avoiding the scalar solve and the airspeed estimate. This is sound for
+a tail rotor whose airframe
 spends most of its time in near-hover or low-speed translation; the
 error grows with edgewise flow and should be re-examined for
 operating points well outside hover.
@@ -1349,26 +1473,26 @@ the envelope tables in Section~\ref{ssec:envelope}.
 
 \medskip
 \noindent
-Equations \eqref{eq:impl_theta}--\eqref{eq:impl_visi_update} are the
+Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update} are the
 deliverable of this note from a control-implementation standpoint.
 Concrete numerical values for the fixed rotor parameters
 \((K_1, K_2, \rho\At, \Rt)\), and representative magnitudes for the
 state \(\vi\) and the time constant \(\tau_i\) across the operating
-envelope, are tabulated in the next chapter
-(Section~\ref{sec:params}).
+envelope, are tabulated in Section~\ref{sec:params}.
 
 % =====================================================================
 \section{Parameter Ranges for RC Tail Rotors}\label{sec:params}
 % =====================================================================
 
-The tables below summarise representative tail-rotor parameters for
-three classes of RC helicopter, indexed by \emph{main} rotor blade
-length (a customary size descriptor in the hobby). The tail rotor
-itself is much smaller than the main rotor in each case. The ranges
-span gentle hover and aggressive 3D operating points; the worked
-example at the end picks a representative 700 class point.
+Sections~\ref{ssec:param_geom}--\ref{ssec:param_coeffs} summarise
+representative tail-rotor parameters for three classes of RC helicopter,
+indexed by \emph{main} rotor blade length (a customary size descriptor in
+the hobby). The tail rotor itself is much smaller than the main rotor in
+each case. The ranges span gentle hover and aggressive 3D operating
+points; Section~\ref{ssec:worked_example} picks a representative 700 class
+point.
 
-\subsection{Geometric and Operating Parameters}
+\subsection{Geometric and Operating Parameters}\label{ssec:param_geom}
 
 \begin{center}
 \renewcommand{\arraystretch}{1.15}
@@ -1391,7 +1515,7 @@ Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
 reduced to roughly 5.7 by finite-aspect-ratio and tip-loss effects, and falls
 further at very low Reynolds (\(Re<\num{50000}\)).
 
-\subsection{Aerodynamic Trim Values}
+\subsection{Aerodynamic Trim Values}\label{ssec:param_trim}
 
 \begin{center}
 \renewcommand{\arraystretch}{1.15}
@@ -1407,7 +1531,7 @@ Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
 \end{tabular}
 \end{center}
 
-\subsection{Derived Coefficients}
+\subsection{Derived Coefficients}\label{ssec:param_coeffs}
 
 Using \(\rho = \SI{1.225}{\kilogram\per\cubic\metre}\):
 
@@ -1433,7 +1557,7 @@ since both \(K_2\) and \(k_v\) scale with comparable combinations of
 at lower thrust per unit disc area (\(\lambda_h\) smaller), pushing
 \(K_2 k_v = \sigma a/(16\lambda_h)\) toward the upper end of the range.
 
-\subsection{\texorpdfstring{Worked Example: 700 class}{Worked Example: 700 class}}
+\subsection{\texorpdfstring{Worked Example: 700 class}{Worked Example: 700 class}}\label{ssec:worked_example}
 
 Representative values for the tail rotor of a 700 class electric helicopter
 (e.g.\ a large 3D/sport machine with main rotor radius \(\sim 0.79\)~m and total
@@ -1458,7 +1582,7 @@ The DC softening factor is \(S = 1/(1+K_2k_v) = 0.56\): the steady-state
 thrust delivered for a given collective is about \(56\%\) of the
 open-loop (frozen-wake) value.
 
-\subsection{Caveats}
+\subsection{Caveats}\label{ssec:param_caveats}
 
 Pitt--Peters time constants are systematically low compared to flight-test
 data on full-scale rotors (factor of 2--4 underestimate); RC practitioners
@@ -1476,7 +1600,7 @@ wake, so \(V_\perp\) in~\eqref{eq:momentum} is dominated by main-rotor
 inflow---the main source of tail-rotor effectiveness loss in turns.
 
 % =====================================================================
-\section{Summary}
+\section{Summary}\label{sec:summary}
 % =====================================================================
 
 The tail-rotor inner loop reduces to:
@@ -1493,10 +1617,10 @@ The tail-rotor inner loop reduces to:
       and the DC softening factor \(1+K_2k_v\).
 \item A self-consistent closed form for the DC softening factor,
       \(K_2k_v|_\text{consistent} = \sigma a/(16\lambda_h)\)
-      (eq.~\ref{eq:K2kv_consistent}), valid across the operating
+      \eqref{eq:K2kv_consistent}, valid across the operating
       envelope.
 \item An implementation-ready nonlinear dynamic inverse for the inner
-      loop, \eqref{eq:impl_theta}--\eqref{eq:impl_visi_update}, taking
+      loop, \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update}, taking
       \(\Tcmd\) and the flight condition \((V_\infty, V_\perp)\) as
       inputs and producing the servo pitch command \(\thetat\), with
       the induced velocity \(\vi\) carried internally as a single state.
