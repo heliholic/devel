@@ -1865,37 +1865,4 @@ geometric distance from the airframe yaw centre (close to the CG) to
 the tail-rotor hub; on machines with relocatable batteries or
 significant fuselage mass changes it shifts slightly with loadout.
 
-% =====================================================================
-\section{Summary}\label{sec:summary}
-% =====================================================================
-
-The tail-rotor inner loop reduces to:
-
-\begin{enumerate}[leftmargin=*]
-\item A linear blade-element thrust law (at fixed \(\OmegaT\)),
-      \(\Tt = K_1\thetat - K_2(\vi+V_\infty)\),
-      with constants from~\eqref{eq:K1K2}.
-\item A first-order inflow state,
-      \(\tau_i\dot{\vi}+\vi=\viss\), driven by the momentum-theory
-      steady-state map~\eqref{eq:momentum} and with \(\tau_i\) from~\eqref{eq:tau_i}.
-\item A linearised plant transfer function~\eqref{eq:plant_tf} about
-      hover trim, exposing the lead--lag structure of the response
-      and the DC softening factor \(1+K_2k_v\).
-\item A self-consistent closed form for the DC softening factor,
-      \(K_2k_v|_\text{consistent} = \sigma a/(16\lambda_h)\)
-      \eqref{eq:K2kv_consistent}, valid across the operating
-      envelope.
-\item An implementation-ready nonlinear dynamic inverse for the inner
-      loop, \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update}, taking
-      \(\Tcmd\) and the flight condition
-      \((V_\infty^{\text{aero}}, V_\perp, \dot\psi)\) as inputs and
-      producing the servo pitch command \(\thetat\), with the induced
-      velocity \(\vi\) carried internally as a single state. The body
-      yaw rate enters through the composite axial flow
-      \(V_\infty = V_\infty^{\text{aero}} + \ell_t\dot\psi\)
-      (Section~\ref{ssec:yaw_rate_axial}); at the yaw rates seen in
-      3D RC flight this contribution can match or exceed the hover
-      induced velocity and must not be omitted.
-\end{enumerate}
-
 \end{document}
