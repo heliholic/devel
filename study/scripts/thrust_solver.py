@@ -177,6 +177,40 @@ def initial_bracket(
 
 
 @dataclass
+class FirmwareNewtonSolver:
+    """
+    Embedded-shape solver: axial-quadratic warm start + fixed Newton iterations
+    on f(v) = v * sqrt((V_inf+v)^2 + V_perp^2) - T_cmd/g_m.
+
+    Mirrors the C pseudocode in plans/consider-how-to-solve-agile-kettle.md.
+    No convergence test, no branching on flight regime — predictable WCET.
+    """
+
+    name: str = "fw_newton"
+    n_iter: int = 2
+
+    def solve(self, problem: MomentumClosure) -> float:
+        if problem.T_cmd <= 0.0:
+            return 0.0
+
+        g_m = problem.g_m
+        V_inf = problem.V_inf
+        V_perp = problem.V_perp
+        q = problem.T_cmd / g_m
+
+        v = 0.5 * (-V_inf + math.sqrt(V_inf * V_inf + 4.0 * q))
+
+        for _ in range(self.n_iter):
+            u = V_inf + v
+            D = math.hypot(u, V_perp)
+            f = v * D - q
+            fv = (u * (V_inf + 2.0 * v) + V_perp * V_perp) / D
+            v -= f / fv
+
+        return v
+
+
+@dataclass
 class BisectionSolver:
     """
     Fixed-interval bisection with optional hover warm start.
@@ -270,12 +304,106 @@ def default_solvers() -> list[Solver]:
     solvers: list[Solver] = [
         HoverAlgebraicSolver(),
         AxialQuadraticSolver(),
+        FirmwareNewtonSolver(),
         NewtonSolver(),
         BisectionSolver(),
     ]
     if brentq is not None:
         solvers.append(BrentqSolver())
     return solvers
+
+
+def sweep_firmware_newton(
+    *,
+    T_values: list[float],
+    V_inf_values: list[float],
+    V_perp_values: list[float],
+    n_iter: int = 2,
+    params: RotorParams = RotorParams(),
+) -> dict:
+    """
+    Sweep (T, V_inf, V_perp) and compare FirmwareNewtonSolver(n_iter) against
+    brentq. Returns worst-case residuals and the operating point that hit them.
+    """
+    if brentq is None:
+        raise ImportError("scipy.brentq is required for the sweep cross-check")
+
+    fw = FirmwareNewtonSolver(n_iter=n_iter)
+    ref = BrentqSolver()
+
+    worst_residual = 0.0
+    worst_v_err = 0.0
+    worst_residual_point = None
+    worst_v_err_point = None
+    branch_failures: list[tuple[float, float, float]] = []
+    n_total = 0
+
+    for T_cmd in T_values:
+        if T_cmd <= 0.0:
+            continue
+        for V_inf in V_inf_values:
+            for V_perp in V_perp_values:
+                problem = MomentumClosure(
+                    T_cmd=T_cmd, V_inf=V_inf, V_perp=V_perp, params=params
+                )
+                try:
+                    v_ref = ref.solve(problem)
+                except Exception:
+                    continue
+                v_fw = fw.solve(problem)
+                res = abs(problem.residual(v_fw))
+                v_err = abs(v_fw - v_ref)
+                n_total += 1
+
+                if V_inf + v_fw < 0.0:
+                    branch_failures.append((T_cmd, V_inf, V_perp))
+
+                if res > worst_residual:
+                    worst_residual = res
+                    worst_residual_point = (T_cmd, V_inf, V_perp, v_fw, v_ref)
+                if v_err > worst_v_err:
+                    worst_v_err = v_err
+                    worst_v_err_point = (T_cmd, V_inf, V_perp, v_fw, v_ref)
+
+    return {
+        "n_iter": n_iter,
+        "n_total": n_total,
+        "worst_residual": worst_residual,
+        "worst_residual_point": worst_residual_point,
+        "worst_v_err": worst_v_err,
+        "worst_v_err_point": worst_v_err_point,
+        "branch_failures": branch_failures,
+    }
+
+
+def print_sweep_result(result: dict) -> None:
+    print(
+        f"\nFirmwareNewtonSolver(n_iter={result['n_iter']}) sweep, "
+        f"{result['n_total']} points:"
+    )
+    wr = result["worst_residual_point"]
+    we = result["worst_v_err_point"]
+    if wr is not None:
+        T, V_inf, V_perp, v_fw, v_ref = wr
+        print(
+            f"  worst |residual| = {result['worst_residual']:.3e} N "
+            f"at T={T:.2f} N, V_inf={V_inf:+.2f} m/s, V_perp={V_perp:.2f} m/s "
+            f"(v_fw={v_fw:.6f}, v_ref={v_ref:.6f})"
+        )
+    if we is not None:
+        T, V_inf, V_perp, v_fw, v_ref = we
+        print(
+            f"  worst |v_err|    = {result['worst_v_err']:.3e} m/s "
+            f"at T={T:.2f} N, V_inf={V_inf:+.2f} m/s, V_perp={V_perp:.2f} m/s "
+            f"(v_fw={v_fw:.6f}, v_ref={v_ref:.6f})"
+        )
+    if result["branch_failures"]:
+        print(
+            f"  branch failures (V_inf+v < 0): {len(result['branch_failures'])} "
+            "(against-thrust pirouette, outside model — see plan)"
+        )
+    else:
+        print("  branch condition V_inf+v >= 0 satisfied at every point")
 
 
 def run_case(problem: MomentumClosure, solvers: list[Solver]) -> None:
@@ -306,7 +434,30 @@ def main() -> None:
     parser.add_argument("--T", type=float, default=12.0, help="Commanded thrust [N]")
     parser.add_argument("--V-inf", type=float, default=0.0, dest="V_inf")
     parser.add_argument("--V-perp", type=float, default=0.0, dest="V_perp")
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="Sweep the operating envelope and check the firmware Newton solver",
+    )
     args = parser.parse_args()
+
+    if args.sweep:
+        T_values = [0.5, 1.0, 3.0, 6.0, 12.0, 18.0, 24.0]
+        # Smooth-wake / "with-thrust" regime only: V_inf >= 0. Against-thrust
+        # pirouettes (V_inf < 0) put the rotor in the windmill-brake or
+        # vortex-ring state, where eq. (41) loses uniqueness and the firmware
+        # needs an outer guard rather than this solver (§3.3, plan note).
+        V_inf_values = [0.0, 0.5, 1.0, 2.0, 4.0, 7.0, 10.0]
+        V_perp_values = [0.0, 1.0, 3.0, 6.0, 10.0]
+        for n_iter in (1, 2, 3):
+            res = sweep_firmware_newton(
+                T_values=T_values,
+                V_inf_values=V_inf_values,
+                V_perp_values=V_perp_values,
+                n_iter=n_iter,
+            )
+            print_sweep_result(res)
+        return
 
     problem = MomentumClosure(T_cmd=args.T, V_inf=args.V_inf, V_perp=args.V_perp)
     run_case(problem, default_solvers())
