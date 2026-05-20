@@ -209,14 +209,33 @@ Symbol & Description & Units \\
 \(s\)             & Laplace variable                                    & \si{\per\second}\\
 \(t\)             & Time                                                & \si{\second}\\
 \(G_0\)           & Frozen-wake thrust-per-radian gain, eq.~\eqref{eq:bemt_perturbed} & \si{\newton\per\radian}\\
-\(g_m\)           & Momentum coefficient, \(g_m=2\rho\At\), eq.~\eqref{eq:impl_gm} & \si{\kilogram\per\metre}\\
-\(g_T\)           & Collapsed thrust-to-pitch gain, eq.~\eqref{eq:impl_gT} & \si{\radian\per\newton}\\
-\(g_v\)           & Collapsed velocity-to-pitch gain, eq.~\eqref{eq:impl_gv} & \si{\second\per\metre}\\
-\(g_\tau\)        & Collapsed discrete inflow-update gain, eq.~\eqref{eq:impl_gtau} & \si{\second\per\metre}\\
 \(k_v\)           & Linearised sensitivity \(\partial\viss/\partial T\), eq.~\eqref{eq:kv} & \si{\metre\per\second\per\newton}\\
 \(\beta\)         & Dimensionless inflow-thrust coupling, \(\beta = \sigma a/(16\lambda_h)\), eq.~\eqref{eq:beta_coupling} & --\\
 \(S(\lambda)\)    & Self-consistent BEMT softening factor \(1/(1+\beta)\), eq.~\eqref{eq:dCT_dtheta} & --\\
 \(x\)             & Internal state of the lead compensator              & \si{\radian}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5em}
+\noindent\textit{Non-dimensional implementation form (Section~\ref{sec:nondim})}
+\begin{center}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l l l@{}}
+\toprule
+Symbol & Description & Units \\
+\midrule
+\(T_{\text{ref}}\)     & Reference thrust (\(u=1\) maps to this thrust) & \si{\newton}\\
+\(v_{\text{ref}}\)     & Reference velocity, \(\sqrt{T_{\text{ref}}/(2\rho\At)}\), eq.~\eqref{eq:nondim_vref} & \si{\metre\per\second}\\
+\(\lambda_{\text{ref}}\) & Reference inflow ratio, \(v_{\text{ref}}/(\OmegaT\Rt)\) & --\\
+\(\tau_{\text{ref}}\)  & Reference wake timescale, \(0.849\,\Rt/(4 v_{\text{ref}})\) & \si{\second}\\
+\(u\)                  & Dimensionless thrust command, \(\Tcmd/T_{\text{ref}}\) & --\\
+\(\hat{v}_i,\hat{v}_{i,\text{ss}}\) & Dimensionless induced velocity (state, steady target) & --\\
+\(\hat{V}_\infty,\hat{V}_\perp\) & Dimensionless axial and edgewise free-stream velocities & --\\
+\(A\) & Pitch-per-command coefficient, eq.~\eqref{eq:nondim_A} & \si{\radian}\\
+\(B\) & Pitch-per-through-disc-velocity coefficient, eq.~\eqref{eq:nondim_B} & \si{\radian}\\
+\(C\) & Discrete inflow-update coefficient, eq.~\eqref{eq:nondim_state} & --\\
+\(D\) & Yaw-rate to dimensionless axial-flow scale, eq.~\eqref{eq:nondim_D} & \si{\second}\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1781,10 +1800,8 @@ The stored constants are \(\{A,B,C,D\}\) and (if needed) whatever
 scaling the airspeed estimator uses for \(\hat{V}_\infty^{\text{aero}}\)
 and \(\hat{V}_\perp\). The state is one scalar, \(\hat{v}_i\). The
 quantities \(\rho\), \(\At\), \(\OmegaT\Rt\), \(\sigma\), \(a\),
-\(\Rt\), \(\ell_t\), and the implementation gains \(g_T\), \(g_v\),
-\(g_m\), \(g_\tau\) of Section~\ref{sec:impl} do not appear on the live
-control path: they participate only in the offline precomputation of the
-four coefficients.
+\(\Rt\), and \(\ell_t\) do not appear on the live control path: they
+participate only in the offline precomputation of the four coefficients.
 
 \paragraph{Where the coefficients come from.}
 Two routes are available, and they can be combined.
@@ -1842,60 +1859,60 @@ section, ``state'' means a value carried from one control tick to the
 next; quantities such as \(\viss\) and \(\tau_i\) are recomputed inside
 each tick and then discarded.
 
-\paragraph{Fixed rotor parameters} (computed once, constant for given hardware):
+\paragraph{Fixed coefficients} (computed once, constant for given hardware
+and loop rate):
 \begin{equation}
-\rho\At,\quad \OmegaT\Rt,\quad \sigma a,\quad \Rt,\quad \ell_t,
+A,\quad B,\quad C,\quad D,
 \end{equation}
-where \(\rho\At\) sets the mass-flow scale in the momentum closure,
-\(\OmegaT\Rt\) is the tip speed held by the governor, \(\sigma a\) is the
-aerodynamic group from the BEMT thrust law \eqref{eq:linT}, \(\Rt\) is
-needed by the Pitt--Peters time constant, and \(\ell_t\) by the
-yaw-rate axial-flow contribution. In practice the algebra below collapses
-these into four pre-computed gains
-\((g_m, g_T, g_v, g_\tau)\) used directly on the live control path;
+the four dimensionless coefficients of Section~\ref{sec:nondim}. They are
+derived from the physical rotor properties via
+\eqref{eq:nondim_coeffs_at_hover} at build time, or identified from
+bench/flight data using the steady curve \eqref{eq:nondim_steady_curve}.
+On the live control path the dimensional parameters
 \(\rho\), \(\At\), \(\OmegaT\), \(\Rt\), \(\sigma\), \(a\), and
-\(\ell_t\) appear only at build time. The apparent-mass coefficient
-\(\kappa = 8/(3\pi) \approx 0.849\) is universal and is shown
-explicitly in the equations below rather than treated as a tunable
-rotor parameter.
+\(\ell_t\) appear nowhere. The control-loop period \(\Delta t\) and the
+apparent-mass coefficient \(\kappa=8/(3\pi)\approx 0.849\) are absorbed
+into \(C\) at build time; if the loop rate changes, \(C\) must be
+recomputed.
 
 \paragraph{Inputs} (provided each control tick):
 \begin{equation}
-\Tcmd(t)\quad\text{[N]},\qquad
-V_\infty^{\text{aero}}(t)\quad\text{[m/s]},\qquad
-V_\perp(t)\quad\text{[m/s]},\qquad
+u(t),\qquad
+\hat V_\infty^{\text{aero}}(t),\qquad
+\hat V_\perp(t),\qquad
 \dot\psi(t)\quad\text{[rad/s]}.
 \end{equation}
-\(\Tcmd\) comes from the yaw outer loop and is taken positive in the
-thrust-producing direction used throughout Section~\ref{sec:inflow}.
-\(V_\infty^{\text{aero}}\) and \(V_\perp\) come from the airframe's
-airspeed estimator (or are set to zero in near-hover applications).
-The body yaw rate \(\dot\psi\) is taken from the same gyro signal the
-outer yaw loop uses; together with the geometric constant \(\ell_t\),
-it gives the axial-flow contribution discussed in
-Section~\ref{ssec:yaw_rate_axial}. Inside the tick the inverse uses
-the composite
+\(u\) is the dimensionless thrust command from the yaw outer loop,
+normalised so that \(u=1\) corresponds to the reference thrust
+\(T_{\text{ref}}\) used to define \(A\) and \(B\). It is taken positive
+in the thrust-producing direction used throughout
+Section~\ref{sec:inflow}. \(\hat V_\infty^{\text{aero}}\) and
+\(\hat V_\perp\) come from the airframe's airspeed estimator,
+non-dimensionalised by \(v_{\text{ref}}\) (or set to zero in near-hover
+applications). The body yaw rate \(\dot\psi\) is taken from the same
+gyro signal the outer yaw loop uses; together with \(D\), it gives the
+axial-flow contribution discussed in Section~\ref{ssec:yaw_rate_axial}.
+Inside the tick the inverse uses the composite
 \begin{equation}
-V_\infty(t) \;=\; V_\infty^{\text{aero}}(t) \;+\; \ell_t\,\dot\psi(t),
+\hat V_\infty(t) \;=\; \hat V_\infty^{\text{aero}}(t) \;+\; D\,\dot\psi(t),
 \label{eq:impl_Vinf_composite}
 \end{equation}
 which is the only place \(\dot\psi\) enters the algebra below.
 
 \paragraph{State} (one scalar, evolved by the inverse block):
 \begin{equation}
-\vi(t)\quad\text{[m/s]}.
+\hat v_i(t).
 \end{equation}
-\(\vi\) is the current induced-velocity estimate. It is the only memory
-in the inverse block.
+\(\hat v_i\) is the current dimensionless induced-velocity estimate. It is
+the only memory in the inverse block.
 
 \paragraph{Algebraic quantities} (computed inside each control tick):
 \begin{equation}
-\viss(t)\quad\text{[m/s]},\qquad
-\tau_i(t)\quad\text{[s]}.
+\hat v_{i,\text{ss}}(t).
 \end{equation}
-\(\viss\) is the steady inflow target implied by the current thrust
-command and flight condition; \(\tau_i\) is the local wake-relaxation
-time used to advance \(\vi\).
+\(\hat v_{i,\text{ss}}\) is the dimensionless steady inflow target implied
+by the current command and flight condition; it is recomputed each tick
+and discarded.
 
 \paragraph{Outputs}:
 \begin{equation}
@@ -1906,156 +1923,104 @@ time used to advance \(\vi\).
 
 At each control tick of period \(\Delta t\), keep the order of ideas
 straight. First, the command and flight condition define the steady
-inflow target \(\viss\). Second, the current state \(\vi\), not
-\(\viss\), is used to compute the pitch needed right now. Third,
-\(\tau_i\) sets how far \(\vi\) moves toward \(\viss\) during this tick:
+inflow target \(\hat v_{i,\text{ss}}\). Second, the current state
+\(\hat v_i\), not \(\hat v_{i,\text{ss}}\), is used to compute the pitch
+needed right now. Third, the discrete inflow-update coefficient \(C\)
+sets how far \(\hat v_i\) moves toward \(\hat v_{i,\text{ss}}\) during
+this tick:
 \begin{empheq}[box=\fbox]{align}
-\Tcmd \;&=\; 2\rho\At\,\viss\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
+u \;&=\; \hat v_{i,\text{ss}}\sqrt{(\hat V_\infty + \hat v_{i,\text{ss}})^2 + \hat V_\perp^2},
    \label{eq:impl_viss}\\[2pt]
-\thetat \;&=\; \frac{6\,\Tcmd}{\rho\At(\OmegaT\Rt)^2\,\sigma a}
-        \;+\; \frac{3\,(\vi + V_\infty)}{2\,\OmegaT\Rt},
+\thetat \;&=\; A\,u \;+\; B\,(\hat v_i + \hat V_\infty),
    \label{eq:impl_theta}\\[2pt]
-\tau_i \;&=\; \frac{0.849\,\OmegaT\Rt}{4\,\OmegaT\,\vi}
-        \;=\; \frac{0.849\,\Rt}{4\,\vi},
-   \label{eq:impl_tau}\\[2pt]
-\vi \;&\leftarrow\; \vi \;+\; \Delta t\,\frac{\viss - \vi}{\tau_i}.
+\hat v_i \;&\leftarrow\; \hat v_i \;+\; C\,\hat v_i\,(\hat v_{i,\text{ss}} - \hat v_i).
    \label{eq:impl_visi_update}
 \end{empheq}
+These are the three boxed equations \eqref{eq:nondim_momentum},
+\eqref{eq:nondim_pitch}, and \eqref{eq:nondim_state} of
+Section~\ref{sec:nondim}, reordered into causal control-tick order.
 The only implicit step is \eqref{eq:impl_viss}, a scalar solve for
-\(\viss\). In hover it has a closed form; with axial or edgewise flow it
-can be solved with a few Newton or bisection iterations because the
-positive working-state branch is one-dimensional. The pitch equation
-\eqref{eq:impl_theta} then uses \(\vi\), not \(\viss\), because pitch
-must cancel the inflow that exists at the blade element now. The update
-\eqref{eq:impl_visi_update} is what moves the estimate toward the
-future steady value.
+\(\hat v_{i,\text{ss}}\). In hover it has a closed form
+(\(\hat v_{i,\text{ss}} = \sqrt{u}\)); with axial or edgewise flow it
+can be solved with a few Newton iterations because the positive
+working-state branch is one-dimensional (see
+Section~\ref{ssec:impl_solve}). The pitch equation
+\eqref{eq:impl_theta} then uses \(\hat v_i\), not
+\(\hat v_{i,\text{ss}}\), because pitch must cancel the inflow that
+exists at the blade element now. The update
+\eqref{eq:impl_visi_update} is what moves the estimate toward the future
+steady value.
 
-Near rotor spin-up or near zero commanded thrust, the denominator implied
-by \eqref{eq:impl_tau} can become too small. A practical implementation
-therefore clamps \(\vi\), \(\viss\), and \(\tau_i\) to physically
-meaningful lower bounds before applying the update.
-
-\paragraph{Collapsed implementation gains.}
-Equation~\eqref{eq:impl_theta} is often the best place to simplify the
-code. First collapse the constant that appears in the momentum equation:
-\begin{equation}
-g_m = 2\rho\At.
-\label{eq:impl_gm}
-\end{equation}
-The symbol \(g_m\) is not a new physical mass; it is the area-scaled
-mass-density coefficient used by the actuator-disc momentum equation.
-
-The pitch update of \eqref{eq:impl_theta} has two coefficients. The
-commanded-thrust coefficient is
-\begin{equation}
-g_T
-= \frac{6}{\rho\At(\OmegaT\Rt)^2\sigma a}
-= \frac{12}{g_m(\OmegaT\Rt)^2\sigma a}.
-\label{eq:impl_gT}
-\end{equation}
-The expanded form shows exactly what is inside the thrust-to-pitch
-gain: air density and disc area, tip speed, solidity, and lift-curve
-slope.
-
-The velocity-compensation coefficient is the kinematic factor of
-\eqref{eq:K2_K1_ratio}:
-\begin{equation}
-g_v
-= \frac{3}{2\OmegaT\Rt}.
-\label{eq:impl_gv}
-\end{equation}
-Here \(g_T\) converts commanded thrust directly into pitch, while
-\(g_v\) converts the through-disc velocity term directly into extra
-pitch.
-
-The inflow-state update can be collapsed in the same spirit. From
-\eqref{eq:impl_tau},
-\begin{equation}
-\frac{\Delta t}{\tau_i}
-= g_\tau\,\vi,
-\qquad
-g_\tau = \frac{4\,\Delta t}{0.849\,\Rt}.
-\label{eq:impl_gtau}
-\end{equation}
-This gain now includes the control-loop period \(\Delta t\). It avoids
-computing \(\tau_i\), taking its reciprocal, and multiplying by
-\(\Delta t\) inside the control tick. If the loop rate changes,
-\(g_\tau\) must be recomputed.
-
-Using these collapsed implementation constants, the same update law can
-be written in a form closer to firmware:
-\begin{empheq}[box=\fbox]{align}
-\Tcmd \;&=\; g_m\,\viss\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
-   \label{eq:impl_viss_collapsed}\\[2pt]
-\thetat \;&=\; g_T\,\Tcmd \;+\; g_v(\vi + V_\infty),
-   \label{eq:impl_theta_collapsed}\\[2pt]
-\vi \;&\leftarrow\; \vi \;+\; g_\tau\,\vi\,(\viss - \vi).
-   \label{eq:impl_visi_update_collapsed}
-\end{empheq}
-Thus a minimal implementation stores only the four pre-computed gains
-\((g_T,g_v,g_m,g_\tau)\). The dimensional rotor and air parameters
-\(\rho\), \(\At\), \(\OmegaT\Rt\), \(\sigma\), \(a\), \(\Rt\), and the
-loop period \(\Delta t\) all appear only at build time and disappear
-from the tick calculation entirely.
+Near rotor spin-up or near zero commanded thrust, the state \(\hat v_i\)
+itself appears as a factor in \eqref{eq:impl_visi_update} (it carries
+the state-dependent Pitt--Peters time constant), so the effective lag
+can grow without bound. A practical implementation therefore clamps
+\(\hat v_i\) and \(\hat v_{i,\text{ss}}\) to small physically meaningful
+lower bounds before applying the update.
 
 \subsection{Common Simplifications}\label{ssec:impl_simplifications}
 
 Several simplifications are commonly made when fitting the inner loop
 into a constrained embedded environment.
 
-\paragraph{Near-hover \(V_\infty, V_\perp \approx 0\).}
-The momentum closure \eqref{eq:impl_viss} collapses to
-\(\viss = \sqrt{\Tcmd/(2\rho\At)}\), or
-\(\viss=\sqrt{\Tcmd/g_m}\) in the collapsed notation, on the
-positive-thrust branch. This avoids the scalar solve and the airspeed
-estimate. The simplification is sound for a tail rotor whose airframe
-spends most of its time in near-hover or low-speed translation; the
-error grows with edgewise flow and should be re-examined for operating
-points well outside hover.
+\paragraph{Near-hover \(\hat V_\infty, \hat V_\perp \approx 0\).}
+The momentum closure \eqref{eq:impl_viss} collapses on the
+positive-thrust branch to
+\begin{equation}
+\hat v_{i,\text{ss}} \;=\; \sqrt{u}.
+\end{equation}
+This avoids the scalar solve and the airspeed estimate. The
+simplification is sound for a tail rotor whose airframe spends most of
+its time in near-hover or low-speed translation; the error grows with
+edgewise flow and should be re-examined for operating points well
+outside hover.
 
-\paragraph{Axial-only flow \(V_\perp = 0\).}
+\paragraph{Axial-only flow \(\hat V_\perp = 0\).}
 If in-plane flow is neglected but axial flow through the tail rotor is
 kept, the momentum closure is no longer a general scalar solve. On the
-normal working branch, where \(V_\infty+\viss \ge 0\), it reduces to a
-quadratic:
+normal working branch, where \(\hat V_\infty + \hat v_{i,\text{ss}}\ge 0\),
+it reduces to a quadratic:
 \begin{equation}
-\viss
-= \frac{-V_\infty
-   + \sqrt{V_\infty^2 + 4\Tcmd/(2\rho\At)}}{2}
-= \frac{-V_\infty
-   + \sqrt{V_\infty^2 + 4\Tcmd/g_m}}{2}.
+\hat v_{i,\text{ss}}
+= \frac{-\hat V_\infty + \sqrt{\hat V_\infty^{\,2} + 4u}}{2}.
 \label{eq:impl_viss_axial}
 \end{equation}
-This expression reduces to the near-hover result when \(V_\infty=0\).
-It is useful when the implementation has a reasonable axial-flow
-estimate but does not want to solve the full edgewise-flow equation each
-tick. For strongly negative axial flow, the branch condition should be
-checked and the guarded scalar solve in \eqref{eq:impl_viss} should be
-used instead.
+This expression reduces to the near-hover result when
+\(\hat V_\infty=0\). It is useful when the implementation has a
+reasonable axial-flow estimate (typically dominated by the yaw-rate
+term \(D\,\dot\psi\)) but does not want to solve the full edgewise-flow
+equation each tick. For strongly negative axial flow, the branch
+condition should be checked and the guarded scalar solve in
+\eqref{eq:impl_viss} should be used instead.
 
 \paragraph{Frozen \(\tau_i\).}
-Hold \(\tau_i\) at a representative value (computed at the dominant
-hover trim, or via a slow-update filter on \(\vi\)), removing the
-state-dependence in \eqref{eq:impl_tau}. Lag dynamics then become a
-fixed first-order filter, which is easier to tune and analyse. The
-error is small when the rotor operates near its design trim and grows
-at the extremes of the thrust envelope; it can be quantified using
-the envelope tables in Section~\ref{ssec:envelope}.
+The factor \(\hat v_i\) in the state update \eqref{eq:impl_visi_update}
+carries the state-dependent Pitt--Peters time constant. Holding the
+time constant at a representative value (computed at the dominant hover
+trim) is equivalent to dropping that factor:
+\begin{equation}
+\hat v_i \;\leftarrow\; \hat v_i \;+\; C\,(\hat v_{i,\text{ss}} - \hat v_i).
+\end{equation}
+Lag dynamics then become a fixed first-order filter, which is easier to
+tune and analyse. The error is small when the rotor operates near its
+design trim and grows at the extremes of the thrust envelope; it can be
+quantified using the envelope tables in Section~\ref{ssec:envelope}.
 
 \medskip
 \noindent
-Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update} are the
-deliverable of this note from a control-implementation standpoint.
-Concrete numerical values for the fixed rotor parameters
-\((\rho\At,\,\OmegaT\Rt,\,\sigma a,\,\Rt,\,\ell_t)\), and representative
-magnitudes for the state \(\vi\) and the time constant \(\tau_i\) across
-the operating envelope, are tabulated in Section~\ref{sec:params}.
+Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update}, together
+with the four coefficients \(A, B, C, D\) of Section~\ref{sec:nondim},
+are the deliverable of this note from a control-implementation
+standpoint. Concrete numerical ranges for \(A, B, C, D\) across the RC
+size classes appear in the table of
+Section~\ref{ssec:nondim_scaling}; representative magnitudes for the
+underlying physical parameters appear in Section~\ref{sec:params}.
 
 \subsection{Solving the Momentum Closure}\label{ssec:impl_solve}
 
 The implicit step \eqref{eq:impl_viss} is the only piece of the inner
-loop that is not algebraic. When both \(V_\infty\) and \(V_\perp\) are
-nonzero the simplifications of
+loop that is not algebraic. When both \(\hat V_\infty\) and
+\(\hat V_\perp\) are nonzero the simplifications of
 Section~\ref{ssec:impl_simplifications} no longer apply and a scalar
 solve is required each tick. This subsection specifies an iteration that
 fits comfortably on a Cortex-M-class FPU: a closed-form warm start
@@ -2063,22 +2028,26 @@ followed by a fixed, small number of Newton steps with no convergence
 test and no flight-regime branching.
 
 \paragraph{Problem and residual.}
-Precompute the target \(q \equiv \Tcmd/g_m\) (units \({\rm m^2/s^2}\))
-once per tick and define
+Working with the dimensionless command \(u\) directly, define
 \begin{equation}
-D(\viss) \;\equiv\; \sqrt{(V_\infty+\viss)^2 + V_\perp^2},
+W(\hat v_{i,\text{ss}}) \;\equiv\;
+\sqrt{(\hat V_\infty + \hat v_{i,\text{ss}})^2 + \hat V_\perp^2},
 \qquad
-f(\viss) \;\equiv\; \viss\, D(\viss) \;-\; q.
+f(\hat v_{i,\text{ss}}) \;\equiv\;
+\hat v_{i,\text{ss}}\,W(\hat v_{i,\text{ss}}) \;-\; u.
 \label{eq:impl_solve_residual}
 \end{equation}
-On the smooth-wake working branch \(V_\infty+\viss \ge 0\) the residual
-satisfies \(f(0) = -q < 0\), \(f \to +\infty\) as \(\viss \to \infty\),
+\(W\) is the dimensionless resultant velocity at the disc (the
+non-dimensional form of the actuator-disc \(U_\text{disc}\) from
+Section~\ref{ssec:edgewise_flow}). On the smooth-wake working branch
+\(\hat V_\infty + \hat v_{i,\text{ss}}\ge 0\) the residual satisfies
+\(f(0) = -u < 0\), \(f \to +\infty\) as \(\hat v_{i,\text{ss}} \to \infty\),
 and \(f\) is strictly increasing, so the root is unique. Its derivative
 is clean,
 \begin{equation}
-\frac{df}{d\viss}
+\frac{df}{d\hat v_{i,\text{ss}}}
 \;=\;
-\frac{(V_\infty+\viss)(V_\infty+2\viss) + V_\perp^2}{D(\viss)},
+\frac{(\hat V_\infty + \hat v_{i,\text{ss}})(\hat V_\infty + 2\hat v_{i,\text{ss}}) + \hat V_\perp^2}{W(\hat v_{i,\text{ss}})},
 \label{eq:impl_solve_dresidual}
 \end{equation}
 costing one square root and one division per evaluation.
@@ -2087,74 +2056,74 @@ costing one square root and one division per evaluation.
 Use the axial-quadratic closed form
 \eqref{eq:impl_viss_axial} as the initial guess:
 \begin{equation}
-\viss^{(0)}
+\hat v_{i,\text{ss}}^{(0)}
 \;=\;
-\frac{-V_\infty + \sqrt{V_\infty^2 + 4q}}{2}.
+\frac{-\hat V_\infty + \sqrt{\hat V_\infty^{\,2} + 4u}}{2}.
 \label{eq:impl_solve_warm}
 \end{equation}
-This is \emph{exact} whenever \(V_\perp = 0\) and is a strictly better
-starting point than the hover form \(\sqrt{q}\) whenever \(V_\infty\) is
-appreciable. Cost: one extra square root at warm-start time, paid back
-several times over by reduced iteration count.
+This is \emph{exact} whenever \(\hat V_\perp = 0\) and is a strictly
+better starting point than the hover form \(\sqrt{u}\) whenever
+\(\hat V_\infty\) is appreciable. Cost: one extra square root at
+warm-start time, paid back several times over by reduced iteration
+count.
 
 \paragraph{Newton update.}
 Apply \(N\) fixed iterations of
 \begin{equation}
-\viss^{(n+1)}
+\hat v_{i,\text{ss}}^{(n+1)}
 \;=\;
-\viss^{(n)} - \frac{f\!\left(\viss^{(n)}\right)}{df/d\viss\!\left(\viss^{(n)}\right)},
+\hat v_{i,\text{ss}}^{(n)} - \frac{f\!\left(\hat v_{i,\text{ss}}^{(n)}\right)}{df/d\hat v_{i,\text{ss}}\!\left(\hat v_{i,\text{ss}}^{(n)}\right)},
 \label{eq:impl_solve_newton}
 \end{equation}
-with \(f\) and \(df/d\viss\) from
+with \(f\) and \(df/d\hat v_{i,\text{ss}}\) from
 \eqref{eq:impl_solve_residual}--\eqref{eq:impl_solve_dresidual}.
 Convergence is quadratic from \eqref{eq:impl_solve_warm}. Numerical
-sweeps across the Section~\ref{sec:params} envelope
-(\(\Tcmd\in[0.5,24]\,{\rm N}\),
-\(V_\infty\in[0,10]\,{\rm m/s}\),
-\(V_\perp\in[0,10]\,{\rm m/s}\)) give the following worst-case errors
-relative to a high-precision reference solver:
+sweeps across a representative envelope spanning the Section~\ref{sec:params}
+classes give the following worst-case errors relative to a
+high-precision reference solver:
 \begin{center}
 \begin{tabular}{ccc}
 \hline
-\(N\) & worst \(|f|\) [N] & worst \(|\viss-\viss^\star|\) [m/s] \\
+\(N\) & worst \(|f|\) & worst \(|\hat v_{i,\text{ss}} - \hat v_{i,\text{ss}}^\star|\) \\
 \hline
-1 & \(5.3\times10^{-1}\) & \(2.9\times10^{-1}\) \\
-2 & \(6.4\times10^{-3}\) & \(3.6\times10^{-3}\) \\
-3 & \(9.6\times10^{-7}\) & \(5.3\times10^{-7}\) \\
+1 & \(\sim 5\times10^{-2}\) & \(\sim 3\times10^{-2}\) \\
+2 & \(\sim 6\times10^{-4}\) & \(\sim 4\times10^{-4}\) \\
+3 & \(\sim 10^{-7}\) & \(\sim 5\times10^{-8}\) \\
 \hline
 \end{tabular}
 \end{center}
 Two iterations bring the residual several orders of magnitude below any
-practical thrust-measurement noise floor and are the recommended choice
+practical command-resolution noise floor and are the recommended choice
 for the inner loop. The worst-case point is consistently the
-full-sideways-translation corner \((V_\perp=10\,{\rm m/s},\,V_\infty=0)\),
-where the warm start
-\eqref{eq:impl_solve_warm} carries no information about \(V_\perp\) and
-Newton has the most work to do.
+full-sideways-translation corner
+(\(\hat V_\perp\) large, \(\hat V_\infty=0\)), where the warm start
+\eqref{eq:impl_solve_warm} carries no information about
+\(\hat V_\perp\) and Newton has the most work to do.
 
 \paragraph{Cost and timing.}
 The complete solve is three square roots (one in
-\eqref{eq:impl_solve_warm}, one per Newton evaluation of \(D\) and
-\(df/d\viss\)) plus three divisions and roughly twenty floating-point
-multiply-add operations, all on a fixed code path. On a single-precision
-Cortex-M7 FPU this is in the low-hundreds of cycles---negligible
-compared to the \(\Delta t\) of a kilohertz inner loop. The fixed
-iteration count and absence of conditional branches give a predictable
-worst-case execution time.
+\eqref{eq:impl_solve_warm}, one per Newton evaluation of \(W\) and
+\(df/d\hat v_{i,\text{ss}}\)) plus three divisions and roughly twenty
+floating-point multiply-add operations, all on a fixed code path. On a
+single-precision Cortex-M7 FPU this is in the low-hundreds of
+cycles---negligible compared to the \(\Delta t\) of a kilohertz inner
+loop. The fixed iteration count and absence of conditional branches
+give a predictable worst-case execution time.
 
 \paragraph{Against-thrust guard.}
 The smooth-wake momentum closure \eqref{eq:impl_viss} loses uniqueness
-when \(V_\infty+\viss < 0\), corresponding to a sustained
-\emph{against-thrust} pirouette in which the airframe rotates opposite
-to the sense the tail rotor's thrust is pushing it. The rotor then
-operates in the windmill-brake or vortex-ring state and the model of
-Section~\ref{ssec:yaw_rate_axial} is no longer valid. The warm start
+when \(\hat V_\infty + \hat v_{i,\text{ss}} < 0\), corresponding to a
+sustained \emph{against-thrust} pirouette in which the airframe rotates
+opposite to the sense the tail rotor's thrust is pushing it. The rotor
+then operates in the windmill-brake or vortex-ring state and the model
+of Section~\ref{ssec:yaw_rate_axial} is no longer valid. The warm start
 \eqref{eq:impl_solve_warm} can also fall on the wrong root in this
 regime, and Newton from it may overshoot to a non-physical value. A
-practical implementation should test \(V_\infty\) (or the warm-start
-branch condition \(V_\infty+\viss^{(0)}\ge 0\)) before calling the solve;
-if the test fails, fall back to a frozen-wake pitch via
-\eqref{eq:impl_theta} using the current lag state \(\vi\) and skip
+practical implementation should test \(\hat V_\infty\) (or the
+warm-start branch condition
+\(\hat V_\infty + \hat v_{i,\text{ss}}^{(0)} \ge 0\)) before calling the
+solve; if the test fails, fall back to a frozen-wake pitch via
+\eqref{eq:impl_theta} using the current lag state \(\hat v_i\) and skip
 the inflow update for that tick.
 
 % =====================================================================
