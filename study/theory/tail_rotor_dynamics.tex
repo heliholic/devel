@@ -208,16 +208,14 @@ Symbol & Description & Units \\
 \(\delta(\cdot)\) & Small perturbation of a quantity about its trim value & (varies)\\
 \(s\)             & Laplace variable                                    & \si{\per\second}\\
 \(t\)             & Time                                                & \si{\second}\\
-\(K_1\)           & Pitch-to-thrust gain, eq.~\eqref{eq:K1K2}           & \si{\newton\per\radian}\\
-\(K_2\)           & Inflow-to-thrust gain, eq.~\eqref{eq:K1K2}          & \si{\newton\second\per\metre}\\
+\(G_0\)           & Frozen-wake thrust-per-radian gain, eq.~\eqref{eq:bemt_perturbed} & \si{\newton\per\radian}\\
 \(g_m\)           & Momentum coefficient, \(g_m=2\rho\At\), eq.~\eqref{eq:impl_gm} & \si{\kilogram\per\metre}\\
 \(g_T\)           & Collapsed thrust-to-pitch gain, eq.~\eqref{eq:impl_gT} & \si{\radian\per\newton}\\
 \(g_v\)           & Collapsed velocity-to-pitch gain, eq.~\eqref{eq:impl_gv} & \si{\second\per\metre}\\
 \(g_\tau\)        & Collapsed discrete inflow-update gain, eq.~\eqref{eq:impl_gtau} & \si{\second\per\metre}\\
 \(k_v\)           & Linearised sensitivity \(\partial\viss/\partial T\), eq.~\eqref{eq:kv} & \si{\metre\per\second\per\newton}\\
-\(K_2 k_v\)       & Dimensionless DC inflow-softening coupling          & --\\
-\(\beta\)         & Softening factor, \(\beta = 1+K_2 k_v\)             & --\\
-\(S(\lambda)\)    & Self-consistent BEMT softening factor, eq.~\eqref{eq:dCT_dtheta} & --\\
+\(\beta\)         & Dimensionless inflow-thrust coupling, \(\beta = \sigma a/(16\lambda_h)\), eq.~\eqref{eq:beta_coupling} & --\\
+\(S(\lambda)\)    & Self-consistent BEMT softening factor \(1/(1+\beta)\), eq.~\eqref{eq:dCT_dtheta} & --\\
 \(x\)             & Internal state of the lead compensator              & \si{\radian}\\
 \bottomrule
 \end{tabular}
@@ -544,54 +542,48 @@ weighting of the inflow loss. Dimensional thrust is recovered as
 \label{eq:T_from_CT}
 \end{equation}
 
-\subsection{Dimensional Form: The Coefficients \texorpdfstring{\(K_1\)}{K1} and \texorpdfstring{\(K_2\)}{K2}}\label{ssec:K1K2}
+\subsection{Dimensional Form}\label{ssec:dimensional}
 
-The BEMT result \eqref{eq:CT_BEMT} is exactly linear in \(\thetat\)
-and \(\lambda\) (and hence linear in \(\thetat\) and \(\vi\) at fixed
-\(V_\infty\), and linear in \(\thetat\) and \(\vi\) and \(V_\infty\)
-together). For control work it is convenient to absorb all the
-dimensional and aerodynamic constants into two coefficients, leaving
-a clean linear map from pitch and induced velocity to thrust:
+Equation~\eqref{eq:CT_BEMT} expresses thrust through the dimensionless
+coefficient \(C_T\). For the rest of this note it is more convenient to
+carry thrust in newtons directly. Multiplying through by the natural
+dimensional scale \(\rho\At(\OmegaT\Rt)^2\), and writing the inflow
+ratio in expanded form \(\lambda = (\vi+V_\infty)/(\OmegaT\Rt)\):
 \begin{empheq}[box=\fbox]{equation}
-\Tt \;=\; K_1\,\thetat \;-\; K_2\,\vi \;-\; K_2\,V_\infty,
+\Tt \;=\; \rho\At(\OmegaT\Rt)^2\;\frac{\sigma a}{2}\!
+\left(\frac{\thetat}{3} \;-\; \frac{\vi + V_\infty}{2\,\OmegaT\Rt}\right).
 \label{eq:linT}
 \end{empheq}
-with
-\begin{equation}
-K_1 \;=\; \frac{\rho\,\At\,(\OmegaT\Rt)^2\,\sigma\,a}{6},
-\qquad
-K_2 \;=\; \frac{\rho\,\At\,\OmegaT\Rt\,\sigma\,a}{4}.
-\label{eq:K1K2}
-\end{equation}
 At fixed \(\OmegaT\) (held by the main-rotor governor on an RC
-helicopter), \(K_1\) and \(K_2\) are constants of the rotor; they
-depend on geometry (\(\Rt, c, N_b\)), air density, lift-curve slope,
-and tip speed, but not on the operating point \((\thetat, \vi)\).
-\emph{Equation~\eqref{eq:linT} is exact within the BEMT assumptions
-listed below.} It is not a linearisation about any particular point;
-the linearity is a property of the underlying derivation.
+helicopter), the prefactor and the aerodynamic group \(\sigma a\) are
+constants of the rotor: they depend on geometry (\(\Rt\), \(c\),
+\(N_b\)), air density, lift-curve slope, and tip speed, but not on the
+operating point. \emph{Equation~\eqref{eq:linT} is exact within the BEMT
+assumptions listed below}; it is not a linearisation about any
+particular point---the linearity in \(\thetat\), \(\vi\), and
+\(V_\infty\) is a property of the underlying derivation.
 
-\paragraph{Physical interpretation of \(K_1\) and \(K_2\).}
-\(K_1\) is the thrust the rotor would produce per radian of
+\paragraph{Reading the two terms.} The first term, proportional to
+\(\thetat/3\), is the thrust the rotor would produce per radian of
 collective if no induced inflow developed: the open-loop or
-``frozen-wake'' pitch effectiveness. It is what the rotor delivers in
-the first instant after a step command, before the wake has had time
-to react. \(K_2\) is the rate at which thrust is given back as the
-wake builds: how much thrust each m/s of induced velocity costs.
-Both coefficients share the common factor
-\(\rho\At\sigma a\)---air, geometry, aerofoil---but they differ in
-their tip-speed dependence. \(K_1\) carries \((\OmegaT\Rt)^2\) (it is
-dynamic-pressure-like), while \(K_2\) carries only \(\OmegaT\Rt\)
-(it is velocity-like). Their ratio is therefore purely kinematic:
+``frozen-wake'' pitch effectiveness, scaling as \((\OmegaT\Rt)^2\) (it
+is dynamic-pressure-like). The second, proportional to
+\((\vi+V_\infty)/(2\OmegaT\Rt)\), is the rate at which thrust is given
+back as inflow builds: each m/s of through-disc flow costs a
+proportional amount of thrust, scaling only as \(\OmegaT\Rt\) (it is
+velocity-like). The ratio of inflow penalty to pitch effectiveness is
+therefore purely kinematic, set by the factor
 \begin{equation}
-\frac{K_2}{K_1} \;=\; \frac{3}{2\,\OmegaT\Rt}.
+\frac{3}{2\,\OmegaT\Rt},
 \label{eq:K2_K1_ratio}
 \end{equation}
-The ratio is independent of blade geometry, density, lift-curve
-slope, or solidity---it depends only on tip speed. Faster-spinning
-rotors are less penalised by inflow, in the precise sense that
-\(K_2/K_1\) is smaller. The inflow-softening factor that emerges in
-Section~\ref{sec:linsoft} inherits this scaling.
+which is independent of blade geometry, density, lift-curve slope, or
+solidity, and which reappears as a structural feature in the inverse
+(Section~\ref{sec:inverse}) and in the dimensionless pitch law of
+Section~\ref{sec:nondim}. Faster-spinning rotors are less penalised by
+inflow, in the precise sense that \eqref{eq:K2_K1_ratio} is smaller.
+The rest of this note is, in one sense, a careful study of how the
+second term in \eqref{eq:linT} evolves dynamically.
 
 \subsection{Assumptions and Where Each Is Repaired}\label{ssec:bemt_assumptions}
 
@@ -948,7 +940,7 @@ given pitch, but it ignores time. In reality the wake is a column of air
 with mass, and changing the rotor's thrust requires accelerating that
 column---which cannot happen instantaneously. If at time \(t=0\) the
 pilot steps the pitch up, the blade-element thrust jumps immediately to
-its open-loop value \(K_1\,\delta\thetat\) (the wake hasn't moved yet,
+its frozen-wake value (the wake hasn't moved yet,
 so the local angle of attack is still \(\thetat-\phi\) at the old
 \(\phi\)). Over the next few milliseconds the induced velocity builds
 toward its new steady value, the local angle of attack drops, and the
@@ -1097,15 +1089,11 @@ instant.
 
 The blade-element relation~\eqref{eq:linT} is linear in
 \((\thetat, \vi, V_\infty)\) at fixed \(\OmegaT\), and therefore
-trivially invertible for \(\thetat\):
-\begin{equation}
-\Tt = K_1\thetat - K_2(\vi+V_\infty)
-\qquad\Longrightarrow\qquad
-K_1\thetat = \Tt + K_2(\vi+V_\infty).
-\end{equation}
-Setting the desired thrust to \(\Tcmd\) gives
+trivially invertible for \(\thetat\). Solving \eqref{eq:linT} for the
+pitch and setting the desired thrust to \(\Tcmd\) gives
 \begin{empheq}[box=\fbox]{equation}
-\thetat \;=\; \frac{\Tcmd \;+\; K_2\bigl(\vi+V_\infty\bigr)}{K_1}.
+\thetat \;=\; \frac{6\,\Tcmd}{\rho\At(\OmegaT\Rt)^2\,\sigma a}
+       \;+\; \frac{3\,(\vi+V_\infty)}{2\,\OmegaT\Rt}.
 \label{eq:inv_instant}
 \end{empheq}
 This is the \emph{exact} inverse at every instant, conditional on
@@ -1113,16 +1101,17 @@ knowing the current \(\vi\) and \(V_\infty\): apply pitch
 \eqref{eq:inv_instant} and the blade element will, instantaneously,
 produce thrust \(\Tcmd\).
 
-Two terms appear on the right-hand side. The first, \(\Tcmd/K_1\), is
-the pitch the rotor would need if no induced inflow were present---a
-naive ``pitch per unit thrust'' calculation. The second,
-\(K_2(\vi+V_\infty)/K_1\), is the extra pitch needed to overcome
-inflow's stolen incidence: \(\vi\) and \(V_\infty\) together set the
-inflow angle \(\phi\), and the blade must be pitched up by the same
-amount just to retain its original effective angle of attack
-\(\alpha\). Equation~\eqref{eq:inv_instant} is, in essence, the
-control-theoretic restatement of the kinematic story from
-Section~\ref{sec:bemt}.
+Two terms appear on the right-hand side. The first is the pitch the
+rotor would need if no induced inflow were present---a naive ``pitch
+per unit thrust'' calculation, with denominator \(\rho\At(\OmegaT\Rt)^2\,\sigma a/6\)
+(the frozen-wake thrust-per-radian gain from
+Section~\ref{ssec:dimensional}). The second is the extra pitch needed
+to overcome inflow's stolen incidence: \(\vi\) and \(V_\infty\) together
+set the inflow angle \(\phi\), and the blade must be pitched up by the
+kinematic factor \(3/(2\OmegaT\Rt)\) of \eqref{eq:K2_K1_ratio} just to
+retain its original effective angle of attack \(\alpha\).
+Equation~\eqref{eq:inv_instant} is, in essence, the control-theoretic
+restatement of the kinematic story from Section~\ref{sec:bemt}.
 
 The word \emph{instantaneous} is important. The pitch in
 \eqref{eq:inv_instant} compensates the inflow that exists now; it does
@@ -1244,13 +1233,19 @@ themselves satisfy the steady model and cancel out of the perturbation
 equations, leaving a system in the \(\delta\)-variables alone.
 
 \paragraph{What needs linearising.}
-The blade-element relation \eqref{eq:linT}, \(\Tt = K_1\thetat - K_2\vi\),
-is \emph{already linear} in its two arguments at fixed \(\OmegaT\); its
-perturbation form is simply
+The blade-element relation \eqref{eq:linT} is \emph{already linear} in
+its arguments at fixed \(\OmegaT\); reading off its coefficients gives the
+perturbation form
 \begin{equation}
-\delta T \;=\; K_1\,\delta\thetat \;-\; K_2\,\delta\vi.
+\delta T \;=\; G_0\,\delta\thetat \;-\; \frac{3\,G_0}{2\OmegaT\Rt}\,\delta\vi,
+\qquad
+G_0 \;\equiv\; \frac{\rho\At(\OmegaT\Rt)^2\,\sigma a}{6},
 \label{eq:bemt_perturbed}
 \end{equation}
+where \(G_0\) is the frozen-wake thrust-per-radian gain: the
+high-frequency (instantaneous) response of thrust to a step in pitch
+before the wake has time to react. The pitch and inflow coefficients
+inherit the kinematic factor \eqref{eq:K2_K1_ratio} that separates them.
 The nonlinearity is entirely in the momentum relation
 \(\bT = 2\rho\At\bvi^{\,2}\), which couples thrust to induced velocity
 through a square. Differentiating implicitly,
@@ -1303,19 +1298,29 @@ two-equation linear system in the three Laplace-domain quantities
 \end{equation}
 Substitute into \eqref{eq:bemt_perturbed}:
 \begin{equation}
-\delta T(s) \;=\; K_1\,\delta\thetat(s)
+\delta T(s) \;=\; G_0\,\delta\thetat(s)
 \;-\;
-K_2\,\frac{k_v}{\tau_i s + 1}\,\delta T(s).
+\frac{3\,G_0}{2\OmegaT\Rt}\,\frac{k_v}{\tau_i s + 1}\,\delta T(s).
 \end{equation}
-Collect \(\delta T\):
+Collect \(\delta T\), defining the dimensionless inflow--thrust coupling
+that emerges from the algebra:
 \begin{equation}
-\delta T(s)\!\left[1 + \frac{K_2 k_v}{\tau_i s + 1}\right]
-\;=\; K_1\,\delta\thetat(s),
+\beta \;\equiv\; \frac{3\,G_0\,k_v}{2\,\OmegaT\Rt}
+   \;=\; \frac{\sigma a}{16\,\lambda_h},
+\label{eq:beta_coupling}
 \end{equation}
-and rearrange to standard form,
+where the closed-form right-hand expression follows on substituting
+\(G_0 = \rho\At(\OmegaT\Rt)^2\sigma a/6\) and the hover-trim sensitivity
+\(k_v=1/(4\rho\At\bvi)\) from \eqref{eq:kv}, together with
+\(\lambda_h=\bvi/(\OmegaT\Rt)\). Then
+\begin{equation}
+\delta T(s)\!\left[1 + \frac{\beta}{\tau_i s + 1}\right]
+\;=\; G_0\,\delta\thetat(s),
+\end{equation}
+and rearranging to standard form,
 \begin{empheq}[box=\fbox]{equation}
 \frac{\delta T(s)}{\delta\thetat(s)}
- \;=\; \frac{K_1\,(\tau_i s + 1)}{\tau_i s + (1 + K_2 k_v)}.
+ \;=\; \frac{G_0\,(\tau_i s + 1)}{\tau_i s + (1 + \beta)}.
 \label{eq:plant_tf}
 \end{empheq}
 This is the linearised tail-rotor plant: thrust per radian of pitch
@@ -1329,44 +1334,46 @@ negative real axis:
 \begin{equation}
 \text{zero at }s=-\frac{1}{\tau_i},
 \qquad
-\text{pole at }s=-\frac{1+K_2 k_v}{\tau_i}.
+\text{pole at }s=-\frac{1+\beta}{\tau_i}.
 \end{equation}
-Because \(K_2 k_v > 0\), the pole sits at a higher frequency than the
-zero. The high-frequency and DC limits of the gain are
+Because \(\beta > 0\), the pole sits at a higher frequency than the zero.
+The high-frequency and DC limits of the gain are
 \begin{align}
 \lim_{s\to\infty} \frac{\delta T}{\delta\thetat}
- &= K_1
+ &= G_0
  \qquad\text{(instantaneous, ``open-loop'' gain)},\\
 \lim_{s\to 0} \frac{\delta T}{\delta\thetat}
- &= \frac{K_1}{1+K_2 k_v}
+ &= \frac{G_0}{1+\beta}
  \qquad\text{(steady-state, ``closed-wake'' gain)}.
 \end{align}
 \emph{The DC gain is lower than the instantaneous gain by a factor
-\(1+K_2 k_v\).} A step in pitch produces an immediate thrust spike of
-size \(K_1\,\delta\thetat\) (before the wake responds), which then
-relaxes over a timescale \(\tau_i/(1+K_2 k_v)\) to the lower steady
-value \(K_1\,\delta\thetat/(1+K_2 k_v)\). This is the \emph{lead--lag}
-response described qualitatively in the introduction, now in closed form.
+\(1+\beta\).} A step in pitch produces an immediate thrust spike of size
+\(G_0\,\delta\thetat\) (before the wake responds), which then relaxes
+over a timescale \(\tau_i/(1+\beta)\) to the lower steady value
+\(G_0\,\delta\thetat/(1+\beta)\). This is the \emph{lead--lag} response
+described qualitatively in the introduction, now in closed form.
 
-\paragraph{Physical reading of \(K_2 k_v\).}
-The dimensionless product \(K_2 k_v\) measures how strongly induced
-inflow couples back into the thrust. Tracing its factors:
-\(K_2\) is how much thrust each m/s of induced velocity steals; \(k_v\)
-is how much extra induced velocity each newton of thrust pulls
-through the disc. Their product closes the loop and gives the fractional
-thrust loss between the instantaneous and steady-state response:
+\paragraph{Physical reading of \(\beta\).}
+The coupling \(\beta\) of \eqref{eq:beta_coupling} measures how strongly
+induced inflow couples back into the thrust. Tracing its factors: the
+kinematic ratio \(3/(2\OmegaT\Rt)\) is how much thrust each m/s of
+induced velocity steals per radian of frozen-wake gain; \(k_v\) is how
+much extra induced velocity each newton of thrust pulls through the disc.
+Their product closes the loop and gives the fractional thrust loss
+between the instantaneous and steady-state response:
 \begin{equation}
 \frac{\text{DC gain}}{\text{instantaneous gain}}
-   \;=\; \frac{1}{1+K_2 k_v}.
+   \;=\; \frac{1}{1+\beta}
+   \;=\; \frac{1}{1+\sigma a/(16\lambda_h)}.
 \end{equation}
-For typical RC tail rotors at hover trim, \(K_2 k_v\) sits in the range
+For typical RC tail rotors at hover trim, \(\beta\) sits in the range
 \(0.5\)--\(1.5\)---meaning the DC gain is anywhere from \(40\%\) to
 \(70\%\) of the open-loop gain. The thrust the rotor delivers in steady
 state is significantly less than what its blade pitch suggests. This
 phenomenon is \emph{inflow softening}, and Section~\ref{sec:linsoft}
-quantifies it across the operating envelope with a self-consistent
-closed form that supersedes the naive product \(K_2\cdot k_v\) used
-here as a symbolic placeholder.
+rederives the same coupling \(\sigma a/(16\lambda)\) directly from the
+closed BEMT--momentum system, confirming \eqref{eq:beta_coupling} and
+extending it across the operating envelope.
 
 \subsection{Inverting the Plant: The Lead Compensator}\label{ssec:compensator}
 
@@ -1374,7 +1381,7 @@ A feedforward compensator that cancels the plant dynamics is, by
 definition, the inverse of the plant. Reciprocating \eqref{eq:plant_tf}:
 \begin{empheq}[box=\fbox]{equation}
 \frac{\delta\thetat(s)}{\delta T(s)}
- \;=\; \frac{\tau_i s + (1 + K_2 k_v)}{K_1\,(\tau_i s + 1)}.
+ \;=\; \frac{\tau_i s + (1 + \beta)}{G_0\,(\tau_i s + 1)}.
 \label{eq:comp_tf}
 \end{empheq}
 The roles of pole and zero are now swapped: the compensator has its
@@ -1390,16 +1397,19 @@ domain rather than as a state-update.
 
 \subsection{The Inflow-Softening Factor}\label{sec:linsoft}
 
-The DC gain \(K_1/(1+K_2k_v)\) varies with the trim point because
-\(k_v\propto 1/\bvi \propto 1/\sqrt{\bT}\). The factor \((1+K_2k_v)\) is the
-\emph{inflow softening factor}---softening is strongest at low thrust.
+The DC gain \(G_0/(1+\beta)\) varies with the trim point because
+\(k_v\propto 1/\bvi \propto 1/\sqrt{\bT}\). The factor \((1+\beta)\) is
+the \emph{inflow softening denominator}; softening is strongest at low
+thrust.
 
-A naive estimate computes \(K_2\) from \eqref{eq:K1K2} and \(k_v\)
-from \eqref{eq:kv} separately and multiplies. As noted in
-Section~\ref{ssec:lead_lag}, this overstates the coupling because the
-two factors are not independent at trim. A self-consistent value
-follows by closing the coupled BEMT--momentum system in hover and
-differentiating directly. In hover, the coupled equations are
+The coupling \(\beta\) was identified in \eqref{eq:beta_coupling} by
+combining the BEMT perturbation with the momentum-derived sensitivity
+\(k_v\). The same coupling can be derived more directly, without ever
+linearising about an explicit trim, by closing the coupled
+BEMT--momentum system in hover and differentiating the resulting
+implicit relation. The two routes agree, as they must, and the second
+makes the trim consistency manifest. In hover, the coupled equations
+are
 \begin{align}
 C_T &= \frac{\sigma a}{2}\!\left(\frac{\thetat}{3}-\frac{\lambda}{2}\right), \tag{BEMT}\\
 \lambda &= \sqrt{C_T/2}. \tag{Momentum}
@@ -1426,18 +1436,19 @@ Then
 = \frac{\sigma a}{6}\cdot\underbrace{\frac{1}{1+\dfrac{\sigma a}{16\lambda}}}_{S(\lambda)}.
 \label{eq:dCT_dtheta}
 \end{empheq}
-The factor \(\sigma a/6\) is the instantaneous (high-frequency) gain;
-\(S(\lambda)\) is the softening factor. Comparing with the linearised
-form \(S = 1/(1+K_2 k_v)\) from Section~\ref{ssec:lead_lag} identifies
-the self-consistent value of the coupling product as
+The factor \(\sigma a/6\) is the instantaneous (high-frequency) gain
+(non-dimensional form of \(G_0\)); \(S(\lambda)\) is the softening
+factor. Comparing with the linearised form \(S = 1/(1+\beta)\) from
+Section~\ref{ssec:lead_lag} confirms the closed form already given in
+\eqref{eq:beta_coupling}:
 \begin{empheq}[box=\fbox]{equation}
-K_2 k_v \big|_{\text{self-consistent}} \;=\; \frac{\sigma a}{16\,\lambda_h},
+\beta \;=\; \frac{\sigma a}{16\,\lambda_h},
 \qquad \lambda_h = \sqrt{C_T/2}.
-\label{eq:K2kv_consistent}
+\label{eq:beta_consistent}
 \end{empheq}
-This is the expression to use in design: it bakes in the trim
-consistency between \(K_2\) and \(k_v\) that a naive separate
-calculation would miss.
+This is the expression to use in design. It depends only on the
+aerodynamic group \(\sigma a\) and the trim inflow ratio
+\(\lambda_h\)---no separate evaluations of dimensional gains are needed.
 
 \subsection{Magnitude Across the Operating Envelope}\label{ssec:envelope}
 
@@ -1448,7 +1459,7 @@ For a 700 class tail rotor (\(\sigma=0.136\), \(a=5.7\), hover \(\bCT=0.0076\),
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{lcccc}
 \toprule
-Thrust & \(C_T\) & \(\lambda\) & \(K_2k_v=\sigma a/(16\lambda)\) & \(S(\lambda)\) \\
+Thrust & \(C_T\) & \(\lambda\) & \(\beta=\sigma a/(16\lambda)\) & \(S(\lambda)\) \\
 \midrule
 25\% hover  & 0.0019 & 0.031 & 1.58 & 0.39 \\
 50\% hover  & 0.0038 & 0.044 & 1.12 & 0.47 \\
@@ -1573,20 +1584,22 @@ analogue of the hover formula \eqref{eq:vh}.
 
 \paragraph{Pitch from command and state.}
 The instantaneous inverse \eqref{eq:inv_instant} reads
-\(\thetat = (\Tcmd + K_2(\vi+V_\infty))/K_1\). Substituting and grouping:
+\begin{equation*}
+\thetat \;=\; \frac{6\,\Tcmd}{\rho\At(\OmegaT\Rt)^2\,\sigma a}
+       \;+\; \frac{3(\vi+V_\infty)}{2\OmegaT\Rt}.
+\end{equation*}
+Substituting \(\Tcmd = T_{\text{ref}}u = 2\rho\At v_{\text{ref}}^2\,u\)
+and the velocity scalings, and using
+\(\lambda_{\text{ref}}=v_{\text{ref}}/(\OmegaT\Rt)\):
 \begin{equation}
-\thetat \;=\; \frac{T_{\text{ref}}}{K_1}\,u
-       \;+\; \frac{K_2\,v_{\text{ref}}}{K_1}\,(\hat{v}_i + \hat{V}_\infty).
+\thetat \;=\; \frac{12\,\lambda_{\text{ref}}^2}{\sigma a}\,u
+       \;+\; \frac{3\,\lambda_{\text{ref}}}{2}\,(\hat{v}_i + \hat{V}_\infty).
 \end{equation}
-Two dimensionless gains emerge. Using \(K_1, K_2\) from \eqref{eq:K1K2}:
+Two dimensionless gains emerge:
 \begin{align}
-A \;&\equiv\; \frac{T_{\text{ref}}}{K_1}
-   \;=\; \frac{2\rho\At\,v_{\text{ref}}^2 \cdot 6}{\rho\At(\OmegaT\Rt)^2\sigma a}
-   \;=\; \frac{12\,\lambda_{\text{ref}}^2}{\sigma a},
+A \;&\equiv\; \frac{12\,\lambda_{\text{ref}}^2}{\sigma a},
 \label{eq:nondim_A}\\[2pt]
-B \;&\equiv\; \frac{K_2\,v_{\text{ref}}}{K_1}
-   \;=\; v_{\text{ref}}\cdot\frac{3}{2\OmegaT\Rt}
-   \;=\; \frac{3\,\lambda_{\text{ref}}}{2},
+B \;&\equiv\; \frac{3\,\lambda_{\text{ref}}}{2},
 \label{eq:nondim_B}
 \end{align}
 giving the dimensionless pitch law
@@ -1714,12 +1727,14 @@ Section~\ref{sec:params}, evaluated at typical hover trims and a
 \toprule
 Quantity & 420\,mm & 550\,mm & 700\,mm \\
 \midrule
+\(C_T\)                                       & 0.0018--0.0098 & 0.0032--0.0128 & 0.0032--0.0128 \\
 \(\lambda_h\)                                & 0.03--0.07   & 0.04--0.08   & 0.04--0.08 \\
+\(\sigma\)                                    & 0.10--0.18  & 0.12--0.17  & 0.12--0.15 \\
 \(\sigma a\)                                  & 0.6--1.0    & 0.7--1.0    & 0.7--0.85 \\
 \(A\)                                         & 0.01--0.06  & 0.02--0.07  & 0.03--0.08 \\
 \(B\)                                         & 0.04--0.11  & 0.06--0.12  & 0.06--0.12 \\
-\(C\) at \(\Delta t=1\)~ms                    & 0.10--0.40  & 0.15--0.45  & 0.20--0.40 \\
-\(D\) [s]                                     & 0.06--0.20  & 0.07--0.20  & 0.07--0.20 \\
+\(C\)                                         & 0.10--0.40  & 0.15--0.45  & 0.20--0.40 \\
+\(D\)                                         & 0.06--0.20  & 0.07--0.20  & 0.07--0.20 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1765,10 +1780,11 @@ Per control tick, the dimensionless inverse computes:
 The stored constants are \(\{A,B,C,D\}\) and (if needed) whatever
 scaling the airspeed estimator uses for \(\hat{V}_\infty^{\text{aero}}\)
 and \(\hat{V}_\perp\). The state is one scalar, \(\hat{v}_i\). The
-quantities \(K_1\), \(K_2\), \(g_T\), \(g_v\), \(g_m\), \(g_\tau\),
-\(\rho\), \(\At\), \(\OmegaT\Rt\), \(\sigma\), \(a\), \(\Rt\), and
-\(\ell_t\) do not appear on the live control path: they participate only
-in the offline precomputation of the four coefficients.
+quantities \(\rho\), \(\At\), \(\OmegaT\Rt\), \(\sigma\), \(a\),
+\(\Rt\), \(\ell_t\), and the implementation gains \(g_T\), \(g_v\),
+\(g_m\), \(g_\tau\) of Section~\ref{sec:impl} do not appear on the live
+control path: they participate only in the offline precomputation of the
+four coefficients.
 
 \paragraph{Where the coefficients come from.}
 Two routes are available, and they can be combined.
@@ -1828,24 +1844,20 @@ each tick and then discarded.
 
 \paragraph{Fixed rotor parameters} (computed once, constant for given hardware):
 \begin{equation}
-K_1, \quad K_2, \quad \rho\At, \quad \Rt, \quad \ell_t,
+\rho\At,\quad \OmegaT\Rt,\quad \sigma a,\quad \Rt,\quad \ell_t,
 \end{equation}
-where \(K_1\) and \(K_2\) are the blade-element gains from
-Section~\ref{ssec:K1K2}, evaluated at the governed rotor speed:
-\begin{equation}
-K_1 = \frac{\rho\At(\OmegaT\Rt)^2\sigma a}{6},
-\qquad
-K_2 = \frac{\rho\At\OmegaT\Rt\sigma a}{4}.
-\label{eq:impl_K1K2_reminder}
-\end{equation}
-\(K_1\) converts pitch angle into thrust in a frozen wake; \(K_2\)
-converts through-disc velocity into the thrust loss that must be
-pitched back in. The product \(\rho\At\) is also needed separately
-because it sets the mass-flow scale in the momentum closure, and \(\Rt\)
-is needed by the Pitt--Peters time constant. The
-apparent-mass coefficient \(\kappa = 8/(3\pi) \approx 0.849\) is
-universal; it is shown explicitly in the equations below rather than
-treated as a tunable rotor parameter.
+where \(\rho\At\) sets the mass-flow scale in the momentum closure,
+\(\OmegaT\Rt\) is the tip speed held by the governor, \(\sigma a\) is the
+aerodynamic group from the BEMT thrust law \eqref{eq:linT}, \(\Rt\) is
+needed by the Pitt--Peters time constant, and \(\ell_t\) by the
+yaw-rate axial-flow contribution. In practice the algebra below collapses
+these into four pre-computed gains
+\((g_m, g_T, g_v, g_\tau)\) used directly on the live control path;
+\(\rho\), \(\At\), \(\OmegaT\), \(\Rt\), \(\sigma\), \(a\), and
+\(\ell_t\) appear only at build time. The apparent-mass coefficient
+\(\kappa = 8/(3\pi) \approx 0.849\) is universal and is shown
+explicitly in the equations below rather than treated as a tunable
+rotor parameter.
 
 \paragraph{Inputs} (provided each control tick):
 \begin{equation}
@@ -1900,7 +1912,8 @@ inflow target \(\viss\). Second, the current state \(\vi\), not
 \begin{empheq}[box=\fbox]{align}
 \Tcmd \;&=\; 2\rho\At\,\viss\sqrt{(V_\infty+\viss)^2 + V_\perp^2},
    \label{eq:impl_viss}\\[2pt]
-\thetat \;&=\; \tfrac{1}{K_1}\bigl[\Tcmd \;+\; K_2(\vi + V_\infty)\bigr],
+\thetat \;&=\; \frac{6\,\Tcmd}{\rho\At(\OmegaT\Rt)^2\,\sigma a}
+        \;+\; \frac{3\,(\vi + V_\infty)}{2\,\OmegaT\Rt},
    \label{eq:impl_theta}\\[2pt]
 \tau_i \;&=\; \frac{0.849\,\OmegaT\Rt}{4\,\OmegaT\,\vi}
         \;=\; \frac{0.849\,\Rt}{4\,\vi},
@@ -1932,23 +1945,22 @@ g_m = 2\rho\At.
 The symbol \(g_m\) is not a new physical mass; it is the area-scaled
 mass-density coefficient used by the actuator-disc momentum equation.
 
-The pitch update also never needs \(K_1\) and \(K_2\) separately. The
-commanded-thrust part uses
+The pitch update of \eqref{eq:impl_theta} has two coefficients. The
+commanded-thrust coefficient is
 \begin{equation}
 g_T
-= \frac{1}{K_1}
 = \frac{6}{\rho\At(\OmegaT\Rt)^2\sigma a}
 = \frac{12}{g_m(\OmegaT\Rt)^2\sigma a}.
 \label{eq:impl_gT}
 \end{equation}
-This expanded form shows exactly what is inside the thrust-to-pitch
+The expanded form shows exactly what is inside the thrust-to-pitch
 gain: air density and disc area, tip speed, solidity, and lift-curve
 slope.
 
-The velocity-compensation part uses
+The velocity-compensation coefficient is the kinematic factor of
+\eqref{eq:K2_K1_ratio}:
 \begin{equation}
 g_v
-= \frac{K_2}{K_1}
 = \frac{3}{2\OmegaT\Rt}.
 \label{eq:impl_gv}
 \end{equation}
@@ -1980,13 +1992,11 @@ be written in a form closer to firmware:
 \vi \;&\leftarrow\; \vi \;+\; g_\tau\,\vi\,(\viss - \vi).
    \label{eq:impl_visi_update_collapsed}
 \end{empheq}
-Thus a minimal implementation may store
-\((g_T,g_v,g_m,g_\tau)\) instead of \((K_1,K_2,\rho\At,\Rt)\). This is
-the useful collapse for the control loop: \(K_1\), \(K_2\), and the
-repeated \(2\rho\At\) factor disappear from the tick calculation, and
-\(\Rt\) and \(\Delta t\) are carried only through the precomputed
-discrete inflow-update gain
-\(g_\tau\).
+Thus a minimal implementation stores only the four pre-computed gains
+\((g_T,g_v,g_m,g_\tau)\). The dimensional rotor and air parameters
+\(\rho\), \(\At\), \(\OmegaT\Rt\), \(\sigma\), \(a\), \(\Rt\), and the
+loop period \(\Delta t\) all appear only at build time and disappear
+from the tick calculation entirely.
 
 \subsection{Common Simplifications}\label{ssec:impl_simplifications}
 
@@ -2037,9 +2047,9 @@ the envelope tables in Section~\ref{ssec:envelope}.
 Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update} are the
 deliverable of this note from a control-implementation standpoint.
 Concrete numerical values for the fixed rotor parameters
-\((K_1, K_2, \rho\At, \Rt, \ell_t)\), and representative magnitudes for the
-state \(\vi\) and the time constant \(\tau_i\) across the operating
-envelope, are tabulated in Section~\ref{sec:params}.
+\((\rho\At,\,\OmegaT\Rt,\,\sigma a,\,\Rt,\,\ell_t)\), and representative
+magnitudes for the state \(\vi\) and the time constant \(\tau_i\) across
+the operating envelope, are tabulated in Section~\ref{sec:params}.
 
 \subsection{Solving the Momentum Closure}\label{ssec:impl_solve}
 
@@ -2210,20 +2220,22 @@ Using \(\rho = \SI{1.225}{\kilogram\per\cubic\metre}\):
 Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
 \midrule
 \(\At\)      & Disc area [\si{\square\metre}]   & 0.020--0.031 & 0.031--0.045 & 0.057--0.066 \\
-\(K_1\)      & Pitch gain [N/rad]              & 25--150 & 50--180 & 130--275 \\
-\(K_2\)      & Inflow gain [N\,s/m]            & 0.4--1.3 & 0.8--1.7 & 1.6--2.6 \\
+\(G_0\)      & Frozen-wake gain [N/rad]        & 25--150 & 50--180 & 130--275 \\
+\(\sigma a\) & Aerodynamic group               & 0.6--1.0 & 0.7--1.0 & 0.7--0.85 \\
+\(\lambda_h\) & Hover inflow ratio             & 0.03--0.07 & 0.04--0.08 & 0.04--0.08 \\
 \(k_v\)      & Inflow sensitivity [m/(s\,N)]   & 1.0--3.7 & 0.5--1.6 & 0.25--0.75 \\
-\(K_2 k_v\)  & DC softening factor            & 0.8--2.8 & 0.6--1.9 & 0.5--1.5 \\
+\(\beta\)    & DC softening coupling           & 0.8--2.8 & 0.6--1.9 & 0.5--1.5 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent The dimensionless product \(K_2 k_v\) is in the range 0.5--3 across
-all three classes at typical operating points---a near-similarity result,
-since both \(K_2\) and \(k_v\) scale with comparable combinations of
-\(\rho\At\), \(\OmegaT\Rt\), and \(\bvi\). Smaller helicopters tend to operate
-at lower thrust per unit disc area (\(\lambda_h\) smaller), pushing
-\(K_2 k_v = \sigma a/(16\lambda_h)\) toward the upper end of the range.
+\noindent The dimensionless coupling \(\beta = \sigma a/(16\lambda_h)\) sits
+in the range 0.5--3 across all three classes at typical operating
+points---a near-similarity result, since \(\sigma a\) is constrained by
+two-bladed solidity and aerofoil choice and \(\lambda_h=\sqrt{C_T/2}\)
+is constrained by tail-rotor disc loading. Smaller helicopters tend to
+operate at lower thrust per unit disc area (\(\lambda_h\) smaller),
+pushing \(\beta\) toward the upper end of the range.
 
 \subsection{\texorpdfstring{Worked Example: 700 class}{Worked Example: 700 class}}\label{ssec:worked_example}
 
@@ -2240,13 +2252,13 @@ Hence
 \begin{align*}
 \bvi &= \sqrt{12/(2\cdot 1.225\cdot 0.0616)} = 8.92~\text{m/s},\\
 \tau_i &= 0.849\cdot 0.140/(4\cdot 8.92) \approx 3.3~\text{ms (Pitt--Peters)},\\
-K_1 &= \tfrac{1.225\cdot 0.0616\cdot 145^2\cdot 0.136\cdot 5.7}{6} = 206~\text{N/rad},\\
-K_2 &= \tfrac{1.225\cdot 0.0616\cdot 145\cdot 0.136\cdot 5.7}{4} = 2.13~\text{N\,s/m},\\
-k_v &= 1/(4\cdot 1.225\cdot 0.0616\cdot 8.92) = 0.372~\text{m/(s\,N)},\\
+\sigma a &= 0.136 \cdot 5.7 = 0.778,\\
 \lambda_h &= \bvi/(\OmegaT\Rt) = 8.92/145 = 0.0615,\\
-K_2k_v\big|_\text{consistent} &= \frac{\sigma a}{16\lambda_h} = \frac{0.778}{0.984} = 0.79.
+G_0 &= \tfrac{1.225\cdot 0.0616\cdot 145^2\cdot 0.778}{6} = 206~\text{N/rad},\\
+k_v &= 1/(4\cdot 1.225\cdot 0.0616\cdot 8.92) = 0.372~\text{m/(s\,N)},\\
+\beta &= \frac{\sigma a}{16\lambda_h} = \frac{0.778}{0.984} = 0.79.
 \end{align*}
-The DC softening factor is \(S = 1/(1+K_2k_v) = 0.56\): the steady-state
+The DC softening factor is \(S = 1/(1+\beta) = 0.56\): the steady-state
 thrust delivered for a given collective is about \(56\%\) of the
 open-loop (frozen-wake) value.
 
