@@ -2271,4 +2271,154 @@ geometric distance from the airframe yaw centre (close to the CG) to
 the tail-rotor hub; on machines with relocatable batteries or
 significant fuselage mass changes it shifts slightly with loadout.
 
+% =====================================================================
+\appendix
+\section{Example Helicopters}\label{app:helicopters}
+% =====================================================================
+
+This appendix lists nominal tail-rotor parameters for ten contemporary RC
+helicopters spanning the 450--700 class range. Values are drawn from
+manufacturer-published airframe and blade specifications and from
+representative 3D operating headspeeds. The tail radius \(\Rt\) is the
+swept radius (hub plus blade), the chord \(c\) is the nominal tail-blade
+chord supplied with the kit, and the moment arm \(\ell_t\) is the
+geometric distance from the main shaft to the tail hub, estimated from
+overall airframe length and main-shaft position where it is not directly
+published. The tail rotor angular speed \(\OmegaT\) is computed from a
+representative 3D main-rotor headspeed and the published main:tail gear
+ratio for each model. All listed tail rotors are two-bladed (\(N_b=2\)), so solidity reduces
+to \(\sigma=2c/(\pi\Rt)\); tip speed \(\OmegaT\Rt\) is derived. Flying mass is the manufacturer-stated
+all-up weight including battery and typical electronics.
+
+% ---- 450 class ----
+\subsection{450 class --- 325\,mm blades}\label{app:cls450}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Quantity & T-Rex 450 Pro & T-Rex 450 Sport & Blade 450 & Gaui X3 \\
+\midrule
+Main blade [mm]       & 325   & 325   & 325   & 325   \\
+Tail blade [mm]       & 62    & 62    & 58    & 62    \\
+Flying mass [kg]      & 0.75  & 0.75  & 0.75  & 0.75  \\
+\(\Rt\) [mm]          & 80    & 80    & 71    & 82    \\
+\(c\) [mm]            & 18    & 18    & 17    & 17    \\
+\(\ell_t\) [mm]       & 460   & 450   & 440   & 450   \\
+Headspeed [RPM]       & 3000  & 2800  & 2800  & 3000  \\
+Gear ratio (m:t)      & 4.08  & 4.24  & 4.66  & 4.69  \\
+Tail RPM              & 12240 & 11870 & 13050 & 14070 \\
+\(\OmegaT\) [rad/s]   & 1281  & 1243  & 1366  & 1473  \\
+\(\OmegaT\Rt\) [m/s]  & 102   & 99    & 97    & 121   \\
+\(\sigma\)            & 0.143 & 0.143 & 0.152 & 0.132 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ---- 420 class ----
+\subsection{420 class}\label{app:cls420}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Quantity & OMP M4 & OMP M4 Max & Goosky RS4 & SAB Goblin 420 & Steam AK420 \\
+\midrule
+Main blade [mm]       & 385   & 420   & 390   & 420   & 420   \\
+Tail blade [mm]       & 71    & 71    & 68    & 70    & 70    \\
+Flying mass [kg]      & 1.35  & 1.50  & 1.30  & 1.70  & 1.20  \\
+\(\Rt\) [mm]          & 90    & 95    & 93    & 95    & 95    \\
+\(c\) [mm]            & 20    & 20    & 20    & 20    & 20    \\
+\(\ell_t\) [mm]       & 550   & 560   & 550   & 580   & 550   \\
+Headspeed [RPM]       & 2850  & 2800  & 2900  & 3000  & 2800  \\
+Gear ratio (m:t)      & 4.70  & 4.70  & 4.70  & 4.00  & 4.05  \\
+Tail RPM              & 13400 & 13160 & 13630 & 12000 & 11340 \\
+\(\OmegaT\) [rad/s]   & 1400  & 1378  & 1430  & 1257  & 1188  \\
+\(\OmegaT\Rt\) [m/s]  & 126   & 131   & 133   & 119   & 113   \\
+\(\sigma\)            & 0.141 & 0.134 & 0.137 & 0.134 & 0.134 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ---- 500 class ----
+\subsection{500 class}\label{app:cls500}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Quantity & T-Rex 500 Pro & T-Rex 500X & Blade 500 & Goblin 500 \\
+\midrule
+Main blade [mm]       & 425   & 470   & 425   & 500   \\
+Tail blade [mm]       & 70    & 78    & 70    & 80    \\
+Flying mass [kg]      & 1.7   & 2.0   & 1.8   & 2.4   \\
+\(\Rt\) [mm]          & 103   & 110   & 99    & 113   \\
+\(c\) [mm]            & 22    & 22    & 20    & 22    \\
+\(\ell_t\) [mm]       & 580   & 620   & 600   & 680   \\
+Headspeed [RPM]       & 2700  & 2700  & 2500  & 2500  \\
+Gear ratio (m:t)      & 4.03  & 3.81  & 4.66  & 4.00  \\
+Tail RPM              & 10880 & 10290 & 11650 & 10000 \\
+\(\OmegaT\) [rad/s]   & 1140  & 1080  & 1220  & 1047  \\
+\(\OmegaT\Rt\) [m/s]  & 117   & 119   & 121   & 118   \\
+\(\sigma\)            & 0.136 & 0.127 & 0.129 & 0.124 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ---- 550 class ----
+\subsection{550 class}\label{app:cls550}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Quantity & T-Rex 550X & OMP M5 & Goosky RS5 & Goblin 570 & Logo 550 \\
+\midrule
+Main blade [mm]       & 550   & 550   & 550   & 570   & 550   \\
+Tail blade [mm]       & 95    & 95    & 95    & 95    & 100   \\
+Flying mass [kg]      & 3.3   & 2.3   & 3.5   & 3.2   & 3.0   \\
+\(\Rt\) [mm]          & 127   & 125   & 127   & 130   & 135   \\
+\(c\) [mm]            & 24    & 24    & 24    & 24    & 24    \\
+\(\ell_t\) [mm]       & 780   & 780   & 780   & 800   & 800   \\
+Headspeed [RPM]       & 2400  & 2400  & 2400  & 2300  & 2200  \\
+Gear ratio (m:t)      & 3.85  & 3.80  & 3.86  & 4.50  & 4.50  \\
+Tail RPM              & 9240  & 9120  & 9260  & 10350 & 9900  \\
+\(\OmegaT\) [rad/s]   & 968   & 955   & 970   & 1084  & 1037  \\
+\(\OmegaT\Rt\) [m/s]  & 123   & 119   & 123   & 141   & 140   \\
+\(\sigma\)            & 0.120 & 0.122 & 0.120 & 0.118 & 0.113 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ---- 700 class ----
+\subsection{700 class}\label{app:cls700}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Quantity & T-Rex 700 & OMP M7 & Goosky RS7 & Goblin 700 \\
+\midrule
+Main blade [mm]       & 700   & 715   & 700   & 690   \\
+Tail blade [mm]       & 105   & 106   & 105   & 105   \\
+Flying mass [kg]      & 5.0   & 5.3   & 5.0   & 5.0   \\
+\(\Rt\) [mm]          & 140   & 146   & 140   & 142   \\
+\(c\) [mm]            & 30    & 30    & 30    & 30    \\
+\(\ell_t\) [mm]       & 950   & 970   & 970   & 960   \\
+Headspeed [RPM]       & 2125  & 2050  & 2050  & 2050  \\
+Gear ratio (m:t)      & 4.66  & 4.70  & 4.70  & 4.90  \\
+Tail RPM              & 9900  & 9640  & 9640  & 10050 \\
+\(\OmegaT\) [rad/s]   & 1036  & 1010  & 1009  & 1052  \\
+\(\OmegaT\Rt\) [m/s]  & 145   & 147   & 141   & 149   \\
+\(\sigma\)            & 0.136 & 0.131 & 0.136 & 0.134 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
 \end{document}
