@@ -111,7 +111,7 @@ Symbol & Description & Units \\
 \toprule
 Symbol & Description & Units \\
 \midrule
-\(\thetat\)     & Blade collective pitch angle (control input)        & \si{\radian}\\
+\(\thetat\)     & Blade pitch angle (control input)                   & \si{\radian}\\
 \(U_T\)         & Tangential component of local flow at a blade section & \si{\metre\per\second}\\
 \(U_P\)         & Perpendicular (axial) component of local flow         & \si{\metre\per\second}\\
 \(\phi\)        & Local inflow angle, \(\phi\approx U_P/U_T\)           & \si{\radian}\\
@@ -280,7 +280,7 @@ near-quasi-steady thrust generator: its job is to balance the anti-torque of
 the main rotor and, via the pilot's pedal input, to provide directional control.
 On a radio-controlled (RC) model helicopter the same physics applies, but
 the rotor operates at much lower Reynolds number, much higher rotational
-speed, and with a single collective control. From a flight-control perspective,
+speed, and with a single pitch input. From a flight-control perspective,
 the relevant question is how the commanded blade pitch \(\thetat\) maps to the
 thrust \(\Tt\) actually produced, in both steady and transient conditions.
 
@@ -339,13 +339,16 @@ We model the tail rotor as \(N_b\) identical blades of length \(\Rt\)
 and chord \(c\), rotating at constant angular speed \(\OmegaT\) about a
 shaft, sweeping out a disc of area \(\At = \pi\Rt^2\). For an RC tail
 rotor \(N_b\) is typically 2; for full-scale tail rotors it may be 3
-or 4. The blades are set to a single \emph{collective} pitch
-\(\thetat\) common to all blades and to every azimuthal position. This
-is a meaningful simplification specific to tail rotors: main rotors
-additionally vary their pitch sinusoidally with azimuth (cyclic pitch)
-to control the disc's tilt, but tail rotors normally do not---they have
-only one degree of freedom, collective pitch, which acts as the thrust
-command.
+or 4. The blades are set to a single pitch \(\thetat\) common to all
+blades and to every azimuthal position. This is a meaningful
+simplification specific to tail rotors: main rotors additionally vary
+their pitch sinusoidally with azimuth (cyclic pitch) to control the
+disc's tilt, but tail rotors normally do not---they have only one
+degree of freedom, the blade pitch \(\thetat\), which acts as the
+thrust command. (We avoid the aerodynamic term \emph{collective}
+throughout: in RC helicopter usage ``collective'' refers exclusively
+to the main rotor's pitch input, so this document uses ``pitch'' or
+``blade pitch'' for the tail.)
 
 The blade-element idea is to chop each blade into thin radial strips
 of width \(dr\) at radial station \(r\), treat each strip as an
@@ -584,7 +587,7 @@ particular point---the linearity in \(\thetat\), \(\vi\), and
 
 \paragraph{Reading the two terms.} The first term, proportional to
 \(\thetat/3\), is the thrust the rotor would produce per radian of
-collective if no induced inflow developed: the open-loop or
+blade pitch if no induced inflow developed: the open-loop or
 ``frozen-wake'' pitch effectiveness, scaling as \((\OmegaT\Rt)^2\) (it
 is dynamic-pressure-like). The second, proportional to
 \((\vi+V_\infty)/(2\OmegaT\Rt)\), is the rate at which thrust is given
@@ -1528,19 +1531,22 @@ normalised range like \([0,1]\) or \([-1,1]\)---representing a fraction of
 the available yaw authority. The thrust appears only as a fiction inside
 the inverse, used to drive the BEMT and momentum algebra.
 
-This section recasts the inverse in dimensionless form, using a single
-implementer-chosen reference thrust to set the scale. After the
-substitution, the inverse collapses to three update equations carrying
-only four dimensionless coefficients. Every physical rotor and air
-parameter---\(\rho\), \(\At\), \(\OmegaT\), \(\Rt\), \(\sigma\), \(a\),
-\(\ell_t\)---appears \emph{only} through these four numbers. Two of them
-turn out to be of similar magnitude across helicopter size classes, which
-gives a measure of why hand-tuned tail controllers port reasonably well
-between machines and tells us exactly which numbers must be re-evaluated
-when porting and which need not. The full implementation in
-Section~\ref{sec:impl} retains the dimensional form for readers who want
-to see each quantity in its native units; the dimensionless form below is
-the one that an embedded controller would more naturally store.
+This section recasts the inverse in dimensionless form. The recipe is
+standard. First, pick one reference scale---here, a reference thrust
+\(T_{\text{ref}}\); every other quantity inherits a reference value
+from it by the same physics that defined it in the dimensional inverse
+(Section~\ref{ssec:nondim_refs}). Substituting these scaled forms into
+each equation of the inverse, the dimensional constants cancel and the
+inverse collapses to three update equations carrying just four
+dimensionless coefficients \((A,B,C,D)\)
+(Section~\ref{ssec:nondim_update}). Those four coefficients in turn
+depend on only a handful of size-invariant dimensionless groups; those
+groups, not the coefficients themselves, are the natural user-facing
+parameters (Section~\ref{ssec:nondim_exposed}). The full
+implementation in Section~\ref{sec:impl} retains the dimensional form
+for readers who want to see each quantity in its native units; the
+dimensionless form below is the one that an embedded controller would
+more naturally store.
 
 \subsection{Reference Scales}\label{ssec:nondim_refs}
 
@@ -1604,8 +1610,8 @@ analogue of the hover formula \eqref{eq:vh}.
 \paragraph{Pitch from command and state.}
 The instantaneous inverse \eqref{eq:inv_instant} reads
 \begin{equation*}
-\thetat \;=\; \frac{6\,\Tcmd}{\rho\At(\OmegaT\Rt)^2\,\sigma a}
-       \;+\; \frac{3(\vi+V_\infty)}{2\OmegaT\Rt}.
+\thetat \;=\; \frac{6}{\rho\At(\OmegaT\Rt)^2\,\sigma a}\,\Tcmd
+       \;+\; \frac{3}{2\,\OmegaT\Rt}\,(\vi+V_\infty).
 \end{equation*}
 Substituting \(\Tcmd = T_{\text{ref}}u = 2\rho\At v_{\text{ref}}^2\,u\)
 and the velocity scalings, and using
@@ -1615,23 +1621,33 @@ and the velocity scalings, and using
        \;+\; \frac{3\,\lambda_{\text{ref}}}{2}\,(\hat{v}_i + \hat{V}_\infty).
 \end{equation}
 Two dimensionless gains emerge:
-\begin{align}
+\begin{empheq}[box=\fbox]{align}
 A \;&\equiv\; \frac{12\,\lambda_{\text{ref}}^2}{\sigma a},
 \label{eq:nondim_A}\\[2pt]
 B \;&\equiv\; \frac{3\,\lambda_{\text{ref}}}{2},
 \label{eq:nondim_B}
-\end{align}
+\end{empheq}
 giving the dimensionless pitch law
-\begin{empheq}[box=\fbox]{equation}
+\begin{equation}
 \thetat \;=\; A\,u \;+\; B\,(\hat{v}_i + \hat{V}_\infty).
 \label{eq:nondim_pitch}
-\end{empheq}
+\end{equation}
 \(A\) is the pitch (in radians) demanded per unit command when the state
 and free-stream contributions are zero; \(B\) is the pitch demanded per
 unit dimensionless through-disc velocity. The right-hand expressions in
 \eqref{eq:nondim_A}--\eqref{eq:nondim_B} contain only \(\lambda_{\text{ref}}\)
 and \(\sigma a\); air density, disc area, tip speed, and every other
-dimensional constant of the rotor have cancelled.
+dimensional constant of the rotor have cancelled. Moreover, since both
+gains are built from the same two ingredients, they are not
+independent: eliminating \(\lambda_{\text{ref}}\) between
+\eqref{eq:nondim_A} and \eqref{eq:nondim_B} yields
+\begin{equation}
+\frac{A}{B^2} \;=\; \frac{16}{3\,\sigma a},
+\label{eq:nondim_AB_relation}
+\end{equation}
+so the pair \((A,B)\) carries exactly the information of
+\((\lambda_{\text{ref}},\sigma a)\)---one inflow-ratio number and one
+blade-loading number.
 
 \paragraph{Inflow state update.}
 The Pitt--Peters ODE \eqref{eq:vi_dot} with the state-scheduled time
@@ -1648,97 +1664,92 @@ and we are left with
 \end{equation}
 If time is measured in units of \(\tau_{\text{ref}}\) (i.e.\
 \(\tilde{t}\equiv t/\tau_{\text{ref}}\)) this equation becomes fully
-parameter-free; equivalently, when discretised with a control-loop period
-\(\Delta t\), the explicit-Euler update is
+parameter-free. Discretising with a control-loop period \(\Delta t\)
+introduces a single dimensionless gain
 \begin{empheq}[box=\fbox]{equation}
-\hat{v}_i \;\leftarrow\; \hat{v}_i \;+\; C\,\hat{v}_i\,(\hat{v}_{i,\text{ss}} - \hat{v}_i),
-\qquad
 C \;\equiv\; \frac{\Delta t}{\tau_{\text{ref}}}
-   \;=\; \frac{4\,v_{\text{ref}}\,\Delta t}{0.849\,\Rt}.
-\label{eq:nondim_state}
+   \;=\; \frac{4\,v_{\text{ref}}\,\Delta t}{0.849\,\Rt},
+\label{eq:nondim_C}
 \end{empheq}
+giving the explicit-Euler update
+\begin{equation}
+\hat{v}_i \;\leftarrow\; \hat{v}_i \;+\; C\,\hat{v}_i\,(\hat{v}_{i,\text{ss}} - \hat{v}_i).
+\label{eq:nondim_state}
+\end{equation}
 \(C\) is the only place the control-loop period \(\Delta t\) and the rotor
 radius \(\Rt\) enter the inverse.
 
 \paragraph{Yaw-rate contribution.}
 Finally, the axial-flow composition \(V_\infty = V_\infty^{\text{aero}} +
 \ell_t\dot\psi\) from \eqref{eq:Vinf_composition}, divided by
-\(v_{\text{ref}}\), becomes
+\(v_{\text{ref}}\), absorbs the geometric \(\ell_t\) into a scale factor
+with units of seconds
 \begin{empheq}[box=\fbox]{equation}
-\hat{V}_\infty \;=\; \hat{V}_\infty^{\text{aero}} \;+\; D\,\dot\psi,
-\qquad
 D \;\equiv\; \frac{\ell_t}{v_{\text{ref}}},
 \label{eq:nondim_D}
 \end{empheq}
-absorbing the geometric \(\ell_t\) into a scale factor with units of
-seconds. The airframe airspeed component \(\hat{V}_\infty^{\text{aero}}\)
-either arrives pre-non-dimensionalised from the airspeed estimator or is
-set to zero for near-hover use.
+giving the dimensionless yaw-rate scaling
+\begin{equation}
+\hat{V}_\infty \;=\; \hat{V}_\infty^{\text{aero}} \;+\; D\,\dot\psi.
+\label{eq:nondim_Vinf}
+\end{equation}
+The airframe airspeed component \(\hat{V}_\infty^{\text{aero}}\) either
+arrives pre-non-dimensionalised from the airspeed estimator or is set
+to zero for near-hover use.
 
 \paragraph{Summary.}
-The complete dimensionless inverse is the three boxed equations
+The complete dimensionless inverse is the three update equations
 \eqref{eq:nondim_momentum}, \eqref{eq:nondim_pitch}, and
-\eqref{eq:nondim_state}, with the yaw-rate scaling \eqref{eq:nondim_D} on
-the input side. The stored constants are
+\eqref{eq:nondim_state}, with the yaw-rate scaling \eqref{eq:nondim_Vinf}
+on the input side. The stored constants are
 \begin{equation}
 A,\quad B,\quad C,\quad D
 \label{eq:nondim_paramset}
 \end{equation}
 plus any constants used to non-dimensionalise the airspeed estimator's
 output (typically zero on tail rotors without airspeed). Every other
-physical parameter of the rotor and air has dropped out.
+physical parameter of the rotor and air has dropped out. Counting
+independent content: \(A\) and \(B\) together carry two numbers
+(\(\lambda_{\text{ref}}\) and \(\sigma a\), via
+\eqref{eq:nondim_AB_relation}); \(C\) brings the rotor radius and the
+loop period; \(D\) brings the moment arm.
 
-\subsection{Structure of the Coefficient Set}\label{ssec:nondim_relations}
-
-\(A\) and \(B\) are not independent: both are built from
-\(\lambda_{\text{ref}}\). Eliminating it,
+\paragraph{The steady command--pitch curve.}
+A useful by-product of the dimensionless pitch law is the steady
+response in pure hover. Setting \(\hat{v}_i = \hat{v}_{i,\text{ss}} =
+\sqrt{u}\) and \(\hat{V}_\infty = 0\) in \eqref{eq:nondim_pitch} gives
 \begin{equation}
-A \;=\; \frac{16}{3\,\sigma a}\,B^2,
-\qquad
-\frac{A}{B^2} \;=\; \frac{16}{3\,\sigma a}.
-\label{eq:nondim_AB_relation}
-\end{equation}
-So the pair \((A,B)\) carries exactly the information of
-\((\lambda_{\text{ref}},\sigma a)\); the implementation may store either
-form, whichever is more convenient for identification or tuning. \(C\)
-and \(D\) bring in two new dimensional quantities (\(\Rt\) and
-\(\ell_t\)) that neither \(A\) nor \(B\) sees, so they remain independent.
-
-A useful diagnostic: in steady hover, \(\hat{v}_i = \hat{v}_{i,\text{ss}}
-= \sqrt{u}\), \(\hat{V}_\infty = 0\), and \eqref{eq:nondim_pitch} reduces
-to a single steady command--pitch curve
-\begin{equation}
-\thetat^{\text{steady}}(u) \;=\; A\,u \;+\; B\,\sqrt{u}.
+\thetat^{\text{steady}}(u) \;=\; A\,u \;+\; B\,\sqrt{u},
 \label{eq:nondim_steady_curve}
 \end{equation}
-This curve depends on \((A,B)\) alone---neither \(C\) nor \(D\) appears.
-The state-update gain \(C\) only matters in transients; \(D\) only matters
-when the airframe yaws.
+which depends on \((A,B)\) alone---\(C\) only enters in transients,
+\(D\) only when the airframe yaws.
 
-\subsection{Scaling with Helicopter Size}\label{ssec:nondim_scaling}
+\subsection{Exposed Parameters}\label{ssec:nondim_exposed}
 
-Take \(T_{\text{ref}}=\bT\) so that the dimensionless command \(u=1\)
-corresponds to hover trim. Then \(v_{\text{ref}}=\bvi\),
-\(\lambda_{\text{ref}}=\lambda_h\), and \(\tau_{\text{ref}}=\tau_i\) is
-the hover Pitt--Peters constant. The four coefficients evaluate to
-\begin{equation}
-A = \frac{12\,\lambda_h^2}{\sigma a},\qquad
-B = \frac{3\,\lambda_h}{2},\qquad
-C = \frac{4\,\bvi\,\Delta t}{0.849\,\Rt},\qquad
-D = \frac{\ell_t}{\bvi}.
-\label{eq:nondim_coeffs_at_hover}
-\end{equation}
-For the worked 700-class example of Section~\ref{ssec:worked_example}
-(\(\lambda_h=0.0615\), \(\sigma a=0.775\), \(\bvi=8.92\) m/s, \(\Rt=0.140\)
-m, \(\ell_t=0.95\) m), a control loop at \(\Delta t=\SI{1}{\milli\second}\)
-gives
-\begin{equation}
-A\approx 0.059,\qquad B\approx 0.092,\qquad C\approx 0.30,\qquad D\approx 0.11~\text{s}.
-\label{eq:nondim_700_example}
-\end{equation}
-Tabulating estimated ranges across the three RC size classes of
-Section~\ref{sec:params}, evaluated at typical hover trims and a
-\(\Delta t=1\)-ms loop:
+For the purpose of exposing parameters that are not size-specific, we
+fix the implementer's choice to \(T_{\text{ref}} = \bT\) so that the
+dimensionless command \(u=1\) corresponds to hover trim. Then
+\(\lambda_{\text{ref}} = \lambda_h\) and \(v_{\text{ref}} = \bvi\), and
+we define three dimensionless groups:
+\begin{itemize}[leftmargin=*,itemsep=3pt,topsep=2pt]
+\item \(\btheta\) --- hover trim pitch. The tail-rotor blade pitch
+      measured at hover with the heli's nominal loadout, in degrees.
+      Directly visible on telemetry. The knob that
+      distinguishes a gently-loaded rotor from an
+      aggressively-loaded one, replacing any intermediate
+      aerodynamic quantity that would otherwise have to be computed
+      or assumed.
+\item \(\sigma a\) --- blade loading parameter. Lift produced per
+      radian of pitch, normalised by disc area. Default
+      \(\sigma a \approx 0.8\) for a two-bladed symmetric tail rotor;
+      adjustment is only needed for non-standard blades.
+\item \(\ell_t/\Rt\) --- boom-to-tail-radius ratio. How far behind
+      the airframe yaw centre the tail sits, in tail radii. Default
+      \(\ell_t/\Rt \approx 7\).
+\end{itemize}
+Typical ranges across the three RC size classes of
+Section~\ref{sec:params}, at hover trim:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.15}
@@ -1746,92 +1757,44 @@ Section~\ref{sec:params}, evaluated at typical hover trims and a
 \toprule
 Quantity & 420\,mm & 550\,mm & 700\,mm \\
 \midrule
-\(C_T\)                                       & 0.0018--0.0098 & 0.0032--0.0128 & 0.0032--0.0128 \\
-\(\lambda_h\)                                & 0.03--0.07   & 0.04--0.08   & 0.04--0.08 \\
-\(\sigma\)                                    & 0.10--0.18  & 0.12--0.17  & 0.12--0.15 \\
-\(\sigma a\)                                  & 0.6--1.0    & 0.7--1.0    & 0.7--0.85 \\
-\(A\)                                         & 0.01--0.06  & 0.02--0.07  & 0.03--0.08 \\
-\(B\)                                         & 0.04--0.11  & 0.06--0.12  & 0.06--0.12 \\
-\(C\)                                         & 0.10--0.40  & 0.15--0.45  & 0.20--0.40 \\
-\(D\)                                         & 0.06--0.20  & 0.07--0.20  & 0.07--0.20 \\
+\(\btheta\) [deg]   & 4--10          & 5--12          & 5--12          \\
+\(\sigma a\)        & 0.6--1.0       & 0.7--1.0       & 0.7--0.85      \\
+\(\ell_t/\Rt\)      & 4.5--7.5       & 5.4--8.0       & 5.9--7.4       \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent The ranges overlap substantially. The reason is structural:
-\(\lambda_h=\sqrt{C_T/2}\) stays in a fairly narrow band because tail
-rotors across the hobby converge on similar disc loading and tip speed
-(the first constrained by yaw authority and weight, the second by tip
-Mach and noise); \(\sigma a\) is similarly constrained because two-bladed
-solidity scales weakly with size. \(D=\ell_t/\bvi\) is nearly invariant
-because \(\ell_t\) and \(\bvi\) both grow with machine size in roughly
-the same proportion. \(C\) varies more, mainly through \(\bvi/\Rt\), but
-remains within a factor of about three across the range.
+\noindent The bands overlap heavily across all three classes; each
+exposed parameter varies by under a factor of three across the
+envelope. \(\btheta\) is directly observable on telemetry, \(\sigma a\)
+is nearly fixed by blade type (two-bladed symmetric foil), and
+\(\ell_t/\Rt\) by airframe convention---so in practice only
+\(\btheta\) is set per flight, the other two from their defaults.
 
-The practical consequence is that a controller tuned for one class, when
-expressed in the dimensionless coefficients \((A,B,C,D)\), requires only
-modest re-tuning to port to another. The order-of-magnitude size
-dependence---tip speed squared, disc area, mass-flow scale---has been
-absorbed into the choice of \(T_{\text{ref}}\). What is left in
-\((A,B,C,D)\) is what genuinely changes from one rotor to another:
-geometry ratios and the inflow ratio at trim.
-
-\subsection{What the Firmware Actually Needs}\label{ssec:nondim_firmware}
-
-Per control tick, the dimensionless inverse computes:
-\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
-\item Compose the dimensionless axial flow:
-      \(\hat{V}_\infty = \hat{V}_\infty^{\text{aero}} + D\,\dot\psi\),
-      where \(\dot\psi\) comes from the gyro. The airspeed term is zero
-      in near-hover applications.
-\item Solve \eqref{eq:nondim_momentum} for \(\hat{v}_{i,\text{ss}}\). In
-      hover, \(\hat{v}_{i,\text{ss}}=\sqrt{u}\). With axial or edgewise
-      flow, two Newton iterations on the dimensionless residual
-      \(f(\hat{v}_{i,\text{ss}})=\hat{v}_{i,\text{ss}}\sqrt{(\hat{V}_\infty
-      + \hat{v}_{i,\text{ss}})^2 + \hat{V}_\perp^2} - u\) suffice, by the
-      same argument as Section~\ref{ssec:impl_solve}.
-\item Emit the pitch \(\thetat = A\,u + B\,(\hat{v}_i + \hat{V}_\infty)\)
-      from \eqref{eq:nondim_pitch}.
-\item Advance the state
-      \(\hat{v}_i \leftarrow \hat{v}_i + C\,\hat{v}_i(\hat{v}_{i,\text{ss}}
-      - \hat{v}_i)\) from \eqref{eq:nondim_state}.
-\end{enumerate}
-The stored constants are \(\{A,B,C,D\}\) and (if needed) whatever
-scaling the airspeed estimator uses for \(\hat{V}_\infty^{\text{aero}}\)
-and \(\hat{V}_\perp\). The state is one scalar, \(\hat{v}_i\). The
-quantities \(\rho\), \(\At\), \(\OmegaT\Rt\), \(\sigma\), \(a\),
-\(\Rt\), and \(\ell_t\) do not appear on the live control path: they
-participate only in the offline precomputation of the four coefficients.
-
-\paragraph{Where the coefficients come from.}
-Two routes are available, and they can be combined.
-\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=2pt]
-\item \emph{Computed from physical parameters.} Given \(\Rt\), \(c\),
-      \(N_b\), \(\OmegaT\), \(\ell_t\), \(\rho\), and a chosen
-      \(T_{\text{ref}}\), the constants \(\sigma\), \(v_{\text{ref}}\),
-      \(\lambda_{\text{ref}}\) follow directly, and then
-      \((A,B,C,D)\) from \eqref{eq:nondim_A}--\eqref{eq:nondim_B},
-      \eqref{eq:nondim_state}, \eqref{eq:nondim_D}. This is the sizing
-      route: it uses the modelling of
-      Sections~\ref{sec:bemt}--\ref{sec:inflow} as a calculator.
-\item \emph{Identified from data.} The steady curve
-      \(\thetat^{\text{steady}}(u)=A\,u+B\,\sqrt{u}\) from
-      \eqref{eq:nondim_steady_curve} is a two-parameter fit to bench or
-      hover-trim data, immediately yielding \((A,B)\). The transient
-      response to a step command identifies \(C\). \(D\) is identified
-      from the change in pitch demand during a constant-thrust yaw
-      sweep, or computed from \(\ell_t\) and the already-known
-      \(v_{\text{ref}}\).
-\end{enumerate}
-The identification route sidesteps the most awkwardly-known inputs to
-\eqref{eq:nondim_coeffs_at_hover}---blade chord, lift-curve slope,
-effective disc area---and replaces them with directly measurable
-input--output behaviour. The structural identity
-\(A/B^2=16/(3\sigma a)\) from \eqref{eq:nondim_AB_relation} also gives a
-useful consistency check between the two routes: an identified
-\((A,B)\) pair implies a value of \(\sigma a\), which should match the
-geometric estimate to within the modelling assumptions of
-Section~\ref{ssec:bemt_assumptions}.
+\paragraph{Computing the stored coefficients from the exposed
+parameters.}
+With the tail rotor speed \(\OmegaT\) already configured by the
+governor, the firmware converts \(\btheta\) (in radians) to the
+hover inflow ratio by inverting the steady-curve relation
+\((12/\sigma a)\,\lambda_h^2 + (3/2)\,\lambda_h - \btheta = 0\),
+taking the positive root:
+\begin{equation}
+\lambda_h \;=\; \frac{\sigma a}{24}\!
+              \left(\,-\frac{3}{2}
+              \;+\; \sqrt{\frac{9}{4} + \frac{48\,\btheta}{\sigma a}}\,\right).
+\label{eq:nondim_lambda_h_from_theta}
+\end{equation}
+The stored coefficients then follow as
+\begin{equation}
+A = \frac{12\,\lambda_h^2}{\sigma a},\quad
+B = \frac{3\,\lambda_h}{2},\quad
+C = \frac{\Delta t}{\tau_i}\ \text{with}\ \tau_i = \frac{0.849}{4\,\lambda_h\,\OmegaT},\quad
+D = \frac{\ell_t/\Rt}{\lambda_h\,\OmegaT}.
+\label{eq:nondim_ABCD_from_exposed}
+\end{equation}
+The firmware loop period \(\Delta t\) is a firmware constant; any
+unit conversion of \(\btheta\) from degrees to radians happens
+before \eqref{eq:nondim_lambda_h_from_theta}.
 
 % =====================================================================
 \section{Control Loop Implementation}\label{sec:impl}
@@ -1865,9 +1828,8 @@ and loop rate):
 A,\quad B,\quad C,\quad D,
 \end{equation}
 the four dimensionless coefficients of Section~\ref{sec:nondim}. They are
-derived from the physical rotor properties via
-\eqref{eq:nondim_coeffs_at_hover} at build time, or identified from
-bench/flight data using the steady curve \eqref{eq:nondim_steady_curve}.
+derived from the exposed parameters of Section~\ref{ssec:nondim_exposed}
+via \eqref{eq:nondim_ABCD_from_exposed} at build time.
 On the live control path the dimensional parameters
 \(\rho\), \(\At\), \(\OmegaT\), \(\Rt\), \(\sigma\), \(a\), and
 \(\ell_t\) appear nowhere. The control-loop period \(\Delta t\) and the
@@ -2011,10 +1973,8 @@ quantified using the envelope tables in Section~\ref{ssec:envelope}.
 Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update}, together
 with the four coefficients \(A, B, C, D\) of Section~\ref{sec:nondim},
 are the deliverable of this note from a control-implementation
-standpoint. Concrete numerical ranges for \(A, B, C, D\) across the RC
-size classes appear in the table of
-Section~\ref{ssec:nondim_scaling}; representative magnitudes for the
-underlying physical parameters appear in Section~\ref{sec:params}.
+standpoint. Representative magnitudes for the underlying physical
+parameters appear in Section~\ref{sec:params}.
 
 \subsection{Solving the Momentum Closure}\label{ssec:impl_solve}
 
@@ -2228,7 +2188,7 @@ k_v &= 1/(4\cdot 1.225\cdot 0.0616\cdot 8.92) = 0.372~\text{m/(s\,N)},\\
 \beta &= \frac{\sigma a}{16\lambda_h} = \frac{0.778}{0.984} = 0.79.
 \end{align*}
 The DC softening factor is \(S = 1/(1+\beta) = 0.56\): the steady-state
-thrust delivered for a given collective is about \(56\%\) of the
+thrust delivered for a given blade pitch is about \(56\%\) of the
 open-loop (frozen-wake) value.
 
 \paragraph{Yaw-rate contribution.}
