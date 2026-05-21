@@ -1905,8 +1905,7 @@ The only implicit step is \eqref{eq:impl_viss}, a scalar solve for
 \(\hat v_{i,\text{ss}}\). In hover it has a closed form
 (\(\hat v_{i,\text{ss}} = \sqrt{u}\)); with axial or edgewise flow it
 can be solved with a few Newton iterations because the positive
-working-state branch is one-dimensional (see
-Section~\ref{ssec:impl_solve}). The pitch equation
+working-state branch is one-dimensional. The pitch equation
 \eqref{eq:impl_theta} then uses \(\hat v_i\), not
 \(\hat v_{i,\text{ss}}\), because pitch must cancel the inflow that
 exists at the blade element now. The update
@@ -1975,116 +1974,6 @@ with the four coefficients \(A, B, C, D\) of Section~\ref{sec:nondim},
 are the deliverable of this note from a control-implementation
 standpoint. Representative magnitudes for the underlying physical
 parameters appear in Section~\ref{sec:params}.
-
-\subsection{Solving the Momentum Closure}\label{ssec:impl_solve}
-
-The implicit step \eqref{eq:impl_viss} is the only piece of the inner
-loop that is not algebraic. When both \(\hat V_\infty\) and
-\(\hat V_\perp\) are nonzero the simplifications of
-Section~\ref{ssec:impl_simplifications} no longer apply and a scalar
-solve is required each tick. This subsection specifies an iteration that
-fits comfortably on a Cortex-M-class FPU: a closed-form warm start
-followed by a fixed, small number of Newton steps with no convergence
-test and no flight-regime branching.
-
-\paragraph{Problem and residual.}
-Working with the dimensionless command \(u\) directly, define
-\begin{equation}
-W(\hat v_{i,\text{ss}}) \;\equiv\;
-\sqrt{(\hat V_\infty + \hat v_{i,\text{ss}})^2 + \hat V_\perp^2},
-\qquad
-f(\hat v_{i,\text{ss}}) \;\equiv\;
-\hat v_{i,\text{ss}}\,W(\hat v_{i,\text{ss}}) \;-\; u.
-\label{eq:impl_solve_residual}
-\end{equation}
-\(W\) is the dimensionless resultant velocity at the disc (the
-non-dimensional form of the actuator-disc \(U_\text{disc}\) from
-Section~\ref{ssec:edgewise_flow}). On the smooth-wake working branch
-\(\hat V_\infty + \hat v_{i,\text{ss}}\ge 0\) the residual satisfies
-\(f(0) = -u < 0\), \(f \to +\infty\) as \(\hat v_{i,\text{ss}} \to \infty\),
-and \(f\) is strictly increasing, so the root is unique. Its derivative
-is clean,
-\begin{equation}
-\frac{df}{d\hat v_{i,\text{ss}}}
-\;=\;
-\frac{(\hat V_\infty + \hat v_{i,\text{ss}})(\hat V_\infty + 2\hat v_{i,\text{ss}}) + \hat V_\perp^2}{W(\hat v_{i,\text{ss}})},
-\label{eq:impl_solve_dresidual}
-\end{equation}
-costing one square root and one division per evaluation.
-
-\paragraph{Warm start.}
-Use the axial-quadratic closed form
-\eqref{eq:impl_viss_axial} as the initial guess:
-\begin{equation}
-\hat v_{i,\text{ss}}^{(0)}
-\;=\;
-\frac{-\hat V_\infty + \sqrt{\hat V_\infty^{\,2} + 4u}}{2}.
-\label{eq:impl_solve_warm}
-\end{equation}
-This is \emph{exact} whenever \(\hat V_\perp = 0\) and is a strictly
-better starting point than the hover form \(\sqrt{u}\) whenever
-\(\hat V_\infty\) is appreciable. Cost: one extra square root at
-warm-start time, paid back several times over by reduced iteration
-count.
-
-\paragraph{Newton update.}
-Apply \(N\) fixed iterations of
-\begin{equation}
-\hat v_{i,\text{ss}}^{(n+1)}
-\;=\;
-\hat v_{i,\text{ss}}^{(n)} - \frac{f\!\left(\hat v_{i,\text{ss}}^{(n)}\right)}{df/d\hat v_{i,\text{ss}}\!\left(\hat v_{i,\text{ss}}^{(n)}\right)},
-\label{eq:impl_solve_newton}
-\end{equation}
-with \(f\) and \(df/d\hat v_{i,\text{ss}}\) from
-\eqref{eq:impl_solve_residual}--\eqref{eq:impl_solve_dresidual}.
-Convergence is quadratic from \eqref{eq:impl_solve_warm}. Numerical
-sweeps across a representative envelope spanning the Section~\ref{sec:params}
-classes give the following worst-case errors relative to a
-high-precision reference solver:
-\begin{center}
-\begin{tabular}{ccc}
-\hline
-\(N\) & worst \(|f|\) & worst \(|\hat v_{i,\text{ss}} - \hat v_{i,\text{ss}}^\star|\) \\
-\hline
-1 & \(\sim 5\times10^{-2}\) & \(\sim 3\times10^{-2}\) \\
-2 & \(\sim 6\times10^{-4}\) & \(\sim 4\times10^{-4}\) \\
-3 & \(\sim 10^{-7}\) & \(\sim 5\times10^{-8}\) \\
-\hline
-\end{tabular}
-\end{center}
-Two iterations bring the residual several orders of magnitude below any
-practical command-resolution noise floor and are the recommended choice
-for the inner loop. The worst-case point is consistently the
-full-sideways-translation corner
-(\(\hat V_\perp\) large, \(\hat V_\infty=0\)), where the warm start
-\eqref{eq:impl_solve_warm} carries no information about
-\(\hat V_\perp\) and Newton has the most work to do.
-
-\paragraph{Cost and timing.}
-The complete solve is three square roots (one in
-\eqref{eq:impl_solve_warm}, one per Newton evaluation of \(W\) and
-\(df/d\hat v_{i,\text{ss}}\)) plus three divisions and roughly twenty
-floating-point multiply-add operations, all on a fixed code path. On a
-single-precision Cortex-M7 FPU this is in the low-hundreds of
-cycles---negligible compared to the \(\Delta t\) of a kilohertz inner
-loop. The fixed iteration count and absence of conditional branches
-give a predictable worst-case execution time.
-
-\paragraph{Against-thrust guard.}
-The smooth-wake momentum closure \eqref{eq:impl_viss} loses uniqueness
-when \(\hat V_\infty + \hat v_{i,\text{ss}} < 0\), corresponding to a
-sustained \emph{against-thrust} pirouette in which the airframe rotates
-opposite to the sense the tail rotor's thrust is pushing it. The rotor
-then operates in the windmill-brake or vortex-ring state and the model
-of Section~\ref{ssec:yaw_rate_axial} is no longer valid. The warm start
-\eqref{eq:impl_solve_warm} can also fall on the wrong root in this
-regime, and Newton from it may overshoot to a non-physical value. A
-practical implementation should test \(\hat V_\infty\) (or the
-warm-start branch condition
-\(\hat V_\infty + \hat v_{i,\text{ss}}^{(0)} \ge 0\)) before calling the
-solve; if the test fails, fall back to a frozen-wake pitch via
-\eqref{eq:impl_theta} using the current lag state \(\hat v_i\) and skip
-the inflow update for that tick.
 
 % =====================================================================
 \section{Parameter Ranges for RC Tail Rotors}\label{sec:params}
