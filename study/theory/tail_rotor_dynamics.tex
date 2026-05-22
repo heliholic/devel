@@ -1734,7 +1734,7 @@ inflow model \eqref{eq:viss_of_T}--\eqref{eq:tau_of_vi} is a complete
 nonlinear dynamic inversion of the tail-rotor plant. This section
 collects those equations into a compact form suitable for direct
 implementation in an inner control loop: first the small set of
-exposed parameters a builder configures and the build-time map from
+exposed parameters a builder configures and the initialisation-time map from
 those parameters to the four stored coefficients \((A,B,C,D)\)
 (Section~\ref{ssec:impl_exposed}); then the live-tick separation of
 fixed coefficients, inputs, state, and outputs
@@ -1753,7 +1753,7 @@ Section~\ref{sec:nondim} reduced the loop to four dimensionless
 coefficients \((A,B,C,D)\), but the firmware still has to choose those
 numbers. Rather than expose the coefficients directly, we expose a
 smaller set of more physically intuitive quantities and compute
-\((A,B,C,D)\) from them at build time.
+\((A,B,C,D)\) from them at initialisation time.
 
 We fix the implementer's choice of reference scale to
 \(T_{\text{ref}} = \bT\), so that the dimensionless command \(u=1\)
@@ -1762,8 +1762,9 @@ and \(v_{\text{ref}} = \bvi\), and the exposed parameters are three
 dimensionless groups:
 \begin{itemize}[leftmargin=*,itemsep=3pt,topsep=2pt]
 \item \(\btheta\) --- hover trim pitch. The tail-rotor blade pitch
-      measured at hover with the heli's nominal loadout, in degrees.
-      Directly visible on telemetry. The knob that
+      measured at hover with the heli's nominal loadout, in degrees,
+      at the nominal governed headspeed \(\OmegaT\). Directly visible
+      on telemetry. The knob that
       distinguishes a gently-loaded rotor from an
       aggressively-loaded one, replacing any intermediate
       aerodynamic quantity that would otherwise have to be computed
@@ -1831,13 +1832,21 @@ C = \frac{\Delta t}{\tau_i}\ \text{with}\ \tau_i = \frac{0.849}{4\,\lambda_h\,\O
 D = \frac{\ell_t/\Rt}{\lambda_h\,\OmegaT}.
 \label{eq:nondim_ABCD_from_exposed}
 \end{equation}
-The firmware loop period \(\Delta t\) is a firmware constant, and the
-governor sets \(\OmegaT\); any unit conversion of \(\btheta\) from
-degrees to radians happens before \eqref{eq:nondim_lambda_h_from_theta}.
+The firmware loop period \(\Delta t\) is a firmware constant, and
+\(\OmegaT\) is the nominal governed rotor speed---a configuration-time
+constant taken equal to the governor's setpoint, the same headspeed
+at which \(\btheta\) was observed. Any unit conversion of \(\btheta\)
+from degrees to radians happens before
+\eqref{eq:nondim_lambda_h_from_theta}. The map
+\eqref{eq:nondim_lambda_h_from_theta}--\eqref{eq:nondim_ABCD_from_exposed}
+is evaluated once, at initialisation time, and \((A,B,C,D)\) are stored;
+\(\OmegaT\) is not consulted again on the live control path. Runtime
+deviations of the actual rotor speed from \(\OmegaT\) (governor sag,
+transients) are analysed in Section~\ref{ssec:param_sensitivity}.
 
 \subsection{Parameters, Inputs, State, Outputs}\label{ssec:impl_ios}
 
-With the build-time mapping of Section~\ref{ssec:impl_exposed} settled,
+With the initialisation-time mapping of Section~\ref{ssec:impl_exposed} settled,
 what remains is the live-tick specification: what arrives each tick,
 what carries over between ticks, what is recomputed and discarded, and
 what is emitted to the servo. In what follows, ``state'' means a value
@@ -1985,7 +1994,7 @@ Section~\ref{ssec:impl_exposed} reduced the loop's tunables to three
 exposed parameters: hover trim pitch \(\btheta\), blade loading
 parameter \(\sigma a\), and boom-to-tail-radius ratio
 \(\ell_t/\Rt\). The stored coefficients \((A,B,C,D)\) are derived
-from them at build time via
+from them at initialisation time via
 \eqref{eq:nondim_lambda_h_from_theta}--\eqref{eq:nondim_ABCD_from_exposed}.
 This section answers three practical questions about those three
 numbers: what values are typical across heli sizes
@@ -2054,7 +2063,9 @@ classes.
 
 \subsection{Sensitivity to Parameter Errors}\label{ssec:param_sensitivity}
 
-How tolerant is the loop to a wrong value in each exposed parameter?
+How tolerant is the loop to a wrong value in each stored parameter
+(the three exposed parameters of Section~\ref{ssec:impl_exposed} and
+the governor-sourced rotor speed \(\OmegaT\))?
 Implicit differentiation of the static
 quadratic~\eqref{eq:nondim_lambda_h_from_theta}, using
 \(\partial f/\partial\lambda_h = (2A+B)/\lambda_h\) and writing
@@ -2099,19 +2110,23 @@ sensitivities of the stored coefficients:
 The first row is dominated by \(A\), which is quadratic in
 \(\lambda_h\); the second row is muted because the response of
 \(\lambda_h\) to \(\sigma a\) is roughly cancelled by the explicit
-\(\sigma a\) in the denominator of \(A=12\lambda_h^2/\sigma a\).
-Crucially, the \emph{hover static gain is invariant}: by construction
-\(A+B=\btheta\) at \(u=1\), regardless of how \(\sigma a\) splits the
-sum between the two coefficients. Errors in the exposed parameters
-therefore appear only off-hover (in the curvature of the command--pitch
-map set by the \(Au\) term) and in the dynamics (the inflow lag set
-by \(C\) and the yaw-rate axial coupling set by \(D\)).
+\(\sigma a\) in the denominator of \(A=12\lambda_h^2/\sigma a\). The
+third and fourth rows are exact---\(\ell_t/\Rt\) and \(\OmegaT\)
+enter only the dynamic coefficients \(D\) (and, for \(\OmegaT\), also
+\(C\)) and do not perturb \(A\) or \(B\) at all. Crucially, the
+\emph{hover static gain is invariant}: by construction \(A+B=\btheta\)
+at \(u=1\), regardless of how \(\sigma a\) splits the sum between the
+two coefficients and independent of \(\ell_t/\Rt\) or \(\OmegaT\).
+Errors in the stored parameters therefore appear only off-hover (in
+the curvature of the command--pitch map set by the \(Au\) term) and
+in the dynamics (the inflow lag set by \(C\) and the yaw-rate axial
+coupling set by \(D\)).
 
 \begin{itemize}[leftmargin=*,itemsep=4pt,topsep=2pt]
-\item \(\btheta\) is the most influential of the three parameters,
-but also the easiest to set correctly: it is observed directly on
-telemetry during a stationary hover. A 10--20\% error is unlikely
-once a single hover trim has been read.
+\item \(\btheta\) is the most influential of the three user-tunable
+parameters, but also the easiest to set correctly: it is observed
+directly on telemetry during a stationary hover. A 10--20\% error is
+unlikely once a single hover trim has been read.
 \item \(\sigma a\) has weak effect. A coarse default of 0.75--0.80
 covers all two-bladed symmetric-foil tail rotors to better than 5\%
 on the stored coefficients, and the static hover relation is
@@ -2123,12 +2138,59 @@ a 600\,\si{\degree\per\second} 3D pirouette
 \(\ell_t/\Rt\) corresponds to roughly a 1~m/s error in the effective
 axial flow, perturbing the operating point without destabilising the
 loop.
-\item \(\OmegaT\) is not tuned: it is read live from the governor
-each tick, so steady-state error is zero by construction. Headspeed
-sag during high-load segments transiently lowers \(C\) (slower
-inflow update) and raises \(D\) (more axial flow per rotor
-revolution); both effects are physically correct.
+\item \(\OmegaT\) is the nominal governed rotor speed, taken from the
+rotor governor's configured setpoint rather than tuned independently.
+It enters only the dynamic coefficients (\(C\) linearly, \(D\)
+inversely) and leaves the hover static gain untouched. The standing
+headspeed should be re-entered---and \(\btheta\) re-observed---if the
+governor target changes by more than \(\sim 10\%\); runtime deviations
+of the actual rotor speed from this stored value are analysed in the
+dedicated paragraph below.
 \end{itemize}
+
+\paragraph{Runtime deviations of the actual rotor speed.}
+The stored \((A,B,C,D)\) freeze \(\OmegaT\) at its nominal value.
+The actual rotor speed deviates from this on at least two timescales:
+brief headspeed sag during high-load segments (autorotation entries,
+heavy collective pumps, sharp yaw demands) and slower drift in the
+governor's standing target between flights. Writing
+\(\OmegaT^{\text{act}} = (1+\epsilon)\,\OmegaT\) with \(\epsilon\) the
+fractional deviation, three effects appear:
+\begin{itemize}[leftmargin=*,itemsep=4pt,topsep=2pt]
+\item \emph{Frozen-wake gain.} BEMT thrust at fixed pitch scales as
+\((\OmegaT\Rt)^2\) (eq.~\eqref{eq:linT}), so the actual rotor
+delivers \((1+\epsilon)^2\approx 1+2\epsilon\) times the nominal
+thrust for the pitch command the inverse produces. A 10\% sag is
+therefore a \(\sim 20\%\) DC plant-gain shortfall---comparable to
+the inflow-softening variation across the operating envelope
+(Section~\ref{ssec:envelope}) and absorbed by the outer yaw loop's
+integral action.
+\item \emph{Inflow lag.} The wake-relaxation time constant
+\(\tau_i = 0.849/(4\,\lambda_i\,\OmegaT)\) shortens roughly linearly
+with \(\OmegaT^{\text{act}}\) (eq.~\eqref{eq:tau_i}), so the actual
+\(\tau_i\) is \((1-\epsilon)\) times its nominal value. The stored
+\(C\) over-discretises by the same fraction, slightly slowing the
+state's chase of \(\hat v_{i,\text{ss}}\); the effect is small and
+of correct sign in the lead--lag analysis.
+\item \emph{Yaw-rate axial flow.} The dimensional contribution
+\(\ell_t\dot\psi\) does not depend on \(\OmegaT\) at all, and \(D\)
+was computed once with the nominal \(\OmegaT\); the stored
+\(\hat V_\infty = D\,\dot\psi\) therefore mis-states the
+non-dimensional axial flow at the actual operating point by the
+fractional change in \(v_{\text{ref}}\) (itself proportional to
+\(\OmegaT\) through \(v_h=\lambda_h\OmegaT\Rt\)), i.e.\ by
+\(\epsilon\). This is a second-order correction on a
+first-order term and is negligible against the dominant
+\(\sigma a\)-driven uncertainty.
+\end{itemize}
+\noindent
+In short: sustained RPM deviations show up primarily as a DC
+gain shortfall of order \(2\epsilon\), recoverable only by re-running
+the initialisation-time map with the new headspeed (or by re-observing
+\(\btheta\) and reinitialising). Transient sag during a high-load segment
+is a momentary plant-gain change that the outer yaw loop sees as a
+short-duration disturbance; no inner-loop scheduling is required at
+RC envelope amplitudes.
 
 \subsection{Re-tuning When the Setup Changes}\label{ssec:param_retune}
 
@@ -2156,12 +2218,17 @@ after any significant payload change. \(\sigma a\) and
 \(\ell_t/\Rt\) are unaffected.
 
 \paragraph{Different headspeed.}
-The governor sets \(\OmegaT\), and the firmware reads it each tick;
-\(C\) and \(D\) are recomputed live with no parameter update. The
-hover trim pitch \(\btheta\) does shift mildly---thrust at fixed
-pitch scales as \(\OmegaT^2\), so a lower headspeed needs a larger
-\(\btheta\)---and should be re-observed if the standing headspeed
-changes by more than \(\sim 10\%\).
+\(\OmegaT\) is a configuration-time constant set to the governor's nominal
+target. Changing the standing headspeed requires updating that
+constant and re-running the initialisation-time map---\(\lambda_h\) is
+unchanged (it is derived from \(\btheta\)), but \(C\propto\OmegaT\)
+and \(D\propto 1/\OmegaT\) shift linearly with it. The hover trim
+pitch \(\btheta\) itself also shifts mildly---thrust at fixed pitch
+scales as \(\OmegaT^2\), so a lower headspeed needs a larger
+\(\btheta\) to deliver the same tail thrust---and should be
+re-observed if the headspeed changes by more than
+\(\sim 10\%\). Transient sag from the nominal value is left to the
+outer loop (Section~\ref{ssec:param_sensitivity}).
 
 \paragraph{Longer or shorter tail boom.}
 \(\ell_t\) changes but \(\Rt\) does not. Update \(\ell_t/\Rt\) only.
@@ -2289,13 +2356,15 @@ disciplines may wish to expose a per-setup override.
 \paragraph{Governor and pitch servo.}
 Two unmodelled blocks bracket the inverse derived here. The upstream
 governor holds \(\OmegaT\) constant only within its own loop
-bandwidth; under sudden torque demand the headspeed sags briefly, and
-both \(A\) and the trim point drift with it. Downstream, the
+bandwidth; the inverse takes \(\OmegaT\) as a fixed parameter at the
+governor's nominal target, so transient sag from that target shows up
+as a mismatch between the stored coefficients and the actual plant
+(Section~\ref{ssec:param_sensitivity}). Downstream, the
 commanded \(\thetat\) reaches the blade root only through a servo and
 linkage with their own bandwidth, deadband, and possible backlash. The
 inverse is exact in the limit that both blocks are ideal; deviations
-show up as a phase lag at the input of the inner loop and as a static
-error at its output, respectively, and are best characterised
+show up as a plant-gain shift at the input of the inner loop and as a
+static error at its output, respectively, and are best characterised
 empirically on the airframe rather than modelled from datasheets.
 
 % =====================================================================
