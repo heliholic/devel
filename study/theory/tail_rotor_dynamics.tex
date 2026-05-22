@@ -2288,7 +2288,7 @@ treated with caution.
 The model developed in Sections~\ref{sec:bemt}--\ref{sec:impl} rests on
 a chain of approximations: thin-foil aerodynamics, momentum-theory
 inflow, a first-mode Pitt--Peters lag, a perfectly governed tip speed,
-and an ideal pitch servo. Each is good enough to derive a working
+and an ideal tail servo. Each is good enough to derive a working
 inverse, but each has known limits that should be flagged before the
 coefficients of Section~\ref{ssec:impl_exposed} are taken to the
 bench. The points below are ordered roughly from those that most
@@ -2353,7 +2353,7 @@ it as fixed is acceptable for typical RC loadouts, where the shift is
 a few percent; competition pilots who change battery position between
 disciplines may wish to expose a per-setup override.
 
-\paragraph{Governor and pitch servo.}
+\paragraph{Governor and tail servo.}
 Two unmodelled blocks bracket the inverse derived here. The upstream
 governor holds \(\OmegaT\) constant only within its own loop
 bandwidth; the inverse takes \(\OmegaT\) as a fixed parameter at the
