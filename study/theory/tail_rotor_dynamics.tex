@@ -1541,12 +1541,12 @@ inverse collapses to three update equations carrying just four
 dimensionless coefficients \((A,B,C,D)\)
 (Section~\ref{ssec:nondim_update}). Those four coefficients in turn
 depend on only a handful of size-invariant dimensionless groups; those
-groups, not the coefficients themselves, are the natural user-facing
-parameters (Section~\ref{ssec:nondim_exposed}). The full
-implementation in Section~\ref{sec:impl} retains the dimensional form
-for readers who want to see each quantity in its native units; the
-dimensionless form below is the one that an embedded controller would
-more naturally store.
+groups, not the coefficients themselves, are what the firmware exposes
+to the user---see Section~\ref{ssec:impl_exposed} in the implementation
+chapter, where the mapping from exposed parameters to \((A,B,C,D)\) is
+spelled out. The dimensionless update law below is the one an embedded
+controller stores and runs each tick; Section~\ref{sec:impl} wraps it
+in the I/O, state, and simplifications a practitioner needs.
 
 \subsection{Reference Scales}\label{ssec:nondim_refs}
 
@@ -1725,13 +1725,41 @@ response in pure hover. Setting \(\hat{v}_i = \hat{v}_{i,\text{ss}} =
 which depends on \((A,B)\) alone---\(C\) only enters in transients,
 \(D\) only when the airframe yaws.
 
-\subsection{Exposed Parameters}\label{ssec:nondim_exposed}
+% =====================================================================
+\section{Control Loop Implementation}\label{sec:impl}
+% =====================================================================
 
-For the purpose of exposing parameters that are not size-specific, we
-fix the implementer's choice to \(T_{\text{ref}} = \bT\) so that the
-dimensionless command \(u=1\) corresponds to hover trim. Then
-\(\lambda_{\text{ref}} = \lambda_h\) and \(v_{\text{ref}} = \bvi\), and
-we define three dimensionless groups:
+The instantaneous inverse \eqref{eq:inv_instant} together with the
+inflow model \eqref{eq:viss_of_T}--\eqref{eq:tau_of_vi} is a complete
+nonlinear dynamic inversion of the tail-rotor plant. This section
+collects those equations into a compact form suitable for direct
+implementation in an inner control loop: first the small set of
+exposed parameters a builder configures and the build-time map from
+those parameters to the four stored coefficients \((A,B,C,D)\)
+(Section~\ref{ssec:impl_exposed}); then the live-tick separation of
+fixed coefficients, inputs, state, and outputs
+(Section~\ref{ssec:impl_ios}); then the update law in the form a
+practitioner would actually code (Section~\ref{ssec:impl_update}); and
+finally the simplifications a constrained embedded environment will
+typically apply (Section~\ref{ssec:impl_simplifications}). The
+transfer-function analysis of Section~\ref{sec:linear}---including the
+envelope behaviour of the softening factor---informs how the resulting
+controller will behave across the thrust range, but is not a
+prerequisite for running the loop itself.
+
+\subsection{Exposed Parameters}\label{ssec:impl_exposed}
+
+Section~\ref{sec:nondim} reduced the loop to four dimensionless
+coefficients \((A,B,C,D)\), but the firmware still has to choose those
+numbers. Rather than expose the coefficients directly, we expose a
+smaller set of more physically intuitive quantities and compute
+\((A,B,C,D)\) from them at build time.
+
+We fix the implementer's choice of reference scale to
+\(T_{\text{ref}} = \bT\), so that the dimensionless command \(u=1\)
+corresponds to hover trim. Then \(\lambda_{\text{ref}} = \lambda_h\)
+and \(v_{\text{ref}} = \bvi\), and the exposed parameters are three
+dimensionless groups:
 \begin{itemize}[leftmargin=*,itemsep=3pt,topsep=2pt]
 \item \(\btheta\) --- hover trim pitch. The tail-rotor blade pitch
       measured at hover with the heli's nominal loadout, in degrees.
@@ -1771,20 +1799,31 @@ is nearly fixed by blade type (two-bladed symmetric foil), and
 \(\ell_t/\Rt\) by airframe convention---so in practice only
 \(\btheta\) is set per flight, the other two from their defaults.
 
-\paragraph{Computing the stored coefficients from the exposed
-parameters.}
-With the tail rotor speed \(\OmegaT\) already configured by the
-governor, the firmware converts \(\btheta\) (in radians) to the
-hover inflow ratio by inverting the steady-curve relation
-\((12/\sigma a)\,\lambda_h^2 + (3/2)\,\lambda_h - \btheta = 0\),
-taking the positive root:
+\paragraph{Mapping to the stored coefficients.}
+With \(T_{\text{ref}}=\bT\), the reference scales of
+Section~\ref{ssec:nondim_refs} collapse onto hover trim:
+\(\lambda_{\text{ref}}=\lambda_h\) and
+\(v_{\text{ref}}=\bvi=\lambda_h\,\OmegaT\,\Rt\). The four coefficients
+\eqref{eq:nondim_A}, \eqref{eq:nondim_B}, \eqref{eq:nondim_C},
+\eqref{eq:nondim_D} of Section~\ref{ssec:nondim_update} then depend on a
+single rotor scalar \(\lambda_h\), given \(\sigma a\), \(\ell_t/\Rt\),
+\(\OmegaT\), and the loop period \(\Delta t\). The firmware does not
+measure \(\lambda_h\) directly; it derives it from \(\btheta\) by
+inverting the steady command--pitch curve \eqref{eq:nondim_steady_curve}
+at \(u=1\), which is exactly \(A+B=\btheta\). Substituting
+\eqref{eq:nondim_A}--\eqref{eq:nondim_B} yields the quadratic
+\((12/\sigma a)\,\lambda_h^2 + (3/2)\,\lambda_h - \btheta = 0\), whose
+positive root is
 \begin{equation}
 \lambda_h \;=\; \frac{\sigma a}{24}\!
               \left(\,-\frac{3}{2}
               \;+\; \sqrt{\frac{9}{4} + \frac{48\,\btheta}{\sigma a}}\,\right).
 \label{eq:nondim_lambda_h_from_theta}
 \end{equation}
-The stored coefficients then follow as
+The stored coefficients then follow by substituting
+\(\lambda_{\text{ref}}=\lambda_h\) and
+\(v_{\text{ref}}=\lambda_h\,\OmegaT\,\Rt\) into
+\eqref{eq:nondim_A}--\eqref{eq:nondim_D}:
 \begin{equation}
 A = \frac{12\,\lambda_h^2}{\sigma a},\quad
 B = \frac{3\,\lambda_h}{2},\quad
@@ -1792,50 +1831,26 @@ C = \frac{\Delta t}{\tau_i}\ \text{with}\ \tau_i = \frac{0.849}{4\,\lambda_h\,\O
 D = \frac{\ell_t/\Rt}{\lambda_h\,\OmegaT}.
 \label{eq:nondim_ABCD_from_exposed}
 \end{equation}
-The firmware loop period \(\Delta t\) is a firmware constant; any
-unit conversion of \(\btheta\) from degrees to radians happens
-before \eqref{eq:nondim_lambda_h_from_theta}.
-
-% =====================================================================
-\section{Control Loop Implementation}\label{sec:impl}
-% =====================================================================
-
-The instantaneous inverse \eqref{eq:inv_instant} together with the
-inflow model \eqref{eq:viss_of_T}--\eqref{eq:tau_of_vi} is a complete
-nonlinear dynamic inversion of the tail-rotor plant. This section
-collects those equations into a compact form suitable for direct
-implementation in an inner control loop, separating the fixed rotor
-parameters from the live signals and showing the update law in the
-form a practitioner would actually code. The transfer-function analysis of
-Section~\ref{sec:linear}---including the envelope behaviour of the
-softening factor---informs how the resulting controller will behave
-across the thrust range, but is not a prerequisite for running the
-loop itself.
+The firmware loop period \(\Delta t\) is a firmware constant, and the
+governor sets \(\OmegaT\); any unit conversion of \(\btheta\) from
+degrees to radians happens before \eqref{eq:nondim_lambda_h_from_theta}.
 
 \subsection{Parameters, Inputs, State, Outputs}\label{ssec:impl_ios}
 
-The system as derived has a long list of symbols. Many of them are
-fixed properties of the rotor and air, computed once at startup and
-held constant thereafter. Separating these from the live state and
-commands gives a compact specification for the inner loop. In this
-section, ``state'' means a value carried from one control tick to the
-next; quantities such as \(\viss\) and \(\tau_i\) are recomputed inside
-each tick and then discarded.
+With the build-time mapping of Section~\ref{ssec:impl_exposed} settled,
+what remains is the live-tick specification: what arrives each tick,
+what carries over between ticks, what is recomputed and discarded, and
+what is emitted to the servo. In what follows, ``state'' means a value
+carried from one control tick to the next; quantities such as \(\viss\)
+and \(\tau_i\) are recomputed inside each tick and then discarded.
 
-\paragraph{Fixed coefficients} (computed once, constant for given hardware
-and loop rate):
-\begin{equation}
-A,\quad B,\quad C,\quad D,
-\end{equation}
-the four dimensionless coefficients of Section~\ref{sec:nondim}. They are
-derived from the exposed parameters of Section~\ref{ssec:nondim_exposed}
-via \eqref{eq:nondim_ABCD_from_exposed} at build time.
-On the live control path the dimensional parameters
-\(\rho\), \(\At\), \(\OmegaT\), \(\Rt\), \(\sigma\), \(a\), and
-\(\ell_t\) appear nowhere. The control-loop period \(\Delta t\) and the
-apparent-mass coefficient \(\kappa=8/(3\pi)\approx 0.849\) are absorbed
-into \(C\) at build time; if the loop rate changes, \(C\) must be
-recomputed.
+\paragraph{Fixed coefficients.}
+\(A, B, C, D\) from Section~\ref{ssec:impl_exposed}. On the live
+control path the dimensional rotor and air parameters
+\(\rho, \At, \OmegaT, \Rt, \sigma, a, \ell_t\) appear nowhere; the loop
+period \(\Delta t\) and the apparent-mass coefficient
+\(\kappa=8/(3\pi)\approx 0.849\) have both been absorbed into \(C\).
+If the loop rate changes, \(C\) must be recomputed.
 
 \paragraph{Inputs} (provided each control tick):
 \begin{equation}
@@ -1953,19 +1968,6 @@ term \(D\,\dot\psi\)) but does not want to solve the full edgewise-flow
 equation each tick. For strongly negative axial flow, the branch
 condition should be checked and the guarded scalar solve in
 \eqref{eq:impl_viss} should be used instead.
-
-\paragraph{Frozen \(\tau_i\).}
-The factor \(\hat v_i\) in the state update \eqref{eq:impl_visi_update}
-carries the state-dependent Pitt--Peters time constant. Holding the
-time constant at a representative value (computed at the dominant hover
-trim) is equivalent to dropping that factor:
-\begin{equation}
-\hat v_i \;\leftarrow\; \hat v_i \;+\; C\,(\hat v_{i,\text{ss}} - \hat v_i).
-\end{equation}
-Lag dynamics then become a fixed first-order filter, which is easier to
-tune and analyse. The error is small when the rotor operates near its
-design trim and grows at the extremes of the thrust envelope; it can be
-quantified using the envelope tables in Section~\ref{ssec:envelope}.
 
 \medskip
 \noindent
@@ -2094,31 +2096,89 @@ pirouette of the same magnitude the operating point approaches the
 windmill-brake state and the smooth-wake momentum closure should be
 treated with caution.
 
-\subsection{Caveats}\label{ssec:param_caveats}
+% =====================================================================
+\section{Caveats}\label{sec:caveats}
+% =====================================================================
 
-Pitt--Peters time constants are systematically low compared to flight-test
-data on full-scale rotors (factor of 2--4 underestimate); RC practitioners
-often use \(\tau_i\approx 0.1\)--\(0.3\) rotor revolutions empirically.
-For design, the Pitt--Peters value should therefore be treated as a lower
-bound on the inflow lag, and either inflated by a fitted multiplier or
-verified against bench data before being used to set compensator
-coefficients.
-Blade lift-curve slope drops noticeably at low Reynolds numbers
+The model developed in Sections~\ref{sec:bemt}--\ref{sec:impl} rests on
+a chain of approximations: thin-foil aerodynamics, momentum-theory
+inflow, a first-mode Pitt--Peters lag, a perfectly governed tip speed,
+and an ideal pitch servo. Each is good enough to derive a working
+inverse, but each has known limits that should be flagged before the
+coefficients of Section~\ref{ssec:impl_exposed} are taken to the
+bench. The points below are ordered roughly from those that most
+directly perturb the stored coefficients to those that act outside the
+inverse block.
+
+\paragraph{Inflow time constant.}
+Pitt--Peters time constants are systematically low compared to
+flight-test data on full-scale rotors (factor of 2--4 underestimate);
+RC practitioners often use \(\tau_i\approx 0.1\)--\(0.3\) rotor
+revolutions empirically. For design, the Pitt--Peters value should
+therefore be treated as a lower bound on the inflow lag, and either
+inflated by a fitted multiplier or verified against bench data before
+being used to set compensator coefficients. The coefficient \(C\) in
+\eqref{eq:nondim_ABCD_from_exposed} inherits this same uncertainty and
+is the natural place to absorb a fitted correction.
+
+\paragraph{Low-Reynolds aerodynamics.}
+Blade lift-curve slope drops noticeably at the low Reynolds numbers
 (\(Re\sim\num{30000}\)--\num{80000}) typical of RC tail-rotor tips,
-especially with thin symmetric sections. Solidity calculations assume
-rectangular blades; tapered or paddle blades need an equivalent solidity
-weighted by \(r^2 c(r)\). The tail rotor sits in the main-rotor
-wake, so \(V_\perp\) in~\eqref{eq:momentum} is dominated by main-rotor
-inflow---the main source of tail-rotor effectiveness loss in turns---and
-not by airframe sideslip alone. The axial flow \(V_\infty\), by
-contrast, is dominated in 3D flight by the yaw-rate contribution
-\(\ell_t\dot\psi\) rather than by the airframe-translation component
-\(V_\infty^{\text{aero}}\) (Section~\ref{ssec:yaw_rate_axial}); in
-slow forward flight or sustained hover the two contributions can be
-of comparable magnitude. Finally, the moment arm \(\ell_t\) is the
-geometric distance from the airframe yaw centre (close to the CG) to
-the tail-rotor hub; on machines with relocatable batteries or
-significant fuselage mass changes it shifts slightly with loadout.
+especially with thin symmetric sections, and section drag rises
+correspondingly. The default \(\sigma a\approx 0.8\) of
+Section~\ref{ssec:impl_exposed} assumes near-2D thin-airfoil
+behaviour; for very small rotors or unusual sections the exposed
+\(\sigma a\) should be scaled down accordingly.
+
+\paragraph{Blade planform.}
+Solidity calculations as written assume rectangular blades. Tapered or
+paddle blades need an equivalent solidity weighted by \(r^2 c(r)\),
+which concentrates the lift contribution toward the tip and slightly
+raises the effective \(\sigma a\) relative to a chord-averaged
+estimate.
+
+\paragraph{Main-rotor wake.}
+The tail rotor sits inside the main-rotor wake, so \(V_\perp\)
+in~\eqref{eq:momentum} is dominated by main-rotor downwash---the main
+source of tail-rotor effectiveness loss in turns---and not by airframe
+sideslip alone. A simple aero airspeed estimator does not see this
+contribution. The pragmatic options are to augment \(\hat V_\perp\)
+with a main-rotor thrust-dependent term, or to set
+\(\hat V_\perp\equiv 0\) (the near-hover simplification of
+Section~\ref{ssec:impl_simplifications}) and absorb the lost authority
+into the outer loop's headroom.
+
+\paragraph{Yaw-rate axial flow.}
+The axial flow \(V_\infty\) is dominated in 3D flight by the yaw-rate
+contribution \(\ell_t\dot\psi\) rather than by the airframe-translation
+component \(V_\infty^{\text{aero}}\)
+(Section~\ref{ssec:yaw_rate_axial}); in slow forward flight or
+sustained hover the two contributions can be of comparable magnitude.
+The \(D\,\dot\psi\) term \eqref{eq:impl_Vinf_composite} captures the
+dominant component for free; the airspeed-based correction is optional
+and only earns its keep on airframes that fly meaningful translational
+speeds.
+
+\paragraph{Moment-arm geometry.}
+The moment arm \(\ell_t\) is the geometric distance from the airframe
+yaw centre (close to the CG) to the tail-rotor hub. On machines with
+relocatable batteries or significant fuselage mass changes it shifts
+slightly with loadout, which propagates linearly into \(D\). Treating
+it as fixed is acceptable for typical RC loadouts, where the shift is
+a few percent; competition pilots who change battery position between
+disciplines may wish to expose a per-setup override.
+
+\paragraph{Governor and pitch servo.}
+Two unmodelled blocks bracket the inverse derived here. The upstream
+governor holds \(\OmegaT\) constant only within its own loop
+bandwidth; under sudden torque demand the headspeed sags briefly, and
+both \(A\) and the trim point drift with it. Downstream, the
+commanded \(\thetat\) reaches the blade root only through a servo and
+linkage with their own bandwidth, deadband, and possible backlash. The
+inverse is exact in the limit that both blocks are ideal; deviations
+show up as a phase lag at the input of the inner loop and as a static
+error at its output, respectively, and are best characterised
+empirically on the airframe rather than modelled from datasheets.
 
 % =====================================================================
 \appendix
