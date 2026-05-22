@@ -1958,7 +1958,7 @@ normal working branch, where \(\hat V_\infty + \hat v_{i,\text{ss}}\ge 0\),
 it reduces to a quadratic:
 \begin{equation}
 \hat v_{i,\text{ss}}
-= \frac{-\hat V_\infty + \sqrt{\hat V_\infty^{\,2} + 4u}}{2}.
+= \frac{\sqrt{\hat V_\infty^{\,2} + 4u} - \hat V_\infty}{2}.
 \label{eq:impl_viss_axial}
 \end{equation}
 This expression reduces to the near-hover result when
@@ -1978,90 +1978,208 @@ standpoint. Representative magnitudes for the underlying physical
 parameters appear in Section~\ref{sec:params}.
 
 % =====================================================================
-\section{Parameter Ranges for RC Tail Rotors}\label{sec:params}
+\section{Parameter Selection and Sensitivity}\label{sec:params}
 % =====================================================================
 
-Sections~\ref{ssec:param_geom}--\ref{ssec:param_coeffs} summarise
-representative tail-rotor parameters for three classes of RC helicopter,
-indexed by \emph{main} rotor blade length (a customary size descriptor in
-the hobby). The tail rotor itself is much smaller than the main rotor in
-each case. The ranges span gentle hover and aggressive 3D operating
-points; Section~\ref{ssec:worked_example} picks a representative 700 class
-point.
+Section~\ref{ssec:impl_exposed} reduced the loop's tunables to three
+exposed parameters: hover trim pitch \(\btheta\), blade loading
+parameter \(\sigma a\), and boom-to-tail-radius ratio
+\(\ell_t/\Rt\). The stored coefficients \((A,B,C,D)\) are derived
+from them at build time via
+\eqref{eq:nondim_lambda_h_from_theta}--\eqref{eq:nondim_ABCD_from_exposed}.
+This section answers three practical questions about those three
+numbers: what values are typical across heli sizes
+(Section~\ref{ssec:param_classes}), how sensitive the loop is to
+error in each (Section~\ref{ssec:param_sensitivity}), and which
+parameter to revisit when the airframe setup changes
+(Section~\ref{ssec:param_retune}). A worked 700-class arithmetic
+example closes the section (Section~\ref{ssec:worked_example}).
 
-\subsection{Geometric and Operating Parameters}\label{ssec:param_geom}
+\subsection{Exposed Parameters Across Heli Classes}\label{ssec:param_classes}
+
+The three exposed parameters vary surprisingly little across the
+class range. \(\sigma a\) is fixed almost entirely by tail-blade
+choice (two-bladed symmetric foil), \(\ell_t/\Rt\) by airframe
+convention, and only \(\btheta\) responds materially to airframe
+mass and aerodynamic loading. Representative values for three
+classes spanning an order of magnitude of airframe mass are
+collected in Table~\ref{tab:exposed_class}, together with the
+resulting stored coefficients at a \(\Delta t=\SI{1}{\ms}\) loop
+period. Geometric inputs are class medians from the airframe survey
+of Appendix~\ref{app:helicopters}; \(\btheta\) is a nominal hover
+trim value typical of mild 3D loading.
+
+\begin{table}[h!]
+\centering
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lccc}
+\toprule
+Quantity & 450 class & 550 class & 700 class \\
+\midrule
+Main blade [mm]                       & 325    & 550    & 700    \\
+Flying mass [kg]                      & 0.75   & 3.0    & 5.0    \\
+\(\Rt\)~[mm]                          & 80     & 127    & 140    \\
+\(c\)~[mm]                            & 18     & 24     & 30     \\
+\(\ell_t\)~[mm]                       & 450    & 780    & 950    \\
+\(\OmegaT\)~[rad/s]                   & 1370   & 980    & 1036   \\
+\(\OmegaT\Rt\)~[m/s]                  & 110    & 124    & 145    \\
+\midrule
+\multicolumn{4}{l}{\emph{Exposed parameters:}}\\
+\(\btheta\)~[deg]                     & 6.0    & 7.0    & 8.6    \\
+\(\sigma a\)                          & 0.82   & 0.69   & 0.78   \\
+\(\ell_t/\Rt\)                        & 5.6    & 6.1    & 6.8    \\
+\midrule
+\multicolumn{4}{l}{\emph{Derived stored coefficients:}}\\
+\(\lambda_h\)                         & 0.048  & 0.051  & 0.062  \\
+\(A\)~[deg]                           & 1.9    & 2.6    & 3.3    \\
+\(B\)~[deg]                           & 4.1    & 4.4    & 5.3    \\
+\(C\) at \(\Delta t=\SI{1}{\ms}\)     & 0.31   & 0.24   & 0.30   \\
+\(D\)~[s]                             & 0.086  & 0.122  & 0.107  \\
+\bottomrule
+\end{tabular}
+\caption{Representative exposed parameters and derived stored
+coefficients for three heli classes. \(A\) and \(B\) are reported
+in degrees (the firmware unit of \(\btheta\)); by construction
+\(A+B=\btheta\) at hover. \(C\) is dimensionless; \(D\) has units of
+seconds (it multiplies \(\dot\psi\) in rad/s).}
+\label{tab:exposed_class}
+\end{table}
+
+Across the range \(\btheta\) varies by under 50\% and \(\sigma a\)
+by under 20\%; the discrete inflow gain \(C\) sits near 0.3
+throughout---a near-similarity result, since
+\(\lambda_h\OmegaT\propto v_h\) (and hence \(1/\tau_i\)) is set by
+tail-rotor disc loading, which is approximately constant across the
+classes.
+
+\subsection{Sensitivity to Parameter Errors}\label{ssec:param_sensitivity}
+
+How tolerant is the loop to a wrong value in each exposed parameter?
+Implicit differentiation of the static
+quadratic~\eqref{eq:nondim_lambda_h_from_theta}, using
+\(\partial f/\partial\lambda_h = (2A+B)/\lambda_h\) and writing
+fractional sensitivities (elasticities) as ratios of logarithmic
+differentials, gives the closed-form result
+\begin{equation}
+\frac{d\ln\lambda_h}{d\ln\btheta} \;=\; \frac{A+B}{2A+B},
+\qquad
+\frac{d\ln\lambda_h}{d\ln(\sigma a)} \;=\; \frac{A}{2A+B}.
+\label{eq:lambda_elasticity}
+\end{equation}
+The two elasticities sum to
+\((A+B)/(2A+B) + A/(2A+B) = (2A+B)/(2A+B) = 1\), reflecting that
+\(\lambda_h\) is fixed by the product \(\sigma a\cdot\btheta\) up to
+the quadratic correction. At the 700-class operating point of
+Table~\ref{tab:exposed_class} (\(A=3.3\), \(B=5.3\)) the elasticities
+evaluate to \(8.6/11.9=0.72\) and \(3.3/11.9=0.28\): a 10\% increase
+in \(\btheta\) raises \(\lambda_h\) by 7.2\%, and a 10\% increase in
+\(\sigma a\) raises it by 2.8\%.
+
+Propagating these through~\eqref{eq:nondim_ABCD_from_exposed} (using
+\(A\propto\lambda_h^2/\sigma a\), \(B\propto\lambda_h\),
+\(C\propto\lambda_h\OmegaT\Delta t\), and
+\(D\propto(\ell_t/\Rt)/(\lambda_h\OmegaT)\)) yields the fractional
+sensitivities of the stored coefficients:
 
 \begin{center}
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{llccc}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcccc}
 \toprule
-Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
+\(+10\%\) change in   & \(A\)      & \(B\)     & \(C\)     & \(D\)      \\
 \midrule
-\(\Rt\) & Tail radius [m]      & 0.080--0.100  & 0.10--0.12  & 0.135--0.145 \\
-\(c\)    & Blade chord [m]       & 0.015--0.022 & 0.022--0.026 & 0.028--0.032 \\
-\(N_b\)  & Number of blades       & 2 & 2 & 2 (occ.\ 3) \\
-\(\ell_t\) & Tail moment arm [m]  & 0.45--0.60  & 0.65--0.80  & 0.85--1.00 \\
-\(\OmegaT\) & Rotor speed [\si{\radian\per\second}] & 1200--1700 & 1000--1300 & 900--1100 \\
-\(\OmegaT\Rt\) & Tip speed [m/s] & 95--170 & 100--155 & 120--160 \\
-\(\sigma\) & Solidity              & 0.10--0.18 & 0.12--0.17 & 0.12--0.15 \\
-\(a\)    & Lift-curve slope [1/rad] & 5.5--5.75 & 5.5--5.75 & 5.5--5.75 \\
+\(\btheta\)           & \(+14\%\)  & \(+7\%\)  & \(+7\%\)  & \(-7\%\)   \\
+\(\sigma a\)          & \(-4\%\)   & \(+3\%\)  & \(+3\%\)  & \(-3\%\)   \\
+\(\ell_t/\Rt\)        & ---        & ---       & ---       & \(+10\%\)  \\
+\(\OmegaT\)           & ---        & ---       & \(+10\%\) & \(-10\%\)  \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent The lift-curve slope sits near \(2\pi\approx 6.28\) in theory,
-reduced to roughly 5.7 by finite-aspect-ratio and tip-loss effects, and falls
-further at very low Reynolds (\(Re<\num{50000}\)).
+\paragraph{What the table says.}
+The first row is dominated by \(A\), which is quadratic in
+\(\lambda_h\); the second row is muted because the response of
+\(\lambda_h\) to \(\sigma a\) is roughly cancelled by the explicit
+\(\sigma a\) in the denominator of \(A=12\lambda_h^2/\sigma a\).
+Crucially, the \emph{hover static gain is invariant}: by construction
+\(A+B=\btheta\) at \(u=1\), regardless of how \(\sigma a\) splits the
+sum between the two coefficients. Errors in the exposed parameters
+therefore appear only off-hover (in the curvature of the command--pitch
+map set by the \(Au\) term) and in the dynamics (the inflow lag set
+by \(C\) and the yaw-rate axial coupling set by \(D\)).
 
-\subsection{Aerodynamic Trim Values}\label{ssec:param_trim}
+\begin{itemize}[leftmargin=*,itemsep=4pt,topsep=2pt]
+\item \(\btheta\) is the most influential of the three parameters,
+but also the easiest to set correctly: it is observed directly on
+telemetry during a stationary hover. A 10--20\% error is unlikely
+once a single hover trim has been read.
+\item \(\sigma a\) has weak effect. A coarse default of 0.75--0.80
+covers all two-bladed symmetric-foil tail rotors to better than 5\%
+on the stored coefficients, and the static hover relation is
+unaffected. There is little reason to expose this knob to the user.
+\item \(\ell_t/\Rt\) enters only \(D\), which is multiplied by
+\(\dot\psi\). At small yaw rates the contribution is negligible; at
+a 600\,\si{\degree\per\second} 3D pirouette
+(\(\dot\psi\approx\SI{10.5}{\radian\per\second}\)) a 10\% error in
+\(\ell_t/\Rt\) corresponds to roughly a 1~m/s error in the effective
+axial flow, perturbing the operating point without destabilising the
+loop.
+\item \(\OmegaT\) is not tuned: it is read live from the governor
+each tick, so steady-state error is zero by construction. Headspeed
+sag during high-load segments transiently lowers \(C\) (slower
+inflow update) and raises \(D\) (more axial flow per rotor
+revolution); both effects are physically correct.
+\end{itemize}
 
-\begin{center}
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{llccc}
-\toprule
-Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
-\midrule
-\(\bT\)      & Hover thrust [N]              & 0.3--4 & 1--12 & 3--24 \\
-\(\bvi\)     & Hover induced vel.\ [m/s]     & 2--8 & 3--11 & 4--13 \\
-\(\btheta\)  & Trim pitch [deg]              & 4--10 & 5--12 & 5--12 \\
-\(\tau_i\)   & Inflow time constant [ms]     & 2--8 & 2--7 & 2--7 \\
-\bottomrule
-\end{tabular}
-\end{center}
+\subsection{Re-tuning When the Setup Changes}\label{ssec:param_retune}
 
-\subsection{Derived Coefficients}\label{ssec:param_coeffs}
+The two routine triggers for a re-tune are a tail-blade swap and a
+significant mass change. Both alter \(\btheta\); the first also
+alters geometry. The remaining triggers (headspeed, boom length,
+aerofoil) touch only one parameter each, often none.
 
-Using \(\rho = \SI{1.225}{\kilogram\per\cubic\metre}\):
+\paragraph{Different tail blades (length or chord).}
+A change in tail-blade length changes both \(\Rt\) (swept radius)
+and \(\ell_t/\Rt\); a change in chord changes
+\(\sigma=2c/(\pi\Rt)\), and hence \(\sigma a=2ca/(\pi\Rt)\). Both
+quantities are geometric and can be read off the new blade
+specification. Then hover and re-observe \(\btheta\) from telemetry:
+a smaller disc requires a higher pitch for the same thrust, and
+vice versa.
 
-\begin{center}
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{llccc}
-\toprule
-Symbol & Quantity & 420\,mm & 550\,mm & 700\,mm \\
-\midrule
-\(\At\)      & Disc area [\si{\square\metre}]   & 0.020--0.031 & 0.031--0.045 & 0.057--0.066 \\
-\(G_0\)      & Frozen-wake gain [N/rad]        & 25--150 & 50--180 & 130--275 \\
-\(\sigma a\) & Aerodynamic group               & 0.6--1.0 & 0.7--1.0 & 0.7--0.85 \\
-\(\lambda_h\) & Hover inflow ratio             & 0.03--0.07 & 0.04--0.08 & 0.04--0.08 \\
-\(k_v\)      & Inflow sensitivity [m/(s\,N)]   & 1.0--3.7 & 0.5--1.6 & 0.25--0.75 \\
-\(\beta\)    & DC softening coupling           & 0.8--2.8 & 0.6--1.9 & 0.5--1.5 \\
-\bottomrule
-\end{tabular}
-\end{center}
+\paragraph{Heavier or lighter airframe.}
+Tail thrust at hover scales with main-rotor reactive torque, which
+in turn scales roughly as \(W^{3/2}\) through induced power. A 30\%
+mass increase therefore raises required tail thrust by about 50\%
+and \(\btheta\) by a similar fraction
+through~\eqref{eq:nondim_lambda_h_from_theta}. Re-observe \(\btheta\)
+after any significant payload change. \(\sigma a\) and
+\(\ell_t/\Rt\) are unaffected.
 
-\noindent The dimensionless coupling \(\beta = \sigma a/(16\lambda_h)\) sits
-in the range 0.5--3 across all three classes at typical operating
-points---a near-similarity result, since \(\sigma a\) is constrained by
-two-bladed solidity and aerofoil choice and \(\lambda_h=\sqrt{C_T/2}\)
-is constrained by tail-rotor disc loading. Smaller helicopters tend to
-operate at lower thrust per unit disc area (\(\lambda_h\) smaller),
-pushing \(\beta\) toward the upper end of the range.
+\paragraph{Different headspeed.}
+The governor sets \(\OmegaT\), and the firmware reads it each tick;
+\(C\) and \(D\) are recomputed live with no parameter update. The
+hover trim pitch \(\btheta\) does shift mildly---thrust at fixed
+pitch scales as \(\OmegaT^2\), so a lower headspeed needs a larger
+\(\btheta\)---and should be re-observed if the standing headspeed
+changes by more than \(\sim 10\%\).
 
-\subsection{\texorpdfstring{Worked Example: 700 class}{Worked Example: 700 class}}\label{ssec:worked_example}
+\paragraph{Longer or shorter tail boom.}
+\(\ell_t\) changes but \(\Rt\) does not. Update \(\ell_t/\Rt\) only.
+\(\btheta\) shifts mildly in the opposite sense (a longer boom needs
+less thrust at hover to balance the same main-rotor torque) and
+should be re-observed.
 
-Representative values for the tail rotor of a 700 class electric helicopter
-(e.g.\ a large 3D/sport machine with main rotor radius \(\sim 0.79\)~m and total
-flying mass \(\sim 5\)~kg):
+\paragraph{Different tail aerofoil.}
+Symmetric two-bladed foils all give \(\sigma a\) near 0.8 to within
+\(\pm 10\%\). For non-standard cambered foils, recompute
+\(\sigma a=(2c/\pi\Rt)\,a\) with the foil's actual lift-curve slope.
+As the sensitivity table above shows, the loop is forgiving here.
+
+\subsection{Worked Example: 700 class}\label{ssec:worked_example}
+
+A representative 700-class electric machine (main rotor radius
+\(\sim 0.79\)~m, all-up mass \(\sim 5\)~kg) carries the following
+tail-rotor geometry:
 \begin{align*}
 \Rt &= 0.140~\text{m}, & c &= 0.030~\text{m}, & N_b &= 2,\\
 \OmegaT &= 1036~\text{rad/s}, & \OmegaT\Rt &= 145~\text{m/s},\\
