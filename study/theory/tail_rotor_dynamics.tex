@@ -2344,15 +2344,6 @@ dominant component for free; the airspeed-based correction is optional
 and only earns its keep on airframes that fly meaningful translational
 speeds.
 
-\paragraph{Moment-arm geometry.}
-The moment arm \(\ell_t\) is the geometric distance from the airframe
-yaw centre (close to the CG) to the tail-rotor hub. On machines with
-relocatable batteries or significant fuselage mass changes it shifts
-slightly with loadout, which propagates linearly into \(K_\omega\). Treating
-it as fixed is acceptable for typical RC loadouts, where the shift is
-a few percent; competition pilots who change battery position between
-disciplines may wish to expose a per-setup override.
-
 \paragraph{Governor and tail servo.}
 Two unmodelled blocks bracket the inverse derived here. The upstream
 governor holds \(\OmegaT\) constant only within its own loop
