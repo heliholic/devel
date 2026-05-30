@@ -286,7 +286,7 @@ thrust \(\Tt\) actually produced, in both steady and transient conditions.
 
 Two effects make this map non-trivial. First, the thrust produced at a given
 pitch depends on the induced velocity \(\vi\) through the rotor: as the rotor
-generates lift, it accelerates air downwards through the disc, which changes
+generates thrust, it accelerates air through the disc, which changes
 the local angle of attack of every blade element and reduces the effective
 incidence. Second, the induced velocity itself takes a finite time to
 develop, because the wake has inertia; the relationship between \(\vi\) and
@@ -421,7 +421,7 @@ combine into an apparent wind of magnitude
 \phi \;=\; \tan^{-1}\!\left(\frac{U_P}{U_T}\right)
        \;\approx\; \frac{U_P}{U_T}
 \end{equation}
-below the disc plane. \(\phi\) is the \emph{inflow angle}: the amount
+out of the disc plane. \(\phi\) is the \emph{inflow angle}: the amount
 by which the apparent wind is tilted out of the plane in which the
 blade moves. Away from the root---where \(U_T\) is small and the
 small-angle approximation fails---typical values are
@@ -434,8 +434,8 @@ of the span.
 The blade is set at geometric pitch \(\thetat\) relative to the disc
 plane. But the section aerofoil cares only about its angle to the
 \emph{apparent wind}, not to the disc. Since the apparent wind is
-tilted down by \(\phi\), the angle that the chord line makes with the
-flow---the \emph{effective angle of attack}---is reduced:
+tilted by \(\phi\) out of the disc plane, the angle that the chord line
+makes with the flow---the \emph{effective angle of attack}---is reduced:
 \begin{equation}
 \alpha \;=\; \thetat \;-\; \phi.
 \label{eq:alpha}
@@ -467,7 +467,7 @@ acting perpendicular to the apparent wind.
 Thrust on the rotor is the component of aerodynamic force along the
 rotor axis, i.e.\ perpendicular to the disc plane. The lift vector
 sits perpendicular to the apparent wind, which is itself tilted by
-\(\phi\) below the disc plane, so the lift is tilted by \(\phi\)
+\(\phi\) out of the disc plane, so the lift is tilted by \(\phi\)
 \emph{away from} the rotor axis. There is also a drag vector aligned
 with the apparent wind, contributing in the opposite sense. The exact
 projection is
@@ -701,7 +701,7 @@ Three relationships govern this column of air:
       and far downstream:
       \(\Tt = \dot{m}\,(w_\infty - V_\infty)\), where \(w_\infty\) is
       the axial velocity in the far wake.
-\item \emph{Bernoulli, separately above and below the disc.} Energy is
+\item \emph{Bernoulli, separately on each side of the disc.} Energy is
       conserved along streamlines on each side of the disc, but \emph{not}
       across it, because the rotor does work on the fluid. Applying
       Bernoulli from station~1 to station~2 and from station~3 to
