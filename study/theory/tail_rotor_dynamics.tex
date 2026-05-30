@@ -232,10 +232,10 @@ Symbol & Description & Units \\
 \(u\)                  & Dimensionless thrust command, \(\Tcmd/T_{\text{ref}}\) & --\\
 \(\hat{v}_i,\hat{v}_{i,\text{ss}}\) & Dimensionless induced velocity (state, steady target) & --\\
 \(\hat{V}_\infty,\hat{V}_\perp\) & Dimensionless axial and edgewise free-stream velocities & --\\
-\(K_a\) & Pitch-per-command coefficient, eq.~\eqref{eq:nondim_A} & \si{\radian}\\
-\(K_b\) & Pitch-per-through-disc-velocity coefficient, eq.~\eqref{eq:nondim_B} & \si{\radian}\\
-\(K_c\) & Discrete inflow-update coefficient, eq.~\eqref{eq:nondim_state} & --\\
-\(K_d\) & Yaw-rate to dimensionless axial-flow scale, eq.~\eqref{eq:nondim_D} & \si{\second}\\
+\(K_u\) & Pitch-per-command coefficient, eq.~\eqref{eq:nondim_A} & \si{\radian}\\
+\(K_v\) & Pitch-per-through-disc-velocity coefficient, eq.~\eqref{eq:nondim_B} & \si{\radian}\\
+\(K_\tau\) & Discrete inflow-update coefficient, eq.~\eqref{eq:nondim_state} & --\\
+\(K_\omega\) & Yaw-rate to dimensionless axial-flow scale, eq.~\eqref{eq:nondim_D} & \si{\second}\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1538,12 +1538,12 @@ from it by the same physics that defined it in the dimensional inverse
 (Section~\ref{ssec:nondim_refs}). Substituting these scaled forms into
 each equation of the inverse, the dimensional constants cancel and the
 inverse collapses to three update equations carrying just four
-dimensionless coefficients \((K_a,K_b,K_c,K_d)\)
+dimensionless coefficients \((K_u,K_v,K_\tau,K_\omega)\)
 (Section~\ref{ssec:nondim_update}). Those four coefficients in turn
 depend on only a handful of size-invariant dimensionless groups; those
 groups, not the coefficients themselves, are what the firmware exposes
 to the user---see Section~\ref{ssec:impl_exposed} in the implementation
-chapter, where the mapping from exposed parameters to \((K_a,K_b,K_c,K_d)\) is
+chapter, where the mapping from exposed parameters to \((K_u,K_v,K_\tau,K_\omega)\) is
 spelled out. The dimensionless update law below is the one an embedded
 controller stores and runs each tick; Section~\ref{sec:impl} wraps it
 in the I/O, state, and simplifications a practitioner needs.
@@ -1622,18 +1622,18 @@ and the velocity scalings, and using
 \end{equation}
 Two dimensionless gains emerge:
 \begin{empheq}[box=\fbox]{align}
-K_a \;&\equiv\; \frac{12\,\lambda_{\text{ref}}^2}{\sigma a},
+K_u \;&\equiv\; \frac{12\,\lambda_{\text{ref}}^2}{\sigma a},
 \label{eq:nondim_A}\\[2pt]
-K_b \;&\equiv\; \frac{3\,\lambda_{\text{ref}}}{2},
+K_v \;&\equiv\; \frac{3\,\lambda_{\text{ref}}}{2},
 \label{eq:nondim_B}
 \end{empheq}
 giving the dimensionless pitch law
 \begin{equation}
-\thetat \;=\; K_a\,u \;+\; K_b\,(\hat{v}_i + \hat{V}_\infty).
+\thetat \;=\; K_u\,u \;+\; K_v\,(\hat{v}_i + \hat{V}_\infty).
 \label{eq:nondim_pitch}
 \end{equation}
-\(K_a\) is the pitch (in radians) demanded per unit command when the state
-and free-stream contributions are zero; \(K_b\) is the pitch demanded per
+\(K_u\) is the pitch (in radians) demanded per unit command when the state
+and free-stream contributions are zero; \(K_v\) is the pitch demanded per
 unit dimensionless through-disc velocity. The right-hand expressions in
 \eqref{eq:nondim_A}--\eqref{eq:nondim_B} contain only \(\lambda_{\text{ref}}\)
 and \(\sigma a\); air density, disc area, tip speed, and every other
@@ -1642,10 +1642,10 @@ gains are built from the same two ingredients, they are not
 independent: eliminating \(\lambda_{\text{ref}}\) between
 \eqref{eq:nondim_A} and \eqref{eq:nondim_B} yields
 \begin{equation}
-\frac{K_a}{K_b^2} \;=\; \frac{16}{3\,\sigma a},
+\frac{K_u}{K_v^2} \;=\; \frac{16}{3\,\sigma a},
 \label{eq:nondim_AB_relation}
 \end{equation}
-so the pair \((K_a,K_b)\) carries exactly the information of
+so the pair \((K_u,K_v)\) carries exactly the information of
 \((\lambda_{\text{ref}},\sigma a)\)---one inflow-ratio number and one
 blade-loading number.
 
@@ -1667,16 +1667,16 @@ If time is measured in units of \(\tau_{\text{ref}}\) (i.e.\
 parameter-free. Discretising with a control-loop period \(\Delta t\)
 introduces a single dimensionless gain
 \begin{empheq}[box=\fbox]{equation}
-K_c \;\equiv\; \frac{\Delta t}{\tau_{\text{ref}}}
+K_\tau \;\equiv\; \frac{\Delta t}{\tau_{\text{ref}}}
    \;=\; \frac{4\,v_{\text{ref}}\,\Delta t}{0.849\,\Rt},
 \label{eq:nondim_C}
 \end{empheq}
 giving the explicit-Euler update
 \begin{equation}
-\hat{v}_i \;\leftarrow\; \hat{v}_i \;+\; K_c\,\hat{v}_i\,(\hat{v}_{i,\text{ss}} - \hat{v}_i).
+\hat{v}_i \;\leftarrow\; \hat{v}_i \;+\; K_\tau\,\hat{v}_i\,(\hat{v}_{i,\text{ss}} - \hat{v}_i).
 \label{eq:nondim_state}
 \end{equation}
-\(K_c\) is the only place the control-loop period \(\Delta t\) and the rotor
+\(K_\tau\) is the only place the control-loop period \(\Delta t\) and the rotor
 radius \(\Rt\) enter the inverse.
 
 \paragraph{Yaw-rate contribution.}
@@ -1685,12 +1685,12 @@ Finally, the axial-flow composition \(V_\infty = V_\infty^{\text{aero}} +
 \(v_{\text{ref}}\), absorbs the geometric \(\ell_t\) into a scale factor
 with units of seconds
 \begin{empheq}[box=\fbox]{equation}
-K_d \;\equiv\; \frac{\ell_t}{v_{\text{ref}}},
+K_\omega \;\equiv\; \frac{\ell_t}{v_{\text{ref}}},
 \label{eq:nondim_D}
 \end{empheq}
 giving the dimensionless yaw-rate scaling
 \begin{equation}
-\hat{V}_\infty \;=\; \hat{V}_\infty^{\text{aero}} \;+\; K_d\,\dot\psi.
+\hat{V}_\infty \;=\; \hat{V}_\infty^{\text{aero}} \;+\; K_\omega\,\dot\psi.
 \label{eq:nondim_Vinf}
 \end{equation}
 The airframe airspeed component \(\hat{V}_\infty^{\text{aero}}\) either
@@ -1703,27 +1703,27 @@ The complete dimensionless inverse is the three update equations
 \eqref{eq:nondim_state}, with the yaw-rate scaling \eqref{eq:nondim_Vinf}
 on the input side. The stored constants are
 \begin{equation}
-K_a,\quad K_b,\quad K_c,\quad K_d
+K_u,\quad K_v,\quad K_\tau,\quad K_\omega
 \label{eq:nondim_paramset}
 \end{equation}
 plus any constants used to non-dimensionalise the airspeed estimator's
 output (typically zero on tail rotors without airspeed). Every other
 physical parameter of the rotor and air has dropped out. Counting
-independent content: \(K_a\) and \(K_b\) together carry two numbers
+independent content: \(K_u\) and \(K_v\) together carry two numbers
 (\(\lambda_{\text{ref}}\) and \(\sigma a\), via
-\eqref{eq:nondim_AB_relation}); \(K_c\) brings the rotor radius and the
-loop period; \(K_d\) brings the moment arm.
+\eqref{eq:nondim_AB_relation}); \(K_\tau\) brings the rotor radius and the
+loop period; \(K_\omega\) brings the moment arm.
 
 \paragraph{The steady command--pitch curve.}
 A useful by-product of the dimensionless pitch law is the steady
 response in pure hover. Setting \(\hat{v}_i = \hat{v}_{i,\text{ss}} =
 \sqrt{u}\) and \(\hat{V}_\infty = 0\) in \eqref{eq:nondim_pitch} gives
 \begin{equation}
-\thetat^{\text{steady}}(u) \;=\; K_a\,u \;+\; K_b\,\sqrt{u},
+\thetat^{\text{steady}}(u) \;=\; K_u\,u \;+\; K_v\,\sqrt{u},
 \label{eq:nondim_steady_curve}
 \end{equation}
-which depends on \((K_a,K_b)\) alone---\(K_c\) only enters in transients,
-\(K_d\) only when the airframe yaws.
+which depends on \((K_u,K_v)\) alone---\(K_\tau\) only enters in transients,
+\(K_\omega\) only when the airframe yaws.
 
 % =====================================================================
 \section{Control Loop Implementation}\label{sec:impl}
@@ -1735,7 +1735,7 @@ nonlinear dynamic inversion of the tail-rotor plant. This section
 collects those equations into a compact form suitable for direct
 implementation in an inner control loop: first the small set of
 exposed parameters a builder configures and the initialisation-time map from
-those parameters to the four stored coefficients \((K_a,K_b,K_c,K_d)\)
+those parameters to the four stored coefficients \((K_u,K_v,K_\tau,K_\omega)\)
 (Section~\ref{ssec:impl_exposed}); then the live-tick separation of
 fixed coefficients, inputs, state, and outputs
 (Section~\ref{ssec:impl_ios}); then the update law in the form a
@@ -1750,10 +1750,10 @@ prerequisite for running the loop itself.
 \subsection{Exposed Parameters}\label{ssec:impl_exposed}
 
 Section~\ref{sec:nondim} reduced the loop to four dimensionless
-coefficients \((K_a,K_b,K_c,K_d)\), but the firmware still has to choose those
+coefficients \((K_u,K_v,K_\tau,K_\omega)\), but the firmware still has to choose those
 numbers. Rather than expose the coefficients directly, we expose a
 smaller set of more physically intuitive quantities and compute
-\((K_a,K_b,K_c,K_d)\) from them at initialisation time.
+\((K_u,K_v,K_\tau,K_\omega)\) from them at initialisation time.
 
 We fix the implementer's choice of reference scale to
 \(T_{\text{ref}} = \bT\), so that the dimensionless command \(u=1\)
@@ -1811,7 +1811,7 @@ single rotor scalar \(\lambda_h\), given \(\sigma a\), \(\ell_t/\Rt\),
 \(\OmegaT\), and the loop period \(\Delta t\). The firmware does not
 measure \(\lambda_h\) directly; it derives it from \(\btheta\) by
 inverting the steady command--pitch curve \eqref{eq:nondim_steady_curve}
-at \(u=1\), which is exactly \(K_a+K_b=\btheta\). Substituting
+at \(u=1\), which is exactly \(K_u+K_v=\btheta\). Substituting
 \eqref{eq:nondim_A}--\eqref{eq:nondim_B} yields the quadratic
 \((12/\sigma a)\,\lambda_h^2 + (3/2)\,\lambda_h - \btheta = 0\), whose
 positive root is
@@ -1826,10 +1826,10 @@ The stored coefficients then follow by substituting
 \(v_{\text{ref}}=\lambda_h\,\OmegaT\,\Rt\) into
 \eqref{eq:nondim_A}--\eqref{eq:nondim_D}:
 \begin{equation}
-K_a = \frac{12\,\lambda_h^2}{\sigma a},\quad
-K_b = \frac{3\,\lambda_h}{2},\quad
-K_c = \frac{\Delta t}{\tau_i}\ \text{with}\ \tau_i = \frac{0.849}{4\,\lambda_h\,\OmegaT},\quad
-K_d = \frac{\ell_t/\Rt}{\lambda_h\,\OmegaT}.
+K_u = \frac{12\,\lambda_h^2}{\sigma a},\quad
+K_v = \frac{3\,\lambda_h}{2},\quad
+K_\tau = \frac{\Delta t}{\tau_i}\ \text{with}\ \tau_i = \frac{0.849}{4\,\lambda_h\,\OmegaT},\quad
+K_\omega = \frac{\ell_t/\Rt}{\lambda_h\,\OmegaT}.
 \label{eq:nondim_ABCD_from_exposed}
 \end{equation}
 The firmware loop period \(\Delta t\) is a firmware constant, and
@@ -1839,7 +1839,7 @@ at which \(\btheta\) was observed. Any unit conversion of \(\btheta\)
 from degrees to radians happens before
 \eqref{eq:nondim_lambda_h_from_theta}. The map
 \eqref{eq:nondim_lambda_h_from_theta}--\eqref{eq:nondim_ABCD_from_exposed}
-is evaluated once, at initialisation time, and \((K_a,K_b,K_c,K_d)\) are stored;
+is evaluated once, at initialisation time, and \((K_u,K_v,K_\tau,K_\omega)\) are stored;
 \(\OmegaT\) is not consulted again on the live control path. Runtime
 deviations of the actual rotor speed from \(\OmegaT\) (governor sag,
 transients) are analysed in Section~\ref{ssec:param_sensitivity}.
@@ -1854,12 +1854,12 @@ carried from one control tick to the next; quantities such as \(\viss\)
 and \(\tau_i\) are recomputed inside each tick and then discarded.
 
 \paragraph{Fixed coefficients.}
-\(K_a, K_b, K_c, K_d\) from Section~\ref{ssec:impl_exposed}. On the live
+\(K_u, K_v, K_\tau, K_\omega\) from Section~\ref{ssec:impl_exposed}. On the live
 control path the dimensional rotor and air parameters
 \(\rho, \At, \OmegaT, \Rt, \sigma, a, \ell_t\) appear nowhere; the loop
 period \(\Delta t\) and the apparent-mass coefficient
-\(\kappa=8/(3\pi)\approx 0.849\) have both been absorbed into \(K_c\).
-If the loop rate changes, \(K_c\) must be recomputed.
+\(\kappa=8/(3\pi)\approx 0.849\) have both been absorbed into \(K_\tau\).
+If the loop rate changes, \(K_\tau\) must be recomputed.
 
 \paragraph{Inputs} (provided each control tick):
 \begin{equation}
@@ -1870,17 +1870,17 @@ u(t),\qquad
 \end{equation}
 \(u\) is the dimensionless thrust command from the yaw outer loop,
 normalised so that \(u=1\) corresponds to the reference thrust
-\(T_{\text{ref}}\) used to define \(K_a\) and \(K_b\). It is taken positive
+\(T_{\text{ref}}\) used to define \(K_u\) and \(K_v\). It is taken positive
 in the thrust-producing direction used throughout
 Section~\ref{sec:inflow}. \(\hat V_\infty^{\text{aero}}\) and
 \(\hat V_\perp\) come from the airframe's airspeed estimator,
 non-dimensionalised by \(v_{\text{ref}}\) (or set to zero in near-hover
 applications). The body yaw rate \(\dot\psi\) is taken from the same
-gyro signal the outer yaw loop uses; together with \(K_d\), it gives the
+gyro signal the outer yaw loop uses; together with \(K_\omega\), it gives the
 axial-flow contribution discussed in Section~\ref{ssec:yaw_rate_axial}.
 Inside the tick the inverse uses the composite
 \begin{equation}
-\hat V_\infty(t) \;=\; \hat V_\infty^{\text{aero}}(t) \;+\; K_d\,\dot\psi(t),
+\hat V_\infty(t) \;=\; \hat V_\infty^{\text{aero}}(t) \;+\; K_\omega\,\dot\psi(t),
 \label{eq:impl_Vinf_composite}
 \end{equation}
 which is the only place \(\dot\psi\) enters the algebra below.
@@ -1911,15 +1911,15 @@ At each control tick of period \(\Delta t\), keep the order of ideas
 straight. First, the command and flight condition define the steady
 inflow target \(\hat v_{i,\text{ss}}\). Second, the current state
 \(\hat v_i\), not \(\hat v_{i,\text{ss}}\), is used to compute the pitch
-needed right now. Third, the discrete inflow-update coefficient \(K_c\)
+needed right now. Third, the discrete inflow-update coefficient \(K_\tau\)
 sets how far \(\hat v_i\) moves toward \(\hat v_{i,\text{ss}}\) during
 this tick:
 \begin{empheq}[box=\fbox]{align}
 u \;&=\; \hat v_{i,\text{ss}}\sqrt{(\hat V_\infty + \hat v_{i,\text{ss}})^2 + \hat V_\perp^2},
    \label{eq:impl_viss}\\[2pt]
-\thetat \;&=\; K_a\,u \;+\; K_b\,(\hat v_i + \hat V_\infty),
+\thetat \;&=\; K_u\,u \;+\; K_v\,(\hat v_i + \hat V_\infty),
    \label{eq:impl_theta}\\[2pt]
-\hat v_i \;&\leftarrow\; \hat v_i \;+\; K_c\,\hat v_i\,(\hat v_{i,\text{ss}} - \hat v_i).
+\hat v_i \;&\leftarrow\; \hat v_i \;+\; K_\tau\,\hat v_i\,(\hat v_{i,\text{ss}} - \hat v_i).
    \label{eq:impl_visi_update}
 \end{empheq}
 These are the three boxed equations \eqref{eq:nondim_momentum},
@@ -1973,7 +1973,7 @@ it reduces to a quadratic:
 This expression reduces to the near-hover result when
 \(\hat V_\infty=0\). It is useful when the implementation has a
 reasonable axial-flow estimate (typically dominated by the yaw-rate
-term \(K_d\,\dot\psi\)) but does not want to solve the full edgewise-flow
+term \(K_\omega\,\dot\psi\)) but does not want to solve the full edgewise-flow
 equation each tick. For strongly negative axial flow, the branch
 condition should be checked and the guarded scalar solve in
 \eqref{eq:impl_viss} should be used instead.
@@ -1981,7 +1981,7 @@ condition should be checked and the guarded scalar solve in
 \medskip
 \noindent
 Equations \eqref{eq:impl_viss}--\eqref{eq:impl_visi_update}, together
-with the four coefficients \(K_a, K_b, K_c, K_d\) of Section~\ref{sec:nondim},
+with the four coefficients \(K_u, K_v, K_\tau, K_\omega\) of Section~\ref{sec:nondim},
 are the deliverable of this note from a control-implementation
 standpoint. Representative magnitudes for the underlying physical
 parameters appear in Section~\ref{sec:params}.
@@ -1993,7 +1993,7 @@ parameters appear in Section~\ref{sec:params}.
 Section~\ref{ssec:impl_exposed} reduced the loop's tunables to three
 exposed parameters: hover trim pitch \(\btheta\), blade loading
 parameter \(\sigma a\), and boom-to-tail-radius ratio
-\(\ell_t/\Rt\). The stored coefficients \((K_a,K_b,K_c,K_d)\) are derived
+\(\ell_t/\Rt\). The stored coefficients \((K_u,K_v,K_\tau,K_\omega)\) are derived
 from them at initialisation time via
 \eqref{eq:nondim_lambda_h_from_theta}--\eqref{eq:nondim_ABCD_from_exposed}.
 This section answers three practical questions about those three
@@ -2040,22 +2040,22 @@ Flying mass [kg]                      & 0.75   & 3.0    & 5.0    \\
 \midrule
 \multicolumn{4}{l}{\emph{Derived stored coefficients:}}\\
 \(\lambda_h\)                         & 0.048  & 0.051  & 0.062  \\
-\(K_a\)~[deg]                           & 1.9    & 2.6    & 3.3    \\
-\(K_b\)~[deg]                           & 4.1    & 4.4    & 5.3    \\
-\(K_c\) at \(\Delta t=\SI{1}{\ms}\)     & 0.31   & 0.24   & 0.30   \\
-\(K_d\)~[s]                             & 0.086  & 0.122  & 0.107  \\
+\(K_u\)~[deg]                           & 1.9    & 2.6    & 3.3    \\
+\(K_v\)~[deg]                           & 4.1    & 4.4    & 5.3    \\
+\(K_\tau\) at \(\Delta t=\SI{1}{\ms}\)     & 0.31   & 0.24   & 0.30   \\
+\(K_\omega\)~[s]                             & 0.086  & 0.122  & 0.107  \\
 \bottomrule
 \end{tabular}
 \caption{Representative exposed parameters and derived stored
-coefficients for three heli classes. \(K_a\) and \(K_b\) are reported
+coefficients for three heli classes. \(K_u\) and \(K_v\) are reported
 in degrees (the firmware unit of \(\btheta\)); by construction
-\(K_a+K_b=\btheta\) at hover. \(K_c\) is dimensionless; \(K_d\) has units of
+\(K_u+K_v=\btheta\) at hover. \(K_\tau\) is dimensionless; \(K_\omega\) has units of
 seconds (it multiplies \(\dot\psi\) in rad/s).}
 \label{tab:exposed_class}
 \end{table}
 
 Across the range \(\btheta\) varies by under 50\% and \(\sigma a\)
-by under 20\%; the discrete inflow gain \(K_c\) sits near 0.3
+by under 20\%; the discrete inflow gain \(K_\tau\) sits near 0.3
 throughout---a near-similarity result, since
 \(\lambda_h\OmegaT\propto v_h\) (and hence \(1/\tau_i\)) is set by
 tail-rotor disc loading, which is approximately constant across the
@@ -2068,35 +2068,35 @@ How tolerant is the loop to a wrong value in each stored parameter
 the governor-sourced rotor speed \(\OmegaT\))?
 Implicit differentiation of the static
 quadratic~\eqref{eq:nondim_lambda_h_from_theta}, using
-\(\partial f/\partial\lambda_h = (2K_a+K_b)/\lambda_h\) and writing
+\(\partial f/\partial\lambda_h = (2K_u+K_v)/\lambda_h\) and writing
 fractional sensitivities (elasticities) as ratios of logarithmic
 differentials, gives the closed-form result
 \begin{equation}
-\frac{d\ln\lambda_h}{d\ln\btheta} \;=\; \frac{K_a+K_b}{2K_a+K_b},
+\frac{d\ln\lambda_h}{d\ln\btheta} \;=\; \frac{K_u+K_v}{2K_u+K_v},
 \qquad
-\frac{d\ln\lambda_h}{d\ln(\sigma a)} \;=\; \frac{K_a}{2K_a+K_b}.
+\frac{d\ln\lambda_h}{d\ln(\sigma a)} \;=\; \frac{K_u}{2K_u+K_v}.
 \label{eq:lambda_elasticity}
 \end{equation}
 The two elasticities sum to
-\((K_a+K_b)/(2K_a+K_b) + K_a/(2K_a+K_b) = (2K_a+K_b)/(2K_a+K_b) = 1\), reflecting that
+\((K_u+K_v)/(2K_u+K_v) + K_u/(2K_u+K_v) = (2K_u+K_v)/(2K_u+K_v) = 1\), reflecting that
 \(\lambda_h\) is fixed by the product \(\sigma a\cdot\btheta\) up to
 the quadratic correction. At the 700-class operating point of
-Table~\ref{tab:exposed_class} (\(K_a=3.3\), \(K_b=5.3\)) the elasticities
+Table~\ref{tab:exposed_class} (\(K_u=3.3\), \(K_v=5.3\)) the elasticities
 evaluate to \(8.6/11.9=0.72\) and \(3.3/11.9=0.28\): a 10\% increase
 in \(\btheta\) raises \(\lambda_h\) by 7.2\%, and a 10\% increase in
 \(\sigma a\) raises it by 2.8\%.
 
 Propagating these through~\eqref{eq:nondim_ABCD_from_exposed} (using
-\(K_a\propto\lambda_h^2/\sigma a\), \(K_b\propto\lambda_h\),
-\(K_c\propto\lambda_h\OmegaT\Delta t\), and
-\(K_d\propto(\ell_t/\Rt)/(\lambda_h\OmegaT)\)) yields the fractional
+\(K_u\propto\lambda_h^2/\sigma a\), \(K_v\propto\lambda_h\),
+\(K_\tau\propto\lambda_h\OmegaT\Delta t\), and
+\(K_\omega\propto(\ell_t/\Rt)/(\lambda_h\OmegaT)\)) yields the fractional
 sensitivities of the stored coefficients:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{lcccc}
 \toprule
-\(+10\%\) change in   & \(K_a\)      & \(K_b\)     & \(K_c\)     & \(K_d\)      \\
+\(+10\%\) change in   & \(K_u\)      & \(K_v\)     & \(K_\tau\)     & \(K_\omega\)      \\
 \midrule
 \(\btheta\)           & \(+14\%\)  & \(+7\%\)  & \(+7\%\)  & \(-7\%\)   \\
 \(\sigma a\)          & \(-4\%\)   & \(+3\%\)  & \(+3\%\)  & \(-3\%\)   \\
@@ -2107,20 +2107,20 @@ sensitivities of the stored coefficients:
 \end{center}
 
 \paragraph{What the table says.}
-The first row is dominated by \(K_a\), which is quadratic in
+The first row is dominated by \(K_u\), which is quadratic in
 \(\lambda_h\); the second row is muted because the response of
 \(\lambda_h\) to \(\sigma a\) is roughly cancelled by the explicit
-\(\sigma a\) in the denominator of \(K_a=12\lambda_h^2/\sigma a\). The
+\(\sigma a\) in the denominator of \(K_u=12\lambda_h^2/\sigma a\). The
 third and fourth rows are exact---\(\ell_t/\Rt\) and \(\OmegaT\)
-enter only the dynamic coefficients \(K_d\) (and, for \(\OmegaT\), also
-\(K_c\)) and do not perturb \(K_a\) or \(K_b\) at all. Crucially, the
-\emph{hover static gain is invariant}: by construction \(K_a+K_b=\btheta\)
+enter only the dynamic coefficients \(K_\omega\) (and, for \(\OmegaT\), also
+\(K_\tau\)) and do not perturb \(K_u\) or \(K_v\) at all. Crucially, the
+\emph{hover static gain is invariant}: by construction \(K_u+K_v=\btheta\)
 at \(u=1\), regardless of how \(\sigma a\) splits the sum between the
 two coefficients and independent of \(\ell_t/\Rt\) or \(\OmegaT\).
 Errors in the stored parameters therefore appear only off-hover (in
-the curvature of the command--pitch map set by the \(K_a u\) term) and
-in the dynamics (the inflow lag set by \(K_c\) and the yaw-rate axial
-coupling set by \(K_d\)).
+the curvature of the command--pitch map set by the \(K_u u\) term) and
+in the dynamics (the inflow lag set by \(K_\tau\) and the yaw-rate axial
+coupling set by \(K_\omega\)).
 
 \begin{itemize}[leftmargin=*,itemsep=4pt,topsep=2pt]
 \item \(\btheta\) is the most influential of the three user-tunable
@@ -2131,7 +2131,7 @@ unlikely once a single hover trim has been read.
 covers all two-bladed symmetric-foil tail rotors to better than 5\%
 on the stored coefficients, and the static hover relation is
 unaffected. There is little reason to expose this knob to the user.
-\item \(\ell_t/\Rt\) enters only \(K_d\), which is multiplied by
+\item \(\ell_t/\Rt\) enters only \(K_\omega\), which is multiplied by
 \(\dot\psi\). At small yaw rates the contribution is negligible; at
 a 500\,\si{\degree\per\second} 3D pirouette
 (\(\dot\psi\approx\SI{8.7}{\radian\per\second}\)) a 10\% error in
@@ -2140,7 +2140,7 @@ axial flow, perturbing the operating point without destabilising the
 loop.
 \item \(\OmegaT\) is the nominal governed rotor speed, taken from the
 rotor governor's configured setpoint rather than tuned independently.
-It enters only the dynamic coefficients (\(K_c\) linearly, \(K_d\)
+It enters only the dynamic coefficients (\(K_\tau\) linearly, \(K_\omega\)
 inversely) and leaves the hover static gain untouched. The standing
 headspeed should be re-entered---and \(\btheta\) re-observed---if the
 governor target changes by more than \(\sim 10\%\); runtime deviations
@@ -2149,7 +2149,7 @@ dedicated paragraph below.
 \end{itemize}
 
 \paragraph{Runtime deviations of the actual rotor speed.}
-The stored \((K_a,K_b,K_c,K_d)\) freeze \(\OmegaT\) at its nominal value.
+The stored \((K_u,K_v,K_\tau,K_\omega)\) freeze \(\OmegaT\) at its nominal value.
 The actual rotor speed deviates from this on at least two timescales:
 brief headspeed sag during high-load segments (autorotation entries,
 heavy collective pumps, sharp yaw demands) and slower drift in the
@@ -2169,13 +2169,13 @@ integral action.
 \(\tau_i = 0.849/(4\,\lambda_i\,\OmegaT)\) shortens roughly linearly
 with \(\OmegaT^{\text{act}}\) (eq.~\eqref{eq:tau_i}), so the actual
 \(\tau_i\) is \((1-\epsilon)\) times its nominal value. The stored
-\(K_c\) over-discretises by the same fraction, slightly slowing the
+\(K_\tau\) over-discretises by the same fraction, slightly slowing the
 state's chase of \(\hat v_{i,\text{ss}}\); the effect is small and
 of correct sign in the lead--lag analysis.
 \item \emph{Yaw-rate axial flow.} The dimensional contribution
-\(\ell_t\dot\psi\) does not depend on \(\OmegaT\) at all, and \(K_d\)
+\(\ell_t\dot\psi\) does not depend on \(\OmegaT\) at all, and \(K_\omega\)
 was computed once with the nominal \(\OmegaT\); the stored
-\(\hat V_\infty = K_d\,\dot\psi\) therefore mis-states the
+\(\hat V_\infty = K_\omega\,\dot\psi\) therefore mis-states the
 non-dimensional axial flow at the actual operating point by the
 fractional change in \(v_{\text{ref}}\) (itself proportional to
 \(\OmegaT\) through \(v_h=\lambda_h\OmegaT\Rt\)), i.e.\ by
@@ -2221,8 +2221,8 @@ after any significant payload change. \(\sigma a\) and
 \(\OmegaT\) is a configuration-time constant set to the governor's nominal
 target. Changing the standing headspeed requires updating that
 constant and re-running the initialisation-time map---\(\lambda_h\) is
-unchanged (it is derived from \(\btheta\)), but \(K_c\propto\OmegaT\)
-and \(K_d\propto 1/\OmegaT\) shift linearly with it. The hover trim
+unchanged (it is derived from \(\btheta\)), but \(K_\tau\propto\OmegaT\)
+and \(K_\omega\propto 1/\OmegaT\) shift linearly with it. The hover trim
 pitch \(\btheta\) itself also shifts mildly---thrust at fixed pitch
 scales as \(\OmegaT^2\), so a lower headspeed needs a larger
 \(\btheta\) to deliver the same tail thrust---and should be
@@ -2302,7 +2302,7 @@ RC practitioners often use \(\tau_i\approx 0.1\)--\(0.3\) rotor
 revolutions empirically. For design, the Pitt--Peters value should
 therefore be treated as a lower bound on the inflow lag, and either
 inflated by a fitted multiplier or verified against bench data before
-being used to set compensator coefficients. The coefficient \(K_c\) in
+being used to set compensator coefficients. The coefficient \(K_\tau\) in
 \eqref{eq:nondim_ABCD_from_exposed} inherits this same uncertainty and
 is the natural place to absorb a fitted correction.
 
@@ -2339,7 +2339,7 @@ contribution \(\ell_t\dot\psi\) rather than by the airframe-translation
 component \(V_\infty^{\text{aero}}\)
 (Section~\ref{ssec:yaw_rate_axial}); in slow forward flight or
 sustained hover the two contributions can be of comparable magnitude.
-The \(K_d\,\dot\psi\) term \eqref{eq:impl_Vinf_composite} captures the
+The \(K_\omega\,\dot\psi\) term \eqref{eq:impl_Vinf_composite} captures the
 dominant component for free; the airspeed-based correction is optional
 and only earns its keep on airframes that fly meaningful translational
 speeds.
@@ -2348,7 +2348,7 @@ speeds.
 The moment arm \(\ell_t\) is the geometric distance from the airframe
 yaw centre (close to the CG) to the tail-rotor hub. On machines with
 relocatable batteries or significant fuselage mass changes it shifts
-slightly with loadout, which propagates linearly into \(K_d\). Treating
+slightly with loadout, which propagates linearly into \(K_\omega\). Treating
 it as fixed is acceptable for typical RC loadouts, where the shift is
 a few percent; competition pilots who change battery position between
 disciplines may wish to expose a per-setup override.
