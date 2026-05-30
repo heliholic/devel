@@ -2495,6 +2495,111 @@ only torques external to the combined system, the motor torque
 \(\tau_m\) being internal between the rotor and the airframe)
 reproduces \eqref{eq:yaw_eom_main} directly.
 
+\subsection{Motor and Governor Dynamics}\label{ssec:yaw_motor_dynamics}
+
+Section~\ref{ssec:yaw_omega_coupling} took the governor as ideal,
+holding \(\Omega_M\) exactly at its set point regardless of
+disturbances. A practical governor has finite bandwidth, set by the
+closed-loop dynamics of the controller driving the motor. This
+subsection models the controller as a proportional--integral (PI)
+loop, derives the resulting rotor-speed dynamics under varying drag,
+and reinstates the rotor-speed transient term in the yaw equation.
+
+Let \(\Omega_M^{\text{set}}\) be the shaft-relative speed set point,
+treated as constant. A PI governor commands the motor torque as
+\begin{equation}
+\tau_m \;=\; K_P\,(\Omega_M^{\text{set}}-\Omega_M)
+       \;+\; K_I\!\int(\Omega_M^{\text{set}}-\Omega_M)\,dt,
+\label{eq:tau_m_PI}
+\end{equation}
+with \(K_P,\,K_I>0\) the proportional and integral gains. At trim
+the integral term has accumulated the steady value
+\(\bar\tau_m=\bar Q_M\) required to sustain the rotor against the
+trim drag, and the speed error vanishes
+(\(\Omega_M=\Omega_M^{\text{set}}\)).
+
+Substituting \eqref{eq:tau_m_PI} into the rotor
+equation~\eqref{eq:rotor_newton}, writing
+\(\delta\Omega_M=\Omega_M-\Omega_M^{\text{set}}\) for the speed
+error and \(\delta Q_M=Q_M-\bar Q_M\) for the drag perturbation
+about trim, the steady balance \(\bar\tau_m=\bar Q_M\) cancels.
+Introducing the integrator state
+\(\chi\equiv\int\delta\Omega_M\,dt\) (so \(\dot\chi=\delta\Omega_M\)
+and \(\ddot\chi=\delta\dot\Omega_M\)), the closed-loop rotor-speed
+ODE is
+\begin{empheq}[box=\fbox]{equation}
+I_M\,\ddot\chi \;+\; K_P\,\dot\chi \;+\; K_I\,\chi
+\;=\; -\,\delta Q_M \;-\; I_M\,\dot\omega.
+\label{eq:gov_closed_loop_ode}
+\end{empheq}
+The left-hand side is a standard mass--damper--spring with
+effective inertia \(I_M\), damping \(K_P\), and stiffness \(K_I\);
+the right-hand side carries two disturbances: the aerodynamic drag
+perturbation \(\delta Q_M\) (slow, set by collective and loading)
+and the inertial term \(-I_M\dot\omega\) (transient, set by the yaw
+equation itself). The closed-loop natural frequency and damping
+ratio are
+\begin{equation}
+\omega_n \;=\; \sqrt{K_I/I_M},
+\qquad
+\zeta \;=\; K_P\big/\bigl(2\sqrt{K_I\,I_M}\bigr).
+\label{eq:gov_natural}
+\end{equation}
+The PI structure guarantees zero steady-state speed error: against
+any constant \(\delta Q_M\) or constant \(\dot\omega\) the
+integrator drives \(\delta\Omega_M\to 0\), absorbing the
+disturbance into a shift of \(\chi\).
+
+\paragraph{Yaw equation with motor coupling.}
+Equation~\eqref{eq:yaw_eom_main} was derived under
+\(\dot\Omega_M=0\). Reinstating \(\dot\Omega_M\) in the rotor
+equation~\eqref{eq:rotor_newton}, the motor torque is
+\(\tau_m = Q_M + I_M(\dot\Omega_M + \dot\omega)\), and through
+\eqref{eq:tau_shaft_to_frame} its reaction reaches the airframe as
+\begin{equation}
+\tau_{\text{s}\to\text{f}}
+\;=\; -\bigl(Q_M \;+\; I_M\,\dot\Omega_M \;+\; I_M\,\dot\omega\bigr).
+\label{eq:tau_sf_with_motor}
+\end{equation}
+Substituting into the airframe equation
+\eqref{eq:yaw_frame_newton} together with \eqref{eq:tau_tail} and
+collecting the \(\dot\omega\) terms on the left,
+\begin{empheq}[box=\fbox]{equation}
+(I_z+I_M)\,\dot\omega \;=\; \Tt\,\ell_t \;-\; Q_M \;-\; I_M\,\dot\Omega_M.
+\label{eq:yaw_eom_with_motor}
+\end{empheq}
+The new term \(-I_M\dot\Omega_M\) is the disturbance felt on the
+yaw axis whenever the rotor speed deviates from its set point. Its
+sign cooperates with the yaw acceleration that produced it: if the
+airframe begins to yaw-accelerate faster than the motor (with the
+help of the governor) can match, so \(\tau_m\) initially
+undersupplies the inertial term \(I_M\dot\omega\), the rotor
+decelerates (\(\dot\Omega_M<0\)), the reaction onto the airframe
+through the motor mount weakens, and the rotor's lost angular
+momentum transfers to the airframe: \(-I_M\dot\Omega_M>0\) adds
+to the right-hand side of~\eqref{eq:yaw_eom_with_motor}. The yaw
+transient therefore initially overshoots the ideal-governor
+prediction~\eqref{eq:yaw_eom_main} and relaxes back toward it as
+the governor catches up. In the infinite-bandwidth limit
+(\(\omega_n\to\infty\)) the governor pins \(\dot\Omega_M=0\) and
+\eqref{eq:yaw_eom_with_motor} reduces to \eqref{eq:yaw_eom_main}.
+
+\paragraph{Time scales.}
+Practical RC main-motor governor bandwidths are slow,
+\(\omega_n\lesssim\SI{60}{\radian\per\second}\) (a few Hz, up to
+about \SI{10}{\hertz}), set by the motor-controller PI gains and
+the electrical dynamics of the ESC. The tail-rotor outer PID loop,
+by contrast, runs at the gyro update rate and typically achieves
+loop bandwidths in excess of \SI{100}{\hertz}---more than a
+decade faster than the governor. The \(-I_M\dot\Omega_M\) term
+therefore varies on a time scale at least an order of magnitude
+slower than the outer yaw loop, and the loop's own integrator
+rejects it as a low-frequency disturbance without inner-loop
+compensation. Slow drift in \(\delta Q_M\) from collective-pitch
+changes is absorbed by the governor's integrator within a few
+governor time constants and contributes nothing to
+\(\dot\Omega_M\) at steady state.
+
 \subsection{Aerodynamic Correction to the Anti-Torque}\label{ssec:yaw_drag_speed}
 
 Equation~\eqref{eq:yaw_eom_main} carries \(Q_M\) as a constant
@@ -2547,14 +2652,16 @@ the time required to reach a given yaw rate by a factor
 \((I_z+I_M)/I_z\).
 
 \paragraph{(iii) Governor bandwidth.}
-Equation~\eqref{eq:yaw_eom_main} is exact in the
-infinite-bandwidth governor limit. A finite-bandwidth governor
-admits \(\dot\Omega_M\ne 0\) during transients, adding a term
-\(I_M\dot\Omega_M\) to the right-hand side of
-\eqref{eq:yaw_eom_main}. The effect manifests as a transient
-disturbance on the yaw axis and a plant-gain shift on the inner
-loop; the latter is the same effect catalogued under ``governor
-sag'' in Section~\ref{ssec:param_sensitivity}.
+The \(-I_M\dot\Omega_M\) disturbance term
+in~\eqref{eq:yaw_eom_with_motor}, derived in
+Section~\ref{ssec:yaw_motor_dynamics}, vanishes only in the
+infinite-bandwidth limit. At realistic bandwidths
+(\(\omega_n\lesssim\SI{10}{\hertz}\), well below the outer yaw
+loop's \(\gtrsim\SI{100}{\hertz}\)) it acts as a slow,
+low-frequency disturbance on the yaw axis that the outer loop's
+integrator rejects, and on the inner loop as the plant-gain shift
+catalogued under ``governor sag'' in
+Section~\ref{ssec:param_sensitivity}.
 
 \paragraph{Worked example (700 class).}
 Extending the worked example of
