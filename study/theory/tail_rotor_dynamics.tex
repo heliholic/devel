@@ -833,12 +833,12 @@ the windmill-brake or vortex-ring states where the smooth-wake
 momentum closure breaks down (Section~\ref{ssec:actuator_disc}).
 
 \paragraph{Magnitude.}
-RC helicopters routinely reach yaw rates of \(\dot\psi=\SI{600}{\degree\per\second}
-\approx \SI{10.5}{\radian\per\second}\) in 3D flight, with extreme
+RC helicopters routinely reach yaw rates of \(\dot\psi=\SI{500}{\degree\per\second}
+\approx \SI{8.7}{\radian\per\second}\) in 3D flight, with extreme
 pirouette flips going higher. For a 700 class machine with
 \(\ell_t\approx\SI{0.95}{\metre}\) the resulting axial velocity is
-\(\ell_t\dot\psi\approx\SI{10}{\metre\per\second}\), comparable to or
-greater than the hover induced velocity \(\bvi\approx\SI{9}{\metre\per\second}\)
+\(\ell_t\dot\psi\approx\SI{8.3}{\metre\per\second}\), comparable to
+the hover induced velocity \(\bvi\approx\SI{9}{\metre\per\second}\)
 of the same rotor (see Section~\ref{ssec:worked_example}). Smaller
 classes get smaller \(\ell_t\) but proportionally smaller \(\bvi\) too,
 so the dimensionless ratio \(\ell_t\dot\psi/\bvi\) reaches order unity
@@ -2133,9 +2133,9 @@ on the stored coefficients, and the static hover relation is
 unaffected. There is little reason to expose this knob to the user.
 \item \(\ell_t/\Rt\) enters only \(K_d\), which is multiplied by
 \(\dot\psi\). At small yaw rates the contribution is negligible; at
-a 600\,\si{\degree\per\second} 3D pirouette
-(\(\dot\psi\approx\SI{10.5}{\radian\per\second}\)) a 10\% error in
-\(\ell_t/\Rt\) corresponds to roughly a 1~m/s error in the effective
+a 500\,\si{\degree\per\second} 3D pirouette
+(\(\dot\psi\approx\SI{8.7}{\radian\per\second}\)) a 10\% error in
+\(\ell_t/\Rt\) corresponds to roughly a 0.8~m/s error in the effective
 axial flow, perturbing the operating point without destabilising the
 loop.
 \item \(\OmegaT\) is the nominal governed rotor speed, taken from the
@@ -2268,13 +2268,13 @@ thrust delivered for a given blade pitch is about \(56\%\) of the
 open-loop (frozen-wake) value.
 
 \paragraph{Yaw-rate contribution.}
-At a sustained 3D yaw rate of \(\dot\psi=\SI{600}{\degree\per\second}=10.5\)
+At a sustained 3D yaw rate of \(\dot\psi=\SI{500}{\degree\per\second}=8.73\)
 rad/s, the axial-flow contribution from yawing alone is
 \begin{equation*}
-\ell_t\dot\psi \;=\; 0.95\cdot 10.5 \;=\; 9.95~\text{m/s},
+\ell_t\dot\psi \;=\; 0.95\cdot 8.73 \;=\; 8.29~\text{m/s},
 \end{equation*}
-slightly larger than the hover induced velocity \(\bvi=8.92\)~m/s
-itself, and giving \(\mu_z=\ell_t\dot\psi/(\OmegaT\Rt)=0.069\) against
+comparable to the hover induced velocity \(\bvi=8.92\)~m/s
+itself, and giving \(\mu_z=\ell_t\dot\psi/(\OmegaT\Rt)=0.057\) against
 \(\lambda_h=0.0615\). In a with-thrust pirouette this axial flow
 reduces the rotor's own \(\viss\) substantially; in an against-thrust
 pirouette of the same magnitude the operating point approaches the
